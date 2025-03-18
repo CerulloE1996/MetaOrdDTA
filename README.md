@@ -1,25 +1,21 @@
-BayesMVP uses diffusion-pathspace adaptive Hamiltonian Monte Carlo (HMC) to efficiently sample the 
-multivariate probit model (MVP) - which is used to model correlated binary data - as well as the latent class MVP
-model (LC-MVP) and the latent trait model, which are commonly used in medical applications to model diagnostic 
-and/or screening test accuracy data. 
+**MetaOrdDTA** is an R package for the meta-analysis (MA) and network-meta-analysis (NMA) of medical (e.g., for diagnostic and screening) tests at all thresholds using ordinal regression-based models. 
 
-In addition, it can also **sample any user-supplied Stan model**, and performs best for models with 
-a high-dimensional latent variable vector (or "nuisance parameters"). 
+Note that, eventhough **MetaOrdDTA** was originally made to analyse ordianl tests (such as queestionnaires), it can still be used for continuous tests (such as biomarkers) - using either semi-parameteric meta-analysis model proposed by Jones et al (Jones et al, 2019) - which was designed for continuous tests - or the ordinal regression based models. The latter may give 
 
-BayesMVP makes use of two state-of-the-art HMC algorithms. For the burnin phase, it uses an algorithm which 
-is based on the recently proposed **SNAPER-HMC** (Sountsov et al, 2022). For the sampling (i.e., post-burnin)
-phase, it uses standard HMC _(with randomized path length)_ to sample the main model parameters, and then 
-it samples the nuisance parameters using **diffusion-pathspace HMC** (Beskos et al, 2013). 
+Some facts about MetaOrdDTA:
+- All models are coded in **Stan**, using the cmdstanr R package.
+- MCMC summary estimates of model parameters (including "raw" parameters - and also generated qantities such as sensitivity and specificy at each test threshold)
 
-Furthermore, specifically for the three built-in models (i.e. the MVP, LC_MVP, and latent_trait), 
-it achieves rapid sampling by using: 
-manually-derived gradients,
-chunking, 
-and (on systems with AVX-512 and/or AVX2) fast approximate, vectorised (SIMD) math functions. 
+**Coming soon:**
+- **Covariates**: Inclusion of one (or more) covariates to conduct (network or single) meta-regression of test accuracy.
+- 
 
-Users can also use the optimised manual-gradient lp_grad functions for the 3 built-in models with Stan directly 
-(via the cmdstanr R package) by downloading/installing the R package, and  then, when you compile your Stan model 
-with cmdstanr using cmdstan_model(), use the user_header argument as follows: 
+
+
+
+An R package for the meta-analysis and network-meta-analysis of diagnostic and screening tests, optimised for ordinal tests such as questionnaires (with possibly missing threshold data is some or all studies). However, it can also be used for binary and continuous tests (e.g. using the Jones et al model). 
+
+
 
       ## path to Stan model
       file <- file.path(pkg_dir, "inst/stan_models/LC_MVP_bin_w_mnl_cpp_grad_v1.stan") 
@@ -31,8 +27,33 @@ with cmdstanr using cmdstan_model(), use the user_header argument as follows:
 
 
 
-References:
+**References:**
 
-SNAPER-HMC:  https://arxiv.org/abs/2110.11576v1
+**Stan:**
+Stan Development Team, 2024, Stan Reference Manual, version 2.36.0. https://mc-stan.org 
 
-Diffusion-pathspace HMC: https://www.sciencedirect.com/science/article/pii/S0304414912002621
+**cmdstanr** R package (to run Stan / NUTS-HMC):
+Gabry J, Češnovar R, Johnson A, Bronder S (2024). cmdstanr: R Interface to 'CmdStan'. R package version 0.8.1. https://github.com/stan-dev/cmdstanr.
+
+**BayesMVP R package:**
+https://github.com/CerulloE1996/BayesMVP
+
+**Cerullo et al, 2024:** 
+https://onlinelibrary.wiley.com/doi/10.1002/jrsm.1567
+https://arxiv.org/abs/2103.06858 [may be more up to date in the future]
+
+**Nyaga et al, 2016:**
+https://journals.sagepub.com/doi/10.1177/0962280216669182
+
+**Jones et al, 2019:**
+https://pubmed.ncbi.nlm.nih.gov/31571244/
+
+**Xu et al, 2013:** 
+https://pubmed.ncbi.nlm.nih.gov/23212851/
+
+**Rutter & Gatsonis, 2001:**
+https://onlinelibrary.wiley.com/doi/10.1002/sim.942
+
+**SNAPER-HMC (Sountsov & Hoffman, 2022) :**  
+https://arxiv.org/abs/2110.11576v1
+
