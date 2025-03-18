@@ -1,0 +1,17 @@
+Package: MetaOrdDTA
+Type: Package
+Title: MetaOrdDTA: An R package for the meta-analysis and network-meta-analysis of ordinal (and other) diagnostic and screening tests at multiple thresholds. 
+Version: 1.0
+Date: 2024-05-18
+Author: Enzo Cerullo
+Maintainer: Enzo Cerullo <enzo.cerullo@bath.edu>
+Description: An R package for the meta-analysis and network-meta-analysis of diagnostic and screening tests, optimised for ordinal tests such as questionnaires (with possibly missing threshold data is some or all studies). However, it can also be used for binary and continuous tests (e.g. using the Jones et al model). 
+License: GPL-3
+Imports: cmdstanr, bayesplot, posterior, dplyr, ggplot2, tibble, tictoc
+LinkingTo:
+Suggests: roxygen2
+Roxygen: list(markdown = TRUE, roclets = c("namespace", "rd"))
+SystemRequirements: GNU make, C++17
+RoxygenNote: 7.3.2
+Encoding: UTF-8
+Depends: R (>= 3.5.0)
