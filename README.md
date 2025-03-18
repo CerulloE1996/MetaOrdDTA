@@ -8,7 +8,7 @@ Note that we are currently writing a paper which contains a real-life-based simu
 
 The table below shows some **priliminary** results (mentioned above) obtained from our simulation study:
 
-## Model Performance on PHQ-9 Data (27 categories)
+## (PRELIMINARY) Model Performance on simulated data (based on real-life PHQ-9 data w/ 28 ordinal categories)
 
 | Model | Mean Absolute Difference |  | Max. Absolute Difference |  |
 | --- | :---: | :---: | :---: | :---: |
