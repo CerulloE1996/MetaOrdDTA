@@ -1,8 +1,33 @@
-**MetaOrdDTA** is an R package for the meta-analysis (MA) and network-meta-analysis (NMA) of medical (e.g., for diagnostic and screening) tests at all thresholds (including unreported or "missing" thresholds) using ordinal regression-based models. 
+**MetaOrdDTA** is an R package for the meta-analysis (MA) and network-meta-analysis (NMA) of medical (e.g., for diagnostic and screening) tests across all test thresholds (including unreported or "missing" thresholds) using ordinal regression-based models. 
+
+Unlike most methods, it allows users to input ALL data in the analysis and still produce summary measures of sensitivty (Se) and specificity (Sp) at every test threshold - rather than "partitioning" the data at each threshold (which does not make full use of the data - unless every study reports data at every single test threshold - which is unfortunately still very rare)
+
+MetaOrdDTA addresses a critical gap in diagnostic test meta-analysis by appropriately handling ordinal data structures while maximizing information use from incomplete (and heterogeneous) reporting of test accuracy data across studies — offering a comprehensive solution for researchers synthesizing diagnostic and screening test accuracy evidence at multiple thresholds.
 
 
-Unlike most methods, it allows users to input ALL data in the analysis and still produce summary measures of sensitivty (Se) and specificity (Sp) at every test threshold - rather than "partitioning" the data at each threshold (which does not make full use of the data - unless every study reports data at every single test threshold - which is unfortunately still very rare).
 
+# 0. Summary of MetaOrdDTA:
+
+Unlike conventional approaches that analyze each threshold separately, MetaOrdDTA enables researchers to do the following 2 things **simultaneously**: 
+1. Include all available data, regardless of which test threshold(s) the authors of any given study reported the data at.
+2. Producing summary estimates of Se and Sp estimates at every threshold — even those unreported in some studies.
+
+MetaOrdDTA is built on ordinal regression principles (e.g. see Betancourt et al, 2019) and the within-study moodel/likelihood is based on that proposed in Jones et al, 2019. MetaOrdDTA extends previously established models (Rutter & Gatsonis, 2001; Reitsma et al, 2005) to accommodate scenarios where different studies report different thresholds. 
+
+The R package implements two primary model parameterizations: 
+1. The "Xu" (based on an extended version of the Xu et al, 2013 single-study model) approach, which uses freely estimated location parameters with explicit between-study correlation modeling, and:
+2. The "R&G" parameterization, which extends the widely-used HSROC model (Rutter & Gatsonis, 2001) to multiple/missing thresholds with implicit correlation modelling.
+ - Both (1) and (2) model parameterisations above can be implemented with fixed-effect or random-effct test thresholds using the induced-Dirichlet (see Betancourt et al, 2019 and Cerullo et al, 2022) model as a prior (for fixed-effects thresholds model) or as a between-study model (for random-effects thresholds model) for robust estimation and more intuitive prior modelling (regardless of whether one wishes to use flat priors or more informative priors based on domain expertise). 
+
+Preliminary simulation studies using real-world-based PHQ-9 depression screening data (the PHQ-9 has 28 ordered categories) suggest MetaOrdDTA produces more accurate sensitivity and specificity estimates than alternative methods - the mean absolute differences in Se were as low as 1.2% for MetaOrdDTA's fixed-cutpoint model, compared to 4.3-5.6% for competing approaches, with smaller improvements in Sp estimation (likely because in our simulation the disease prevalence was set to be around 20%).
+
+MetaOrdDTA's advantages stem from its ability to model data as truly ordinal rather than imposing continuous assumptions, making it particularly suited for questionnaire-based tests - whilst still remaining perfectly applicable and still appropriate for continuous (e.g., biomarker) data. 
+
+The package employs Stan for robust Bayesian estimation with flexible prior specification, allowing researchers to incorporate domain expertise.
+
+The package also provides functions for extracting MCMC summary estimates of all model parameters and derived quantities, and also allows users to easily plot the full summary sROC plots for Se and Sp at each threshold, including plotting the 95% credible regions and 95% prediction regions for all models.
+
+Future updates will incorporate covariates for meta-regression and implement faster estimation procedures based on SNAPER-HMC (Sountsov & Hoffman, 2022) algorithms via out other recently released R package - BayesMVP (see https://github.com/CerulloE1996/BayesMVP for more details on BayesMVP).
 
 
 
