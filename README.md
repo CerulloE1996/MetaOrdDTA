@@ -1,4 +1,10 @@
-**MetaOrdDTA** is an R package for the meta-analysis (MA) and network-meta-analysis (NMA) of medical (e.g., for diagnostic and screening) tests at all thresholds (including unreported or "missing" thresholds) using ordinal regression-based models. Unlike most methods, it allows users to input ALL data in the analysis and still produce summary measures of sensitivty (Se) and specificity (Sp) at every test threshold - rather than "partitioning" the data at each threshold (which does not make full use of the data - unless every study reports data at every single test threshold - which is unfortunately still very rare).
+**MetaOrdDTA** is an R package for the meta-analysis (MA) and network-meta-analysis (NMA) of medical (e.g., for diagnostic and screening) tests at all thresholds (including unreported or "missing" thresholds) using ordinal regression-based models. 
+
+
+Unlike most methods, it allows users to input ALL data in the analysis and still produce summary measures of sensitivty (Se) and specificity (Sp) at every test threshold - rather than "partitioning" the data at each threshold (which does not make full use of the data - unless every study reports data at every single test threshold - which is unfortunately still very rare).
+
+
+
 
 # 1. Models:
 MetaOrdDTA can fit the following models:
@@ -9,6 +15,8 @@ MetaOrdDTA can fit the following models:
   - Both the "Xu" and "R&G" -based models can be fit using either fixed-effects or random-effects thresholds/cutpoints (please see **section 3** below for more details on this).
 - MetaOrdDTA can also fit the "multiple thresholds" model proposed by **Jones et al (Jones et al, 2019)**. This can be done by specifying ```cts = TRUE``` and/or ``` model_parameterisation = "Jones"```. This model is more appropriate for continuous data as it makes more restrictive assumptions about the data compared to the models proposed/mentioned above (see below/upcoming paper for more details).
 - All of the aformentioned models can be run either for meta-analysis (MA; i.e. the analysis of a **single index test**) or for **network-meta-analysis (NMA)**. The NMA versions of these models are based on the NMA model proposed by Nyaga et al (Nyaga et al, 2016).
+
+
 
 
 # 2. More about MetaOrdDTA:
@@ -34,6 +42,8 @@ The table below shows some **priliminary** results (mentioned above) obtained fr
 | Cerullo (random cutpoints)  | 1.7 | 0.6 | 3.8  | 1.4 |
 
 
+
+
 # 3. Some other facts about MetaOrdDTA:
 
 - All of the ordinal models (both Xu-based [Xu et al, 2013] and R&G-based [Rutter & Gatsonis, 2001] models) make use of one of the following "induced Dirichlet" cutpoint models, depending on whether you use a fixed-effect (aka "complete-pooling") or a random-effect (aka "partial-pooling") between study model on the cutpoint parameters (for more information on the induced-Dirichlet model please refer to Michael Betancourt's "ordinal regression" case study (Betancourt et al, 2019). More specifically:
@@ -43,11 +53,16 @@ The table below shows some **priliminary** results (mentioned above) obtained fr
 - All models are coded in **Stan**, using the cmdstanr R package.
 - MCMC summary estimates of all model parameters (including "raw" parameters - and also generated qantities such as sensitivity and specificy at each test threshold) can either be estimated using the cmdstanr ```summary$()``` method, or using the more efficient (sometimes by over a factor of 10) ```BayesMVP::generate_summary_tibble()``` function.
 
+
+
+
 # 4. Coming soon:
 - **Covariates**: Inclusion of one (or more) covariates to conduct (network or single) meta-regression of test accuracy.
 - **Faster estimation using BayesMVP:** I am currently working on implementing a second MCMC sampling algorithm (based on SPANER-HMC; see Sountsov & Hoffman, 2022) into MetaOrdDTA - which is the same algorithm my other R package (BayesMVP; see: https://github.com/CerulloE1996/BayesMVP) uses. 
 
 Note that, eventhough **MetaOrdDTA** was originally made to analyse ordianl tests (such as queestionnaires), it can still be used for continuous tests (such as biomarkers) - using either semi-parameteric meta-analysis model proposed by Jones et al (Jones et al, 2019) - which was designed for continuous tests - or the ordinal regression based models (based on: Cerullo et al, 2022; Xu et al, 2013).
+
+
 
 
 # 5. How to install the MetaOrdDTA R package:
@@ -71,6 +86,9 @@ Then, you can install MetaOrdDTA by running the following R code:
 ```
 remotes::install_github("https://github.com/CerulloE1996/MetaOrdDTA", force = TRUE)
 ```
+
+
+
 
 
 
