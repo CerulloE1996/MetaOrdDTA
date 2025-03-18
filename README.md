@@ -1,10 +1,14 @@
 **MetaOrdDTA** is an R package for the meta-analysis (MA) and network-meta-analysis (NMA) of medical (e.g., for diagnostic and screening) tests at all thresholds using ordinal regression-based models. 
 
+# About MetaOrdDTA:
 Unlike "standard", commonly-used methoids of meta-analysis of test accuracy - such as the "bivariate" model (Reitsma et al, 2005) or the "HSROC" model (Rutter & Gatsonis, 2001) - MetaOrdDTA allows users to include * all * studies regardless of the test threshold reported AND simultanously estimate test accuracy (sensitivity and specificity) and **every test threshold** - even if a given study does not report accuaracy at any given test threshold (i.e. at "missing" thresholds). 
 
 Furthermore, it uses a true ordinal regression-based model - based on a previous model we proposed (Cerullo et al, 2022) - which - unlike other proposed "multiple threshold" (or "missing threshold") methods - does not make strong assumptions about the data, such as assuming it is continuous. This means that MetaOrdDTA is likely to produce better summary estimates compared to other propsoed "multiple threshold" DTA methods.
 
-Note that we are currently writing a paper which contains a real-life-based simulation study which suggests that for ordinal tests (even ones which have 25+ ordinal categories) MetaOrdDTA may indeed produce notably better summary sensitivty and specificity estimates compared to other recently proposed methods (see table 1 below for more details), due to making much less restrictive (and more realistic) assumptions about the data (i.e., modelling it as it really is - ordinal). These differences in summary sensitivity and specificity also are quite substantial. To be more specific, thus far our (preliminary) findings suggest that our proposed model (based on Cerullo et al, 2022; Jones et al, 2019; Xu et al, 2013, and Rutter & Gatsonis, 2001) may obtain mean absolute differences in summary Se of **over 5%** and a maximum absolute difference of **around 8% or more** on our "real-life" simulated data - which is based on simulated (but realistic) "real-world-based" data we obtained on a PHQ-9 screening test for depression (which is scored from 0-27 and hence has 28 ordered categories and 27 thresholds).  
+# Why should you use MetaOrdDTA for analysing test accuracy data at multiple thresholds? (based on preliminary findings):
+Note that we are currently writing a paper which contains a real-life-based simulation study which suggests that for ordinal tests (even ones which have 25+ ordinal categories) MetaOrdDTA may produce notably better summary sensitivty and specificity estimates compared to other recently proposed methods (see **table 1** below for more details), due to making much less restrictive (and more realistic) assumptions about the data (i.e., modelling it as it really is - ordinal).
+
+The preliminary findings suggest that these differences in summary Se and Sp may sometimes be quite substantial. To be more specific, thus far our (preliminary) findings suggest that our proposed model (based on Cerullo et al, 2022; Jones et al, 2019; Xu et al, 2013, and Rutter & Gatsonis, 2001) may obtain mean absolute differences in summary Se of **over 5%** and a maximum absolute difference of **around 8% or more** on our "real-life" simulated data - which is based on simulated (but realistic) "real-world-based" data we obtained on a PHQ-9 screening test for depression (which is scored from 0-27 and hence has 28 ordered categories and 27 thresholds).  
 
 The table below shows some **priliminary** results (mentioned above) obtained from our simulation study:
 
@@ -28,14 +32,14 @@ The table below shows some **priliminary** results (mentioned above) obtained fr
 - All models are coded in **Stan**, using the cmdstanr R package.
 - MCMC summary estimates of all model parameters (including "raw" parameters - and also generated qantities such as sensitivity and specificy at each test threshold) can either be estimated using the cmdstanr ```summary$()``` method, or using the more efficient (sometimes by over a factor of 10) ```BayesMVP::generate_summary_tibble()``` function.
 
-**Coming soon:**
+# **Coming soon:**
 - **Covariates**: Inclusion of one (or more) covariates to conduct (network or single) meta-regression of test accuracy.
 - **Faster estimation using BayesMVP:** I am currently working on implementing a second MCMC sampling algorithm (based on SPANER-HMC; see Sountsov & Hoffman, 2022) into MetaOrdDTA - which is the same algorithm my other R package (BayesMVP; see: https://github.com/CerulloE1996/BayesMVP) uses. 
 
 Note that, eventhough **MetaOrdDTA** was originally made to analyse ordianl tests (such as queestionnaires), it can still be used for continuous tests (such as biomarkers) - using either semi-parameteric meta-analysis model proposed by Jones et al (Jones et al, 2019) - which was designed for continuous tests - or the ordinal regression based models (based on: Cerullo et al, 2022; Xu et al, 2013).
 
 
-**To install MetaOrdDTA:**
+# **How to install the MetaOrdDTA R package:**
 
 First, install the cmdstanr R package (if not already installed) by running the following:
 ```
@@ -59,7 +63,7 @@ remotes::install_github("https://github.com/CerulloE1996/MetaOrdDTA", force = TR
 
 
 
-**References:**
+# **References:**
 
 **Stan:**
 Stan Development Team, 2024, Stan Reference Manual, version 2.36.0. https://mc-stan.org 
