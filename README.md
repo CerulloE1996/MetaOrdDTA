@@ -19,7 +19,7 @@ The table below shows some **priliminary** results (mentioned above) obtained fr
 | Cerullo (random cutpoints)  | 1.7 | 0.6 | 3.8  | 1.4 |
 
 
-##**Some other facts about MetaOrdDTA:**
+# **Some other facts about MetaOrdDTA:**
 
 - All of the ordinal models (both Xu-based [Xu et al, 2013] and R&G-based [Rutter & Gatsonis, 2001] models) make use of one of the following "induced Dirichlet" cutpoint models, depending on whether you use a fixed-effect (aka "complete-pooling") or a random-effect (aka "partial-pooling") between study model on the cutpoint parameters (for more information on the induced-Dirichlet model please refer to Michael Betancourt's "ordinal regression" case study (Betancourt et al, 2019). More specifically:
   - If you decide to use a **fixed-effect cutpoint model** (i.e. you specify ```random_thresholds = FALSE``` - which is the default as it currently standads), then MetaOrdDTA will use induced Dircihlet model as a ** prior ** model. This prior allows users to put priors directly on the "induced" ordinal probabilities (which are transformed parameters - not the "raw" cutpoint parameters). This makes prior modelling much more intuitive, and also allows one to set a "flat" prior on the cutpoints (which is otherwise virtually impossible to do). Furthermore, it also allows users to much more easily input domain-specific prior knowledge into the model.
