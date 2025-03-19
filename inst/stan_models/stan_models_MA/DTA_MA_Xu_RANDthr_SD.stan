@@ -5,7 +5,7 @@ functions {
         //// Include files to compile the necessary custom (user-defined) Stan functions:
         ////
         #include "Stan_fns_basic.stan"
-        #include "Stan_fns_Pinkney_corr.stan"
+        #include "Stan_fns_corr.stan"
         #include "Stan_fns_ordinal_and_cutpoints.stan"
 }
 
@@ -34,7 +34,7 @@ data {
         //// Priors for between-study correlation matrix:
         ////
         real<lower=-1.0> beta_corr_lb;
-        real<lower=1.0>  beta_corr_ub;
+        real<lower=beta_corr_lb, upper=1.0>  beta_corr_ub;
         real<lower=0.0>  prior_beta_corr_LKJ;
         ////
         //// Priors for cutpoints (using "Induced-Dirichlet" ordinal probs):
@@ -170,7 +170,7 @@ model {
         ////
         beta_mu ~ normal(prior_beta_mu_mean, prior_beta_mu_SD);
         beta_SD ~ normal(prior_beta_SD_mean, prior_beta_SD_SD);
-        beta_L_Omega ~ lkj_corr_cholesky(prior_beta_corr_LKJ);
+        beta_Omega ~ lkj_corr(prior_beta_corr_LKJ);
        
         //// Induced-dirichlet between study ** model ** (NOT a prior model here but part of the actual likelihood since random-effect cutpoints!):
         {

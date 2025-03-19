@@ -6,7 +6,7 @@ functions {
         //// Include files to compile the necessary custom (user-defined) Stan functions:
         ////
         #include "Stan_fns_basic.stan"
-        #include "Stan_fns_Pinkney_corr.stan"
+        #include "Stan_fns_corr.stan"
         #include "Stan_fns_ordinal_and_cutpoints.stan"
 }
 

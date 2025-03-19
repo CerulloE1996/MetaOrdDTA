@@ -6,7 +6,7 @@ functions {
         //// ---- Include files to compile the necessary custom (user-defined) Stan functions:
         ////
         #include "Stan_fns_basic.stan"
-        #include "Stan_fns_Pinkney_corr.stan"
+        #include "Stan_fns_corr.stan"
         #include "Stan_fns_ordinal_and_cutpoints.stan"
 }
 
@@ -34,7 +34,7 @@ data {
         //// ---- Priors for between-study correlation:
         ////
         real<lower=-1.0> beta_corr_lb;
-        real<lower=1.0>  beta_corr_ub;
+        real<lower=beta_corr_lb, upper=1.0>  beta_corr_ub;
         real<lower=0.0>  prior_beta_corr_LKJ;
         //// 
         //// ---- Priors for cutpoints (using "induced-Dirichlet"):
@@ -61,10 +61,9 @@ parameters {
         vector<lower=0.0>[2] beta_SD;   
         matrix[2, n_studies] beta_z;    //// Study-specific random-effects (off-centered parameterisation)
         ////
-        real beta_corr;  //// between-study corr (possibly restricted)
+        real<lower=-1.0, upper=1.0> beta_corr;  //// between-study corr (possibly restricted)
         ////
-        //// ordered[n_thr] C;  //// Global cutpoints
-        vector<lower=-15.0, upper=15.0>[n_thr] C_raw_vec; 
+        vector[n_thr] C_raw_vec;   //// Global cutpoints ("raw" / unconstrained)
       
 }
 
@@ -75,11 +74,14 @@ transformed parameters {
         ////
         //// Construct cutpoints:
         ////
-        ordered[n_thr] C = construct_cutpoints_using_exp_jacobian(C_raw_vec);  //// Global cutpoints
+        vector[n_thr] C;
+        if (softplus) C = construct_cutpoints_using_exp_jacobian(C_raw_vec);  //// Global cutpoints
+        else          C = construct_cutpoints_using_softplus_jacobian(C_raw_vec);  //// Global cutpoints
         ////
         //// Construct simple 2x2 (bivariate) between-study corr matrices:
         ////
-        cholesky_factor_corr[2] beta_L_Omega = make_restricted_bivariate_L_Omega_jacobian(beta_corr, beta_corr_lb, beta_corr_ub);
+        corr_matrix[2] beta_Omega = make_restricted_bivariate_Omega_jacobian(beta_corr, beta_corr_lb, beta_corr_ub);
+        cholesky_factor_corr[2] beta_L_Omega = cholesky_decompose(beta_Omega);
         cholesky_factor_cov[2]  beta_L_Sigma = diag_pre_multiply(beta_SD, beta_L_Omega);
         ////
         //// Induced-Dirichlet ** prior model ** stuff:
@@ -103,12 +105,13 @@ transformed parameters {
         //// Likelihood using binomial factorization:
         ////
         for (s in 1:n_studies) {
-                for (c in 1:2) {
-                      for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
-                              int k = to_int(cutpoint_index[c][s, cut_i]); //// Get the cutpoint index (k) to map "latent_cumul_prob[c][s, cut_i]" to correct curpoint "C[k]"
-                              latent_cumul_prob[c][s, cut_i] = C[k] - beta[c, s];
-                      } 
-                }
+                  for (c in 1:2) {
+                        for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
+                                //// Get the cutpoint index (k) to map "latent_cumul_prob[c][s, cut_i]" to correct curpoint "C[k]":
+                                int k = to_int(cutpoint_index[c][s, cut_i]); 
+                                latent_cumul_prob[c][s, cut_i] = C[k] - beta[c, s];
+                        } 
+                  }
         }
         ////
         //// Calculate CUMULATIVE probabilities (vectorised):
@@ -159,7 +162,7 @@ model {
         ////
         beta_mu ~ normal(prior_beta_mu_mean, prior_beta_mu_SD);
         beta_SD ~ normal(prior_beta_SD_mean, prior_beta_SD_SD);
-        beta_L_Omega ~ lkj_corr_cholesky(prior_beta_corr_LKJ);
+        beta_Omega ~ lkj_corr(prior_beta_corr_LKJ);
         ////
         //// Induced-dirichlet ** Prior ** model:
         ////
@@ -211,7 +214,7 @@ generated quantities {
           array[2] matrix[n_studies, n_thr] x_hat = init_array_of_matrices(n_studies, n_thr, 2, -1);
           array[2] matrix[n_studies, n_thr] dev   = init_array_of_matrices(n_studies, n_thr, 2, -1);
           ////
-          corr_matrix[2] beta_Omega = multiply_lower_tri_self_transpose(beta_L_Omega);
+          // corr_matrix[2] beta_Omega = multiply_lower_tri_self_transpose(beta_L_Omega);
           ////
           //// Model-predicted ("re-constructed") data:
           ////
