@@ -17,4 +17,3 @@ generate_summary_tibble(
 \description{
 generate_summary_tibble
 }
-\keyword{internal}
