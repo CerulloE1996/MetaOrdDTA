@@ -1,152 +1,38 @@
-**MetaOrdDTA** is an R package for the meta-analysis (MA) and network-meta-analysis (NMA) of medical (e.g., for diagnostic and screening) tests across all test thresholds (including unreported or "missing" thresholds) using ordinal regression-based models. 
+BayesMVP uses diffusion-pathspace adaptive Hamiltonian Monte Carlo (HMC) to efficiently sample the 
+multivariate probit model (MVP) - which is used to model correlated binary data - as well as the latent class MVP
+model (LC-MVP) and the latent trait model, which are commonly used in medical applications to model diagnostic 
+and/or screening test accuracy data. 
 
-Unlike most methods, it allows users to input ALL data in the analysis and still produce summary measures of sensitivty (Se) and specificity (Sp) at every test threshold - rather than "partitioning" the data at each threshold (which does not make full use of the data - unless every study reports data at every single test threshold - which is unfortunately still very rare)
+In addition, it can also **sample any user-supplied Stan model**, and performs best for models with 
+a high-dimensional latent variable vector (or "nuisance parameters"). 
 
-MetaOrdDTA addresses a critical gap in diagnostic test meta-analysis by appropriately handling ordinal data structures while maximizing information use from incomplete (and heterogeneous) reporting of test accuracy data across studies — offering a comprehensive solution for researchers synthesizing diagnostic and screening test accuracy evidence at multiple thresholds.
+BayesMVP makes use of two state-of-the-art HMC algorithms. For the burnin phase, it uses an algorithm which 
+is based on the recently proposed **SNAPER-HMC** (Sountsov et al, 2022). For the sampling (i.e., post-burnin)
+phase, it uses standard HMC _(with randomized path length)_ to sample the main model parameters, and then 
+it samples the nuisance parameters using **diffusion-pathspace HMC** (Beskos et al, 2013). 
 
+Furthermore, specifically for the three built-in models (i.e. the MVP, LC_MVP, and latent_trait), 
+it achieves rapid sampling by using: 
+manually-derived gradients,
+chunking, 
+and (on systems with AVX-512 and/or AVX2) fast approximate, vectorised (SIMD) math functions. 
 
+Users can also use the optimised manual-gradient lp_grad functions for the 3 built-in models with Stan directly 
+(via the cmdstanr R package) by downloading/installing the R package, and  then, when you compile your Stan model 
+with cmdstanr using cmdstan_model(), use the user_header argument as follows: 
 
-# 0. Summary of MetaOrdDTA:
-
-Unlike conventional approaches that analyze each threshold separately, MetaOrdDTA enables researchers to do the following 2 things **simultaneously**: 
-1. Include all available data, regardless of which test threshold(s) the authors of any given study reported the data at.
-2. Producing summary estimates of Se and Sp estimates at every threshold — even those unreported in some studies.
-
-MetaOrdDTA is built on ordinal regression principles (e.g. see Betancourt et al, 2019) and the within-study moodel/likelihood is based on that proposed in Jones et al, 2019. MetaOrdDTA extends previously established models (Rutter & Gatsonis, 2001; Reitsma et al, 2005) to accommodate scenarios where different studies report different thresholds. 
-
-The R package implements two primary model parameterizations: 
-1. The "Xu" (based on an extended version of the Xu et al, 2013 single-study model) approach, which uses freely estimated location parameters with explicit between-study correlation modeling, and:
-2. The "R&G" parameterization, which extends the widely-used HSROC model (Rutter & Gatsonis, 2001) to multiple/missing thresholds with implicit correlation modelling.
- - Both (1) and (2) model parameterisations above can be implemented with fixed-effect or random-effct test thresholds using the induced-Dirichlet (see Betancourt et al, 2019 and Cerullo et al, 2022) model as a prior (for fixed-effects thresholds model) or as a between-study model (for random-effects thresholds model) for robust estimation and more intuitive prior modelling (regardless of whether one wishes to use flat priors or more informative priors based on domain expertise). 
-
-Preliminary simulation studies using real-world-based PHQ-9 depression screening data (the PHQ-9 has 28 ordered categories) suggest MetaOrdDTA produces more accurate sensitivity and specificity estimates than alternative methods - the mean absolute differences in Se were as low as 1.2% for MetaOrdDTA's fixed-cutpoint model, compared to 4.3-5.6% for competing approaches, with smaller improvements in Sp estimation (likely because in our simulation the disease prevalence was set to be around 20%).
-
-MetaOrdDTA's advantages stem from its ability to model data as truly ordinal rather than imposing continuous assumptions, making it particularly suited for questionnaire-based tests - whilst still remaining perfectly applicable and still appropriate for continuous (e.g., biomarker) data. 
-
-The package employs Stan for robust Bayesian estimation with flexible prior specification, allowing researchers to incorporate domain expertise.
-
-The package also provides functions for extracting MCMC summary estimates of all model parameters and derived quantities, and also allows users to easily plot the full summary sROC plots for Se and Sp at each threshold, including plotting the 95% credible regions and 95% prediction regions for all models.
-
-Future updates will incorporate covariates for meta-regression and implement faster estimation procedures based on SNAPER-HMC (Sountsov & Hoffman, 2022) algorithms via out other recently released R package - BayesMVP (see https://github.com/CerulloE1996/BayesMVP for more details on BayesMVP).
-
-
-
-# 1. Models:
-MetaOrdDTA can fit the following models:
-
-- Ordinal regression-based models (based on our previous work [Cerullo et al, 2022]). At present, users can fit 2 broad types of ordinal-regression -based MA/NMA models using MetaOrdDTA:
-  - THe first (and currently the default - but this may change soon depending on our findings) is the **"Xu"** parameterisation (which you can select by specifying: ```model_parameterisation = "Xu"```). This is based on the work of Xu et al, 2013 (but extended to any number of thresholds and extended to meta-analysis, as well as other differences - which we will detail in the upcoming paper). This model does not model a scale parameter at all (assumes scale = 1 in both diseased and non-diseased groups) and instead allows both location parameters to be completely "free" (i.e., freely estimated) in both groups, and models the between-study correlation **explicitly** using a bivariate model - much like the commonly-used "bivariate model" proposed by Reitsma et al (Reitsma et al, 2005).
-  - The second option is the **"R&G" parameterisation** (which you can select by specifying: ```model_parameterisation = R&G```). This model is based on another widely used model for the meta-analysis of test accuracy - typically referred to as the "HSROC" model (Rutter & Gatsonis, 2001). Our model implemented in MetaOrdDTA extends this model to the "multiple threshold" case, and so is a "true" ordinal regression model - unlike the original HSROC model (Rutter & Gatsonis, 2001). Furthermore, just like the standard HSROC model, this model does not model the between-study correlation explicitly - instead it models this correlation **implicitly** by using **shared** location and scale parameters in both groups (but not identical in both groups - namely we assume that the location in the diseased group is $+\beta$ and $-\beta$ in the diseased and non-diseased groups, respectively.
-  - Both the "Xu" and "R&G" -based models can be fit using either fixed-effects or random-effects thresholds/cutpoints (please see **section 3** below for more details on this).
-- MetaOrdDTA can also fit the "multiple thresholds" model proposed by **Jones et al (Jones et al, 2019)**. This can be done by specifying ```cts = TRUE``` and/or ``` model_parameterisation = "Jones"```. This model is more appropriate for continuous data as it makes more restrictive assumptions about the data compared to the models proposed/mentioned above (see below/upcoming paper for more details).
-- All of the aformentioned models can be run either for meta-analysis (MA; i.e. the analysis of a **single index test**) or for **network-meta-analysis (NMA)**. The NMA versions of these models are based on the NMA model proposed by Nyaga et al (Nyaga et al, 2016).
+      ## path to Stan model
+      file <- file.path(pkg_dir, "inst/stan_models/LC_MVP_bin_w_mnl_cpp_grad_v1.stan") 
+      ## path to the C++ .hpp header file
+      path_to_cpp_user_header <- file.path(pkg_dir, "src/lp_grad_fn_for_Stan.hpp") 
+      ## compile model together with the C++ functions
+      mod <- cmdstan_model(file,  force_recompile = TRUE, user_header = path_to_cpp_user_header) 
 
 
 
 
-# 2. More about MetaOrdDTA:
-Unlike the more "standard", commonly-used methods of meta-analysis of test accuracy - such as the "bivariate" model (Reitsma et al, 2005) or the "HSROC" model (Rutter & Gatsonis, 2001) - MetaOrdDTA allows users to include * all * studies in the analysis, regardless of the test threshold reported ** AND ** **simultanously** estimate test accuracy (sensitivity [Se] and specificity [Sp]) at **every test threshold** - even if a given study does not report accuaracy at any given test threshold (i.e. at "missing" thresholds). 
+References:
 
-Furthermore, it uses a true ordinal regression-based model - based on a previous model we proposed (Cerullo et al, 2022). Unlike other proposed "multiple threshold" (or "missing threshold") methods - this method does not make strong assumptions about the data, such as assuming it is continuous (parameteric or "semi-parameteric"). This means that MetaOrdDTA is likely to produce better summary estimates compared to other propsoed "multiple threshold" DTA methods (and our preliminary simulations based on real-world data support this - see below for more details). 
+SNAPER-HMC:  https://arxiv.org/abs/2110.11576v1
 
-# Why should you use MetaOrdDTA for analysing test accuracy data at multiple thresholds? (based on preliminary findings):
-Note that we are currently writing a paper which contains a real-life-based simulation study which suggests that for ordinal tests (even ones which have 25+ ordinal categories) MetaOrdDTA may produce notably better summary sensitivty and specificity estimates compared to other recently proposed methods (see **table 1** below for more details), due to making much less restrictive (and more realistic) assumptions about the data (i.e., modelling it as it really is - ordinal).
-
-The preliminary findings suggest that these differences in summary Se and Sp may sometimes be quite substantial. To be more specific, thus far our (preliminary) findings suggest that our proposed model (based on Cerullo et al, 2022; Jones et al, 2019; Xu et al, 2013, and Rutter & Gatsonis, 2001) may obtain mean absolute differences in summary Se of **over 5%** and a maximum absolute difference of **around 8% or more** on our "real-life" simulated data - which is based on simulated (but realistic) "real-world-based" data we obtained on a PHQ-9 screening test for depression (which is scored from 0-27 and hence has 28 ordered categories and 27 thresholds).  
-
-The table below shows some **priliminary** results (mentioned above) obtained from our simulation study:
-
-# (PRELIMINARY) Model Performance on simulated data (based on real-life PHQ-9 data w/ 28 ordinal categories)
-
-| Model | Mean Absolute Difference |  | Max. Absolute Difference |  |
-| --- | :---: | :---: | :---: | :---: |
-|  | **Se (%)** | **Sp (%)** | **Se (%)** | **Sp (%)** |
-| Jones (log-probit)          | 4.3 | 3.0 | 11.4 | 8.8 |
-| Jones (Box-Cox)             | 5.6 | 1.5 | 11.7 | 4.0 |
-| Cerullo (fixed cutpoints)   | 1.2 | 0.8 | 3.9  | 1.4 |
-| Cerullo (random cutpoints)  | 1.7 | 0.6 | 3.8  | 1.4 |
-
-
-
-
-# 3. Some other facts about MetaOrdDTA:
-
-- All of the ordinal models (both Xu-based [Xu et al, 2013] and R&G-based [Rutter & Gatsonis, 2001] models) make use of one of the following "induced Dirichlet" cutpoint models, depending on whether you use a fixed-effect (aka "complete-pooling") or a random-effect (aka "partial-pooling") between study model on the cutpoint parameters (for more information on the induced-Dirichlet model please refer to Michael Betancourt's "ordinal regression" case study (Betancourt et al, 2019). More specifically:
-  - If you decide to use a **fixed-effect cutpoint model** (i.e. you specify ```random_thresholds = FALSE``` - which is the default as it currently standads), then MetaOrdDTA will use induced Dircihlet model as a ** prior ** model. This prior allows users to put priors directly on the "induced" ordinal probabilities (which are transformed parameters - not the "raw" cutpoint parameters). This makes prior modelling much more intuitive, and also allows one to set a "flat" prior on the cutpoints (which is otherwise virtually impossible to do). Furthermore, it also allows users to much more easily input domain-specific prior knowledge into the model.
-  - On the other hand, if you decide to use a **random-effect cutpoint model** (i.e. you directly model the between-study heterogenity in the cutpoints - by specifying ```random_thresholds = TRUE```), then MetaOrdDTA will use the induced-Dirichlet model as part of the between-study model itself (i.e. it will form part of the likelihood itself - not "only" the prior). 
-  - Note that the default prior for the ordinal models in MetaBayesDTA is a "flat" dirichlet (i.e., a prior of ${1,...,1}$ for the "alpha" concentration parameters of the Dirichlet distribution). 
-- All models are coded in **Stan**, using the cmdstanr R package.
-- MCMC summary estimates of all model parameters (including "raw" parameters - and also generated qantities such as sensitivity and specificy at each test threshold) can either be estimated using the cmdstanr ```summary$()``` method, or using the more efficient (sometimes by over a factor of 10) ```BayesMVP::generate_summary_tibble()``` function.
-
-
-
-
-# 4. Coming soon:
-- **Covariates**: Inclusion of one (or more) covariates to conduct (network or single) meta-regression of test accuracy.
-- **Faster estimation using BayesMVP:** I am currently working on implementing a second MCMC sampling algorithm (based on SPANER-HMC; see Sountsov & Hoffman, 2022) into MetaOrdDTA - which is the same algorithm my other R package (BayesMVP; see: https://github.com/CerulloE1996/BayesMVP) uses. 
-
-Note that, eventhough **MetaOrdDTA** was originally made to analyse ordianl tests (such as queestionnaires), it can still be used for continuous tests (such as biomarkers) - using either semi-parameteric meta-analysis model proposed by Jones et al (Jones et al, 2019) - which was designed for continuous tests - or the ordinal regression based models (based on: Cerullo et al, 2022; Xu et al, 2013).
-
-
-
-
-# 5. How to install the MetaOrdDTA R package:
-
-First, install the cmdstanr R package (if not already installed) by running the following:
-```
-##
-## ----------------- install cmdstanr first:
-## Install the cmdstanr "outer" R package:
-##
-remotes::install_github("stan-dev/cmdstanr", force = TRUE)
-#### Load cmdstanr R outer package:
-require(cmdstanr)
-#### Then, install the latest version of CmdStan:
-install_cmdstan(cores = parallel::detectCores(),
-                overwrite = TRUE,
-                cpp_options = list("STAN_MODEL_LDFLAGS" = "-shared",   "CXXFLAGS" = "-fPIC"))
-```
-
-Then, you can install MetaOrdDTA by running the following R code:
-```
-remotes::install_github("https://github.com/CerulloE1996/MetaOrdDTA", force = TRUE)
-```
-
-
-
-
-
-
-# 6. References:
-
-**Stan:**
-Stan Development Team, 2024, Stan Reference Manual, version 2.36.0. https://mc-stan.org 
-
-**cmdstanr** R package (to run Stan / NUTS-HMC):
-Gabry J, Češnovar R, Johnson A, Bronder S (2024). cmdstanr: R Interface to 'CmdStan'. R package version 0.8.1. https://github.com/stan-dev/cmdstanr.
-
-**BayesMVP R package:**
-https://github.com/CerulloE1996/BayesMVP
-
-**Cerullo et al, 2024:**
-https://onlinelibrary.wiley.com/doi/10.1002/jrsm.1567
-https://arxiv.org/abs/2103.06858 [may be more up to date in the future]
-
-**Nyaga et al, 2016:**
-https://journals.sagepub.com/doi/10.1177/0962280216669182
-
-**Jones et al, 2019:**
-https://pubmed.ncbi.nlm.nih.gov/31571244/
-
-**Xu et al, 2013:**
-https://pubmed.ncbi.nlm.nih.gov/23212851/
-
-**Rutter & Gatsonis, 2001:**
-https://onlinelibrary.wiley.com/doi/10.1002/sim.942
-
-**Reitsma et al, 2005:**
-https://www.jclinepi.com/article/S0895-4356(05)00162-9/abstract
-
-**SNAPER-HMC (Sountsov & Hoffman, 2022) :**
-https://arxiv.org/abs/2110.11576v1
-
+Diffusion-pathspace HMC: https://www.sciencedirect.com/science/article/pii/S0304414912002621
