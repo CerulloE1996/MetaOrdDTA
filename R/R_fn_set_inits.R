@@ -40,12 +40,15 @@ R_fn_set_inits_MA <- function(    inits,
                               check_array_dims(inits, "beta_z", c(2, n_studies))
                               ##
                               ## Set default inits for the raw scales ("gamma"):
-                              ## NOTE: Default values depend of whether using log-normal / exp() for scales (as values will need to be of smaller 
+                              ## NOTE: Default values depend of whether using log-normal / exp() 
+                              ## for scales (as values will need to be of smaller 
                               ## magnitude as exp() amplifies much more that softplus(x)).
                               ##
-                              inits$raw_scale_mu <- if_null_then_set_to(inits$raw_scale_mu, c(0.001, 0.001))  ## since: softplus_scaled(0) = 1.0 and exp(0) = 1.0.
+                              ## since: softplus_scaled(0) = 1.0 and exp(0) = 1.0:
+                              inits$raw_scale_mu <- if_null_then_set_to(inits$raw_scale_mu, c(0.001, 0.001))  
                               inits$raw_scale_SD <- if_null_then_set_to(inits$raw_scale_SD, rep(0.001, 2))
-                              inits$raw_scale_z  <- if_null_then_set_to(inits$raw_scale_z, array(0.001, dim = c(2, n_studies)))
+                              inits$raw_scale_z  <- if_null_then_set_to(inits$raw_scale_z, 
+                                                                        array(0.001, dim = c(2, n_studies)))
                               ##
                               check_vec_length(inits, "beta_mu", 2)
                               check_vec_length(inits, "beta_SD", 2)
@@ -68,9 +71,9 @@ R_fn_set_inits_MA <- function(    inits,
                                                                           0.5*(priors$raw_scale_corr_lb + priors$raw_scale_corr_ub))
                               check_vec_length(inits, "raw_scale_corr", 1)
                   
-                } else if (cts == FALSE) { ## ordinal (Xu-based or Gatsonis-based)
+                } else if (cts == FALSE) { ## ordinal (Xu-based or R&G-based)
                   
-                             if (model_parameterisation == "Gatsonis") { 
+                             if (model_parameterisation == "R&G") { 
                                      ##
                                      ## Set default inits for the locations ("beta"):
                                      ##
@@ -84,7 +87,8 @@ R_fn_set_inits_MA <- function(    inits,
                                      ##
                                      ## Default inits for raw scale parameters ("gamma"):
                                      ##
-                                     inits$raw_scale_mu <- if_null_then_set_to(inits$raw_scale_mu, 0.001)   ## since: softplus_scaled(0) = 1.0 and exp(0) = 1.0.
+                                     ## since: softplus_scaled(0) = 1.0 and exp(0) = 1.0:
+                                     inits$raw_scale_mu <- if_null_then_set_to(inits$raw_scale_mu, 0.001)   
                                      inits$raw_scale_SD <- if_null_then_set_to(inits$raw_scale_SD, 0.001)
                                      inits$raw_scale_z  <- if_null_then_set_to(inits$raw_scale_z, rep(0.001, n_studies))
                                      ##
@@ -114,7 +118,7 @@ R_fn_set_inits_MA <- function(    inits,
                              }
                              ##
                              ## Default inits for the cutpoints and/or induced-Dirichlet parameters:
-                             ## NOTE: these are the same whether using "Gatsonis" or "Xu" parameterisation
+                             ## NOTE: these are the same whether using "R&G" or "Xu" parameterisation
                              ##
                              if (random_thresholds == FALSE) { 
                                      ##
@@ -204,9 +208,9 @@ R_fn_set_inits_NMA <- function(    inits,
                         ##
                         inits$lambda <- if_null_then_set_to(inits$lambda, 0.001)
                         
-          } else if (cts == FALSE) { ## ordinal (Xu-based or Gatsonis-based)
+          } else if (cts == FALSE) { ## ordinal (Xu-based or R&G-based)
             
-                        if (ord_model_parameterisation == "Gatsonis") {
+                        if (ord_model_parameterisation == "R&G") {
                                     ##
                                     ## Set default inits for the locations ("beta"):
                                     ##
@@ -242,7 +246,7 @@ R_fn_set_inits_NMA <- function(    inits,
                         }
                         ##
                         ## Default inits for the cutpoints and/or induced-Dirichlet parameters:
-                        ## NOTE: these are the same whether using "Gatsonis" or "Xu" parameterisation
+                        ## NOTE: these are the same whether using "R&G" or "Xu" parameterisation
                         ##
                         if (random_thresholds == FALSE) { 
                                     ##

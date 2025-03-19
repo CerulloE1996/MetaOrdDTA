@@ -9,6 +9,83 @@
 
 
 
+
+
+#' R_fn_sample_stan_model
+#' @keywords internal
+#' @export
+R_fn_sample_stan_model  <-    function(   debugging = FALSE,
+                                          ##
+                                          stan_data_list,
+                                          stan_model_obj,
+                                          ##
+                                          n_chains,
+                                          init_lists_per_chain,
+                                          ##
+                                          n_superchains = NULL,
+                                          seed,
+                                          n_burnin,
+                                          n_iter,
+                                          adapt_delta,
+                                          max_treedepth,
+                                          metric_shape
+) {
+  
+          if (debugging) message("Printing from R_fn_sample_stan_model:")
+          
+          {
+        
+                #### stan_model_obj <- cmdstanr::cmdstan_model(Stan_model_file_path) ## , force_recompile = TRUE)
+                
+                tictoc::tic()
+                
+                try({  stan_data_list$priors <- NULL }, silent = TRUE)
+                
+                stan_mod_samples <- stan_model_obj$sample(   seed = seed,
+                                                             data = stan_data_list,
+                                                             init =   init_lists_per_chain, 
+                                                             chains = n_chains,
+                                                             parallel_chains = n_chains, 
+                                                             refresh = 50,
+                                                             iter_sampling = n_iter,
+                                                             iter_warmup = n_burnin,
+                                                             max_treedepth = max_treedepth,
+                                                             adapt_delta = adapt_delta,
+                                                             metric = metric_shape)
+                
+                
+                try({
+                  print(tictoc::toc(log = TRUE))
+                  log.txt <- tictoc::tic.log(format = TRUE)
+                  tictoc::tic.clearlog()
+                  time_total <- unlist(log.txt)
+                  ##
+                  extract_numeric_string <-  stringr::str_extract(time_total, "\\d+\\.\\d+")   
+                  time_total <- as.numeric(extract_numeric_string)
+                })
+                
+                print(paste("time_total = ",  time_total))
+                
+                gc(reset = TRUE)
+            
+          }
+          
+          
+          out_list <- list(  
+            stan_mod_samples = stan_mod_samples,
+            time_total = time_total)
+          
+          
+          return(out_list)
+  
+}
+
+
+
+
+
+
+
 #' R_fn_sample_model
 #' @keywords internal
 #' @export
@@ -74,80 +151,6 @@ R_fn_sample_model  <-    function(      debugging = FALSE,
 
 
 
-
-
-
-
-
-
-#' R_fn_sample_stan_model
-#' @keywords internal
-#' @export
-R_fn_sample_stan_model  <-    function(   debugging = FALSE,
-                                          ##
-                                          stan_data_list,
-                                          stan_model_obj,
-                                          ##
-                                          n_chains,
-                                          init_lists_per_chain,
-                                          ##
-                                          n_superchains = NULL,
-                                          seed,
-                                          n_burnin,
-                                          n_iter,
-                                          adapt_delta,
-                                          max_treedepth,
-                                          metric_shape
-) {
-  
-                if (debugging) message("Printing from R_fn_sample_stan_model:")
-                
-                {
-                  
-                  #### stan_model_obj <- cmdstanr::cmdstan_model(Stan_model_file_path) ## , force_recompile = TRUE)
-                  
-                  tictoc::tic()
-                  
-                  try({  stan_data_list$priors <- NULL }, silent = TRUE)
-                  
-                  stan_mod_samples <- stan_model_obj$sample(   seed = seed,
-                                                               data = stan_data_list,
-                                                               init =   init_lists_per_chain, 
-                                                               chains = n_chains,
-                                                               parallel_chains = n_chains, 
-                                                               refresh = 50,
-                                                               iter_sampling = n_iter,
-                                                               iter_warmup = n_burnin,
-                                                               max_treedepth = max_treedepth,
-                                                               adapt_delta = adapt_delta,
-                                                               metric = metric_shape)
-                  
-                  
-                  try({
-                    print(tictoc::toc(log = TRUE))
-                    log.txt <- tictoc::tic.log(format = TRUE)
-                    tictoc::tic.clearlog()
-                    time_total <- unlist(log.txt)
-                    ##
-                    extract_numeric_string <-  stringr::str_extract(time_total, "\\d+\\.\\d+")   
-                    time_total <- as.numeric(extract_numeric_string)
-                  })
-                  
-                  print(paste("time_total = ",  time_total))
-                  
-                  gc(reset = TRUE)
-                  
-                }
-                
-                
-                out_list <- list(  
-                  stan_mod_samples = stan_mod_samples,
-                  time_total = time_total)
-                
-                
-                return(out_list)
-  
-}
 
 
 

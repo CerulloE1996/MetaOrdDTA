@@ -40,18 +40,22 @@ R_fn_set_priors_MA <- function(   priors,
                   priors$prior_beta_mu_mean <- if_null_then_set_to(priors$prior_beta_mu_mean, rep(0.0, 2))
                   check_vec_length(priors, "prior_beta_mu_mean", 2)
                   ##
-                  priors$prior_beta_mu_SD   <- if_null_then_set_to(priors$prior_beta_mu_SD,   rep(1.0, 2)) ## probit scale so this is ~ unif. (but may rule-out "extreme" values (e.g.,0.999) depending on cutpoint value, so still need to think about the priors!!)
+                  ## probit scale so this is ~ unif. (but may rule-out "extreme" values (e.g.,0.999) depending on cutpoint value, 
+                  ## so still need to think about the priors!!):
+                  priors$prior_beta_mu_SD   <- if_null_then_set_to(priors$prior_beta_mu_SD,   rep(1.0, 2)) 
                   check_vec_length(priors, "prior_beta_mu_SD", 2)
                   ##
                   priors$prior_beta_SD_mean <- if_null_then_set_to(priors$prior_beta_SD_mean, rep(0.0, 2))
                   check_vec_length(priors, "prior_beta_SD_mean", 2)
                   ##
-                  priors$prior_beta_SD_SD   <- if_null_then_set_to(priors$prior_beta_SD_SD,   rep(0.5, 2)) ## this allows a lot of heterogeneity on the probit scale, e.g.: pnorm(0.0 +/- 2*0.5) gives 15.9%/84.1%.
+                  ## this allows a lot of heterogeneity on the probit scale, e.g.: pnorm(0.0 +/- 2*0.5) gives 15.9%/84.1%.:
+                  priors$prior_beta_SD_SD   <- if_null_then_set_to(priors$prior_beta_SD_SD,   rep(0.5, 2)) 
                   check_vec_length(priors, "prior_beta_SD_SD", 2)
                   ##
                   ## Set default priors for the raw scales ("gamma"):
                   ##
-                  priors$prior_raw_scale_mu_mean <- if_null_then_set_to(priors$prior_raw_scale_mu_mean, rep(0.0, 2)) ## since: exp(0.0) = 1.0 and sp_scaled(0)  = 1.0.
+                  ## since: exp(0.0) = 1.0 and sp_scaled(0)  = 1.0.:
+                  priors$prior_raw_scale_mu_mean <- if_null_then_set_to(priors$prior_raw_scale_mu_mean, rep(0.0, 2)) 
                   check_vec_length(priors, "prior_raw_scale_mu_mean", 2)
                   ##
                   priors$prior_raw_scale_SD_mean <- if_null_then_set_to(priors$prior_raw_scale_SD_mean, rep(0.0, 2)) 
@@ -60,17 +64,21 @@ R_fn_set_priors_MA <- function(   priors,
                   ## prior SD's depend on whether using scaled-softplus fn or exp():
                   if (softplus == TRUE) {
                         ##
-                        priors$prior_raw_scale_mu_SD   <- if_null_then_set_to(priors$prior_raw_scale_mu_SD, rep(2.5, 2)) ## since: e.g.: sp_scaled(0.0 +2*2.5) ~ 7.22, sp_scaled(0.0 - 2*2.5) ~ 0.0097
+                        ## since: e.g.: sp_scaled(0.0 +2*2.5) ~ 7.22, sp_scaled(0.0 - 2*2.5) ~ 0.0097:
+                        priors$prior_raw_scale_mu_SD   <- if_null_then_set_to(priors$prior_raw_scale_mu_SD, rep(2.5, 2)) 
                         check_vec_length(priors, "prior_raw_scale_mu_SD", 2)
                         ##
-                        priors$prior_raw_scale_SD_SD   <- if_null_then_set_to(priors$prior_raw_scale_SD_SD, rep(1.0, 2)) ## sp_scaled(0.0 + 2*1.0) ~ 3.07 (-> ~ 3x the mean (if the mean pooled scale is 1))
+                        ## sp_scaled(0.0 + 2*1.0) ~ 3.07 (-> ~ 3x the mean (if the mean pooled scale is 1)):
+                        priors$prior_raw_scale_SD_SD   <- if_null_then_set_to(priors$prior_raw_scale_SD_SD, rep(1.0, 2)) 
                         check_vec_length(priors, "prior_raw_scale_SD_SD", 2)
                   } else {  ## if using log-normal / exp() for scales (priors will need to be of smaller magnitude as exp() amplifies much more that softplus(x)).
                         ##
-                        priors$prior_raw_scale_mu_SD   <- if_null_then_set_to(priors$prior_raw_scale_mu_SD, rep(1.0, 2))  ## since: e.g., exp(0.0 + 2*1.0) = 7.39
+                        ## since: e.g., exp(0.0 + 2*1.0) = 7.39:
+                        priors$prior_raw_scale_mu_SD   <- if_null_then_set_to(priors$prior_raw_scale_mu_SD, rep(1.0, 2))  
                         check_vec_length(priors, "prior_raw_scale_mu_SD", 2)
                         ##
-                        priors$prior_raw_scale_SD_SD   <- if_null_then_set_to(priors$prior_raw_scale_SD_SD, rep(0.5, 2))  ## since: e.g., exp(0.0 + 2*0.50) ~  2.72 (-> ~ 3x the mean (if the mean pooled scale is 1))
+                        ## since: e.g., exp(0.0 + 2*0.50) ~  2.72 (-> ~ 3x the mean (if the mean pooled scale is 1)):
+                        priors$prior_raw_scale_SD_SD   <- if_null_then_set_to(priors$prior_raw_scale_SD_SD, rep(0.5, 2))  
                         check_vec_length(priors, "prior_raw_scale_SD_SD", 2)
                   }
                   ##
@@ -108,16 +116,19 @@ R_fn_set_priors_MA <- function(   priors,
           
                   message("Configuring priors for ordinal model")
           
-                  if (model_parameterisation == "Gatsonis") { 
+                  if (model_parameterisation == "R&G") { 
                     
                           message("Configuring priors for HSROC-based (Rutter & Gatsonis) -based ordinal model")
                           ##
                           ## Set default priors for the locations ("beta"):
                           ##
                           priors$prior_beta_mu_mean <- if_null_then_set_to(priors$prior_beta_mu_mean, 0.0)
-                          priors$prior_beta_mu_SD   <- if_null_then_set_to(priors$prior_beta_mu_SD,   1.0) ## probit scale so this is ~ unif. (but may rule-out "extreme" values (e.g.,0.999) depending on cutpoint value, so still need to think about the priors!!)
+                          ## probit scale so this is ~ unif. (but may rule-out "extreme" values (e.g.,0.999) depending on cutpoint value, 
+                          ## so still need to think about the priors!!):
+                          priors$prior_beta_mu_SD   <- if_null_then_set_to(priors$prior_beta_mu_SD,   1.0) 
                           priors$prior_beta_SD_mean <- if_null_then_set_to(priors$prior_beta_SD_mean, 0.0)
-                          priors$prior_beta_SD_SD   <- if_null_then_set_to(priors$prior_beta_SD_SD,   0.5) ## this allows a lot of heterogeneity on the probit scale, e.g.: pnorm(0.0 +/- 2*0.5) gives 15.9%/84.1%.
+                          ## this allows a lot of heterogeneity on the probit scale, e.g.: pnorm(0.0 +/- 2*0.5) gives 15.9%/84.1%.:
+                          priors$prior_beta_SD_SD   <- if_null_then_set_to(priors$prior_beta_SD_SD,   0.5)
                           ##
                           check_vec_length(priors, "prior_beta_mu_mean", 1)
                           check_vec_length(priors, "prior_beta_mu_SD",   1)
@@ -126,15 +137,22 @@ R_fn_set_priors_MA <- function(   priors,
                           ##
                           ## Set default priors for the raw scales ("gamma"):
                           ##
-                          priors$prior_raw_scale_mu_mean <- if_null_then_set_to(priors$prior_raw_scale_mu_mean, 0.0) ## since: exp(0.0) = 1.0 and sp_scaled(0)  = 1.0.
+                          ## since: exp(0.0) = 1.0 and sp_scaled(0)  = 1.0:
+                          priors$prior_raw_scale_mu_mean <- if_null_then_set_to(priors$prior_raw_scale_mu_mean, 0.0) 
                           priors$prior_raw_scale_SD_mean <- if_null_then_set_to(priors$prior_raw_scale_SD_mean, 0.0)
                           ## prior SD's depend on whether using scaled-softplus fn or exp():
                           if (softplus == TRUE) {
-                                priors$prior_raw_scale_mu_SD   <- if_null_then_set_to(priors$prior_raw_scale_mu_SD, 1.0)
-                                priors$prior_raw_scale_SD_SD   <- if_null_then_set_to(priors$prior_raw_scale_SD_SD, 0.75) ## allows a lot of heterogeneity on the "probit-sp_scaled" scale: sp_scaled(0.0 - 2*0.75) ~ 0.291, sp_scaled(0.0 + 2*0.75) ~ 2.46
-                          } else {   ## if using log-normal / exp() for scales (priors will need to be of smaller magnitude as exp() amplifies much more that softplus(x)).
-                                priors$prior_raw_scale_mu_SD   <- if_null_then_set_to(priors$prior_raw_scale_mu_SD, 1.0)
-                                priors$prior_raw_scale_SD_SD   <- if_null_then_set_to(priors$prior_raw_scale_SD_SD, 0.5) ## allows a lot of heterogeneity on the "probit-exp" scale: exp(0.0 - 2*0.5) ~0.37, exp(0.0 + 2*0.5) ~ 7.39
+                            
+                                      priors$prior_raw_scale_mu_SD   <- if_null_then_set_to(priors$prior_raw_scale_mu_SD, 1.0)
+                                      ## allows a lot of heterogeneity on the "probit-sp_scaled" scale: sp_scaled(0.0 - 2*0.75) ~ 0.291, sp_scaled(0.0 + 2*0.75) ~ 2.46:
+                                      priors$prior_raw_scale_SD_SD   <- if_null_then_set_to(priors$prior_raw_scale_SD_SD, 0.75)
+                                      
+                          } else {    ## if using log-normal / exp() for scales (priors will need to be of smaller magnitude as exp() amplifies much more 
+                                      ## that softplus(x)).
+                                      priors$prior_raw_scale_mu_SD   <- if_null_then_set_to(priors$prior_raw_scale_mu_SD, 1.0)
+                                      ## allows a lot of heterogeneity on the "probit-exp" scale: exp(0.0 - 2*0.5) ~0.37, exp(0.0 + 2*0.5) ~ 7.39:
+                                      priors$prior_raw_scale_SD_SD   <- if_null_then_set_to(priors$prior_raw_scale_SD_SD, 0.5) 
+                                      
                           }
                           ##
                           check_vec_length(priors, "prior_raw_scale_mu_mean", 1)
@@ -149,9 +167,12 @@ R_fn_set_priors_MA <- function(   priors,
                           ## Set default priors for the locations ("beta"):
                           ##
                           priors$prior_beta_mu_mean <- if_null_then_set_to(priors$prior_beta_mu_mean, c(0.0, 0.0))
-                          priors$prior_beta_mu_SD   <- if_null_then_set_to(priors$prior_beta_mu_SD,   c(1.0, 1.0)) ## probit scale so this is ~ unif. (but may rule-out "extreme" values (e.g.,0.999) depending on cutpoint value, so still need to think about the priors!!)
+                          priors$prior_beta_mu_SD   <- if_null_then_set_to(priors$prior_beta_mu_SD,   c(1.0, 1.0)) 
+                          ## probit scale so this is ~ unif. (but may rule-out "extreme" values (e.g.,0.999) depending on cutpoint value,
+                          ## so still need to think about the priors!!):
                           priors$prior_beta_SD_mean <- if_null_then_set_to(priors$prior_beta_SD_mean, c(0.0, 0.0))
-                          priors$prior_beta_SD_SD   <- if_null_then_set_to(priors$prior_beta_SD_SD,   c(0.5, 0.5)) ## this allows a lot of heterogeneity on the probit scale, e.g.: pnorm(0.0 +/- 2*0.5) gives 15.9%/84.1%
+                          ## this allows a lot of heterogeneity on the probit scale, e.g.: pnorm(0.0 +/- 2*0.5) gives 15.9%/84.1%:
+                          priors$prior_beta_SD_SD   <- if_null_then_set_to(priors$prior_beta_SD_SD,   c(0.5, 0.5))
                           ##
                           check_vec_length(priors, "prior_beta_mu_mean", 2)
                           check_vec_length(priors, "prior_beta_mu_SD",   2)
@@ -171,7 +192,7 @@ R_fn_set_priors_MA <- function(   priors,
                   }
                   ##
                   ## Default priors for the cutpoints and/or induced-Dirichlet parameters:
-                  ## NOTE: these are the same whether using "Gatsonis" or "Xu" parameterisation
+                  ## NOTE: these are the same whether using "R&G" or "Xu" parameterisation
                   ##
                   # n_thr <- n_thr
                   # n_cat <- n_thr + 1
@@ -182,7 +203,8 @@ R_fn_set_priors_MA <- function(   priors,
                           ##
                           ## Set default priors for the cutpoints (using Dirichlet ** priors ** (not model) on the "Induced-Dirichlet" ordinal probs):
                           ##
-                          priors$prior_alpha <- if_null_then_set_to(priors$prior_alpha, rep(1.0, n_cat)) ## implies a uniform simplex
+                          ## implies a uniform simplex:
+                          priors$prior_alpha <- if_null_then_set_to(priors$prior_alpha, rep(1.0, n_cat)) 
                           ##
                           check_vec_length(priors, "prior_alpha", n_cat)
                           
@@ -193,7 +215,8 @@ R_fn_set_priors_MA <- function(   priors,
                           ## Set default priors for the cutpoints  (using Dirichlet ** between-study model ** (not priors) on the "Induced-Dirichlet" ordinal probs):
                           ##
                           ## Prior on the POOLED "induced-Dirichlet" "alpha" (i.e. the "concentration") parameters:
-                          priors$prior_dirichlet_cat_means_alpha <- if_null_then_set_to(priors$prior_dirichlet_cat_means_alpha, rep(1.00, n_cat)) ## implies a uniform simplex
+                          ## implies a uniform simplex:
+                          priors$prior_dirichlet_cat_means_alpha <- if_null_then_set_to(priors$prior_dirichlet_cat_means_alpha, rep(1.00, n_cat)) 
                           ##
                           check_vec_length(priors, "prior_dirichlet_cat_means_alpha", n_cat)
                           ##
@@ -210,7 +233,8 @@ R_fn_set_priors_MA <- function(   priors,
                           ## Priors on the derived Dirichlet-category "SD" transformed parameters:
                           ##
                           priors$prior_dirichlet_cat_SDs_mean <- if_null_then_set_to(priors$prior_dirichlet_cat_SDs_mean, rep(0.0, n_cat))
-                          priors$prior_dirichlet_cat_SDs_SD   <- if_null_then_set_to(priors$prior_dirichlet_cat_SDs_SD,   rep(0.025, n_cat)) ## allows moderate between-study heterogeneity
+                          ## allows moderate between-study heterogeneity:
+                          priors$prior_dirichlet_cat_SDs_SD   <- if_null_then_set_to(priors$prior_dirichlet_cat_SDs_SD,   rep(0.025, n_cat)) 
                           ##
                           check_vec_length(priors, "prior_dirichlet_cat_SDs_mean", n_cat)
                           check_vec_length(priors, "prior_dirichlet_cat_SDs_SD",   n_cat)

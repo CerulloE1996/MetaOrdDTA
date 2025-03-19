@@ -8,22 +8,16 @@
 #                                       
 
 #' generate_summary_tibble
-#' @keywords internal
 #' @export
 generate_summary_tibble <- function(n_threads = NULL,
                                     input_array, 
                                     iter_dim,
                                     chain_dim,
                                     param_names, 
-                                    # n_to_compute, 
                                     compute_nested_rhat,
-                                    # n_chains, 
                                     n_superchains) {
         
               n_threads <- if_null_then_set_to(n_threads, round(parallel::detectCores() / 2))
-              
-              
-              
               
               ## The correct dim order (for using Bayesplot R pkg) is: Iteration, Chain, Parameter
               params_dim <-  factorial(3) - (iter_dim + chain_dim)
@@ -57,11 +51,6 @@ generate_summary_tibble <- function(n_threads = NULL,
                 posterior_draws_as_std_vec_of_mats[[p]] <- mat
               }
               ##
-              # n_params <- n_params
-
-             #  message(print(paste("str(reformatted_trace) = ")))
-             #  message(print(paste(str(reformatted_trace))))
-             # # message(print(str(posterior_draws_as_std_vec_of_mats)))
 
               for (p in 1:n_params) {
                   for (kk in 1:n_chains) {
@@ -108,29 +97,25 @@ generate_summary_tibble <- function(n_threads = NULL,
 
               for (p in seq_len(n_params)) {
                 
-                try({ 
-
-                        #### Get all values for this parameter across iterations and chains
-                        param_values <- as.vector(reformatted_trace[ , , p])
-
-                        #### Calculate summary statistics
-                        if (p %% (round(n_params/10)) == 0) {
-                            message(paste("summary_df$mean[p] = "))
-                            print(str(summary_df$mean[p]))
-                        }
-                        ##
-                        ##message(paste("means_between_chains[p] = "))
-                        ## print(str(means_between_chains[p]))
-                        ##
-                        summary_df$mean[p] <- means_between_chains[p]
-                        summary_df$sd[p] <- SDs_between_chains[p]
-                        try({
-                            summary_df[p, c("2.5%", "50%", "97.5%")] <- quantiles_between_chains[p, ]
-                            #### summary_df[p, c("2.5%", "50%", "97.5%")] <- quantiles_between_chains[, p]
-                        })
-                        summary_df$n_eff[p] <- round(ess_vec[p])
-                        summary_df$Rhat[p] <- rhat_vec[p]
-                })
+                    try({ 
+    
+                            ## Get all values for this parameter across iterations and chains:
+                            param_values <- as.vector(reformatted_trace[ , , p])
+    
+                            ## Calculate summary statistics:
+                            if (p %% (round(n_params/10)) == 0) {
+                                message(paste("summary_df$mean[p] = "))
+                                print(str(summary_df$mean[p]))
+                            }
+                            ##
+                            summary_df$mean[p] <- means_between_chains[p]
+                            summary_df$sd[p] <- SDs_between_chains[p]
+                            try({
+                                summary_df[p, c("2.5%", "50%", "97.5%")] <- quantiles_between_chains[p, ]
+                            })
+                            summary_df$n_eff[p] <- round(ess_vec[p])
+                            summary_df$Rhat[p] <- rhat_vec[p]
+                    })
 
               }
             

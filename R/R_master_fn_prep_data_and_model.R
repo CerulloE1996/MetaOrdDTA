@@ -1,148 +1,3 @@
- 
-
-#' default_network
-#' @keywords internal
-#' @export
-default_network <- function(x) { 
-  
-  
-      network <- NA
-      ##
-      is_x_list <- try_silent(is.list(x))
-      is_x_nested_list <- try_silent(is.list(x[[1]]))
-      ##
-      if (is_x_list) { 
-        network <- FALSE
-      } else if (is_x_nested_list) { 
-        network <- TRUE
-      }
-      
-      print(paste("network = ", network))
-      return(list(network))
-  
-  
-}
-
-
-
-
-#' default_parameterisation
-#' @keywords internal
-#' @export
-default_model_parameterisation <- function(cts) { 
-  
-  if (cts) { 
-    model_parameterisation <- "Jones"
-  } else   {
-    model_parameterisation <- "Gatsonis"
-  }
-  
-  print(paste("model_parameterisation = ", model_parameterisation))
-  return(list(model_parameterisation))
-  
-}
-
-
-
-
-
-#' default_random_thresholds
-#' @keywords internal
-#' @export
-default_random_thresholds <- function(cts) { 
-  
-  if (cts) { 
-    random_thresholds <- FALSE
-  } else   {
-    random_thresholds <- FALSE ## default is fixed between-study threshold model)
-  }
-  
-  print(paste("random_thresholds = ", random_thresholds))
-  return(list(random_thresholds))
-  
-}
-
-
-
-
-
-
-#' default_Dirichlet_random_effects_type
-#' @keywords internal
-#' @export
-default_Dirichlet_random_effects_type <- function(cts, 
-                                                  random_thresholds) { 
-  
-  if (cts) { 
-    Dirichlet_random_effects_type <- FALSE
-  } else   {
-      if (random_thresholds == TRUE) { 
-        Dirichlet_random_effects_type <- "SD"
-      } else { 
-        Dirichlet_random_effects_type <- "none as not using random-effect thresholds" ## only relvent if using random-effect (between-study) thresholds. 
-      }
-  }
-  
-  print(paste("Dirichlet_random_effects_type = ", Dirichlet_random_effects_type))
-  return(list(Dirichlet_random_effects_type))
-  
-}
-
-
-
-#' default_box_cox
-#' @keywords internal
-#' @export
-default_box_cox <- function(cts) { 
-  
-    if (cts) { 
-      box_cox <- TRUE
-    } else   {
-      box_cox <- FALSE ## only relvant for continuous models.
-    }
-    
-    print(paste("box_cox = ", box_cox))
-    return(list(box_cox))
-    
-}
-
-
-
-
-#' default_softplus
-#' @keywords internal
-#' @export
-default_softplus <- function() { 
-
-    softplus <- TRUE ## default is to use softplus on ALL models (instead of exp() / log-normal)
-    ##
-    # print(paste("softplus = ", softplus))
-    return(list(softplus))
-  
-}
-
-
-
-#' default_cts
-#' @keywords internal
-#' @export
-default_cts <- function() { 
-  
-  cts <- FALSE
-  ##
-  # print(paste("default_cts = ", default_cts))
-  return(list(cts))
-  
-}
-
-
-
-
-
-
-
-
-
 
 
 
@@ -182,7 +37,7 @@ prep_data_and_model <- function(  debugging = FALSE,
           
           ##
           default_n_chains <- round(parallel::detectCores()/2)
-          MCMC_params$n_chains <- if_null_then_set_to(MCMC_params$n_chains, default_n_chains)
+          MCMC_params$n_chains <- MetaOrdDTA:::if_null_then_set_to(MCMC_params$n_chains, default_n_chains)
           print(paste("MCMC_params$n_chains = ", MCMC_params$n_chains))
           ##
           try({  
@@ -193,45 +48,53 @@ prep_data_and_model <- function(  debugging = FALSE,
               # } else { 
               #   cts <- FALSE
               # }
-              basic_model_options$cts <- if_null_then_set_to( basic_model_options$cts,  
-                                                                           default_fns_list$cts(x)[[1]])
+              basic_model_options$cts <-  MetaOrdDTA:::if_null_then_set_to( basic_model_options$cts,  
+                                                                           default_fns_list$cts()[[1]])
               print(paste("basic_model_options$cts = ", basic_model_options$cts))
               ##
               ## Check if NMA or not (and set "network" binary indicator):
               ##
-              basic_model_options$network <- if_null_then_set_to( basic_model_options$network,  
+              basic_model_options$network <-  MetaOrdDTA:::if_null_then_set_to( basic_model_options$network,  
                                                                                default_fns_list$network(x)[[1]])
               print(paste("basic_model_options$network = ", basic_model_options$network))
               ##
               ## Check if prior-only model:
               ##
-              basic_model_options$prior_only <- if_null_then_set_to( basic_model_options$prior_only, 
+              basic_model_options$prior_only <-  MetaOrdDTA:::if_null_then_set_to( basic_model_options$prior_only, 
                                                                                   FALSE)
               print(paste("basic_model_options$prior_only = ", basic_model_options$prior_only))
               ##
               ## "Advanced" options for ordinal models ONLY:
               ##
-              advanced_model_options$model_parameterisation        <- if_null_then_set_to( advanced_model_options$model_parameterisation,  
+              advanced_model_options$model_parameterisation        <-  MetaOrdDTA:::if_null_then_set_to( advanced_model_options$model_parameterisation,  
                                                                                                         default_fns_list$model_parameterisation(
-                                                                                                                           cts = basic_model_options$cts)[[1]])
+                                                                                                            cts = basic_model_options$cts)[[1]])
               print(paste("advanced_model_options$model_parameterisation = ", advanced_model_options$model_parameterisation))
               ##
-              advanced_model_options$random_thresholds             <- if_null_then_set_to( advanced_model_options$random_thresholds, 
+              ##
+              ##
+              advanced_model_options$random_thresholds             <-  MetaOrdDTA:::if_null_then_set_to( advanced_model_options$random_thresholds, 
                                                                                                         default_fns_list$random_thresholds(
-                                                                                                                           cts = basic_model_options$cts)[[1]])
+                                                                                                            cts = basic_model_options$cts)[[1]])
               print(paste("advanced_model_options$random_thresholds = ", advanced_model_options$random_thresholds))
               ##
-              advanced_model_options$Dirichlet_random_effects_type <- if_null_then_set_to( advanced_model_options$Dirichlet_random_effects_type, 
-                                                                                                        default_fns_list$Dirichlet_random_effects_type(
-                                                                                                                           cts = basic_model_options$cts, 
-                                                                                                                           random_thresholds = advanced_model_options$random_thresholds)[[1]])
+              ##
+              ##
+              advanced_model_options$Dirichlet_random_effects_type <-  MetaOrdDTA:::if_null_then_set_to( advanced_model_options$Dirichlet_random_effects_type, 
+                                                                                              default_fns_list$Dirichlet_random_effects_type(
+                                                                                              cts = basic_model_options$cts, 
+                                                                                              random_thresholds = advanced_model_options$random_thresholds)[[1]])
               print(paste("advanced_model_options$Dirichlet_random_effects_type = ", advanced_model_options$Dirichlet_random_effects_type))
               ##
-              advanced_model_options$box_cox <- if_null_then_set_to( advanced_model_options$box_cox, 
+              ##
+              ##
+              advanced_model_options$box_cox <-  MetaOrdDTA:::if_null_then_set_to( advanced_model_options$box_cox, 
                                                                                   default_fns_list$box_cox(cts = basic_model_options$cts)[[1]])
               print(paste("advanced_model_options$box_cox = ", advanced_model_options$box_cox))
               ##
-              advanced_model_options$softplus <- if_null_then_set_to( advanced_model_options$softplus, 
+              ##
+              ##
+              advanced_model_options$softplus <-  MetaOrdDTA:::if_null_then_set_to( advanced_model_options$softplus, 
                                                                                    default_fns_list$softplus()[[1]])
               print(paste("advanced_model_options$softplus = ", advanced_model_options$softplus))
           })
@@ -239,17 +102,17 @@ prep_data_and_model <- function(  debugging = FALSE,
           ## -----------------  Setup data: ---------------------------------------------------------------------------
           ##
           {
-            if (basic_model_options$network)  { 
-                data_fn <- R_fn_prep_NMA_data
-            } else { 
-                data_fn <- R_fn_prep_MA_data
-            }
-            
-               outs_data <- data_fn( x = x,
-                                     box_cox  = advanced_model_options$box_cox,
-                                     softplus = advanced_model_options$softplus)
+              if (basic_model_options$network)  { 
+                  data_fn <- R_fn_prep_NMA_data
+              } else { 
+                  data_fn <- R_fn_prep_MA_data
+              }
+              
+                 outs_data <- data_fn( x = x,
+                                       box_cox  = advanced_model_options$box_cox,
+                                       softplus = advanced_model_options$softplus)
           }
-          ##
+           ##
           internal_obj$outs_data <- outs_data
           ##
           if (basic_model_options$network == FALSE) { 
@@ -270,7 +133,7 @@ prep_data_and_model <- function(  debugging = FALSE,
           ##
           message(paste("internal_obj$outs_stan_model_name$stan_model_file_name = "))
           print(internal_obj$outs_stan_model_name)
-          # ##
+          ##
           ## ----------------- Compile Stan model (if necessary): ------------------------------------------------------
           ##
           internal_obj$outs_stan_compile <- R_fn_compile_stan_model_basic_given_file_name( 
@@ -340,6 +203,9 @@ prep_data_and_model <- function(  debugging = FALSE,
           #   # }
           # })
           ##
+          print(paste("advanced_model_options = "))
+          print(advanced_model_options)
+          ##
           for (i in 1:MCMC_params$n_chains) {
                init_lists_per_chain[[i]] <- R_fn_set_inits( 
                                                      inits = init_lists_per_chain[[i]],
@@ -360,6 +226,7 @@ prep_data_and_model <- function(  debugging = FALSE,
           ##
           message(paste("init_lists_per_chain[[1]] = "))
           print(init_lists_per_chain[[1]])
+          init_lists_per_chain
           # init_lists_per_chain[[1]]$inits$
           # ##
           # ## ---- Pack the modified variables back into the lists:

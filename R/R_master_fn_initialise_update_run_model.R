@@ -155,7 +155,7 @@ initialise_update_run_model <- function(      debugging = FALSE,
           try({
             internal_obj$outs_stan_compile$stan_model_obj$variables()$parameters
                     
-            internal_obj$outs_stan_init <- R_fn_init_stan_inits_external(    
+            internal_obj$outs_stan_init <- MetaOrdDTA:::R_fn_init_stan_inits_external(    
                                                                       stan_data_list       = internal_obj$outs_data$stan_data_list,
                                                                       stan_model_file_path = internal_obj$outs_stan_model_name$stan_model_file_path,
                                                                       stan_model_obj       = internal_obj$outs_stan_compile$stan_model_obj,
