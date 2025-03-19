@@ -4,6 +4,7 @@
 ////
 //// ---- Box-Cox custom Stan functions: ----------------------------------------------------------------------------------------------
 ////
+
 ////    
 //// ---- Box-Cox transform function:
 ////
@@ -21,6 +22,7 @@ real fn_Stan_box_cox( real x,
   }
   
 }
+
 ////
 //// ---- Vectorized Box-Cox transform function (overloaded function):
 ////
@@ -45,6 +47,7 @@ vector fn_Stan_box_cox( vector x,
       return result;
       
 }
+
 ////
 //// ---- Row-vector overload:
 ////
@@ -59,3 +62,6 @@ row_vector fn_Stan_box_cox( row_vector x,
       return(x_row_vec_trans);
   
 }
+
+
+
