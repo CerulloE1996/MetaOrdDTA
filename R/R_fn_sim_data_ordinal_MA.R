@@ -78,15 +78,33 @@ R_fn_sim_data_ordinal_MA <- function(   seed = 123,
      ## For PHQ-9-based data (test #5):
      ##
      ## ----------------------
-     file_path <- file.path(MetaOrdinal_admin_path_examples, "true_mean_PHQ_9_Cerullo_Gat_params_list.RDS")
-     true_mean_PHQ_9_Cerullo_Gat_params_list <- readRDS(file_path)
+     #### file_path <- file.path(MetaOrdinal_admin_path_examples, "true_mean_PHQ_9_Cerullo_Gat_params_list.RDS")
+     true_mean_PHQ_9_Cerullo_Gat_params_list <- list() #### readRDS(file_path)
+     true_mean_PHQ_9_Cerullo_Gat_params_list$beta_mu <- -1.67
+     true_mean_PHQ_9_Cerullo_Gat_params_list$raw_scale_mu <- -0.061
+     
+     true_mean_PHQ_9_Cerullo_Gat_params_list$C <- c(-2.2000, -2.0000, -1.5300, -1.1600, -0.8590,
+                                                    -0.5780 ,-0.3300, -0.1020,  0.0908,  0.2640 ,
+                                                    0.4590,   0.6600,  0.8240,  0.9440,  1.0200 ,
+                                                    1.2500,   1.3300,  1.5200,  1.6700,  1.9800 ,
+                                                    2.1100,   2.2000,  2.4500,  2.5400,  2.8000  ,
+                                                    3.0500,   3.0800)
+     
      ## ----------------------
      true_beta_mu_PHQ_9_Cerullo_Gat      <- true_mean_PHQ_9_Cerullo_Gat_params_list$beta_mu
-     true_raw_scale_mu_PHQ_9_Cerullo_Gat <- true_mean_PHQ_9_Cerullo_Gat_params_list$raw_scale_mu
-     true_C_mu_PHQ_9_Cerullo_Gat         <- true_mean_PHQ_9_Cerullo_Gat_params_list$C
+     print(paste("true_beta_mu_PHQ_9_Cerullo_Gat = "))
+     print(true_beta_mu_PHQ_9_Cerullo_Gat)
      ##
-     location_nd[5] <- (-1)*(-0.5)*true_beta_mu_PHQ_9_Cerullo_Gat ; location_nd[5]
-     location_d[5]  <- (-1)*(+0.5)*true_beta_mu_PHQ_9_Cerullo_Gat ;  location_d[5]
+     true_raw_scale_mu_PHQ_9_Cerullo_Gat <- true_mean_PHQ_9_Cerullo_Gat_params_list$raw_scale_mu
+     print(paste("true_raw_scale_mu_PHQ_9_Cerullo_Gat = "))
+     print(true_raw_scale_mu_PHQ_9_Cerullo_Gat)
+     ##
+     true_C_mu_PHQ_9_Cerullo_Gat         <- true_mean_PHQ_9_Cerullo_Gat_params_list$C
+     print(paste("true_C_mu_PHQ_9_Cerullo_Gat = "))
+     print(true_C_mu_PHQ_9_Cerullo_Gat)
+     ##
+     location_nd[5] <- -(-0.5)*true_beta_mu_PHQ_9_Cerullo_Gat ; location_nd[5]
+     location_d[5]  <- -(+0.5)*true_beta_mu_PHQ_9_Cerullo_Gat ;  location_d[5]
      # ##
      # scale_nd[5] <- exp(-0.5*true_raw_scale_mu_PHQ_9_Cerullo_Gat);
      # scale_d[5]  <- exp(+0.5*true_raw_scale_mu_PHQ_9_Cerullo_Gat);
@@ -100,8 +118,8 @@ R_fn_sim_data_ordinal_MA <- function(   seed = 123,
      # raw_scale_d
      ##
      raw_RG_scale <- c(0.00, -0.05, -0.10, -0.15, true_raw_scale_mu_PHQ_9_Cerullo_Gat)
-     raw_scale_nd_MEDIAN <- -0.5*raw_RG_scale ## since median of log-normal is equal to exp(mu), and mean is exp(mu + 0.5*sd)
-     raw_scale_d_MEDIAN  <- +0.5*raw_RG_scale ## since median of log-normal is equal to exp(mu), and mean is exp(mu + 0.5*sd)
+     raw_scale_nd_MEDIAN <- -(-0.5)*raw_RG_scale ## since median of log-normal is equal to exp(mu), and mean is exp(mu + 0.5*sd)
+     raw_scale_d_MEDIAN  <- -(+0.5)*raw_RG_scale ## since median of log-normal is equal to exp(mu), and mean is exp(mu + 0.5*sd)
      scale_nd_MEDIAN <- exp(raw_scale_nd_MEDIAN)
      scale_d_MEDIAN  <- exp(raw_scale_d_MEDIAN)
      # ## check:
@@ -137,15 +155,17 @@ R_fn_sim_data_ordinal_MA <- function(   seed = 123,
      Mean_of_thr_for_all_tests_array[3, 1:n_thr_per_test[3]] <- Mean_thresholds_for_test_3
      ## Test 4:
      Mean_thresholds_for_test_4 <- rep(NA, n_thr_per_test[4])
-     Mean_thresholds_for_test_4 <- c(-2.50, -2.20, -2.00, -1.90, -1.75, -1.50, -1.35, -1.00, -0.80, -0.50, 
-                                     -0.25, -0.10, +0.00, +0.10, +0.25, +0.40, +0.80, +1.00, +1.50, +1.80, 
+     Mean_thresholds_for_test_4 <- c(-2.50, -2.20, -2.00, -1.90, -1.75, 
+                                     -1.50, -1.35, -1.00, -0.80, -0.50, 
+                                     -0.25, -0.10, +0.00, +0.10, +0.25, 
+                                     +0.40, +0.80, +1.00, +1.50, +1.80, 
                                      +2.20, +2.40, +2.50, +2.60, +2.70)
      length(Mean_thresholds_for_test_4)
      Mean_of_thr_for_all_tests_array[4, 1:n_thr_per_test[4]] <- Mean_thresholds_for_test_4
      ##
      ## Test 5 (BASED ON REAL_LIFE PHQ-9 DATA):
      ##
-     Mean_thresholds_for_test_5 <- c(-2.2, true_C_mu_PHQ_9_Cerullo_Gat)
+     Mean_thresholds_for_test_5 <- true_C_mu_PHQ_9_Cerullo_Gat ### c(-2.2, true_C_mu_PHQ_9_Cerullo_Gat)
      Mean_of_thr_for_all_tests_array[5, 1:n_thr_per_test[5]] <- Mean_thresholds_for_test_5
      
 
@@ -213,12 +233,12 @@ R_fn_sim_data_ordinal_MA <- function(   seed = 123,
              raw_scale_nd_study_s <- rnorm(n = n_tests, mean = raw_scale_nd_MEDIAN,  sd = raw_scale_nd_SD)
              raw_scale_d_study_s  <- rnorm(n = n_tests, mean = raw_scale_d_MEDIAN,   sd = raw_scale_d_SD)
              ##
-             scale_nd_study_s <- exp(raw_scale_nd_study_s)
-             scale_d_study_s  <- exp(raw_scale_d_study_s)
+             scale_nd_study_s <- exp(-(-0.5)*raw_scale_nd_study_s)
+             scale_d_study_s  <- exp(-(+0.5)*raw_scale_d_study_s)
              
              
              if (assume_perfect_GS == TRUE) {
-                 rho1 <- 0.00
+                 rho1 <- 1.00
              } else { 
                  rho1 <- 0.20
              }
@@ -237,6 +257,9 @@ R_fn_sim_data_ordinal_MA <- function(   seed = 123,
                    Omega_nd <-  0.5 * Omega_highly_varied ## Corr(D-) is HALF that of the Corr(D+)
                    diag(Omega_nd) <- rep(1, n_tests)
              }
+             ##
+             Omega_nd <- as.matrix(Matrix::nearPD(Omega_nd, keepDiag = TRUE)$mat)
+             Omega_d <- as.matrix(Matrix::nearPD(Omega_d, keepDiag = TRUE)$mat)
              ##
              L_Omega_nd   <- t(chol(Omega_nd)) # PD check (fails if not PD)
              L_Omega_d    <- t(chol(Omega_d))   ## BayesMVP:::Rcpp_Chol(Sigma_nd) # PD check (fails if not PD)

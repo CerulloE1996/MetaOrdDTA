@@ -72,8 +72,8 @@ create_prediction_polygon <- function(df,
 # conf_region_colour <- "blue"
 # pred_region_colour <- "blue"
 # 
-# Stan_model_file_name = Stan_model_file_name
-# Stan_mod_samples = Stan_mod_samples
+# stan_model_file_name = stan_model_file_name
+# stan_mod_samples = stan_mod_samples
 # df_true = NULL
 # conf_region_colour = "blue"
 # pred_region_colour = "blue"
@@ -87,25 +87,25 @@ create_prediction_polygon <- function(df,
 #' R_fn_sROC_plot
 #' @keywords internal
 #' @export
-R_fn_sROC_plot <- function( Stan_model_file_name,
-                            Stan_mod_samples,
+R_fn_sROC_plot <- function( stan_model_file_name,
+                            stan_mod_samples,
                             df_true = NULL,
                             conf_region_colour = "blue", 
                             pred_region_colour = "blue"
 ) {
             require(ggplot2)
      
-            model_name <- Stan_model_file_name
-            # Stan_mod_samples$summary(c("Se"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
+            model_name <- stan_model_file_name
+            # stan_mod_samples$summary(c("Se"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
             try({
-              Se <- Stan_mod_samples$summary(c("Se"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
-              Se_pred <- Stan_mod_samples$summary(c("Se_pred"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
+              Se <- stan_mod_samples$summary(c("Se"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
+              Se_pred <- stan_mod_samples$summary(c("Se_pred"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
               ##
-              Sp <- Stan_mod_samples$summary(c("Sp"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
-              Sp_pred <- Stan_mod_samples$summary(c("Sp_pred"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
+              Sp <- stan_mod_samples$summary(c("Sp"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
+              Sp_pred <- stan_mod_samples$summary(c("Sp_pred"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
               ##
-              Fp <- Stan_mod_samples$summary(c("Fp"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
-              Fp_pred <- Stan_mod_samples$summary(c("Fp_pred"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
+              Fp <- stan_mod_samples$summary(c("Fp"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
+              Fp_pred <- stan_mod_samples$summary(c("Fp_pred"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
             })
             ##
             n_thr <- nrow(Se)

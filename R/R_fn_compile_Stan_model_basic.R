@@ -18,8 +18,17 @@ R_fn_compile_stan_model_basic_given_file_name <- function( stan_model_file_name,
   
          
           if (debugging) {
-        
-                    pkg_root_directory       <- "/home/enzo/Documents/Work/PhD_work/R_packages/MetaOrdDTA"
+            
+                    os <- .Platform$OS.type
+            
+                    if (os == "unix") { 
+                      user_root_dir <- Sys.getenv("PWD")
+                    } else if (os == "windows") { 
+                      user_root_dir <- Sys.getenv("USERPROFILE")
+                    }
+                    local_pkg_dir <- file.path(user_root_dir, "Documents/Work/PhD_work/R_packages/MetaOrdDTA")
+                    
+                    pkg_root_directory       <- local_pkg_dir
                     stan_models_directory    <- file.path(pkg_root_directory, "inst", "stan_models")
                     stan_functions_directory <- file.path(pkg_root_directory, "inst", "stan_functions")
                     ##
@@ -90,6 +99,8 @@ R_fn_compile_stan_model_basic_given_file_name <- function( stan_model_file_name,
                        stan_NMA_directory = stan_NMA_directory))
   
 }
+
+
 
 
 

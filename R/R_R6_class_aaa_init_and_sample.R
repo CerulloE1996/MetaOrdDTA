@@ -130,7 +130,7 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                     ##
                     outs_stan_compile = list( 
                         stan_model_obj = NULL, 
-                        stan_model_file_name = NULL,
+                        # stan_model_file_name = NULL,
                         stan_model_file_path = NULL,
                         ##
                         pkg_root_directory = NULL,
@@ -163,6 +163,7 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                     ##
                     internal_obj = list(
                         outs_data = NULL,
+                        ##
                         outs_stan_model_name = NULL,
                         outs_stan_compile = NULL,
                         outs_stan_init = NULL,

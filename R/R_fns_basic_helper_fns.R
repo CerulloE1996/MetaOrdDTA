@@ -1,10 +1,5 @@
 
 
-
-
-
-
-
 #' R_fn_remove_duplicates_from_list
 #' @keywords internal
 #' @export
@@ -26,9 +21,6 @@ R_fn_remove_duplicates_from_list <- function(stan_data_list) {
         return(unique_stan_data_list)
   
 }
-
-
-
 
 
 
@@ -58,8 +50,6 @@ check_if_BayesMVP_R_pkg_installed <- function(if_true = TRUE,
 
 
 
-
-
 ## Helper R function to remove "log_lik" parameter from trace array 
 #' R_fn_remove_log_lik_from_array
 #' @keywords internal
@@ -77,9 +67,6 @@ R_fn_remove_log_lik_from_array <- function(arr) {
           return(arr_filtered)
   
 }
-
-
-
 
 
 
@@ -134,8 +121,6 @@ make_array_dims_equal_Bayesplot_order <- function( input_array,
         return(new_array)
         
 }
-
-
 
 
 

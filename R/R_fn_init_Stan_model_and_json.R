@@ -237,14 +237,14 @@ init_stan_model_internal <- function( stan_data_list,
 R_fn_init_stan_inits_internal <- function( stan_data_list, 
                                            stan_model_name,
                                            stan_model_stan_include_paths = NULL,
-                                           n_chains_burnin,
+                                           n_chains,
                                            init_lists_per_chain
 ) {
   
           outs_init_stan_model <- init_stan_model_internal( stan_data_list = stan_data_list,
                                                             stan_model_name = stan_model_name,
                                                             stan_model_stan_include_paths = stan_model_stan_include_paths,
-                                                            n_chains_burnin = n_chains_burnin,
+                                                            n_chains = n_chains,
                                                             init_lists_per_chain = init_lists_per_chain)
           ##
           # require(bridgestan)
@@ -286,7 +286,7 @@ R_fn_init_stan_inits_internal <- function( stan_data_list,
           ##
           inits_unconstrained_vec_per_chain <- list()
           ##
-          for (kk in 1:n_chains_burnin) {
+          for (kk in 1:n_chains) {
               ##
               ## Get/format json string:
               ##

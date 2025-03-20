@@ -135,7 +135,7 @@ R_fn_set_inits_MA <- function(    inits,
                                      cutpoint_vec <- seq(from = -2.0, to = 2.0, length = n_thr)
                                      inits$C_array <- if_null_then_set_to(inits$C_array, list(cutpoint_vec, cutpoint_vec))
                                      ##
-                                     check_list_of_vectors_length(inits, "C_array", n_thr)
+                                     # check_list_of_vectors_length(inits, "C_array", n_thr)
                                      ##
                                      ## Default inits for "induced-Dirichlet" between-study model (for the cutpoints):
                                      ##

@@ -115,6 +115,9 @@ prep_data_and_model <- function(  debugging = FALSE,
            ##
           internal_obj$outs_data <- outs_data
           ##
+          print(paste("internal_obj$outs_data$stan_data_list = "))
+          print(str(internal_obj$outs_data$stan_data_list))
+          ##
           if (basic_model_options$network == FALSE) { 
                  internal_obj$outs_data$n_tests <- 1
           }
