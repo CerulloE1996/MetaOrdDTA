@@ -104,8 +104,9 @@ real induced_dirichlet_v2_lpdf(  row_vector p_ord,
           
 
         int n_cat = num_elements(p_ord);
+        int n_thr = n_cat - 1;
         vector[n_cat] p_ord_col_vec = to_vector(p_ord);
-        vector[n_cat] rho_col_vec   = to_vector(rho);
+        vector[n_thr] rho_col_vec   = to_vector(rho);
         vector[n_cat] alpha_col_vec = to_vector(alpha);
         
         return induced_dirichlet_v2_lpdf(p_ord_col_vec | rho_col_vec, alpha_col_vec);

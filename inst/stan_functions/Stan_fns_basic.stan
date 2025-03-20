@@ -1,6 +1,11 @@
 
 
 
+
+
+
+
+
 ////
 //// "Basic" custom Stan functions: ----------------------------------------------------------------------------------------------------
 ////
@@ -21,8 +26,6 @@ array[] matrix init_array_of_matrices( int n_rows,
 }
 
 
-
-
 array[] matrix compute_ss_accuracy_from_cumul_prob( array[] matrix cumul_prob, 
                                                     int n_studies,
                                                     int n_thr) {
@@ -38,55 +41,51 @@ array[] matrix compute_ss_accuracy_from_cumul_prob( array[] matrix cumul_prob,
 }
 
 
-
-//// re-scaled softplus(x) = log(1.0 + exp(x)) function so that it's "centered" around 1 (just like exp(x)!) rather than log(2)
+////
+//// re-scaled softplus(x) = log(1.0 + exp(x)) function so that it's "centered" 
+//// around 1 (just like exp(x)!) rather than log(2)
+//// using "log_2_recip = 1.4426950408889634" as this can be much more efficient 
+//// than doing 1.0/log(2) every time. 
+////
 real softplus_scaled(real x) {
-     real log_2_recip = 1.4426950408889634;  // can be much more efficient than doing 1.0/log(2) every time. 
+     real log_2_recip = 1.4426950408889634;  
      return log_2_recip*log1p_exp(x);
 }
-//// re-scaled softplus(x) = log(1.0 + exp(x)) function so that it's "centered" around 1 (just like exp(x)!) rather than log(2)
 vector softplus_scaled(vector x) {
      real log_2_recip = 1.4426950408889634;
      return log_2_recip*log1p_exp(x);
 }
-//// re-scaled softplus(x) = log(1.0 + exp(x)) function so that it's "centered" around 1 (just like exp(x)!) rather than log(2)
 row_vector softplus_scaled(row_vector x) {
      real log_2_recip = 1.4426950408889634;
      return log_2_recip*log1p_exp(x);
 }
-//// re-scaled softplus(x) = log(1.0 + exp(x)) function so that it's "centered" around 1 (just like exp(x)!) rather than log(2)
 matrix softplus_scaled(matrix x) {
      real log_2_recip = 1.4426950408889634;
      return log_2_recip*log1p_exp(x);
 }
 
  
-
-
-
-
-
-//// re-scaled softplus(x) = log(1.0 + exp(x)) function so that it's "centered" around 1 (just like exp(x)!) rather than log(2)
+ 
+ 
+//// re-scaled softplus(x) = log(1.0 + exp(x)) function so that it's "centered" 
+//// around 1 (just like exp(x)!) rather than log(2)
 real softplus_scaled_jacobian(real x) {
-     real log_log_2 = -0.3665129205816643; // can be much more efficient than doing log(log(2)) every time.
+     real log_log_2 = -0.3665129205816643;
      jacobian += log_log_2 + log_inv_logit(x);
      return softplus_scaled(x);
 }
-//// re-scaled softplus(x) = log(1.0 + exp(x)) function so that it's "centered" around 1 (just like exp(x)!) rather than log(2)
 vector softplus_scaled_jacobian(vector x) {
-     real log_log_2 = -0.3665129205816643; // can be much more efficient than doing log(log(2)) every time.
+     real log_log_2 = -0.3665129205816643;
      jacobian += sum(log_log_2 + log_inv_logit(x));
      return softplus_scaled(x);
 }
-//// re-scaled softplus(x) = log(1.0 + exp(x)) function so that it's "centered" around 1 (just like exp(x)!) rather than log(2)
 row_vector softplus_scaled_jacobian(row_vector x) {
-     real log_log_2 = -0.3665129205816643; // can be much more efficient than doing log(log(2)) every time.
+     real log_log_2 = -0.3665129205816643;
      jacobian += sum(log_log_2 + log_inv_logit(x));
      return softplus_scaled(x);
 }
-//// re-scaled softplus(x) = log(1.0 + exp(x)) function so that it's "centered" around 1 (just like exp(x)!) rather than log(2)
 matrix softplus_scaled_jacobian(matrix x) {
-     real log_log_2 = -0.3665129205816643; // can be much more efficient than doing log(log(2)) every time.
+     real log_log_2 = -0.3665129205816643;
      jacobian += sum(log_log_2 + log_inv_logit(x));
      return softplus_scaled(x);
 }
@@ -113,12 +112,13 @@ matrix exp_jacobian(matrix x_raw) {
 
 
 //// Normal PDF for a real input x (overloaded fn):
-real normal_pdf( real x, 
+real std_normal_pdf( real x, 
                  real mu, 
                  real sigma) {
                    
      real sqrt_2_pi = sqrt(2 * pi());
-     return (1.0 / (sigma * sqrt_2_pi)) * exp(-0.5 * ((x - mu) / sigma)^2);
+     real sqrt_2_pi_recip = 1.0 / sqrt_2_pi;
+     return sqrt_2_pi_recip * exp(-0.5 * x * x);
   
 }
 
@@ -127,8 +127,9 @@ vector normal_pdf( vector x,
                    real mu, 
                    real sigma) {
 
-      real sqrt_2_pi = sqrt(2 * pi());
-      return (1.0 / (sigma .* sqrt_2_pi)) * exp(-0.5 * ((x - mu) ./ sigma)^2);
+     real sqrt_2_pi = sqrt(2 * pi());
+     real sqrt_2_pi_recip = 1.0 / sqrt_2_pi;
+     return sqrt_2_pi_recip * exp(-0.5 .* x .* x);
 
 }
 
@@ -137,8 +138,9 @@ vector normal_pdf( vector x,
                    vector mu, 
                    vector sigma) {
   
-      real sqrt_2_pi = sqrt(2 * pi());
-      return (1.0 / (sigma * sqrt_2_pi)) .* exp(-0.5 * ((x - mu) ./ sigma)^2);
+     real sqrt_2_pi = sqrt(2 * pi());
+     real sqrt_2_pi_recip = 1.0 / sqrt_2_pi;
+     return sqrt_2_pi_recip * exp(-0.5 .* x .* x);
 
 }
 
@@ -147,8 +149,9 @@ row_vector normal_pdf( row_vector x,
                        real mu, 
                        real sigma) {
 
-      real sqrt_2_pi = sqrt(2 * pi());
-      return (1.0 / (sigma .* sqrt_2_pi)) * exp(-0.5 * ((x - mu) ./ sigma)^2);
+     real sqrt_2_pi = sqrt(2 * pi());
+     real sqrt_2_pi_recip = 1.0 / sqrt_2_pi;
+     return sqrt_2_pi_recip * exp(-0.5 .* x .* x);
 
 }
 
@@ -157,8 +160,9 @@ row_vector normal_pdf( row_vector x,
                        row_vector mu, 
                        row_vector sigma) {
   
-      real sqrt_2_pi = sqrt(2 * pi());
-      return (1.0 / (sigma * sqrt_2_pi)) .* exp(-0.5 * ((x - mu) ./ sigma)^2);
+     real sqrt_2_pi = sqrt(2 * pi());
+     real sqrt_2_pi_recip = 1.0 / sqrt_2_pi;
+     return sqrt_2_pi_recip * exp(-0.5 .* x .* x);
 
 }
 
