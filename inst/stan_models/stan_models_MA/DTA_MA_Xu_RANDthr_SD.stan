@@ -40,7 +40,9 @@ data {
         //// Priors for cutpoints (using "Induced-Dirichlet" ordinal probs):
         ////
         vector[n_thr + 1] prior_dirichlet_cat_means_alpha;
+        ////
         //// Dirichlet priors for the transformed Dirichlet "SD" params:
+        ////
         vector[n_thr + 1] prior_dirichlet_cat_SDs_mean;
         vector<lower=0.0>[n_thr + 1] prior_dirichlet_cat_SDs_SD;
         ////
@@ -64,7 +66,7 @@ parameters {
         vector<lower=0.0>[2] beta_SD;   
         matrix[2, n_studies] beta_z;    //// Study-specific random effects (off-centered parameterisation)
         ////
-        real beta_corr;  //// between-study corr (possibly restricted)
+        real<lower=-1.0, upper=1.0> beta_corr;  //// between-study corr (possibly restricted)
         ////
         array[n_studies] ordered[n_thr] C_array; //// study-specific cutpoints
         simplex[n_cat] dirichlet_cat_means_phi;
@@ -79,21 +81,33 @@ transformed parameters {
         ////
         //// Construct simple 2x2 (bivariate) between-study corr matrices:
         ////
-        cholesky_factor_corr[2] beta_L_Omega = make_restricted_bivariate_L_Omega_jacobian(beta_corr, beta_corr_lb, beta_corr_ub);
+        corr_matrix[2] beta_Omega = make_restricted_bivariate_Omega_jacobian(beta_corr, beta_corr_lb, beta_corr_ub);
+        cholesky_factor_corr[2] beta_L_Omega = cholesky_decompose(beta_Omega);
         cholesky_factor_cov[2]  beta_L_Sigma = diag_pre_multiply(beta_SD, beta_L_Omega);
         ////
         //// Initialise matrices:
-        ////
-        array[2] matrix[n_studies, n_thr] logit_cumul_prob = init_array_of_matrices(n_studies, n_studies, 2, positive_infinity());
-        array[2] matrix[n_studies, n_thr] cumul_prob       = init_array_of_matrices(n_studies, n_studies, 2, 1.0);
-        array[2] matrix[n_studies, n_thr] cond_prob        = init_array_of_matrices(n_studies, n_studies, 2, 1.0);
-        array[2] matrix[n_studies, n_thr] log_lik          = init_array_of_matrices(n_studies, n_studies, 2, 0.0);
+        ////W
+        array[2] matrix[n_studies, n_thr] logit_cumul_prob = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
+        array[2] matrix[n_studies, n_thr] cumul_prob       = init_array_of_matrices(n_studies, n_thr, 2, 1.0);
+        array[2] matrix[n_studies, n_thr] cond_prob        = init_array_of_matrices(n_studies, n_thr, 2, 1.0);
+        array[2] matrix[n_studies, n_thr] log_lik          = init_array_of_matrices(n_studies, n_thr, 2, 0.0);
         ////
         //// Cutpoints + Induced-Dirichlet ** model ** stuff:
         ////
         matrix[n_studies, n_thr] C = convert_C_array_to_mat(C_array);
+        // matrix[n_studies, n_thr] C; ///= convert_C_array_to_mat(C_array);
+        // for (s in 1:n_studies) {
+        //    for (k in 1:n_thr) {
+        //          C[s, k] = C_array[s][k];
+        //    }
+        // }
         matrix[n_studies, n_thr] Ind_Dir_anchor = rep_matrix(0.0, n_studies, n_thr);
-        matrix[n_studies, n_thr] Ind_Dir_cumul  = C - Ind_Dir_anchor;
+        matrix[n_studies, n_thr] Ind_Dir_cumul = C - Ind_Dir_anchor;
+        for (s in 1:n_studies) {
+               for (k in 1:n_thr) {
+                        Ind_Dir_cumul[s, k] = C[s, k];
+               }
+        }
         matrix[n_studies, n_thr] Ind_Dir_cumul_prob = Phi(Ind_Dir_cumul);
         matrix[n_studies, n_cat] Ind_Dir_ord_prob = cumul_probs_to_ord_probs(Ind_Dir_cumul_prob);
         ////
@@ -118,7 +132,9 @@ transformed parameters {
                   for (c in 1:2) {
                       for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
                              int k = to_int(cutpoint_index[c][s, cut_i]);
-                             logit_cumul_prob[c][s, cut_i] = (C[s, k] - beta[c, s]);
+                             if ((c < 3) && (s < (n_studies + 1)) && (cut_i < (n_thr + 1))) {
+                                 logit_cumul_prob[c][s, cut_i] = (C[s, k] - beta[c, s]);
+                             }
                       }
                   }
         }
@@ -134,14 +150,14 @@ transformed parameters {
         for (s in 1:n_studies) {
                 for (c in 1:2) {
                       for (cut_i in 1:n_obs_cutpoints[s]) {
-                              // Current and next cumulative counts
+                              //// Current and next cumulative counts
                               int x_current = to_int(x[c][s, cut_i]);
                               int x_next    = to_int(n[c][s, cut_i]);
                               
-                              // Skip if the current count is zero (no observations to classify)
+                              //// Skip if the current count is zero (no observations to classify)
                               if (x_current != 0)  {
                               
-                                    // Conditional probability of being at or below the current cutpoint - given being at or below the next cutpoint
+                                    //// Conditional probability of being at or below the current cutpoint - given being at or below the next cutpoint
                                     if (cut_i == n_obs_cutpoints[s]) { 
                                              cond_prob[c][s, cut_i]  = cumul_prob[c][s, cut_i] / 1.0;
                                     } else {
@@ -152,7 +168,7 @@ transformed parameters {
                                           }
                                     }
                                     
-                                    // Binomial for observations at or below current cutpoint out of those at or below next cutpoint
+                                    //// Binomial for observations at or below current cutpoint out of those at or below next cutpoint
                                     log_lik[c][s, cut_i] = binomial_lpmf(x_current | x_next, cond_prob[c][s, cut_i]);
                                     
                               }
@@ -181,8 +197,8 @@ model {
         ////
         {
             for (s in 1:n_studies) {
-                row_vector[n_thr] rho =  normal_pdf(Ind_Dir_cumul[s, 1:n_thr], 0.0, 1.0);
-                target += induced_dirichlet_v2_lpdf(Ind_Dir_ord_prob[s, 1:n_cat] | rho, to_row_vector(alpha[1:n_cat]));
+                vector[n_thr] rho =  normal_pdf(to_vector(Ind_Dir_cumul[s, 1:n_thr]), 0.0, 1.0);
+                target += induced_dirichlet_v2_lpdf(to_vector(Ind_Dir_ord_prob[s, 1:n_cat]) | rho, to_vector(alpha[1:n_cat]));
             }
             for (k in 1:n_cat) {
                 target += log_kappa;
@@ -194,7 +210,7 @@ model {
         ////
         {
             to_vector(beta_z) ~ std_normal();   // (part of between-study model, NOT prior)
-        }
+        } 
         ////
         //// Increment the log-likelihood:
         ////
@@ -209,14 +225,14 @@ model {
 
 
 generated quantities {
-  
+
           ////
           //// Calculate summary accuracy (using mean parameters):
           ////
           vector[n_cat] prob_ord_mu   = dirichlet_cat_means_phi;
           vector[n_thr] prob_cumul_mu = ord_probs_to_cumul_probs(prob_ord_mu);
           vector[n_thr] C_mu = cumul_probs_to_C(prob_cumul_mu, 0.0, 1.0);
-          //// 
+          ////
           vector[n_thr] Fp = 1.0 - Phi(C_mu - beta_mu[1]);
           vector[n_thr] Sp = 1.0 - Fp;
           vector[n_thr] Se = 1.0 - Phi(C_mu - beta_mu[2]);
@@ -248,8 +264,8 @@ generated quantities {
           array[2] matrix[n_studies, n_thr] x_hat = init_array_of_matrices(n_studies, n_thr, 2, -1);
           array[2] matrix[n_studies, n_thr] dev   = init_array_of_matrices(n_studies, n_thr, 2, -1);
           ////
-          corr_matrix[2] beta_Omega = multiply_lower_tri_self_transpose(beta_L_Omega); //// Compute between-study correlation matrix for location parameters:
-          ////
+          // corr_matrix[2] beta_Omega = multiply_lower_tri_self_transpose(beta_L_Omega); //// Compute between-study correlation matrix for location parameters:
+          // ////
           vector[n_thr] C_MU_empirical = rowMedians(C);  //// Empirical-mean cutpoints:
           ////
           //// Model-predicted ("re-constructed") data:
@@ -257,10 +273,10 @@ generated quantities {
           for (s in 1:n_studies) {
               for (c in 1:2) {
                  for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
-                  
+
                       //// Model-estimated data:
                       x_hat[c][s, cut_i] = cond_prob[c][s, cut_i] * n[c][s, cut_i];  	 // Fitted values
-                    
+
                       //// Compute residual deviance contribution:
                       real n_i =  (n[c][s, cut_i]);
                       real x_i =  (x[c][s, cut_i]);
@@ -268,19 +284,30 @@ generated quantities {
                       real log_x_minus_log_x_hat = log(x_i) - log(x_hat_i);
                       real log_diff_n_minus_x = log(n_i - x_i);
                       real log_diff_n_minus_x_hat = log(abs(n_i - x_hat_i));
-                       
-                      dev[c][s, cut_i] = 2.0 * ( x_i * log_x_minus_log_x_hat + (n_i - x_i) * (log_diff_n_minus_x - log_diff_n_minus_x_hat) ); 
-                      
+
+                      dev[c][s, cut_i] = 2.0 * ( x_i * log_x_minus_log_x_hat + (n_i - x_i) * (log_diff_n_minus_x - log_diff_n_minus_x_hat) );
+
                  }
               }
           }
-            
+
           x_hat_nd = x_hat[1];
           dev_nd = dev[1];
           x_hat_d = x_hat[2];
           dev_d = dev[2];
-         
+
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 

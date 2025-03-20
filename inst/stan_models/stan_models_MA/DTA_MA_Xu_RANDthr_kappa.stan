@@ -64,7 +64,7 @@ parameters {
         vector<lower=0.0>[2] beta_SD;   
         matrix[2, n_studies] beta_z;    //// Study-specific random effects (off-centered parameterisation)
         ////
-        real<lower=beta_corr_lb, upper=beta_corr_ub> beta_corr;  //// between-study corr (possibly restricted)
+        real<lower=-1.0, upper=+1.0> beta_corr;  //// between-study corr (possibly restricted)
         ////
         array[n_studies] ordered[n_thr] C_array; //// study-specific cutpoints
         simplex[n_cat] dirichlet_cat_means_phi;
@@ -79,17 +79,19 @@ transformed parameters {
         ////
         //// Construct simple 2x2 (bivariate) between-study corr matrices:
         ////
-        cholesky_factor_corr[2] beta_L_Omega = make_restricted_bivariate_L_Omega_jacobian(beta_corr, beta_corr_lb, beta_corr_ub);
+        corr_matrix[2] beta_Omega = make_restricted_bivariate_Omega_jacobian(beta_corr, beta_corr_lb, beta_corr_ub);
+        cholesky_factor_corr[2] beta_L_Omega = cholesky_decompose(beta_Omega);
         cholesky_factor_cov[2]  beta_L_Sigma = diag_pre_multiply(beta_SD, beta_L_Omega);
         ////
-        array[2] matrix[n_studies, n_thr] logit_cumul_prob = init_array_of_matrices(n_studies, n_studies, 2, positive_infinity());
-        array[2] matrix[n_studies, n_thr] cumul_prob       = init_array_of_matrices(n_studies, n_studies, 2, 1.0);
-        array[2] matrix[n_studies, n_thr] cond_prob        = init_array_of_matrices(n_studies, n_studies, 2, 1.0);
-        array[2] matrix[n_studies, n_thr] log_lik          = init_array_of_matrices(n_studies, n_studies, 2, 0.0);
+        array[2] matrix[n_studies, n_thr] logit_cumul_prob = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
+        array[2] matrix[n_studies, n_thr] cumul_prob       = init_array_of_matrices(n_studies, n_thr, 2, 1.0);
+        array[2] matrix[n_studies, n_thr] cond_prob        = init_array_of_matrices(n_studies, n_thr, 2, 1.0);
+        array[2] matrix[n_studies, n_thr] log_lik          = init_array_of_matrices(n_studies, n_thr, 2, 0.0);
         ////
         //// Cutpoints + Induced-Dirichlet ** model ** stuff:
         ////
         matrix[n_studies, n_thr] C = convert_C_array_to_mat(C_array);
+        ////
         matrix[n_studies, n_thr] Ind_Dir_anchor = rep_matrix(0.0, n_studies, n_thr);
         matrix[n_studies, n_thr] Ind_Dir_cumul  = C - Ind_Dir_anchor;
         matrix[n_studies, n_thr] Ind_Dir_cumul_prob = Phi(Ind_Dir_cumul);
@@ -110,20 +112,6 @@ transformed parameters {
         ////
         for (s in 1:n_studies) {
              beta[, s] = beta_mu + beta_L_Sigma * beta_z[, s];
-        }
-        ////
-        //// Induced-Dirichlet model cumulative probs:
-        ////
-        {
-                Ind_Dir_cumul_prob = Phi(C - Ind_Dir_anchor);
-                for (s in 1:n_studies) {
-                        //// Induced-Dirichlet ordinal probs:
-                        Ind_Dir_ord_prob[s, 1] = Ind_Dir_cumul_prob[s, 1] - 0.0;
-                        for (k in 2:n_thr) {
-                           Ind_Dir_ord_prob[s, k] = Ind_Dir_cumul_prob[s, k] - Ind_Dir_cumul_prob[s, k - 1]; // since cutpoints are increasing with k
-                        }
-                        Ind_Dir_ord_prob[s, n_cat] = 1.0 - Ind_Dir_cumul_prob[s, n_cat - 1];
-                }
         }
         ////
         //// Likelihood using binomial factorization:
@@ -184,13 +172,14 @@ model {
             //// locations:
             beta_mu ~ normal(prior_beta_mu_mean, prior_beta_mu_SD);
             beta_SD ~ normal(prior_beta_SD_mean, prior_beta_SD_SD);
-            beta_Omega ~ lkj_corr(2.0);
+            beta_Omega ~ lkj_corr(prior_beta_corr_LKJ);
         }
         //// Induced-dirichlet between study ** model ** (NOT a prior model here but part of the actual likelihood since random-effect cutpoints!):
         {
             //// target += normal_lpdf(kappa | prior_kappa_mean, prior_kappa_SD);
-            target += dirichlet_lpdf( dirichlet_cat_means_phi | prior_dirichlet_cat_means_alpha ); // "flat" prior on the simplex dirichlet_cat_means_phi. 
-            target += normal_lpdf(kappa | prior_kappa_mean, prior_kappa_SD);
+            //// "flat" prior on the simplex dirichlet_cat_means_phi.
+            target += dirichlet_lpdf( dirichlet_cat_means_phi | prior_dirichlet_cat_means_alpha ); 
+            kappa ~ normal(prior_kappa_mean, prior_kappa_SD);
         }
      
         {
@@ -198,10 +187,10 @@ model {
                 vector[n_thr] rho =  normal_pdf(to_vector(Ind_Dir_cumul_prob[s, 1:n_thr]), 0.0, 1.0);   //  p_cumul[k - 1] * (1.0 - p_cumul[k - 1]); // original
                 target += induced_dirichlet_v2_lpdf(to_vector(Ind_Dir_ord_prob[s, 1:n_cat]) | rho, alpha[1:n_cat]);
             }
-            for (k in 1:n_cat) {
-                target += log_kappa;
-                target += log_dirichlet_cat_means_phi[k];
-            }
+            // for (k in 1:n_cat) {
+            //     target += log_kappa;
+            //     target += log_dirichlet_cat_means_phi[k];
+            // }
         }
         ////
         //// Likelihood / Model:
@@ -259,8 +248,10 @@ generated quantities {
           matrix[n_studies, n_thr] dev_d    = rep_matrix(-1, n_studies, n_thr);
           array[2] matrix[n_studies, n_thr] x_hat = init_array_of_matrices(n_studies, n_thr, 2, -1);
           array[2] matrix[n_studies, n_thr] dev   = init_array_of_matrices(n_studies, n_thr, 2, -1);
-          ////
-          corr_matrix[2] beta_Omega = multiply_lower_tri_self_transpose(beta_L_Omega); //// Compute between-study correlation matrix for location parameters:
+          // ////
+          // //// Compute between-study correlation matrix for location parameters:
+          // ////
+          // corr_matrix[2] beta_Omega = multiply_lower_tri_self_transpose(beta_L_Omega);
           ////
           vector[n_thr] C_MU_empirical = rowMedians(C);  //// Empirical-mean cutpoints:
           ////

@@ -63,7 +63,8 @@ parameters {
         ////
         real<lower=-1.0, upper=1.0> beta_corr;  //// between-study corr (possibly restricted)
         ////
-        vector[n_thr] C_raw_vec;   //// Global cutpoints ("raw" / unconstrained)
+         vector[n_thr] C_raw_vec;   //// Global cutpoints ("raw" / unconstrained)
+        // ordered[n_thr] C;
       
 }
 
@@ -81,6 +82,7 @@ transformed parameters {
         //// Construct simple 2x2 (bivariate) between-study corr matrices:
         ////
         corr_matrix[2] beta_Omega = make_restricted_bivariate_Omega_jacobian(beta_corr, beta_corr_lb, beta_corr_ub);
+        // beta_Omega = diag_matrix(rep_vector(1.0, 2));
         cholesky_factor_corr[2] beta_L_Omega = cholesky_decompose(beta_Omega);
         cholesky_factor_cov[2]  beta_L_Sigma = diag_pre_multiply(beta_SD, beta_L_Omega);
         ////
@@ -91,15 +93,24 @@ transformed parameters {
         vector[n_thr] Ind_Dir_cumul_prob = Phi(Ind_Dir_cumul);
         vector[n_cat] Ind_Dir_ord_prob = cumul_probs_to_ord_probs(Ind_Dir_cumul_prob);
         ////
-        array[2] matrix[n_studies, n_thr] latent_cumul_prob = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
-        array[2] matrix[n_studies, n_thr] cumul_prob        = init_array_of_matrices(n_studies, n_thr, 2, 1.0);
-        array[2] matrix[n_studies, n_thr] cond_prob         = init_array_of_matrices(n_studies, n_thr, 2, 0.0);
-        array[2] matrix[n_studies, n_thr] log_lik           = init_array_of_matrices(n_studies, n_thr, 2, 0.0);
+        array[2] matrix[n_studies, n_thr] latent_cumul_prob; //// = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
+        array[2] matrix[n_studies, n_thr] cumul_prob;////         = init_array_of_matrices(n_studies, n_thr, 2, 1.0);
+        array[2] matrix[n_studies, n_thr] cond_prob;////          = init_array_of_matrices(n_studies, n_thr, 2, 0.0);
+        array[2] matrix[n_studies, n_thr] log_lik;////            = init_array_of_matrices(n_studies, n_thr, 2, 0.0);
+        for (c in 1:2) {
+          latent_cumul_prob[c] = rep_matrix(positive_infinity(), n_studies, n_thr);
+          cumul_prob[c]        = rep_matrix(1.0, n_studies, n_thr);
+          cond_prob[c]         = rep_matrix(0.0, n_studies, n_thr);
+          log_lik[c]           = rep_matrix(0.0, n_studies, n_thr);
+        }
         ////
         //// Between-study model for the location parameters ("beta") - models between-study correlation:
         ////
         for (s in 1:n_studies) {
-             beta[, s] = beta_mu + beta_L_Sigma * beta_z[, s];
+             // beta[1:2, s] = beta_mu[1:2] + beta_L_Sigma * beta_z[1:2, s];
+               for (c in 1:2) {
+                  beta[c, s] = beta_mu[c] + beta_SD[c] * beta_z[c, s];
+               }
         }
         ////
         //// Likelihood using binomial factorization:
@@ -221,10 +232,10 @@ generated quantities {
           for (s in 1:n_studies) {
               for (c in 1:2) {
                  for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
-                  
+
                       //// Model-estimated data:
                       x_hat[c][s, cut_i] = cond_prob[c][s, cut_i] * n[c][s, cut_i];  	 // Fitted values
-                    
+
                       //// Compute residual deviance contribution:
                       real n_i =  (n[c][s, cut_i]);
                       real x_i =  (x[c][s, cut_i]);
@@ -232,18 +243,18 @@ generated quantities {
                       real log_x_minus_log_x_hat = log(x_i) - log(x_hat_i);
                       real log_diff_n_minus_x = log(n_i - x_i);
                       real log_diff_n_minus_x_hat = log(abs(n_i - x_hat_i));
-                       
-                      dev[c][s, cut_i] = 2.0 * ( x_i * log_x_minus_log_x_hat + (n_i - x_i) * (log_diff_n_minus_x - log_diff_n_minus_x_hat) ); 
-                      
+
+                      dev[c][s, cut_i] = 2.0 * ( x_i * log_x_minus_log_x_hat + (n_i - x_i) * (log_diff_n_minus_x - log_diff_n_minus_x_hat) );
+
                  }
               }
           }
-          
+
           x_hat_nd = x_hat[1];
           dev_nd = dev[1];
           x_hat_d = x_hat[2];
           dev_d = dev[2];
-       
+
 }
 
 

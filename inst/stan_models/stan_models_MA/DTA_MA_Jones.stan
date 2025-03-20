@@ -7,7 +7,7 @@ functions {
      ////
      #include "Stan_fns_basic.stan"
      #include "Stan_fns_Box_Cox.stan"
-     #include "Stan_fns_Pinkney_corr.stan"
+     #include "Stan_fns_corr.stan"
 }
 
 
