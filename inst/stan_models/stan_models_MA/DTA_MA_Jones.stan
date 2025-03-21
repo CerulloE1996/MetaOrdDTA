@@ -3,11 +3,13 @@
 
 functions {
      ////
-     //// Include files to compile the necessary custom (user-defined) Stan functions:
+     //// ---- Include files to compile the necessary custom (user-defined) Stan functions:
      ////
      #include "Stan_fns_basic.stan"
      #include "Stan_fns_Box_Cox.stan"
      #include "Stan_fns_corr.stan"
+     #include "Stan_fns_ordinal_and_cutpoints.stan"
+     #include "Stan_fns_log_lik.stan"
 }
 
 
@@ -85,18 +87,7 @@ parameters {
 transformed parameters { 
   
         ////
-        //// Construct the study-specific random effects (off-centered param.):
-        ////
-        matrix[2, n_studies] beta;
-        matrix[2, n_studies] raw_scale;
-        matrix[2, n_studies] scale;
-        ////
-        array[2] matrix[n_studies, n_thr] latent_cumul_prob = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
-        array[2] matrix[n_studies, n_thr] cumul_prob        = init_array_of_matrices(n_studies, n_thr, 2, 1.0);
-        array[2] matrix[n_studies, n_thr] cond_prob         = init_array_of_matrices(n_studies, n_thr, 2, 0.0);
-        array[2] matrix[n_studies, n_thr] log_lik           = init_array_of_matrices(n_studies, n_thr, 2, 0.0);
-        ////
-        //// Construct simple 2x2 (bivariate) between-study corr matrices:
+        //// ---- Construct simple 2x2 (bivariate) between-study corr matrices:
         ////
         cholesky_factor_corr[2] beta_L_Omega      = make_restricted_bivariate_L_Omega_jacobian(beta_corr, beta_corr_lb, beta_corr_ub);
         cholesky_factor_corr[2] raw_scale_L_Omega = make_restricted_bivariate_L_Omega_jacobian(raw_scale_corr, raw_scale_corr_lb, raw_scale_corr_ub);
@@ -105,70 +96,54 @@ transformed parameters {
         corr_matrix[2] beta_Omega      = multiply_lower_tri_self_transpose(beta_L_Omega);
         corr_matrix[2] raw_scale_Omega = multiply_lower_tri_self_transpose(raw_scale_L_Omega);
         ////
-        //// Compute cutpoints using either log or box-cox transform:
+        //// ---- Compute (global) cutpoints using either log or box-cox transform:
         ////
         vector[n_thr] C = ((box_cox == 0) ? log(cts_thr_values) : fn_Stan_box_cox(cts_thr_values, lambda)); 
         ////
-        //// Between-study model for the location parameters ("beta") and the raw_scale parameters - models between-study correlation:
+        //// ---- Likelihood stuff:
         ////
-        for (s in 1:n_studies) {
-             beta[, s]      =  beta_mu      + diag_pre_multiply(beta_SD, beta_L_Omega) * beta_z[, s];
-             raw_scale[, s] =  raw_scale_mu + diag_pre_multiply(raw_scale_SD, raw_scale_L_Omega) * raw_scale_z[, s];
-        }
-        //// 
-        //// Compute scales and Jacobian adjustment for raw_scale -> scale transformation (w/ Jacobian for raw_scale -> scale)
-        ////
-        scale  =  ((softplus == 1) ? softplus_scaled_jacobian(raw_scale) : exp_jacobian(raw_scale));
-        // //// Also need the Jacobian to go from (raw_scale_z, raw_scale_mu, raw_scale_SD) -> raw_scale! (using chain rule):
-        // if (abs(sum(raw_scale_SD)) != 0.0) jacobian += log(abs(sum(raw_scale_SD)));      // double-checked the log-derivative of this by hand (correct)
-        // if (abs(sum(raw_scale_z)) != 0.0)  jacobian += log(abs(sum(raw_scale_z)));       // double-checked the log-derivative of this by hand (correct)
-        ////
-        //// Likelihood using binomial factorization:
-        ////
-        for (s in 1:n_studies) {
-                  for (c in 1:2) {
-                      for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
-                             int k = to_int(cutpoint_index[c][s, cut_i]); //// this will "map" each C[k] (or C[s, k]) to the correct cumulative prob.
-                             latent_cumul_prob[c][s, cut_i] = (C[k] - beta[c, s])/scale[c, s];
-                      }
-                  }
-        }
-        ////
-        //// Calculate CUMULATIVE probabilities (vectorised):
-        ////
-        for (c in 1:2) {
-            cumul_prob[c] = Phi(latent_cumul_prob[c]); //// INCREASING sequence (as C_k > C_{k - 1})
-        }
-        ////
-        //// ------- Binomial likelihood:
-        ////
-        for (s in 1:n_studies) { 
-                  for (c in 1:2) {
-                        for (cut_i in 1:n_obs_cutpoints[s]) {
-                                //// Current and next cumulative counts:
-                                int x_current = to_int(x[c][s, cut_i]);
-                                int x_next    = to_int(n[c][s, cut_i]);
-                                
-                                //// Skip if the current count is zero (no observations to classify):
-                                if (x_current != 0)  {
-                                
-                                      // Conditional probability of being at or below the current cutpoint - given being at or below the next cutpoint
-                                      if (cut_i == n_obs_cutpoints[s]) { 
-                                               cond_prob[c][s, cut_i] = cumul_prob[c][s, cut_i] / 1.0;
-                                      } else {
-                                            if (x_next > 0) { 
-                                               cond_prob[c][s, cut_i] = cumul_prob[c][s, cut_i] / cumul_prob[c][s, cut_i + 1];
-                                            } else { 
-                                               cond_prob[c][s, cut_i] = 1.0;
-                                            }
-                                      }
-                                      
-                                      // Binomial for observations at or below current cutpoint out of those at or below next cutpoint
-                                      log_lik[c][s, cut_i] = binomial_lpmf(x_current | x_next, cond_prob[c][s, cut_i]);
-                                      
-                                }
-                        }
-                  }
+        array[2] matrix[n_studies, n_thr] cumul_prob = init_array_of_matrices(n_studies, n_thr, 2, 1.0);
+        array[2] matrix[n_studies, n_thr] cond_prob  = init_array_of_matrices(n_studies, n_thr, 2, 0.0);
+        array[2] matrix[n_studies, n_thr] log_lik    = init_array_of_matrices(n_studies, n_thr, 2, 0.0);
+        {
+                ////
+                //// ---- Between-study model for the location parameters ("beta") and the raw_scale parameters - models between-study correlation:
+                ////
+                matrix[2, n_studies] beta; // local
+                matrix[2, n_studies] raw_scale; // local
+                matrix[2, n_studies] scale; // local
+                ////
+                array[2] matrix[n_studies, n_thr] latent_cumul_prob = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity()); // local
+                {
+                    ////
+                    //// ---- Between-study model for location and scale:
+                    ////
+                    for (s in 1:n_studies) {
+                         beta[, s]      = beta_mu      + diag_pre_multiply(beta_SD, beta_L_Omega) * beta_z[, s];
+                         raw_scale[, s] = raw_scale_mu + diag_pre_multiply(raw_scale_SD, raw_scale_L_Omega) * raw_scale_z[, s];
+                    }
+                }
+                //// 
+                //// ---- Compute scales and Jacobian adjustment for raw_scale -> scale transformation (w/ Jacobian for raw_scale -> scale)
+                ////
+                scale  =  ((softplus == 1) ? softplus_scaled_jacobian(raw_scale) : exp_jacobian(raw_scale));
+                // //// Also need the Jacobian to go from (raw_scale_z, raw_scale_mu, raw_scale_SD) -> raw_scale! (using chain rule):
+                // if (abs(sum(raw_scale_SD)) != 0.0) jacobian += log(abs(sum(raw_scale_SD)));      // double-checked the log-derivative of this by hand (correct)
+                // if (abs(sum(raw_scale_z)) != 0.0)  jacobian += log(abs(sum(raw_scale_z)));       // double-checked the log-derivative of this by hand (correct)
+                ////
+                //// ---- Get the cutpoint index (k) to map "latent_cumul_prob[c][s, cut_i]" to correct cutpoint "C[k]":
+                ////
+                latent_cumul_prob = map_latent_cumul_prob_to_fixed_C(C, beta, scale, n_studies, n_obs_cutpoints, cutpoint_index);
+                ////
+                //// ---- Calculate CUMULATIVE probabilities (vectorised):
+                ////
+                for (c in 1:2) {
+                    cumul_prob[c] = Phi_approx(latent_cumul_prob[c]); //// INCREASING sequence (as C_k > C_{k - 1})
+                }
+                ////
+                //// ------- Multinomial (factorised binomial likelihood)
+                ////
+                log_lik = compute_log_lik_binomial_fact(cumul_prob, x, n, n_obs_cutpoints);
         }
       
 }
@@ -217,9 +192,9 @@ generated quantities {
           ////
           vector[2] scale_mu =  (softplus == 1) ? softplus_scaled(raw_scale_mu) : exp(raw_scale_mu);
           ////
-          vector[n_thr] Fp = 1.0 - Phi((C - beta_mu[1])/scale_mu[1]);
+          vector[n_thr] Fp = 1.0 - Phi_approx((C - beta_mu[1])/scale_mu[1]);
           vector[n_thr] Sp = 1.0 - Fp;
-          vector[n_thr] Se = 1.0 - Phi((C - beta_mu[2])/scale_mu[2]);
+          vector[n_thr] Se = 1.0 - Phi_approx((C - beta_mu[2])/scale_mu[2]);
           ////
           //// Calculate predictive accuracy:
           ////
@@ -230,9 +205,9 @@ generated quantities {
           vector[2] raw_scale_pred = multi_normal_cholesky_rng(raw_scale_mu, beta_L_Sigma);
           vector[2] scale_pred = (softplus == 1) ? softplus_scaled(raw_scale_pred) : exp(raw_scale_pred);
           ////
-          vector[n_thr] Fp_pred = 1.0 - Phi((C - beta_pred[1])/scale_pred[1]);
+          vector[n_thr] Fp_pred = 1.0 - Phi_approx((C - beta_pred[1])/scale_pred[1]);
           vector[n_thr] Sp_pred = 1.0 - Fp_pred;
-          vector[n_thr] Se_pred = 1.0 - Phi((C - beta_pred[2])/scale_pred[2]);
+          vector[n_thr] Se_pred = 1.0 - Phi_approx((C - beta_pred[2])/scale_pred[2]);
           ////
           //// Calculate study-specific accuracy:
           ////
@@ -244,37 +219,39 @@ generated quantities {
           matrix[n_studies, n_thr] x_hat_d  = rep_matrix(-1, n_studies, n_thr);
           matrix[n_studies, n_thr] dev_nd   = rep_matrix(-1, n_studies, n_thr);
           matrix[n_studies, n_thr] dev_d    = rep_matrix(-1, n_studies, n_thr);
-          array[2] matrix[n_studies, n_thr] x_hat = init_array_of_matrices(n_studies, n_thr, 2, -1);
-          array[2] matrix[n_studies, n_thr] dev   = init_array_of_matrices(n_studies, n_thr, 2, -1);
-          ////
-          //// Model-predicted ("re-constructed") data:
-          ////
-          for (s in 1:n_studies) {
-             for (c in 1:2) {
-                for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
-                  
-                      //// Model-estimated data:
-                      x_hat[c][s, cut_i] = cond_prob[c][s, cut_i] * n[c][s, cut_i];  	 // Fitted values
-                    
-                      //// Compute residual deviance contribution:
-                      real n_i =  (n[c][s, cut_i]);
-                      real x_i =  (x[c][s, cut_i]);
-                      real x_hat_i =  (x_hat[c][s, cut_i]);
-                      real log_x_minus_log_x_hat = log(x_i) - log(x_hat_i);
-                      real log_diff_n_minus_x = log(n_i - x_i);
-                      real log_diff_n_minus_x_hat = log(abs(n_i - x_hat_i));
-                       
-                      dev[c][s, cut_i] = 2.0 * ( x_i * log_x_minus_log_x_hat + (n_i - x_i) * (log_diff_n_minus_x - log_diff_n_minus_x_hat) ); 
+          {
+              array[2] matrix[n_studies, n_thr] x_hat = init_array_of_matrices(n_studies, n_thr, 2, -1);
+              array[2] matrix[n_studies, n_thr] dev   = init_array_of_matrices(n_studies, n_thr, 2, -1);
+              ////
+              //// Model-predicted ("re-constructed") data:
+              ////
+              for (s in 1:n_studies) {
+                 for (c in 1:2) {
+                    for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
                       
-                }
+                          //// Model-estimated data:
+                          x_hat[c][s, cut_i] = cond_prob[c][s, cut_i] * n[c][s, cut_i];  	 // Fitted values
+                        
+                          //// Compute residual deviance contribution:
+                          real n_i =  (n[c][s, cut_i]);
+                          real x_i =  (x[c][s, cut_i]);
+                          real x_hat_i =  (x_hat[c][s, cut_i]);
+                          real log_x_minus_log_x_hat = log(x_i) - log(x_hat_i);
+                          real log_diff_n_minus_x = log(n_i - x_i);
+                          real log_diff_n_minus_x_hat = log(abs(n_i - x_hat_i));
+                           
+                          dev[c][s, cut_i] = 2.0 * ( x_i * log_x_minus_log_x_hat + (n_i - x_i) * (log_diff_n_minus_x - log_diff_n_minus_x_hat) ); 
+                          
+                    }
+                 }
              }
+             
+             x_hat_nd = x_hat[1];
+             dev_nd = dev[1];
+             x_hat_d = x_hat[2];
+             dev_d = dev[2];
          }
          
-         x_hat_nd = x_hat[1];
-         dev_nd = dev[1];
-         x_hat_d = x_hat[2];
-         dev_d = dev[2];
-    
 }
 
 

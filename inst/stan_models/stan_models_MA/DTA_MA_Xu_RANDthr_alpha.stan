@@ -9,6 +9,7 @@ functions {
         #include "Stan_fns_corr.stan"
         #include "Stan_fns_ordinal_and_cutpoints.stan"
         #include "Stan_fns_log_lik.stan"
+        #include "Stan_fns_simplex.stan"
 }
 
 
@@ -41,15 +42,15 @@ data {
         ////
         //// Priors for cutpoints (using "Induced-Dirichlet" ordinal probs):
         ////
-        // array[2] vector[n_thr + 1] prior_dirichlet_cat_means_alpha;
-        array[2] real<lower=0.0> prior_kappa_mean;
-        array[2] real<lower=0.0> prior_kappa_SD;
-        // vector[n_thr + 1] prior_dirichlet_cat_SDs_mean;
-        // vector<lower=0.0>[n_thr + 1] prior_dirichlet_cat_SDs_SD;
+        vector[n_thr + 1] prior_dirichlet_cat_means_alpha;
+        real<lower=0.0> prior_kappa_mean;
+        real<lower=0.0> prior_kappa_SD;
+        real<lower=0.0> prior_alpha_mean;
+        real<lower=0.0> prior_alpha_SD;
         ////
         //// Other:
         ////
-        real<lower=0.0> kappa_lb;
+        real<lower=0.0> alpha_lb;
         int<lower=0, upper=1> softplus;
 }
 
@@ -71,12 +72,11 @@ parameters {
         ////
         real beta_corr;  //// between-study corr (possibly restricted)
         ////
-        array[n_sets_of_C] matrix[n_studies, n_thr] C_raw;
-        ////
-        // array[n_sets_of_C] simplex[n_cat] dirichlet_cat_means_phi;
+        matrix<lower=-15.0, upper=15.0>[n_studies, n_thr] C_raw;
+        // ////
+        // simplex[n_cat] dirichlet_cat_means_phi;
         vector[n_cat - 1] phi_raw;
-        array[n_sets_of_C] real<lower=kappa_lb> kappa;
-        // array[n_sets_of_C] vector<lower=kappa_lb, upper=1000.0>[n_cat] alpha;
+        vector<lower=alpha_lb, upper=1000.0>[n_cat] alpha;
         
 }
 
@@ -86,15 +86,13 @@ transformed parameters {
         ////
         //// ---- Construct (global) cutpoints + simplex:
         ////
-        array[n_sets_of_C] matrix[n_studies, n_thr] C; ////= convert_C_array_to_mat(C_array);
-        for (c in 1:n_sets_of_C) {
-           for (s in 1:n_studies) {
-                 vector[n_thr] C_raw_vec_temp = to_vector(C_raw[c][s, 1:n_thr]);
+        matrix[n_studies, n_thr] C; ////= convert_C_array_to_mat(C_array);
+        for (s in 1:n_studies) {
+                 vector[n_thr] C_raw_vec_temp = to_vector(C_raw[s, 1:n_thr]);
                  vector[n_thr] C_vec_temp = ((softplus == 1) ? construct_C_using_SP_jacobian(C_raw_vec_temp) : construct_C_using_exp_jacobian(C_raw_vec_temp));
-                 C[c][s, ] = to_row_vector(C_vec_temp);
-           }
+                 C[s, ] = to_row_vector(C_vec_temp);
         }
-         array[n_sets_of_C] simplex[n_cat] dirichlet_cat_means_phi = stickbreaking_logistic_simplex_constrain(phi_raw);
+        simplex[n_cat] dirichlet_cat_means_phi = stickbreaking_logistic_simplex_constrain_jacobian(phi_raw);
         ////
         //// ---- Likelihood stuff:
         ////
@@ -108,27 +106,17 @@ transformed parameters {
         cholesky_factor_corr[2] beta_L_Omega = cholesky_decompose(beta_Omega);
         cholesky_factor_cov[2]  beta_L_Sigma = diag_pre_multiply(beta_SD, beta_L_Omega);
         ////
-        array[n_sets_of_C] vector[n_cat] alpha; //// = kappa .* dirichlet_cat_means_phi;
-        // // array[2] real log_kappa; //// = log(kappa);
-        for (c in 1:n_sets_of_C) {
-           // log_kappa[c] = log(kappa[c]);
-           for (k in 1:n_cat) {
-               alpha[c][k] = kappa[c] * dirichlet_cat_means_phi[c][k];
-           }
-        }
         // vector[n_cat] log_dirichlet_cat_means_phi = log(dirichlet_cat_means_phi);
         // vector[n_cat] log_alpha = log_kappa + log_dirichlet_cat_means_phi;
-        // vector[n_cat] alpha = exp(log_alpha);
         ////
         //// SD's for each category probability in a Dirichlet is √(α_k(α_0-α_k)/(α_0^2(α_0+1))) - where α_0 is the sum of all alphas:
         ////
-        // array[n_sets_of_C] vector<lower=0.0>[n_cat] dirichlet_cat_SDs_sigma;
-        // for (c in 1:n_sets_of_C) {
-        //   real alpha_0 = sum(alpha[c]);
-        //   dirichlet_cat_SDs_sigma[c] = convert_Dirichlet_alpha_to_SDs_jacobian(alpha[c]);
-        //   //// dirichlet_cat_SDs_sigma[c] = sqrt((alpha[c] .* (alpha_0 - alpha[c]) ) ./ (square(alpha_0) * (alpha_0 + 1.0)));
-        // }
-        // // ////
+        vector<lower=0.0>[n_cat] dirichlet_cat_SDs_sigma;
+        {
+            real alpha_0 = sum(alpha);
+            dirichlet_cat_SDs_sigma = sqrt((alpha .* (alpha_0 - alpha) ) ./ (square(alpha_0) * (alpha_0 + 1.0)));
+        }
+        ////
         {
                 array[2] matrix[n_studies, n_thr] latent_cumul_prob = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
                 ////
@@ -142,7 +130,7 @@ transformed parameters {
                 //// ---- Map the log-lik contributions to the correct cutpoint indexes:
                 ////
                 real scale = 1.0;
-                latent_cumul_prob = map_latent_cumul_prob_to_random_C(C[1], beta, scale, n_studies, n_thr, n_obs_cutpoints, cutpoint_index);
+                latent_cumul_prob = map_latent_cumul_prob_to_random_C(C, beta, scale, n_studies, n_thr, n_obs_cutpoints, cutpoint_index);
                 ////
                 //// ---- Calculate CUMULATIVE probabilities (vectorised):
                 ////
@@ -167,25 +155,19 @@ model {
             beta_Omega ~ lkj_corr(prior_beta_corr_LKJ);
         }
         //// Induced-dirichlet between study ** model ** (NOT a prior model here but part of the actual likelihood since random-effect cutpoints!):
-        for (c in 1:n_sets_of_C) {
+        {
           
-                matrix[n_studies, n_thr] Ind_Dir_cumul = C[c] - Ind_Dir_anchor;
+                matrix[n_studies, n_thr] Ind_Dir_cumul = C - Ind_Dir_anchor;
                 matrix[n_studies, n_thr] Ind_Dir_cumul_prob = Phi_approx(Ind_Dir_cumul);
                 matrix[n_studies, n_cat] Ind_Dir_ord_prob = cumul_probs_to_ord_probs(Ind_Dir_cumul_prob);
                 ////
-                //// "flat" prior on the simplex dirichlet_cat_means_phi.
-                //// //// dirichlet_cat_means_phi ~ dirichlet(prior_dirichlet_cat_means_alpha); ///// target += dirichlet_lpdf( dirichlet_cat_means_phi | prior_dirichlet_cat_means_alpha ); 
-                kappa[c] ~ normal(0.0, prior_kappa_SD[1]);
-                //// dirichlet_cat_SDs_sigma[c] ~ normal(prior_dirichlet_cat_SDs_mean, prior_dirichlet_cat_SDs_SD);
-                //// alpha[c] ~ normal(0.0, prior_kappa_SD[1]);
-                for (k in 1:n_cat) {
-                  target += log(abs(dirichlet_cat_means_phi[c][k]));
-                  target += log(abs(kappa[c]));
-                }
+                //// can put a "flat" prior on the simplex dirichlet_cat_means_phi.
+                dirichlet_cat_means_phi ~ dirichlet(prior_dirichlet_cat_means_alpha);
+                alpha ~ normal(prior_alpha_mean, prior_alpha_SD);
                 ////
                 for (s in 1:n_studies) {
                     vector[n_thr] rho =  std_normal_approx_pdf(to_vector(Ind_Dir_cumul[s, 1:n_thr]), to_vector(Ind_Dir_cumul_prob[s, 1:n_thr]));
-                    target += induced_dirichlet_given_rho_lpdf(to_vector(Ind_Dir_ord_prob[s, 1:n_cat]) | rho, alpha[c][1:n_cat]);
+                    target += induced_dirichlet_given_rho_lpdf(to_vector(Ind_Dir_ord_prob[s, 1:n_cat]) | rho, alpha[1:n_cat]);
                 }
         }
         ////
@@ -211,8 +193,8 @@ generated quantities {
           vector[n_thr] Sp; //// = 1.0 - Fp;
           vector[n_thr] Se; //// = 1.0 - Phi_approx(C_mu - beta_mu[2]);
           ////
-          for (c in 1:n_sets_of_C) {
-              vector[n_cat] prob_ord_mu   = alpha[c] / sum(alpha[c]);  //// dirichlet_cat_means_phi[c];
+          {
+              vector[n_cat] prob_ord_mu   = alpha / sum(alpha);  //// dirichlet_cat_means_phi[c];
               vector[n_thr] prob_cumul_mu = ord_probs_to_cumul_probs(prob_ord_mu);
               vector[n_thr] C_mu = cumul_probs_to_C(prob_cumul_mu, 0.0, 1.0);
               ////
@@ -227,8 +209,8 @@ generated quantities {
           vector[n_thr] Sp_pred; //// = 1.0 - Fp;
           vector[n_thr] Se_pred; //// = 1.0 - Phi_approx(C_mu - beta_mu[2]);
           ////
-          for (c in 1:n_sets_of_C) {
-              vector[n_cat] prob_ord_pred   = dirichlet_rng(alpha[c]); //// Simulate from Dirichlet by using the summary "alpha" parameters.
+          {
+              vector[n_cat] prob_ord_pred   = dirichlet_rng(alpha); //// Simulate from Dirichlet by using the summary "alpha" parameters.
               vector[n_thr] prob_cumul_pred = ord_probs_to_cumul_probs(prob_ord_pred);  //// Compute PREDICTED cumulative probabilities.
               vector[n_thr] C_pred = cumul_probs_to_C(prob_cumul_pred, 0.0, 1.0);  //// Compute PREDICTED cutpoints.
               ////
