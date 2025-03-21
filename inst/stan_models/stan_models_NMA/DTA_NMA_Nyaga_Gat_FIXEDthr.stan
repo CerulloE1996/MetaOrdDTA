@@ -91,7 +91,7 @@ parameters {
           ////
           vector[n_total_cutpoints] C_raw_vec; //// RAW LOG-DIFFERENCES - Global cutpoints for each test (staggered array/matrix using "n_thr[t]" to index correctly)
           ////
-          //// "NMA" params:
+          //// ---- "NMA" params:
           ////
           vector[n_studies] beta_eta_z;       //// Standard normal RVs for study-level effects - eta[s, 1:2] ~ multi_normal({0, 0}, Sigma).
           vector[n_studies] raw_scale_eta_z;  //// Standard normal RVs for study-level effects - eta[s, 1:2] ~ multi_normal({0, 0}, Sigma).
@@ -109,7 +109,7 @@ parameters {
 transformed parameters {
     
           ////
-          //// -------- Cutpoint params:
+          //// ---- Cutpoint params:
           ////
           array[n_tests] vector[n_thr_max] C;  // Global cutpoints for each test (staggered array/matrix using "n_thr[t]" to index correctly)
           ////
