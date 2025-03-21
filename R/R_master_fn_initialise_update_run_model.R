@@ -196,7 +196,7 @@ initialise_update_run_model <- function(      debugging = FALSE,
                                                                       stan_model_file_path = internal_obj$outs_stan_model_name$stan_model_file_path,
                                                                       stan_model_obj       = internal_obj$outs_stan_compile$stan_model_obj,
                                                                       n_chains             = MCMC_params$n_chains,
-                                                                      init_lists_per_chain = init_lists_per_chain)
+                                                                      init_lists_per_chain = 0.001)
           
           })
           internal_obj$outs_data$stan_data_list$n[[1]][[1]]
@@ -216,7 +216,7 @@ initialise_update_run_model <- function(      debugging = FALSE,
                                                            stan_model_obj = internal_obj$outs_stan_init$stan_model_obj,
                                                            ##
                                                            n_chains = MCMC_params$n_chains, 
-                                                           init_lists_per_chain = init_lists_per_chain,
+                                                           init_lists_per_chain = 0.001,
                                                            ##
                                                            seed = MCMC_params$seed,
                                                            n_burnin = MCMC_params$n_burnin, 

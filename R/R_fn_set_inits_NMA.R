@@ -35,11 +35,11 @@ R_fn_set_inits_NMA <- function(    inits,
                         ##
                         ## Set default inits for the locations ("beta"):
                         ##
-                        inits$beta_mu <- if_null_then_set_to(inits$beta_mu, array(dim = c(n_tests, 2), c(rep(-1.0, n_tests), rep(+1.0, n_tests))))
+                        inits$beta_mu <- if_null_then_set_to(inits$beta_mu, array(dim = c(n_tests, 2), c(rep(-1.01, n_tests), rep(+1.01, n_tests))))
                         ##
                         ## NMA params for beta:
                         ##
-                        inits$beta_sigma   <- if_null_then_set_to(inits$beta_sigma, rep(0.01, 2))
+                        inits$beta_sigma   <- if_null_then_set_to(inits$beta_sigma, rep(0.001, 2))
                         inits$beta_tau     <- if_null_then_set_to(inits$beta_tau,      array(dim = c(n_tests, 2),   0.001))
                         inits$beta_eta_z   <- if_null_then_set_to(inits$beta_eta_z,    array(dim = c(n_studies, 2), 0.001))
                         ##
@@ -54,16 +54,16 @@ R_fn_set_inits_NMA <- function(    inits,
                         ## magnitude as exp() amplifies much more that softplus(x)).
                         ##
                         if (softplus == TRUE) {
-                          inits$raw_scale_mu <- if_null_then_set_to(inits$beta_mu, array(dim = c(n_tests, 2), c(rep(0.55, n_tests), rep(0.55, n_tests))))
+                          inits$raw_scale_mu <- if_null_then_set_to(inits$raw_scale_mu, array(dim = c(n_tests, 2), c(rep(0.55, n_tests), rep(0.55, n_tests))))
                         } else { 
-                          inits$raw_scale_mu <- if_null_then_set_to(inits$beta_mu, array(dim = c(n_tests, 2), c(rep(0.001, n_tests), rep(0.001, n_tests))))
+                          inits$raw_scale_mu <- if_null_then_set_to(inits$raw_scale_mu, array(dim = c(n_tests, 2), c(rep(0.001, n_tests), rep(0.001, n_tests))))
                         }
                         ##
                         ## NMA params for raw scale ("gamma")::
                         ##
-                        inits$raw_scale_sigma   <- if_null_then_set_to(inits$raw_scale_sigma, rep(0.01, 2))
-                        inits$raw_scale_tau     <- if_null_then_set_to(inits$raw_scale_tau,      array(dim = c(n_tests, 2),   0.001))
-                        inits$raw_scale_eta_z   <- if_null_then_set_to(inits$raw_scale_eta_z,    array(dim = c(n_studies, 2), 0.001))
+                        inits$raw_scale_sigma   <- if_null_then_set_to(inits$raw_scale_sigma, rep(0.001, 2))
+                        inits$raw_scale_tau     <- if_null_then_set_to(inits$raw_scale_tau,   array(dim = c(n_tests, 2),   0.001))
+                        inits$raw_scale_eta_z   <- if_null_then_set_to(inits$raw_scale_eta_z, array(dim = c(n_studies, 2), 0.001))
                         ##
                         init_raw_scale_delta_z <- list()    
                         for (t in 1:n_tests) { 
