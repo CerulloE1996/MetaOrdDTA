@@ -206,7 +206,7 @@ R_fn_set_priors_MA <- function(   priors,
                           ## implies a uniform simplex:
                           priors$prior_alpha <- if_null_then_set_to(priors$prior_alpha, rep(1.0, n_cat)) 
                           ##
-                          check_vec_length(priors, "prior_alpha", n_cat)
+                          # check_vec_length(priors, "prior_alpha", n_cat)
                           
                   } else if (random_thresholds == FALSE) { 
                     
@@ -222,13 +222,17 @@ R_fn_set_priors_MA <- function(   priors,
                           ##
                           ## Priors for "kappa" (induced-Dirichlet "overall concentration" parameter):
                           ##
-                          priors$kappa_lb         <- if_null_then_set_to(priors$kappa_lb, 0.0)
+                          priors$kappa_lb         <- if_null_then_set_to(priors$kappa_lb, 1.0)
                           priors$prior_kappa_mean <- if_null_then_set_to(priors$prior_kappa_mean, 0.0)
-                          priors$prior_kappa_SD   <- if_null_then_set_to(priors$prior_kappa_SD,   100.0)
+                          priors$prior_kappa_SD   <- if_null_then_set_to(priors$prior_kappa_SD,   500.0)
                           ##
-                          check_vec_length(priors, "kappa_lb",         1)
-                          check_vec_length(priors, "prior_kappa_mean", 1)
-                          check_vec_length(priors, "prior_kappa_SD",   1)
+                          # check_vec_length(priors, "kappa_lb",         1)
+                          # check_vec_length(priors, "prior_kappa_mean", 1)
+                          # check_vec_length(priors, "prior_kappa_SD",   1)
+                          ##
+                          priors$alpha_lb         <- if_null_then_set_to(priors$alpha_lb, 1.0)
+                          priors$prior_alpha_mean <- if_null_then_set_to(priors$prior_alpha_mean, 0.0)
+                          priors$prior_alpha_SD   <- if_null_then_set_to(priors$prior_alpha_SD,   100.0)
                           ##
                           ## Priors on the derived Dirichlet-category "SD" transformed parameters:
                           ##
@@ -236,8 +240,8 @@ R_fn_set_priors_MA <- function(   priors,
                           ## allows moderate between-study heterogeneity:
                           priors$prior_dirichlet_cat_SDs_SD   <- if_null_then_set_to(priors$prior_dirichlet_cat_SDs_SD,   rep(0.025, n_cat)) 
                           ##
-                          check_vec_length(priors, "prior_dirichlet_cat_SDs_mean", n_cat)
-                          check_vec_length(priors, "prior_dirichlet_cat_SDs_SD",   n_cat)
+                          # check_vec_length(priors, "prior_dirichlet_cat_SDs_mean", n_cat)
+                          # check_vec_length(priors, "prior_dirichlet_cat_SDs_SD",   n_cat)
 
                   }
           

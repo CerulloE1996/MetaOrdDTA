@@ -43,11 +43,15 @@ R_fn_get_stan_model_file_name <- function( cts,
                   }
                   ##
                   if (random_thresholds == TRUE) { 
-                      if (Dirichlet_random_effects_type == "SD") { 
+                      rand_type <- Dirichlet_random_effects_type
+                      if (rand_type == "SD") { 
                         file_string_4 <- "_SD"
-                      } else { 
+                      } else if (rand_type == "kappa") { 
                         file_string_4 <- "_kappa"
+                      } else if (rand_type == "alpha") { 
+                        file_string_4 <- "_alpha"
                       }
+                      
                   } else { 
                       file_string_4 <- "" ## no string here if fixed thresholds.
                       Dirichlet_random_effects_type <- "none"

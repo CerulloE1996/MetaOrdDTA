@@ -1,5 +1,76 @@
 
 
+
+
+
+#' simplex_to_unconstrained
+#' @export
+simplex_to_unconstrained <- function(x) {
+      
+      N <- length(x)
+      y <- numeric(N-1)
+      
+      # Small constant to avoid exact 0 or 1 values
+      epsilon <- 1e-10
+      
+      # Ensure x is a valid simplex and avoid exact 0s and 1s
+      x <- pmax(x, epsilon)
+      x <- pmin(x, 1-epsilon)
+      x <- x / sum(x)  # Re-normalize to ensure sum is 1
+      
+      # Calculate the stick-breaking proportions
+      remaining_mass <- 1.0
+      for (i in 1:(N-1)) {
+        # Calculate proportion with numerical safeguards
+        z_i <- min(max(x[i] / remaining_mass, epsilon), 1-epsilon)
+        
+        # Transform to unconstrained space
+        y[i] <- log(z_i/(1-z_i)) + log(N-i)
+        
+        # Update remaining mass
+        remaining_mass <- remaining_mass - x[i]
+        
+        # Avoid numerical issues when remaining mass gets close to 0
+        if (remaining_mass < epsilon) {
+          # Fill remaining elements with reasonable defaults
+          if (i < (N-1)) {
+            y[(i+1):(N-1)] <- rnorm(N-1-i, 0, 1)
+          }
+          break
+        }
+      }
+      
+      return(y)
+  
+}
+
+
+#' generate_inits_for_raw_simplex_vec
+#' @export
+generate_inits_for_raw_simplex_vec <- function( n_thr, 
+                                                seed, 
+                                                width = 0.01) {
+  
+    set.seed(seed, kind = "L'Ecuyer-CMRG")
+   
+    n_cat_t <- n_thr + 1
+    uniform_simplex <- rep(1/n_cat_t, n_cat_t)  # Start with uniform
+    # Add some variation while ensuring it remains a valid simplex
+    noise <- runif(n_cat_t, -width, width)
+    informative_simplex <- uniform_simplex + noise
+    # Make sure it's still a valid simplex
+    informative_simplex <- informative_simplex / sum(informative_simplex)
+    
+    dirichlet_cat_means_phi_raw_mat <- simplex_to_unconstrained(informative_simplex)
+    
+    return(dirichlet_cat_means_phi_raw_mat)
+ 
+  
+  
+}
+
+
+
 #' R_fn_remove_duplicates_from_list
 #' @keywords internal
 #' @export

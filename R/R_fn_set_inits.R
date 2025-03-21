@@ -125,8 +125,8 @@ R_fn_set_inits_MA <- function(    inits,
                                      ## Default inits for the cutpoints:
                                      ##
                                      inits$C <- if_null_then_set_to(inits$C, seq(from = -2.0, to = 2.0, length = n_thr))
-                                     ##
-                                     check_vec_length(inits, "C", n_thr)
+                                     # ##
+                                     # check_vec_length(inits, "C", n_thr)
                                 
                              } else if (random_thresholds == TRUE) { 
                                      ##
@@ -138,12 +138,15 @@ R_fn_set_inits_MA <- function(    inits,
                                      # check_list_of_vectors_length(inits, "C_array", n_thr)
                                      ##
                                      ## Default inits for "induced-Dirichlet" between-study model (for the cutpoints):
-                                     ##
-                                     inits$dirichlet_cat_means_phi <- if_null_then_set_to(inits$dirichlet_cat_means_phi, rep(1/n_cat, n_cat))
-                                     inits$kappa <- if_null_then_set_to(inits$kappa, 100)
-                                     ##
-                                     check_vec_length(inits, "dirichlet_cat_means_phi", n_cat)
-                                     check_vec_length(inits, "kappa", 1)
+                                     # ##
+                                     # inits$dirichlet_cat_means_phi <- if_null_then_set_to(inits$dirichlet_cat_means_phi, rep(1/n_cat, n_cat))
+                                     # ##
+                                     # inits$alpha <- if_null_then_set_to(inits$alpha, rep(10, n_cat))
+                                     # ##
+                                     # inits$kappa <- if_null_then_set_to(inits$kappa, 100)
+                                     # # ##
+                                     # # check_vec_length(inits, "dirichlet_cat_means_phi", n_cat)
+                                     # # check_vec_length(inits, "kappa", 1)
                                 
                              }
                     

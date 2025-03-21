@@ -92,7 +92,7 @@ default_Dirichlet_random_effects_type <- function(cts,
     Dirichlet_random_effects_type <- "none"
   } else   {
       if (random_thresholds == TRUE) { 
-        Dirichlet_random_effects_type <- "SD"
+        Dirichlet_random_effects_type <- "alpha"
       } else { 
         Dirichlet_random_effects_type <- "none" ## only relvent if using random-effect (between-study) thresholds. 
       }

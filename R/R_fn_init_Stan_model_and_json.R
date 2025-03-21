@@ -154,7 +154,7 @@ R_fn_init_stan_inits_external <- function( stan_data_list,
               inits_unconstrained_vec_per_chain[[kk]] <- convert_JSON_string_to_ordered_R_vector(validated_json_string, stan_param_names_main)
           }
           ##
-          ## Output:
+          ## ---- Output:
           ##
           return(list(  inits_unconstrained_vec_per_chain = inits_unconstrained_vec_per_chain,
                         stan_param_names_list = stan_param_names_list,
