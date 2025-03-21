@@ -9,8 +9,8 @@ require(dplyr)
 require(cmdstanr)
 
 n_studies <- 25
-N_per_study_mean <- 2500
-N_per_study_SD <- 250
+N_per_study_mean <- 1000
+N_per_study_SD <- round(N_per_study_mean/4)
 assume_perfect_GS <- 1
 seed <- 123
 
@@ -21,8 +21,15 @@ missing_indicator <- -1
 options(max.print = 100000)
 
 
+n_studies = n_studies
+N_per_study_mean = N_per_study_mean
+N_per_study_SD = N_per_study_SD
+assume_perfect_GS = assume_perfect_GS
+seed = seed
+true_Mean_prev = 0.20
+
 # Run simulated data - this simulates data from FIVE (5) diagnostic tests (1 BINARY reference test + 4 ORDINAL index tests)
-sim_results <- simulate_binary_and_ordinal_MA_LC_MVP_data(n_studies = n_studies,
+sim_results <- R_fn_sim_data_ordinal_MA(   n_studies = n_studies,
                                                           N_per_study_mean = N_per_study_mean,
                                                           N_per_study_SD = N_per_study_SD,
                                                           assume_perfect_GS = assume_perfect_GS,
@@ -36,7 +43,7 @@ sim_results$n_total_obs_thr_per_test
 sim_results$N_per_study_vec
 
 index_test_chosen_index <- 5
-n_thr <- 26
+n_thr <- 27
 
 sim_results$Se_OVERALL_all_tests_all_thresholds
 
@@ -93,12 +100,24 @@ true_Sp_OVERALL_weighted <- sim_results$Sp_OVERALL_all_tests_all_thresholds[inde
 true_Se_OVERALL - true_Se_OVERALL_weighted
 true_Sp_OVERALL - true_Sp_OVERALL_weighted
 
+true_Se_OVERALL
+
 ## sim_results$Se_per_study_all_tests_all_thresholds_list
 
 ## Apply missing thresholds:
 agg_data_cumulative_with_missing_thresholds <- agg_data_cumulative
 
+true_Fp_OVERALL <- 100 - true_Sp_OVERALL
 
+plot(x = true_Fp_OVERALL, y = true_Se_OVERALL)
+
+# true_Se_OVERALL
+# true_Sp_OVERALL
+# 
+# plot(x = true_Sp_OVERALL, y = true_Se_OVERALL)
+ 
+# plot(x = 1:27,  y = true_Se_OVERALL, col = "red", main = "Se (red line) and Fp (green line)", ylim = c(0, 100))
+# lines(x = 1:27, y = 100 - true_Sp_OVERALL, col = "green")
 
 # {
 # 

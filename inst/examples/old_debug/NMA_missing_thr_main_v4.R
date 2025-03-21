@@ -317,6 +317,8 @@ length(dirichlet_cat_means_phi_raw_vec)
 Stan_data_list$kappa_lb <- rep(1.0, n_index_tests)
 
 
+
+
 ##  | ------   Initial values:  -------------------------------------------------------------------------
 {
         Stan_init_list <- list()
