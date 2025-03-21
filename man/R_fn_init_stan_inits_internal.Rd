@@ -8,7 +8,7 @@ R_fn_init_stan_inits_internal(
   stan_data_list,
   stan_model_name,
   stan_model_stan_include_paths = NULL,
-  n_chains_burnin,
+  n_chains,
   init_lists_per_chain
 )
 }

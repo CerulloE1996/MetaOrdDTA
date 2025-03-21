@@ -5,8 +5,8 @@
 \title{R_fn_sROC_plot}
 \usage{
 R_fn_sROC_plot(
-  Stan_model_file_name,
-  Stan_mod_samples,
+  stan_model_file_name,
+  stan_mod_samples,
   df_true = NULL,
   conf_region_colour = "blue",
   pred_region_colour = "blue"

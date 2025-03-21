@@ -11,7 +11,8 @@ R_fn_compile_stan_model_basic_given_file_name(
   prior_only,
   debugging = FALSE,
   force_recompile = FALSE,
-  quiet = FALSE
+  quiet = FALSE,
+  compile = TRUE
 )
 }
 \description{
