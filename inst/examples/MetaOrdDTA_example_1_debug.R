@@ -1,13 +1,7 @@
 
 
  
-
-
-
-
-
-
-
+ 
 ##
 rm(list = ls())
 # ##
@@ -34,22 +28,23 @@ rm(list = ls())
 }
 # 
 
+os <- .Platform$OS.type
 
 
-
-
-if (.Platform$OS.type == "windows") {
-  local_pkg_dir <-  "C:\\Users\\enzoc\\Documents\\Work\\PhD_work\\R_packages\\MetaOrdDTA"
-  # local_INNER_pkg_dir <-  "C:\\Users\\enzoc\\Documents\\Work\\PhD_work\\R_packages\\MetaOrdDTA\\inst\\MetaOrdDTA"
-} else {
-  if (parallel::detectCores() > 16) {   ## if on local HPC
-    local_pkg_dir <- "/home/enzocerullo/Documents/Work/PhD_work/R_packages/MetaOrdDTA"  
-    # local_INNER_pkg_dir <- "/home/enzocerullo/Documents/Work/PhD_work/R_packages/MetaOrdDTA/inst/MetaOrdDTA"
-  } else {  ## if on laptop
-    local_pkg_dir <- "/home/enzo/Documents/Work/PhD_work/R_packages/MetaOrdDTA"  
-    # local_INNER_pkg_dir <- "/home/enzo/Documents/Work/PhD_work/R_packages/MetaOrdDTA/inst/MetaOrdDTA"
-  }
+if (os == "unix") { 
+  user_root_dir <- Sys.getenv("PWD")
+} else if (os == "windows") { 
+  user_root_dir <- Sys.getenv("USERPROFILE")
 }
+local_pkg_dir <- file.path(user_root_dir, "Documents/Work/PhD_work/R_packages/MetaOrdDTA")
+
+
+
+# if (.Platform$OS.type == "windows") {
+#   user_root_dir <- Sys.getenv("PWD")
+# } else {
+#   user_root_dir <- Sys.getenv("HOME")
+# }
 
 
 
@@ -64,9 +59,7 @@ if (.Platform$OS.type == "windows") {
 
 
 
-
-# 
-
+ 
 #### -------- ACTUAL (LOCAL) INSTALL:
 ## Document:
 devtools::clean_dll(local_pkg_dir)
@@ -89,239 +82,486 @@ devtools::install(local_pkg_dir,
 
 
 
-
-
-
-
-
-
 ##  -----------  Compile + initialise the model using "MVP_model$new(...)"  ----------------------------------
 ##
 ## ----  Prepare the data to use: ----------------------------------------------------------------------------
-##
-if (.Platform$OS.type == "windows") {
-      local_pkg_dir <-  "C:\\Users\\enzoc\\Documents\\Work\\PhD_work\\R_packages\\MetaOrdDTA"
-} else {
-      if (parallel::detectCores() > 16) {   ## if on local HPC
-          local_pkg_dir <- "/home/enzocerullo/Documents/Work/PhD_work/R_packages/MetaOrdDTA"  
-      } else {  ## if on laptop
-          local_pkg_dir <- "/home/enzo/Documents/Work/PhD_work/R_packages/MetaOrdDTA"  
-      }
-}
 ##
 ## Read in data ("x" - aggregative cumulative counts w/ "missing thresholds" in each study marked as "-1"):
 ##
 # x <- list(x_nd, x_d)
 # saveRDS(object = x, file = file.path(local_pkg_dir, "MetaOrdDTA_example_data_1.RDS"))
-x <- readRDS(file.path(local_pkg_dir, "inst", "examples", "MetaOrdDTA_example_data_1.RDS"))
+# x <- readRDS(file.path(local_pkg_dir, "inst", "examples", "MetaOrdDTA_example_data_1.RDS"))
+
+x <- list(x_nd, x_d)
+
+x_full <- x
+
+x_subset <- list()
+N_subset <- n_studies
+for (c in 1:2) {
+  x_subset[[c]] <- x[[c]][1:N_subset, ]
+}
+ 
 
 
+##
+## ----  Initialise / select model: --------------------------------------------------
+##
+n_studies <- nrow(x_subset[[1]])
+n_thr <- ncol(x_subset[[1]])
+##
+#### n_chains <- ifelse(parallel::detectCores() > 32, 64, 16)
+n_chains <- 8
+##
+ 
 
-
-
-##
-## ----  Initialise / select model: ---------------------------------------------------------------------------
-##
-n_studies <- nrow(x[[1]])
-n_thr <- ncol(x[[1]])
-##
-inits_for_Xu_fixed_thr_model <- list(beta_mu = c(-1, +1),
-                                     beta_SD = c(0.01, 0.01),
-                                     beta_z = array(0.01, dim = c(2, n_studies)),
-                                     C_raw_vec = rep(-2.0, n_thr))
-##
-n_chains <- ifelse(parallel::detectCores() > 32, 64, 16)
-##
-init_lists_per_chain <- replicate(n_chains, inits_for_Xu_fixed_thr_model, simplify = FALSE) ## li (inits_for_Xu_fixed_thr_model, n_chains)
-##
-str(init_lists_per_chain)
-## model_parameterisation <- "R&G"
-##
-model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(  x = x, 
-                                                  ##
-                                                  n_chains = n_chains,
-                                                  # n_iter = 500,
-                                                  # n_burnin = 500,
-                                                  ##
-                                                  cts = FALSE,
-                                                  network = FALSE,
-                                                  prior_only = FALSE,
-                                                  ##
-                                                  softplus = FALSE,
-                                                  ##
-                                                  ##
-                                                  model_parameterisation = "Xu", 
-                                                  random_thresholds = FALSE,
-                                                  Dirichlet_random_effects_type = "SD", ## only used if random cutpoints
-                                                  ##
-                                                  init_lists_per_chain = init_lists_per_chain)
-inits_for_Xu_fixed_thr_model
-
-
-debugging <- FALSE
-##
-n_iter = 500
-n_burnin = 500
-##
-priors <- NULL
-##
-x = x
-n_chains = n_chains
-##
-cts = FALSE
-network = FALSE
-prior_only = FALSE
-##
-softplus = TRUE
-##
-##
-model_parameterisation = "Xu"
-random_thresholds = FALSE
-Dirichlet_random_effects_type = "none"
-box_cox <- FALSE ## cannot input ACTUAL NA's into Stan!
-##
-init_lists_per_chain = inits_for_Xu_fixed_thr_model
-
-
-basic_model_options$network <- network
-basic_model_options$cts <- cts
-basic_model_options$prior_only <- prior_only
-##
-advanced_model_options$model_parameterisation <- model_parameterisation
-advanced_model_options$random_thresholds <- random_thresholds
-advanced_model_options$Dirichlet_random_effects_type <- Dirichlet_random_effects_type
-advanced_model_options$box_cox <- box_cox
-advanced_model_options$softplus <- softplus
-##
-MCMC_params$n_chains <- n_chains
-
-
-
+#### ----
 {
-basic_model_options = list(
-  network = NULL,
-  cts = NULL,
-  prior_only = NULL
-)
-####
-advanced_model_options = list(
-  model_parameterisation = NULL,
-  random_thresholds = NULL,
-  Dirichlet_random_effects_type = NULL,
-  box_cox = NULL,
-  softplus = NULL
-)
-####
-priors = NULL
-####
-# init_lists_per_chain = NULL,
-####
-MCMC_params = list(
-  seed = NULL,
-  n_superchains = NULL,
-  n_chains = NULL,
-  n_iter = NULL,
-  n_burnin = NULL,
-  adapt_delta = NULL,
-  max_treedepth = NULL,
-  metric_shape = NULL
-)
+  model_parameterisation = "Jones"
+  box_cox <- TRUE
+  cts <- TRUE
+  random_thresholds <-  FALSE
+  Dirichlet_random_effects_type <- "none"
+  ##
+  inits_for_Xu_fixed_thr_model <- list(beta_mu = c(-1, +1),
+                                       beta_SD = c(0.01, 0.01),
+                                       beta_z = array(0.01, dim = c(2, n_studies)),
+                                       C_raw_vec = rep(-2.0, n_thr),
+                                       C = seq(from = -2, to = 2, length = n_thr))
+  init_lists_per_chain <- replicate(n_chains, inits_for_Xu_fixed_thr_model, simplify = FALSE)
 }
 
 
-
-
-
-outs_data = list(
-  stan_data_list = NULL,
-  n_tests = NULL,
-  n_studies = NULL,
-  n_thr = NULL,
-  n_cat = NULL
-)
-##
-outs_stan_model_name = list( 
-  stan_model_file_name = NULL
-)
-##
-outs_stan_compile = list( 
-  stan_model_obj = NULL, 
-  stan_model_file_name = NULL,
-  stan_model_file_path = NULL,
+#### ----
+{
+  model_parameterisation = "Xu"
   ##
-  pkg_root_directory = NULL,
-  stan_models_directory = NULL,
-  stan_functions_directory = NULL,
+  box_cox <- FALSE
+  cts <- FALSE
   ##
-  stan_MA_directory = NULL,
-  stan_MA_prior_directory = NULL,
+  random_thresholds <-  FALSE
+  Dirichlet_random_effects_type <- "SD"
   ##
-  stan_NMA_directory = NULL,
-  stan_NMA_directory = NULL
-)
-##
-outs_stan_init = list( 
-  inits_unconstrained_vec_per_chain = NULL,
-  stan_param_names_list = NULL,
-  stan_param_names_main = NULL,
-  stan_init_pseudo_sampling_outs = NULL,
-  stan_model_obj = NULL,
-  json_file_path = NULL,
-  stan_model_file_path = NULL
-)
-##
-outs_stan_sampling = list( 
-  stan_mod_samples = NULL,
-  time_total = NULL
-)
-##
-## ---- Main "internal_obj" list:
-##
-internal_obj = list(
-  outs_data = NULL,
-  outs_stan_model_name = NULL,
-  outs_stan_compile = NULL,
-  outs_stan_init = NULL,
-  outs_stan_sampling = NULL,
+  priors <- list(prior_alpha = rep(1.0, n_thr + 1), 
+                 ##
+                 prior_beta_mu_mean = c(0.0, 0.0),
+                 prior_beta_mu_SD = c(1.0, 1.0),
+                 prior_beta_SD_mean = c(0.0, 0.0),
+                 prior_beta_sd_SD = c(0.5, 0.5),
+                 prior_beta_corr_LKJ = 2.0)
   ##
-  HMC_info = NULL, ## new
-  efficiency_info = NULL, ## new
-  summaries = NULL, ## new
-  traces = NULL ## new
-)
+  inits_for_Xu_fixed_thr_model <- list(beta_mu = c(-1, +1),
+                                       beta_SD = c(0.01, 0.01),
+                                       beta_z = array(0.01, dim = c(2, n_studies)),
+                                       C_raw_vec = rep(-2.0, n_thr),
+                                       C = seq(from = -2, to = 2, length = n_thr))
+  init_lists_per_chain <- replicate(n_chains, inits_for_Xu_fixed_thr_model, simplify = FALSE)
+}
+
+
+#### ----
+{
+      model_parameterisation = "Xu"
+      ##
+      box_cox <- FALSE
+      cts <- FALSE
+      ##
+      random_thresholds <-  TRUE
+   #   Dirichlet_random_effects_type <- "SD"
+     #  Dirichlet_random_effects_type <- "kappa"
+       Dirichlet_random_effects_type <- "alpha"
+      ##
+      priors <- list(  prior_alpha = rep(1.0, n_thr + 1), 
+                       ##
+                       prior_beta_mu_mean = c(0.0, 0.0),
+                       prior_beta_mu_SD = c(1.0, 1.0),
+                       prior_beta_SD_mean = c(0.0, 0.0),
+                       prior_beta_sd_SD = c(0.5, 0.5),
+                       ##
+                       prior_beta_corr_LKJ = 2.0, 
+                       ##
+                       prior_dirichlet_cat_means_alpha = rep(1.0, n_thr + 1),
+                       ##
+                       prior_dirichlet_cat_SDs_mean    = rep(0.0, n_thr + 1),
+                       prior_dirichlet_cat_SDs_SD      = rep(0.025, n_thr + 1),
+                       ##
+                       kappa_lb = 1.0,
+                       prior_kappa_mean = rep(0, 1),
+                       prior_kappa_SD = rep(500, 1),
+                       ##
+                       alpha_lb = 1.0,
+                       prior_alpha_mean = rep(0, 1),
+                       prior_alpha_SD = rep(50, 1)
+                       )
+      ## inits:
+      cutpoint_vec <- seq(from = -3.0, to = 3.0, length = n_thr)
+      C_array <- array(dim = c(n_studies, n_thr))
+      for (s in 1:n_studies) { 
+        C_array[s, ] <- cutpoint_vec
+      }
+      ##
+      n_sets_of_C <- 1
+      C_raw <- list()
+      for (c in 1:n_sets_of_C) {
+         C_raw_mat <- array(-2.0, dim = c(n_studies, n_thr))
+         C_raw[[c]] <- C_raw_mat
+      }
+      ##
+      # rand_simplex <- gtools::rdirichlet(n = 1, alpha = rep(10, n_cat))
+      phi_raw <- generate_inits_for_raw_simplex_vec(n_thr = n_thr, seed = seed, width = 0.01)
+      ##
+      dirichlet_cat_means_phi <- rep( 1/(n_thr + 1), n_thr + 1)
+      inits_for_Xu_rand_thr_model <- list( beta_mu = c(-1, +1),
+                                           beta_SD = c(0.01, 0.01),
+                                           beta_z = array(0.01, dim = c(2, n_studies)),
+                                           ##
+                                           # dirichlet_cat_means_phi = list(c(rand_simplex), c(rand_simplex)),
+                                           C_raw_vec = rep(-2.0, n_thr),
+                                           C_array = C_array, 
+                                           C_raw = C_raw_mat,
+                                           ##
+                                           alpha = (rep(10.0, n_thr + 1)),
+                                           ##
+                                           dirichlet_cat_means_phi = list(dirichlet_cat_means_phi),
+                                           kappa = rep(1000, 1),
+                                           ##
+                                           phi_raw = phi_raw
+                                           )
+      init_lists_per_chain <- replicate(n_chains, inits_for_Xu_rand_thr_model, simplify = FALSE)
+      
+      dirichlet_cat_means_phi*1000
+      
+ 
+
+      
+      
+}
+  
+
+MetaOrdDTA:::R_fn_compile_stan_model_basic_given_file_name( stan_model_file_name = "DTA_NMA_Nyaga_Jones.stan",
+                                               cts = TRUE,
+                                               network = TRUE,
+                                               prior_only = FALSE,
+                                               force_recompile = FALSE,
+                                               debugging = TRUE)
+
+inits_for_Xu_rand_thr_model$alpha
+##
+## Softplus or exp:
+##
+softplus <- TRUE
+network  <- TRUE 
+
+model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(  x = x_subset, 
+                                                  ##
+                                                  # priors = priors,
+                                                  ##
+                                                  n_chains = n_chains,
+                                                  ##
+                                                  cts = cts,
+                                                  network = network,
+                                                  prior_only = FALSE,
+                                                  ##
+                                                  softplus = softplus,
+                                                  ##
+                                                  box_cox = box_cox,
+                                                  ##
+                                                  model_parameterisation = model_parameterisation,
+                                                  random_thresholds = random_thresholds,
+                                                  Dirichlet_random_effects_type = Dirichlet_random_effects_type, ## only used if random cutpoints
+                                                  ##
+                                                  init_lists_per_chain = init_lists_per_chain)
+
+ # model_prep_obj$internal_obj$outs_data$stan_data_list
+
+
+##
+## ----  Sample model: ----------------------------------------------------------------
+##
+model_samples_obj <-  model_prep_obj$sample(   n_burnin = 500,
+                                               n_iter = 500,
+                                               adapt_delta = 0.80, 
+                                               max_treedepth = 10,
+                                               metric_shape = "diag_e",
+                                               ##
+                                               priors = priors,
+                                               ##
+                                               n_chains = n_chains,
+                                               ##
+                                               init_lists_per_chain = init_lists_per_chain)
+
+
+##
+## ----  Summarise + output results: -------------------------------------------------
+##
+model_summary_and_trace_obj <- model_samples_obj$summary(
+                                          compute_main_params = TRUE,
+                                          compute_transformed_parameters = TRUE, 
+                                          compute_generated_quantities = TRUE,
+                                          ##
+                                          save_log_lik_trace = TRUE,
+                                          ##
+                                          use_BayesMVP_for_faster_summaries = TRUE)
+
+model_summary_and_trace_obj$get_summary_main() %>% print(n = 1000)
+
+##
+## ----  Plots: ----------------------------------------------------------------------
+##
+# ##
+# ## MCMC trace plots:
+# ##
+# model_summary_and_trace_obj$plot_traces(param_string = c("Se", "Sp"))
+# ##
+# ## Densities:
+# ##
+# model_summary_and_trace_obj$plot_densities(param_string = c("Se", "Sp"))
+##
+## sROC plots:
+##
+# model_summary_and_trace_obj$plot_sROC()
+##
+df_true <- tibble(Se_true = true_Se_OVERALL_weighted/100, 
+                  Sp_true = true_Sp_OVERALL_weighted/100, 
+                  Fp_true = (100 - true_Sp_OVERALL_weighted)/100)
+
+
+df_true
+###
+model_summary_and_trace_obj$plot_sROC(df_true = df_true)
+
+
+tibble_gq <- model_summary_and_trace_obj$get_summary_generated_quantities()
+tibble_Se <- filter(tibble_gq, str_detect(parameter, "Se"))
+tibble_Sp <- filter(tibble_gq, str_detect(parameter, "Sp"))
 
 
 
+if (model_parameterisation == "Jones") {
+
+    Se_Jones <- head(tibble_Se$mean, n_thr)
+    Sp_Jones <- head(tibble_Sp$mean, n_thr)
+
+} else { 
+  
+    Se_Cerullo <- head(tibble_Se$mean, n_thr)
+    Sp_Cerullo <- head(tibble_Sp$mean, n_thr)
+    
+}
 
 
+mean(abs(100*df_true$Se_true - 100*Se_Jones))
+max(abs(100*df_true$Se_true  - 100*Se_Jones))
+sum(abs(100*df_true$Se_true  - 100*Se_Jones))
+##
+mean(abs(100*df_true$Sp_true - 100*Sp_Jones))
+max(abs(100*df_true$Sp_true  - 100*Sp_Jones))
+sum(abs(100*df_true$Sp_true  - 100*Sp_Jones))
+####
+mean(abs(100*df_true$Se_true - 100*Se_Cerullo))
+max(abs(100*df_true$Se_true  - 100*Se_Cerullo))
+sum(abs(100*df_true$Se_true  - 100*Se_Cerullo))
+##
+mean(abs(100*df_true$Sp_true - 100*Sp_Cerullo))
+max(abs(100*df_true$Sp_true  - 100*Sp_Cerullo))
+sum(abs(100*df_true$Sp_true  - 100*Sp_Cerullo))
+####
+####
+####
+mean(abs(100*df_true$Se_true - 100*Se_Cerullo)) - mean(abs(100*df_true$Se_true - 100*Se_Jones))
+max(abs(100*df_true$Se_true  - 100*Se_Cerullo)) - max(abs(100*df_true$Se_true  - 100*Se_Jones))
+sum(abs(100*df_true$Se_true  - 100*Se_Cerullo)) - sum(abs(100*df_true$Se_true  - 100*Se_Jones))
+##
+mean(abs(100*df_true$Sp_true - 100*Sp_Cerullo)) - mean(abs(100*df_true$Sp_true - 100*Sp_Jones))
+max(abs(100*df_true$Sp_true  - 100*Sp_Cerullo)) - max(abs(100*df_true$Sp_true  - 100*Sp_Jones))
+sum(abs(100*df_true$Sp_true  - 100*Sp_Cerullo)) - sum(abs(100*df_true$Sp_true  - 100*Sp_Jones))
 
-                                                
+
 # 
-debugging = FALSE
-##
-internal_obj <- model_prep_obj$internal_obj
-##
-basic_model_options <- model_prep_obj$basic_model_options
-advanced_model_options <- model_prep_obj$advanced_model_options
-MCMC_params <- model_prep_obj$MCMC_params
+# 
+# model_samples_obj$internal_obj$outs_data$stan_data_list$prior_beta_mu_mean
+# model_samples_obj$internal_obj$outs_data$stan_data_list$prior_beta_mu_SD
+# model_samples_obj$internal_obj$outs_data$stan_data_list$prior_beta_SD_mean
+# model_samples_obj$internal_obj$outs_data$stan_data_list$prior_beta_SD_SD
+# model_samples_obj$internal_obj$outs_data$stan_data_list$prior_beta_corr_LKJ
+# 
+# model_samples_obj$advanced_model_options
+# model_samples_obj$basic_model_options
+# 
+# model_samples_obj$priors
+# 
+# model_samples_obj$outs_data$stan_data_list
+# 
+# model_samples_obj$outs_data$stan_data_list
+# 
+# 
+# inits_for_Xu_fixed_thr_model
+# 
+# 
+# debugging <- FALSE
 # ##
-# init_lists_per_chain <- model_prep_obj$init_lists_per_chain
+# n_iter = 500
+# n_burnin = 500
 # ##
-# priors <- model_prep_obj$priors
+# priors <- NULL
 # ##
-# # model_prep_obj$internal_obj
-# # model_prep_obj$internal_obj$outs_data$Stan_data_list
-# # ##
-# # model_prep_obj$basic_model_options
-# # model_prep_obj$advanced_model_options
-# # model_prep_obj$MCMC_params
-# # ##
-# # model_prep_obj$init_lists_per_chain
+# x = x
+# n_chains = n_chains
+# ##
+# cts = FALSE
+# network = FALSE
+# prior_only = FALSE
+# ##
+# softplus = TRUE
+# ##
+# ##
+# model_parameterisation = "Xu"
+# random_thresholds = FALSE
+# Dirichlet_random_effects_type = "none"
+# box_cox <- FALSE ## cannot input ACTUAL NA's into Stan!
+# ##
+# init_lists_per_chain = inits_for_Xu_fixed_thr_model
+# 
+# 
+# basic_model_options$network <- network
+# basic_model_options$cts <- cts
+# basic_model_options$prior_only <- prior_only
+# ##
+# advanced_model_options$model_parameterisation <- model_parameterisation
+# advanced_model_options$random_thresholds <- random_thresholds
+# advanced_model_options$Dirichlet_random_effects_type <- Dirichlet_random_effects_type
+# advanced_model_options$box_cox <- box_cox
+# advanced_model_options$softplus <- softplus
+# ##
+# MCMC_params$n_chains <- n_chains
+# 
+# 
+# 
+# {
+# basic_model_options = list(
+#   network = NULL,
+#   cts = NULL,
+#   prior_only = NULL
+# )
+# ####
+# advanced_model_options = list(
+#   model_parameterisation = NULL,
+#   random_thresholds = NULL,
+#   Dirichlet_random_effects_type = NULL,
+#   box_cox = NULL,
+#   softplus = NULL
+# )
+# ####
+# priors = NULL
+# ####
+# # init_lists_per_chain = NULL,
+# ####
+# MCMC_params = list(
+#   seed = NULL,
+#   n_superchains = NULL,
+#   n_chains = NULL,
+#   n_iter = NULL,
+#   n_burnin = NULL,
+#   adapt_delta = NULL,
+#   max_treedepth = NULL,
+#   metric_shape = NULL
+# )
+# }
+# 
+# 
+# 
+# 
+# 
+# outs_data = list(
+#   stan_data_list = NULL,
+#   n_tests = NULL,
+#   n_studies = NULL,
+#   n_thr = NULL,
+#   n_cat = NULL
+# )
+# ##
+# outs_stan_model_name = list( 
+#   stan_model_file_name = NULL
+# )
+# ##
+# outs_stan_compile = list( 
+#   stan_model_obj = NULL, 
+#   stan_model_file_name = NULL,
+#   stan_model_file_path = NULL,
+#   ##
+#   pkg_root_directory = NULL,
+#   stan_models_directory = NULL,
+#   stan_functions_directory = NULL,
+#   ##
+#   stan_MA_directory = NULL,
+#   stan_MA_prior_directory = NULL,
+#   ##
+#   stan_NMA_directory = NULL,
+#   stan_NMA_directory = NULL
+# )
+# ##
+# outs_stan_init = list( 
+#   inits_unconstrained_vec_per_chain = NULL,
+#   stan_param_names_list = NULL,
+#   stan_param_names_main = NULL,
+#   stan_init_pseudo_sampling_outs = NULL,
+#   stan_model_obj = NULL,
+#   json_file_path = NULL,
+#   stan_model_file_path = NULL
+# )
+# ##
+# outs_stan_sampling = list( 
+#   stan_mod_samples = NULL,
+#   time_total = NULL
+# )
+# ##
+# ## ---- Main "internal_obj" list:
+# ##
+# internal_obj = list(
+#   outs_data = NULL,
+#   outs_stan_model_name = NULL,
+#   outs_stan_compile = NULL,
+#   outs_stan_init = NULL,
+#   outs_stan_sampling = NULL,
+#   ##
+#   HMC_info = NULL, ## new
+#   efficiency_info = NULL, ## new
+#   summaries = NULL, ## new
+#   traces = NULL ## new
+# )
+# 
+# 
+# 
+# 
+# 
+# 
+#                                                 
 # # 
-# # model_prep_obj$priors
-# # 
-# #  
-# # model_prep_obj$Stan_data_list$cutpoint_index
+# debugging = FALSE
+# ##
+# internal_obj <- model_prep_obj$internal_obj
+# ##
+# basic_model_options <- model_prep_obj$basic_model_options
+# advanced_model_options <- model_prep_obj$advanced_model_options
+# MCMC_params <- model_prep_obj$MCMC_params
+# # ##
+# # init_lists_per_chain <- model_prep_obj$init_lists_per_chain
+# # ##
+# # priors <- model_prep_obj$priors
+# # ##
+# # # model_prep_obj$internal_obj
+# # # model_prep_obj$internal_obj$outs_data$Stan_data_list
+# # # ##
+# # # model_prep_obj$basic_model_options
+# # # model_prep_obj$advanced_model_options
+# # # model_prep_obj$MCMC_params
+# # # ##
+# # # model_prep_obj$init_lists_per_chain
+# # # 
+# # # model_prep_obj$priors
+# # # 
+# # #  
+# # # model_prep_obj$Stan_data_list$cutpoint_index
 
 ##
 ## ----  Sample model:
@@ -379,7 +619,7 @@ model_summary_and_trace_obj <- model_samples_obj$summary(
                                           ##
                                           save_log_lik_trace = TRUE,
                                           ##
-                                          use_BayesMVP_for_faster_summaries = TRUE)
+                                          use_BayesMVP_for_faster_summaries = FALSE)
 
 # # 
 # # str(model_samples_obj$internal_obj)
@@ -511,19 +751,27 @@ model_summary_and_trace_obj <- model_samples_obj$summary(
 ##
 ## MCMC trace plots:
 ##
-model_summary_and_trace_obj$plot_traces(param_string = c("Se", "Sp")) ## BOOKMARK
+model_summary_and_trace_obj$plot_traces(param_string = c("Se", "Sp"))
 ##
 ## Densities:
 ##
-model_summary_and_trace_obj$plot_densities(param_string = c("Se", "Sp")) ## BOOKMARK
+model_summary_and_trace_obj$plot_densities(param_string = c("Se", "Sp"))
 ##
 ## sROC plots:
 ##
-model_summary_and_trace_obj$plot_sROC() ## BOOKMARK
+model_summary_and_trace_obj$plot_sROC()
+##
+df_true <- tibble(Se_true = true_Se_OVERALL_weighted/100, 
+                  Sp_true = true_Sp_OVERALL_weighted/100, 
+                  Fp_true = (100 - true_Sp_OVERALL_weighted)/100)
 
 
+df_true
+###
+model_summary_and_trace_obj$plot_sROC(df_true = df_true)
 
 
+ 
 
 
 
