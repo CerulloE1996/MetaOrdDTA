@@ -91,24 +91,23 @@ devtools::install(local_pkg_dir,
 # x <- list(x_nd, x_d)
 # saveRDS(object = x, file = file.path(local_pkg_dir, "MetaOrdDTA_example_data_1.RDS"))
 # x <- readRDS(file.path(local_pkg_dir, "inst", "examples", "MetaOrdDTA_example_data_1.RDS"))
-
-x <- list(x_nd, x_d)
-
-x_full <- x
-
-x_subset <- list()
-N_subset <- n_studies
-for (c in 1:2) {
-  x_subset[[c]] <- x[[c]][1:N_subset, ]
-}
- 
-
+# 
+# x <- list(x_nd, x_d)
+# 
+# x_full <- x
+# 
+# x_subset <- list()
+# N_subset <- n_studies
+# for (c in 1:2) {
+#   x_subset[[c]] <- x[[c]][1:N_subset, ]
+# }
+#  
+# n_studies <- nrow(x_subset[[1]])
+# n_thr <- ncol(x_subset[[1]])
 
 ##
 ## ----  Initialise / select model: --------------------------------------------------
 ##
-n_studies <- nrow(x_subset[[1]])
-n_thr <- ncol(x_subset[[1]])
 ##
 #### n_chains <- ifelse(parallel::detectCores() > 32, 64, 16)
 n_chains <- 8
@@ -130,6 +129,8 @@ n_chains <- 8
                                        C = seq(from = -2, to = 2, length = n_thr))
   init_lists_per_chain <- replicate(n_chains, inits_for_Xu_fixed_thr_model, simplify = FALSE)
 }
+
+
 
 
 #### ----
@@ -157,6 +158,7 @@ n_chains <- 8
                                        C = seq(from = -2, to = 2, length = n_thr))
   init_lists_per_chain <- replicate(n_chains, inits_for_Xu_fixed_thr_model, simplify = FALSE)
 }
+
 
 
 #### ----
@@ -238,19 +240,79 @@ n_chains <- 8
 }
   
 
-MetaOrdDTA:::R_fn_compile_stan_model_basic_given_file_name( stan_model_file_name = "DTA_NMA_Nyaga_Jones.stan",
-                                               cts = TRUE,
-                                               network = TRUE,
-                                               prior_only = FALSE,
-                                               force_recompile = FALSE,
-                                               debugging = TRUE)
 
-inits_for_Xu_rand_thr_model$alpha
+# MetaOrdDTA:::R_fn_compile_stan_model_basic_given_file_name( stan_model_file_name = "DTA_NMA_Nyaga_Jones.stan",
+#                                                cts = TRUE,
+#                                                network = TRUE,
+#                                                prior_only = FALSE,
+#                                                force_recompile = FALSE,
+#                                                debugging = TRUE)
+
+
+data_outs <- R_fn_prep_NMA_data(  x = x_NMA, 
+                     n_index_tests_per_study = n_index_tests_per_study,
+                     indicator_index_test_in_study = indicator_index_test_in_study)
+
+t <- 1
+c <- 1
+data_outs$stan_data_list$x_with_missings[t, c, ,]
+data_outs$stan_data_list$x[t, c, ,]
+data_outs$stan_data_list$n[t, c, ,]
+ 
+# 
+# stan_data_list       = internal_obj$outs_data$stan_data_list
+# 
+# # Check if all list elements have names
+# check_names <- function(x) {
+#   if (is.list(x)) {
+#     # Check if this list has names
+#     if (length(x) > 0 && is.null(names(x))) {
+#       return(FALSE)
+#     }
+#     # Recursively check all elements
+#     return(all(sapply(x, check_names)))
+#   }
+#   return(TRUE)
+# }
+# 
+# # Fix by adding names to all list elements
+# add_names <- function(x, prefix = "item") {
+#   if (is.list(x)) {
+#     if (length(x) > 0 && is.null(names(x))) {
+#       names(x) <- paste0(prefix, 1:length(x))
+#     }
+#     for (i in 1:length(x)) {
+#       x[[i]] <- add_names(x[[i]], paste0(prefix, "_", i))
+#     }
+#   }
+#   return(x)
+# }
+# 
+# 
+# # See if there are unnamed elements
+# check_names(init_lists_per_chain)
+# 
+# # Apply the fix
+# init_lists_per_chain <- add_names(init_lists_per_chain)
+# ##
+# internal_obj$outs_data$stan_data_list <- stan_data_list
+# 
+# 
+
+
+
 ##
 ## Softplus or exp:
 ##
 softplus <- TRUE
 network  <- TRUE 
+
+
+
+# internal_obj$outs_data$stan_data_list$x
+# internal_obj$outs_data$stan_data_list$n
+# 
+# any(is.na(unlist(internal_obj$outs_data$stan_data_list$n)))
 
 model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(  x = x_subset, 
                                                   ##
@@ -397,143 +459,144 @@ sum(abs(100*df_true$Sp_true  - 100*Sp_Cerullo)) - sum(abs(100*df_true$Sp_true  -
 # 
 # inits_for_Xu_fixed_thr_model
 # 
-# 
-# debugging <- FALSE
-# ##
-# n_iter = 500
-# n_burnin = 500
-# ##
-# priors <- NULL
-# ##
-# x = x
-# n_chains = n_chains
-# ##
-# cts = FALSE
-# network = FALSE
-# prior_only = FALSE
-# ##
-# softplus = TRUE
-# ##
-# ##
-# model_parameterisation = "Xu"
-# random_thresholds = FALSE
-# Dirichlet_random_effects_type = "none"
-# box_cox <- FALSE ## cannot input ACTUAL NA's into Stan!
-# ##
-# init_lists_per_chain = inits_for_Xu_fixed_thr_model
-# 
-# 
-# basic_model_options$network <- network
-# basic_model_options$cts <- cts
-# basic_model_options$prior_only <- prior_only
-# ##
-# advanced_model_options$model_parameterisation <- model_parameterisation
-# advanced_model_options$random_thresholds <- random_thresholds
-# advanced_model_options$Dirichlet_random_effects_type <- Dirichlet_random_effects_type
-# advanced_model_options$box_cox <- box_cox
-# advanced_model_options$softplus <- softplus
-# ##
-# MCMC_params$n_chains <- n_chains
-# 
-# 
-# 
-# {
-# basic_model_options = list(
-#   network = NULL,
-#   cts = NULL,
-#   prior_only = NULL
-# )
-# ####
-# advanced_model_options = list(
-#   model_parameterisation = NULL,
-#   random_thresholds = NULL,
-#   Dirichlet_random_effects_type = NULL,
-#   box_cox = NULL,
-#   softplus = NULL
-# )
-# ####
-# priors = NULL
-# ####
-# # init_lists_per_chain = NULL,
-# ####
-# MCMC_params = list(
-#   seed = NULL,
-#   n_superchains = NULL,
-#   n_chains = NULL,
-#   n_iter = NULL,
-#   n_burnin = NULL,
-#   adapt_delta = NULL,
-#   max_treedepth = NULL,
-#   metric_shape = NULL
-# )
-# }
+
+debugging <- FALSE
+##
+n_iter = 500
+n_burnin = 500
+##
+priors <- NULL
+##
+x = x
+n_chains = n_chains
+##
+cts = TRUE
+network = TRUE
+##
+prior_only = FALSE
+##
+softplus = TRUE
+##
+##
+model_parameterisation = "Jones"
+random_thresholds = FALSE
+Dirichlet_random_effects_type = "none"
+box_cox <- FALSE ## cannot input ACTUAL NA's into Stan!
+##
+init_lists_per_chain = NULL
+
+
+basic_model_options$network <- network
+basic_model_options$cts <- cts
+basic_model_options$prior_only <- prior_only
+##
+advanced_model_options$model_parameterisation <- model_parameterisation
+advanced_model_options$random_thresholds <- random_thresholds
+advanced_model_options$Dirichlet_random_effects_type <- Dirichlet_random_effects_type
+advanced_model_options$box_cox <- box_cox
+advanced_model_options$softplus <- softplus
+##
+MCMC_params$n_chains <- n_chains
+
 # 
 # 
-# 
-# 
-# 
-# outs_data = list(
-#   stan_data_list = NULL,
-#   n_tests = NULL,
-#   n_studies = NULL,
-#   n_thr = NULL,
-#   n_cat = NULL
-# )
-# ##
-# outs_stan_model_name = list( 
-#   stan_model_file_name = NULL
-# )
-# ##
-# outs_stan_compile = list( 
-#   stan_model_obj = NULL, 
-#   stan_model_file_name = NULL,
-#   stan_model_file_path = NULL,
-#   ##
-#   pkg_root_directory = NULL,
-#   stan_models_directory = NULL,
-#   stan_functions_directory = NULL,
-#   ##
-#   stan_MA_directory = NULL,
-#   stan_MA_prior_directory = NULL,
-#   ##
-#   stan_NMA_directory = NULL,
-#   stan_NMA_directory = NULL
-# )
-# ##
-# outs_stan_init = list( 
-#   inits_unconstrained_vec_per_chain = NULL,
-#   stan_param_names_list = NULL,
-#   stan_param_names_main = NULL,
-#   stan_init_pseudo_sampling_outs = NULL,
-#   stan_model_obj = NULL,
-#   json_file_path = NULL,
-#   stan_model_file_path = NULL
-# )
-# ##
-# outs_stan_sampling = list( 
-#   stan_mod_samples = NULL,
-#   time_total = NULL
-# )
-# ##
-# ## ---- Main "internal_obj" list:
-# ##
-# internal_obj = list(
-#   outs_data = NULL,
-#   outs_stan_model_name = NULL,
-#   outs_stan_compile = NULL,
-#   outs_stan_init = NULL,
-#   outs_stan_sampling = NULL,
-#   ##
-#   HMC_info = NULL, ## new
-#   efficiency_info = NULL, ## new
-#   summaries = NULL, ## new
-#   traces = NULL ## new
-# )
-# 
-# 
-# 
-# 
-# 
+{
+basic_model_options = list(
+  network = NULL,
+  cts = NULL,
+  prior_only = NULL
+)
+####
+advanced_model_options = list(
+  model_parameterisation = NULL,
+  random_thresholds = NULL,
+  Dirichlet_random_effects_type = NULL,
+  box_cox = NULL,
+  softplus = NULL
+)
+####
+priors = NULL
+####
+# init_lists_per_chain = NULL,
+####
+MCMC_params = list(
+  seed = NULL,
+  n_superchains = NULL,
+  n_chains = NULL,
+  n_iter = NULL,
+  n_burnin = NULL,
+  adapt_delta = NULL,
+  max_treedepth = NULL,
+  metric_shape = NULL
+)
+}
+
+
+
+
+
+outs_data = list(
+  stan_data_list = NULL,
+  n_tests = NULL,
+  n_studies = NULL,
+  n_thr = NULL,
+  n_cat = NULL
+)
+##
+outs_stan_model_name = list(
+  stan_model_file_name = NULL
+)
+##
+outs_stan_compile = list(
+  stan_model_obj = NULL,
+  stan_model_file_name = NULL,
+  stan_model_file_path = NULL,
+  ##
+  pkg_root_directory = NULL,
+  stan_models_directory = NULL,
+  stan_functions_directory = NULL,
+  ##
+  stan_MA_directory = NULL,
+  stan_MA_prior_directory = NULL,
+  ##
+  stan_NMA_directory = NULL,
+  stan_NMA_directory = NULL
+)
+##
+outs_stan_init = list(
+  inits_unconstrained_vec_per_chain = NULL,
+  stan_param_names_list = NULL,
+  stan_param_names_main = NULL,
+  stan_init_pseudo_sampling_outs = NULL,
+  stan_model_obj = NULL,
+  json_file_path = NULL,
+  stan_model_file_path = NULL
+)
+##
+outs_stan_sampling = list(
+  stan_mod_samples = NULL,
+  time_total = NULL
+)
+##
+## ---- Main "internal_obj" list:
+##
+internal_obj = list(
+  outs_data = NULL,
+  outs_stan_model_name = NULL,
+  outs_stan_compile = NULL,
+  outs_stan_init = NULL,
+  outs_stan_sampling = NULL,
+  ##
+  HMC_info = NULL, ## new
+  efficiency_info = NULL, ## new
+  summaries = NULL, ## new
+  traces = NULL ## new
+)
+
+
+
+
+
 # 
 #                                                 
 # # 

@@ -2,19 +2,17 @@
 
 
 ## setwd("/home/enzocerullo/Documents/Work/PhD_work/DTA_MA_NMA_w_missing_thresholds")
-
-source("R_fn_load_data_ordinal_MA_LC_MVP_sim.R")
-
+ 
 require(dplyr)
 require(cmdstanr)
 
 
-
+seed <- 123
+##
 n_studies <- 25
 N_per_study_mean <- 1000
 N_per_study_SD <- round(N_per_study_mean/4)
 assume_perfect_GS <- 1
-seed <- 123
 
 set.seed(seed)
 
@@ -31,11 +29,11 @@ seed = seed
 true_Mean_prev = 0.20
 
 # Run simulated data - this simulates data from FIVE (5) diagnostic tests (1 BINARY reference test + 4 ORDINAL index tests)
-sim_results <- R_fn_sim_data_ordinal_MA(   n_studies = n_studies,
-                                                          N_per_study_mean = N_per_study_mean,
-                                                          N_per_study_SD = N_per_study_SD,
-                                                          assume_perfect_GS = assume_perfect_GS,
-                                                          seed = seed)
+sim_results <- MetaOrdDTA:::R_fn_sim_data_ordinal_MA(   n_studies = n_studies,
+                                                        N_per_study_mean = N_per_study_mean,
+                                                        N_per_study_SD = N_per_study_SD,
+                                                        assume_perfect_GS = assume_perfect_GS,
+                                                        seed = seed)
 
 y_list <- sim_results$y_list
 str(y_list)
@@ -174,6 +172,11 @@ x_nd <- agg_data_cumulative_with_missing_thresholds$x_nd
 n_nd <- agg_data_cumulative_with_missing_thresholds$n_nd
 n_total_nd <- agg_data_cumulative_with_missing_thresholds$n_total_nd
 print(paste("x_nd = ")) ; print(x_nd)
+
+
+x_MA <- list(x_d, x_nd)
+
+saveRDS(object = x_MA, file = "x_MA_list.RDS")
 
 ## agg_data_cumulative_with_missing_thresholds$x_d
 # x_nd_cat <- convert_cumulative_to_category( cumulative_matrix = n_nd)
