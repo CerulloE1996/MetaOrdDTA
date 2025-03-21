@@ -25,8 +25,12 @@ default_network <- function(x) {
   
       network <- NA
       ##
-      is_x_list <- MetaOrdDTA:::try_silent(is.list(x))
-      is_x_nested_list <- MetaOrdDTA:::try_silent(is.list(x[[1]]))
+      try({ 
+         is_x_list <-  MetaOrdDTA:::try_silent(is.list(x))
+      })
+      try({ 
+         is_x_nested_list <- MetaOrdDTA:::try_silent(is.list(x[[1]]))
+      })
       ##
       if (is_x_list) { 
         network <- FALSE
@@ -34,7 +38,7 @@ default_network <- function(x) {
         network <- TRUE
       }
       
-      print(paste("network = ", network))
+      # print(paste("network = ", network))
       return(list(network))
   
   
@@ -54,7 +58,7 @@ default_model_parameterisation <- function(cts) {
     model_parameterisation <- "R&G"
   }
   
-  print(paste("model_parameterisation = ", model_parameterisation))
+  # print(paste("model_parameterisation = ", model_parameterisation))
   return(list(model_parameterisation))
   
 }
@@ -74,7 +78,7 @@ default_random_thresholds <- function(cts) {
     random_thresholds <- FALSE ## default is fixed between-study threshold model)
   }
   
-  print(paste("random_thresholds = ", random_thresholds))
+  # print(paste("random_thresholds = ", random_thresholds))
   return(list(random_thresholds))
   
 }
@@ -98,7 +102,7 @@ default_Dirichlet_random_effects_type <- function(cts,
       }
   }
   
-  print(paste("Dirichlet_random_effects_type = ", Dirichlet_random_effects_type))
+  # print(paste("Dirichlet_random_effects_type = ", Dirichlet_random_effects_type))
   return(list(Dirichlet_random_effects_type))
   
 }
@@ -117,7 +121,7 @@ default_box_cox <- function(cts) {
       box_cox <- FALSE ## only relvant for continuous models.
     }
     
-    print(paste("box_cox = ", box_cox))
+    # print(paste("box_cox = ", box_cox))
     return(list(box_cox))
     
 }

@@ -118,11 +118,15 @@ check_data_format <- function(x,
           ##
           test_sum <- try_silent(sum(is_x_list, is_x_length_2))
           ##
-          error_msg_for_x <- "The data (x) MUST be an R list of length 2, where element #1 corresponds \n to the data in the non-diseased population \n 
-                         and element #2 the diseased populatio. \n
-                         For meta-analysis (MA), both elements should be a matrix with #rows = #{studies} and #cols = #{observed test thresholds}. \n
-                         For network-meta-analysis (NMA), both elements should be a a list (hence x is a list of lists), where each inner list corresponds to \n
-                         a different test, and then the format within each inner list is the same as for MA (i.e., for NMA x will be a 'list of lists of matrices'"
+          error_msg_for_x <- paste0("The data (x) MUST be an R list of length 2, where element #1 corresponds to the data in the non-diseased population", 
+                                    "\n",
+                                    "and element #2 the diseased population.", 
+                                    "\n", 
+                                    "For meta-analysis (MA), both elements should be a matrix with #rows = #{studies} and #cols = #{observed test thresholds}.", 
+                                    "\n", 
+                                    "For network-meta-analysis (NMA), both elements should be a a list (hence x is a list of lists), where each inner list corresponds to", 
+                                    "\n",
+                                    "a different test, and then the format within each inner list is the same as for MA (i.e., for NMA x will be a 'list of lists of matrices'")
           ##
           if (test_sum != 2) { 
             result$test_failed_at <- 1

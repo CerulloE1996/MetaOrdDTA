@@ -13,6 +13,8 @@
 initialise_update_run_model <- function(      debugging = FALSE,
                                               ##
                                               x, 
+                                              n_index_tests_per_study = NULL,
+                                              indicator_index_test_in_study = NULL,
                                               ##
                                               internal_obj,
                                               ##
@@ -33,6 +35,8 @@ initialise_update_run_model <- function(      debugging = FALSE,
           prep_data_and_model_outs <-  prep_data_and_model( debugging = debugging, 
                                                                          ##
                                                                          x = x,
+                                                                         n_index_tests_per_study = n_index_tests_per_study,
+                                                                         indicator_index_test_in_study = indicator_index_test_in_study,
                                                                          ##
                                                                          internal_obj = internal_obj,
                                                                          ##
@@ -153,26 +157,49 @@ initialise_update_run_model <- function(      debugging = FALSE,
           # # init_lists_per_chain[[1]]
           # init_lists_per_chain[[1]]$inits
           try({
-            internal_obj$outs_stan_compile$stan_model_obj$variables()$parameters
+            
+            # 
+            # internal_obj$outs_stan_compile$stan_model_obj$variables()$parameters
+            # 
+            # ( is.numeric((internal_obj$outs_data$stan_data_list$n)) == FALSE)
+            # 
+            # str(internal_obj$outs_data$stan_data_list$n)
+            # old_n <- internal_obj$outs_data$stan_data_list$n
+            # new_n <- list()
+            # indicator_index_test_in_study
+            # for (c in 1:2) { 
+            #     new_n[[c]] <- list()
+            #     ##
+            #     for (t in 1:n_tests) { 
+            #       try({ 
+            #         new_n[[c]][[t]] <- old_n[[c]][[t]]
+            #       })
+            #     }
+            # }
+            # 
+            # str(new_n)
+            # 
+            # any(!(is.numeric(new_n[[1]][[4]])))
+            # 
+            # any(!(is.numeric(new_n[[1]])))
+            # 
+            # 
+            
+            init_lists_per_chain[[1]]$
                     
-            internal_obj$outs_stan_init <- MetaOrdDTA:::R_fn_init_stan_inits_external(    
+            priors$prior_beta_mu_SD
+            
+            internal_obj$outs_data$stan_data_list$box_cox <- 0
+            
+            internal_obj$outs_stan_init <- R_fn_init_stan_inits_external(    
                                                                       stan_data_list       = internal_obj$outs_data$stan_data_list,
                                                                       stan_model_file_path = internal_obj$outs_stan_model_name$stan_model_file_path,
                                                                       stan_model_obj       = internal_obj$outs_stan_compile$stan_model_obj,
                                                                       n_chains             = MCMC_params$n_chains,
                                                                       init_lists_per_chain = init_lists_per_chain)
-                  ##
-                  # internal_obj$outs_stan_init <- outs_stan_init
-                  # ##
-                  # internal_obj$inits_unconstrained_vec_per_chain = outs_stan_init$inits_unconstrained_vec_per_chain
-                  # internal_obj$stan_param_names_list = outs_stan_init$stan_param_names_list
-                  # internal_obj$stan_param_names_main = outs_stan_init$stan_param_names_main
-                  # internal_obj$stan_init_pseudo_sampling_outs = outs_stan_init$stan_init_pseudo_sampling_outs
-                  # internal_obj$stan_model_obj = outs_stan_init$stan_model_obj
-                  # internal_obj$json_file_path = outs_stan_init$json_file_path
-                  # internal_obj$stan_model_file_path = outs_stan_init$stan_model_file_path
           
           })
+          internal_obj$outs_data$stan_data_list$n[[1]][[1]]
           # init_lists_per_chain[[1]]
           ##
           if (debugging) message(paste("initialise_update_run_model", "hello_there_4"))

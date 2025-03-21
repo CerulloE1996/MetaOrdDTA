@@ -12,11 +12,13 @@ R_fn_compile_stan_model_basic_given_file_name <- function( stan_model_file_name,
                                                            prior_only,
                                                            debugging = FALSE,
                                                            force_recompile = FALSE,
-                                                           quiet = FALSE
+                                                           quiet = FALSE,
+                                                           compile = TRUE
 )  {
   
   
-         
+          stan_model_obj <- NULL
+          
           if (debugging) {
             
                     os <- .Platform$OS.type
@@ -72,15 +74,23 @@ R_fn_compile_stan_model_basic_given_file_name <- function( stan_model_file_name,
                     stan_model_file_path <-  file.path(stan_directory_to_use, stan_model_file_name)
                     
           }
-          
-          try({  
-            
-            stan_model_obj <- cmdstanr::cmdstan_model( stan_model_file_path,
-                                                       force_recompile = force_recompile,
-                                                       quiet = quiet, 
-                                                       include_paths = stan_functions_directory)
-            
+          ##
+          ## Compile model:
+          ##
+          try({ 
+                if (compile) {
+                    
+                    try({  
+                      
+                        stan_model_obj <- cmdstanr::cmdstan_model( stan_model_file_path,
+                                                                   force_recompile = force_recompile,
+                                                                   quiet = quiet, 
+                                                                   include_paths = stan_functions_directory)
+                      
+                    })
+                }
           })
+          
           ##
           ## output list:
           ##
@@ -96,7 +106,7 @@ R_fn_compile_stan_model_basic_given_file_name <- function( stan_model_file_name,
                        stan_MA_prior_directory = stan_MA_prior_directory,
                        ##
                        stan_NMA_directory = stan_NMA_directory,
-                       stan_NMA_directory = stan_NMA_directory))
+                       stan_NMA_prior_directory = stan_NMA_prior_directory))
   
 }
 

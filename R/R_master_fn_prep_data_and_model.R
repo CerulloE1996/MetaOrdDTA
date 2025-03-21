@@ -9,6 +9,8 @@
 prep_data_and_model <- function(  debugging = FALSE,
                                   ##
                                   x, 
+                                  n_index_tests_per_study = NULL, ## only needed for NMA
+                                  indicator_index_test_in_study = NULL, ## only needed for NMA
                                   ##
                                   internal_obj,
                                   ##
@@ -102,15 +104,17 @@ prep_data_and_model <- function(  debugging = FALSE,
           ## -----------------  Setup data: ---------------------------------------------------------------------------
           ##
           {
-              if (basic_model_options$network)  { 
-                  data_fn <- R_fn_prep_NMA_data
-              } else { 
-                  data_fn <- R_fn_prep_MA_data
-              }
+                 if (basic_model_options$network)  { 
+                      data_fn <- R_fn_prep_NMA_data
+                 } else { 
+                      data_fn <- R_fn_prep_MA_data
+                 }
               
                  outs_data <- data_fn( x = x,
-                                       box_cox  = advanced_model_options$box_cox,
-                                       softplus = advanced_model_options$softplus)
+                                       # box_cox  = advanced_model_options$box_cox,
+                                       # softplus = advanced_model_options$softplus,
+                                       n_index_tests_per_study = n_index_tests_per_study,
+                                       indicator_index_test_in_study = indicator_index_test_in_study)
           }
            ##
           internal_obj$outs_data <- outs_data
@@ -157,19 +161,30 @@ prep_data_and_model <- function(  debugging = FALSE,
           ##
           priors <- if_null_then_set_to(x = priors, list())
           ##
-          priors <- R_fn_set_priors(  
-                                           priors = priors,
-                                           ##
-                                           cts     = basic_model_options$cts,
-                                           network = basic_model_options$network,
-                                           ##
-                                           model_parameterisation        = advanced_model_options$model_parameterisation,
-                                           random_thresholds             = advanced_model_options$random_thresholds,
-                                           Dirichlet_random_effects_type = advanced_model_options$Dirichlet_random_effects_type,
-                                           softplus                      = advanced_model_options$softplus,
-                                           ##
-                                           n_cat = internal_obj$outs_data$n_cat,
-                                           n_thr = internal_obj$outs_data$n_thr)
+          if (basic_model_options$network)  { 
+            prior_fn <- R_fn_set_priors_NMA
+          } else { 
+            prior_fn <- R_fn_set_priors_MA
+          }
+          ##
+          if (!(basic_model_options$network)) { 
+            internal_obj$outs_data$n_index_tests <- 1
+          }
+          ##
+          priors <- prior_fn(  
+                             priors = priors,
+                             ##
+                             cts     = basic_model_options$cts,
+                             ##
+                             model_parameterisation        = advanced_model_options$model_parameterisation,
+                             random_thresholds             = advanced_model_options$random_thresholds,
+                             Dirichlet_random_effects_type = advanced_model_options$Dirichlet_random_effects_type,
+                             softplus                      = advanced_model_options$softplus,
+                             ##
+                             n_cat = internal_obj$outs_data$n_cat,
+                             n_thr = internal_obj$outs_data$n_thr,
+                             ##
+                             n_index_tests = internal_obj$outs_data$n_index_tests)
           ##
           message(paste("priors = "))
           print(priors)
@@ -190,34 +205,40 @@ prep_data_and_model <- function(  debugging = FALSE,
           print(paste("init_lists_per_chain[[1]] = "))
           print(init_lists_per_chain)
           ##
-          # try({ 
-          #   if (is.null(init_lists_per_chain)) {
-          #         init_lists_per_chain <- list()
-          #         for (i in 1:MCMC_params$n_chains) {
-          #           init_lists_per_chain[[i]] <- list(1) ## placeholder (NULL doesnt work here)
-          #         }
-          #   }
-          #   
-          #   # else { 
-          #   #       if (length(init_lists_per_chain) != MCMC_params$n_chains) { 
-          #   #         stop("init_lists_per_chain must either be set to 'NULL' (default inits)
-          #   #                      or be a list of lists of length 'MCMC_params$n_chains")
-          #   #       }
-          #   # }
-          # })
+          try({
+            if (is.null(init_lists_per_chain)) {
+                  init_lists_per_chain <- list()
+                  for (i in 1:MCMC_params$n_chains) {
+                    init_lists_per_chain[[i]] <- list(one = 1) ## placeholder (NULL doesnt work here)
+                  }
+            }
+
+            # else {
+            #       if (length(init_lists_per_chain) != MCMC_params$n_chains) {
+            #         stop("init_lists_per_chain must either be set to 'NULL' (default inits)
+            #                      or be a list of lists of length 'MCMC_params$n_chains")
+            #       }
+            # }
+          })
           ##
           print(paste("advanced_model_options = "))
           print(advanced_model_options)
           ##
+          if (basic_model_options$network)  { 
+            inits_fn <- R_fn_set_inits_NMA
+          } else { 
+            inits_fn <- R_fn_set_inits_MA
+          }
+          ##
           for (i in 1:MCMC_params$n_chains) {
-               init_lists_per_chain[[i]] <- R_fn_set_inits( 
+               init_lists_per_chain[[i]] <- inits_fn( 
                                                      inits = init_lists_per_chain[[i]],
                                                      priors = priors,
                                                      ##
-                                                     network = basic_model_options$network,
+                                                     # network = basic_model_options$network,
                                                      cts     = basic_model_options$cts,
                                                      ##
-                                                     n_tests   = internal_obj$outs_data$n_tests,
+                                                     n_index_tests   = internal_obj$outs_data$n_index_tests,
                                                      n_studies = internal_obj$outs_data$n_studies,
                                                      n_thr     = internal_obj$outs_data$n_thr,
                                                      ##
@@ -250,11 +271,7 @@ prep_data_and_model <- function(  debugging = FALSE,
 }
 
 
-
-
-
-
-
+ 
 
 
 
