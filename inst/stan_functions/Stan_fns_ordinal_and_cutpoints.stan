@@ -7,7 +7,7 @@
 ////
 //// Function to manually construct a cutpoint vector from raw unconstrained parameters - using exp() / log-differences. 
 ////
-vector construct_cutpoints_using_exp_jacobian(vector C_raw_vec) {
+vector construct_C_using_exp_jacobian(vector C_raw_vec) {
   
           int n_total_cutpoints = num_elements(C_raw_vec);
           vector[n_total_cutpoints] C_vec;  
@@ -22,7 +22,8 @@ vector construct_cutpoints_using_exp_jacobian(vector C_raw_vec) {
           for (k in 2:n_total_cutpoints) {
                  if (counter <= num_elements(C_raw_vec)) {
                      C_vec[k] = C_vec[k - 1] + exp(C_raw_vec[counter]);
-                     jacobian += C_raw_vec[k]; //// Jacobian for trans. C_raw_vec -> C_vec
+                     //// Jacobian for trans. C_raw_vec -> C_vec:
+                     jacobian += C_raw_vec[k];
                      counter += 1;
                  }
           }
@@ -37,7 +38,7 @@ vector construct_cutpoints_using_exp_jacobian(vector C_raw_vec) {
 ////
 //// Function to manually construct a cutpoint vector from raw unconstrained parameters - using softplus / log1p_exp().
 ////
-vector construct_cutpoints_using_softplus_jacobian(vector C_raw_vec) {
+vector construct_C_using_SP_jacobian(vector C_raw_vec) {
       
           int n_total_cutpoints = num_elements(C_raw_vec);
           vector[n_total_cutpoints] C_vec;  
@@ -52,7 +53,8 @@ vector construct_cutpoints_using_softplus_jacobian(vector C_raw_vec) {
           for (k in 2:n_total_cutpoints) {
                  if (counter <= num_elements(C_raw_vec)) {
                      C_vec[k] = C_vec[k - 1] + log1p_exp(C_raw_vec[counter]);
-                     //// Jacobian for trans. C_raw -> C. (deriv of SP(x) = log(1.0 + exp(x)) is inv_logit(x) so log(deriv) = log_inv_logit(x)):
+                     //// Jacobian for trans. C_raw -> C. 
+                     //// (deriv of SP(x) = log(1.0 + exp(x)) is inv_logit(x) so log(deriv) = log_inv_logit(x)):
                      jacobian += log_inv_logit(C_raw_vec[k]); 
                      counter += 1;
                  }
@@ -75,9 +77,9 @@ vector construct_cutpoints_using_softplus_jacobian(vector C_raw_vec) {
 //// NOTE: You can use this for both ind_dir PRIORS and ind_dir MODELS:
 //// NOTE: adapted from: Betancourt et al (see: https://betanalpha.github.io/assets/case_studies/ordinal_regression.html)
 ////
-real induced_dirichlet_v2_lpdf(  vector p_ord,
-                                 vector rho,
-                                 vector alpha) {
+real induced_dirichlet_given_rho_lpdf(  vector p_ord,
+                                        vector rho,
+                                        vector alpha) {
           
         int n_cat = num_elements(p_ord);
         matrix[n_cat, n_cat] J = rep_matrix(0.0, n_cat, n_cat);
@@ -96,9 +98,9 @@ real induced_dirichlet_v2_lpdf(  vector p_ord,
   
 }
 ////
-//// Row-vector overload for "induced_dirichlet_v2_lpdf":
+//// Row-vector overload for "induced_dirichlet_given_rho_lpdf":
 ////
-real induced_dirichlet_v2_lpdf(  row_vector p_ord,
+real induced_dirichlet_given_rho_lpdf(  row_vector p_ord,
                                  row_vector rho,
                                  row_vector alpha) {
           
@@ -109,7 +111,7 @@ real induced_dirichlet_v2_lpdf(  row_vector p_ord,
         vector[n_thr] rho_col_vec   = to_vector(rho);
         vector[n_cat] alpha_col_vec = to_vector(alpha);
         
-        return induced_dirichlet_v2_lpdf(p_ord_col_vec | rho_col_vec, alpha_col_vec);
+        return induced_dirichlet_given_rho_lpdf(p_ord_col_vec | rho_col_vec, alpha_col_vec);
   
 }
 
@@ -224,9 +226,6 @@ vector cumul_probs_to_C( vector cumul_probs,
         return C;
         
 }
-////
-//// Convert from cumul_probs -> C:
-////
 vector cumul_probs_to_C( vector cumul_probs,
                          real location, 
                          real scale) {
@@ -248,9 +247,6 @@ vector cumul_probs_to_C( vector cumul_probs,
         return C;
         
 }
-////
-//// Convert from cumul_probs -> C (row-vector overload):
-////
 row_vector cumul_probs_to_C( row_vector cumul_probs,
                              real location, 
                              real scale) {
@@ -280,6 +276,174 @@ matrix convert_C_array_to_mat(array[] vector C_array) {
       return C_mat;
  
 }
+
+
+
+////
+////  Get the cutpoint index (k) to map "latent_cumul_prob[c][s, cut_i]" to correct cutpoint "C[k]":
+////
+array[] matrix map_latent_cumul_prob_to_fixed_C( vector C, 
+                                  matrix locations, 
+                                  matrix scales, 
+                                  data int n_studies,
+                                  data array[] int n_obs_cutpoints,
+                                  data array[] matrix cutpoint_index) {
+          
+      int n_thr = num_elements(C);  
+      array[2] matrix[n_studies, n_thr] latent_cumul_prob;
+      for (c in 1:2) {
+          latent_cumul_prob[c] = rep_matrix(positive_infinity(), n_studies, n_thr);
+      }
+      for (s in 1:n_studies) {
+                for (c in 1:2) {
+                      for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
+                              int k = to_int(cutpoint_index[c][s, cut_i]);
+                              latent_cumul_prob[c][s, cut_i] = (C[k] - locations[c, s])/scales[c, s];
+                      }
+                }
+      }
+      
+      return latent_cumul_prob;
+                                    
+}
+array[] matrix map_latent_cumul_prob_to_fixed_C( vector C, 
+                                  matrix locations, 
+                                  real scale, 
+                                  data int n_studies,
+                                  data array[] int n_obs_cutpoints,
+                                  data array[] matrix cutpoint_index) {
+          
+      int n_thr = num_elements(C);  
+      array[2] matrix[n_studies, n_thr] latent_cumul_prob;
+      for (c in 1:2) {
+          latent_cumul_prob[c] = rep_matrix(positive_infinity(), n_studies, n_thr);
+      }
+      for (s in 1:n_studies) {
+                for (c in 1:2) {
+                      for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
+                              int k = to_int(cutpoint_index[c][s, cut_i]);
+                              latent_cumul_prob[c][s, cut_i] = (C[k] - locations[c, s])/scale;
+                      }
+                }
+      }
+      
+      return latent_cumul_prob;
+                                    
+}
+
+
+
+
+
+////
+////  Get the cutpoint index (k) to map "latent_cumul_prob[c][s, cut_i]" to correct cutpoint "C[k]":
+////
+array[] matrix map_latent_cumul_prob_to_random_C( matrix C, 
+                                  matrix locations, 
+                                  matrix scales, 
+                                  data int n_studies,
+                                  data int  n_thr,
+                                  data array[] int n_obs_cutpoints,
+                                  data array[] matrix cutpoint_index) {
+          
+      array[2] matrix[n_studies, n_thr] latent_cumul_prob;
+      for (c in 1:2) {
+          latent_cumul_prob[c] = rep_matrix(positive_infinity(), n_studies, n_thr);
+      }
+      for (s in 1:n_studies) {
+                for (c in 1:2) {
+                      for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
+                              int k = to_int(cutpoint_index[c][s, cut_i]);
+                              latent_cumul_prob[c][s, cut_i] = (C[s, k] - locations[c, s])/scales[c, s];
+                      }
+                }
+      }
+      
+      return latent_cumul_prob;
+                                    
+}
+array[] matrix map_latent_cumul_prob_to_random_C( matrix C, 
+                                  matrix locations, 
+                                  real scale, 
+                                  data int n_studies,
+                                  data int  n_thr,
+                                  data array[] int n_obs_cutpoints,
+                                  data array[] matrix cutpoint_index) {
+          
+      array[2] matrix[n_studies, n_thr] latent_cumul_prob;
+      for (c in 1:2) {
+          latent_cumul_prob[c] = rep_matrix(positive_infinity(), n_studies, n_thr);
+      }
+      for (s in 1:n_studies) {
+                for (c in 1:2) {
+                      for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
+                              int k = to_int(cutpoint_index[c][s, cut_i]);
+                              latent_cumul_prob[c][s, cut_i] = (C[s, k] - locations[c, s])/scale;
+                      }
+                }
+      }
+      
+      return latent_cumul_prob;
+                                    
+}
+
+
+
+
+////
+////  Get the cutpoint index (k) to map "latent_cumul_prob[c][s, cut_i]" to correct cutpoint "C[k]":
+////
+array[] matrix map_latent_cumul_prob_to_random_hetero_C( array[] matrix C, 
+                                  matrix locations, 
+                                  matrix scales, 
+                                  data int n_studies,
+                                  data int  n_thr,
+                                  data array[] int n_obs_cutpoints,
+                                  data array[] matrix cutpoint_index) {
+          
+      array[2] matrix[n_studies, n_thr] latent_cumul_prob;
+      for (c in 1:2) {
+          latent_cumul_prob[c] = rep_matrix(positive_infinity(), n_studies, n_thr);
+      }
+      for (s in 1:n_studies) {
+                for (c in 1:2) {
+                      for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
+                              int k = to_int(cutpoint_index[c][s, cut_i]);
+                              latent_cumul_prob[c][s, cut_i] = (C[c][s, k] - locations[c, s])/scales[c, s];
+                      }
+                }
+      }
+      
+      return latent_cumul_prob;
+                                    
+}
+array[] matrix map_latent_cumul_prob_to_random_hetero_C( array[] matrix C, 
+                                  matrix locations, 
+                                  real scale, 
+                                  data int n_studies,
+                                  data int  n_thr,
+                                  data array[] int n_obs_cutpoints,
+                                  data array[] matrix cutpoint_index) {
+          
+      array[2] matrix[n_studies, n_thr] latent_cumul_prob;
+      for (c in 1:2) {
+          latent_cumul_prob[c] = rep_matrix(positive_infinity(), n_studies, n_thr);
+      }
+      for (s in 1:n_studies) {
+                for (c in 1:2) {
+                      for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
+                              int k = to_int(cutpoint_index[c][s, cut_i]);
+                              latent_cumul_prob[c][s, cut_i] = (C[c][s, k] - locations[c, s])/scale;
+                      }
+                }
+      }
+      
+      return latent_cumul_prob;
+                                    
+}
+
+
+
 
 
 ////

@@ -2,19 +2,16 @@
 
 
 
-
-
-
-
 ////
-//// "Basic" custom Stan functions: ----------------------------------------------------------------------------------------------------
+//// "Basic" custom Stan functions: ---------------------------------------------------------------------------------------
 ////
 array[] matrix init_array_of_matrices( int n_rows, 
-                                       int n_cols,
-                                       int n_arrays,
+                                       data int n_cols,
+                                       data int n_arrays,
                                        real init_val) {
                                          
-      //// Create a local copy that you can modify (In Stan, function parameters are passed by value (not by reference), unlike C++ where you can use "&"):
+      //// Create a local copy that you can modify (In Stan, function parameters are passed by value (not by reference), 
+      //// unlike C++ where you can use "&"):
       array[n_arrays] matrix[n_rows, n_cols] array_out;
     
       for (c in 1:n_arrays) {
@@ -27,8 +24,8 @@ array[] matrix init_array_of_matrices( int n_rows,
 
 
 array[] matrix compute_ss_accuracy_from_cumul_prob( array[] matrix cumul_prob, 
-                                                    int n_studies,
-                                                    int n_thr) {
+                                                    data int n_studies,
+                                                    data int n_thr) {
   
           array[3] matrix[n_studies, n_thr]  out_array;
           ////
@@ -41,7 +38,11 @@ array[] matrix compute_ss_accuracy_from_cumul_prob( array[] matrix cumul_prob,
 }
 
 
-////
+
+
+
+
+
 //// re-scaled softplus(x) = log(1.0 + exp(x)) function so that it's "centered" 
 //// around 1 (just like exp(x)!) rather than log(2)
 //// using "log_2_recip = 1.4426950408889634" as this can be much more efficient 
@@ -63,6 +64,9 @@ matrix softplus_scaled(matrix x) {
      real log_2_recip = 1.4426950408889634;
      return log_2_recip*log1p_exp(x);
 }
+
+
+
 
  
  
@@ -92,76 +96,56 @@ matrix softplus_scaled_jacobian(matrix x) {
 
 
 
+
+
+
+
 real exp_jacobian(real x_raw) {
-  jacobian += x_raw;
-  return exp(x_raw);
+     jacobian += x_raw;
+     return exp(x_raw);
 }
 vector exp_jacobian(vector x_raw) {
-  jacobian += sum(x_raw);
-  return exp(x_raw);
+     jacobian += sum(x_raw);
+     return exp(x_raw);
 }
 row_vector exp_jacobian(row_vector x_raw) {
-  jacobian += sum(x_raw);
-  return exp(x_raw);
+     jacobian += sum(x_raw);
+     return exp(x_raw);
 }
 matrix exp_jacobian(matrix x_raw) {
-  jacobian += sum(x_raw);
-  return exp(x_raw);
+     jacobian += sum(x_raw);
+     return exp(x_raw);
 }
+
+
+
+
 
 
 
 //// Normal PDF for a real input x (overloaded fn):
-real std_normal_pdf( real x, 
-                 real mu, 
-                 real sigma) {
+real std_normal_pdf( real x ) {
                    
-     real sqrt_2_pi = sqrt(2 * pi());
-     real sqrt_2_pi_recip = 1.0 / sqrt_2_pi;
+     real sqrt_2_pi = 2.5066282746310002;
+     real sqrt_2_pi_recip =  0.3989422804014327;
      return sqrt_2_pi_recip * exp(-0.5 * x * x);
   
 }
 
 //// Normal PDF for a vector input x (overloaded fn):
-vector normal_pdf( vector x, 
-                   real mu, 
-                   real sigma) {
+vector std_normal_pdf( vector x ) {
 
-     real sqrt_2_pi = sqrt(2 * pi());
-     real sqrt_2_pi_recip = 1.0 / sqrt_2_pi;
-     return sqrt_2_pi_recip * exp(-0.5 .* x .* x);
-
-}
-
-//// Overload for vector x, vector mu, vector sigma (overloaded fn):
-vector normal_pdf( vector x, 
-                   vector mu, 
-                   vector sigma) {
-  
-     real sqrt_2_pi = sqrt(2 * pi());
-     real sqrt_2_pi_recip = 1.0 / sqrt_2_pi;
+     real sqrt_2_pi = 2.5066282746310002;
+     real sqrt_2_pi_recip =  0.3989422804014327;
      return sqrt_2_pi_recip * exp(-0.5 .* x .* x);
 
 }
 
 //// Normal PDF for a row_vector input x (overloaded fn):
-row_vector normal_pdf( row_vector x, 
-                       real mu, 
-                       real sigma) {
+row_vector std_normal_pdf( row_vector x ) {
 
-     real sqrt_2_pi = sqrt(2 * pi());
-     real sqrt_2_pi_recip = 1.0 / sqrt_2_pi;
-     return sqrt_2_pi_recip * exp(-0.5 .* x .* x);
-
-}
-
-//// Overload for row_vector x, row_vector mu, row_vector sigma (overloaded fn):
-row_vector normal_pdf( row_vector x, 
-                       row_vector mu, 
-                       row_vector sigma) {
-  
-     real sqrt_2_pi = sqrt(2 * pi());
-     real sqrt_2_pi_recip = 1.0 / sqrt_2_pi;
+     real sqrt_2_pi = 2.5066282746310002;
+     real sqrt_2_pi_recip =  0.3989422804014327;
      return sqrt_2_pi_recip * exp(-0.5 .* x .* x);
 
 }
@@ -224,16 +208,186 @@ vector rowMedians(matrix x) {
       return out_vec;
   
 }
-// 
-// 
-//   for (k in 1:n_thr) {
-//         C_MU_empirical[k] = median(C[, k]);
-//   }
-//           
-//           
-          
-          
 
+
+
+
+
+ 
+
+ 
+
+real std_normal_approx_pdf( real x, 
+                            real CDF_x) { 
+  
+      real a_times_3 = 3.0 * 0.07056;
+      real b = 1.5976;
+      real x_sq = x*x;
+      real three_a_x_sq_plus_b = fma(a_times_3, x_sq, b);
+      
+      return three_a_x_sq_plus_b * CDF_x * (1.0 - CDF_x);
+  
+}
+vector std_normal_approx_pdf( vector x, 
+                              vector CDF_x) { 
+  
+      int dim = num_elements(x);
+      real a_times_3 = 3.0 * 0.07056;
+      real b = 1.5976;
+      vector[dim] x_sq = x .* x;
+      vector[dim] three_a_x_sq_plus_b = fma(a_times_3, x_sq, b);
+      
+      return three_a_x_sq_plus_b .* (CDF_x .* (1.0 - CDF_x));
+  
+}
+row_vector std_normal_approx_pdf( row_vector x, 
+                                  row_vector CDF_x) { 
+                              
+      int dim = num_elements(x);
+      real a_times_3 = 3.0 * 0.07056;
+      real b = 1.5976;
+      row_vector[dim] x_sq = x .* x;
+      row_vector[dim] three_a_x_sq_plus_b = fma(a_times_3, x_sq, b);
+      
+      return three_a_x_sq_plus_b .* (CDF_x .* (1.0 - CDF_x));
+  
+}
+matrix std_normal_approx_pdf( matrix x, 
+                              matrix CDF_x) { 
+  
+      int n_rows = rows(x);
+      int n_cols = cols(x);
+      real a_times_3 = 3.0 * 0.07056;
+      real b = 1.5976;
+      matrix[n_rows, n_cols] x_sq = x .* x;
+      matrix[n_rows, n_cols] three_a_x_sq_plus_b = fma(a_times_3, x_sq, b);
+      
+      return three_a_x_sq_plus_b .* (CDF_x .* (1.0 - CDF_x));
+  
+}
+
+
+
+
+
+
+
+
+
+
+real  Phi_approx_2(real x)  {
+  
+      real a = 0.07056;
+      real b = 1.5976;
+      real x_sq = x*x;
+      real a_x_sq_plus_b = fma(a, x_sq, b);
+      real stuff_to_inv_logit =  x*a_x_sq_plus_b;
+      
+      return inv_logit(stuff_to_inv_logit);
+  
+}
+vector  Phi_approx_2(vector x)  {
+  
+      int dim = num_elements(x);
+      real a = 0.07056;
+      real b = 1.5976;
+      vector[dim] x_sq = x .* x;
+      vector[dim] a_x_sq_plus_b = fma(a, x_sq, b);
+      vector[dim] stuff_to_inv_logit =  x .* a_x_sq_plus_b;
+      
+      return inv_logit(stuff_to_inv_logit);
+  
+}
+row_vector  Phi_approx_2(row_vector x)  {
+  
+      int dim = num_elements(x);
+      real a = 0.07056;
+      real b = 1.5976;
+      row_vector[dim] x_sq = x .* x;
+      row_vector[dim] a_x_sq_plus_b = fma(a, x_sq, b);
+      row_vector[dim] stuff_to_inv_logit =  x .* a_x_sq_plus_b;
+      
+      return inv_logit(stuff_to_inv_logit);
+  
+}
+matrix  Phi_approx_2(matrix x)  {
+  
+      int n_rows = rows(x);
+      int n_cols = cols(x);
+      real a = 0.07056;
+      real b = 1.5976;
+      matrix[n_rows, n_cols] x_sq = x .* x;
+      matrix[n_rows, n_cols] a_x_sq_plus_b = fma(a, x_sq, b);
+      matrix[n_rows, n_cols] stuff_to_inv_logit =  x .* a_x_sq_plus_b;
+      
+      return inv_logit(stuff_to_inv_logit);
+  
+}
+
+
+
+
+
+
+
+
+// need to add citation to this (slight modification from a HP. calculators forum post)
+real inv_Phi_approx_from_prob(real p) { 
+      return 5.494 *  sinh(0.33333333333333331483 * asinh( 0.3418 * logit(p)  )) ;
+}
+
+// need to add citation to this (slight modification from a HP. calculators forum post)
+vector inv_Phi_approx_from_prob(vector p) { 
+      return 5.494 *  sinh(0.33333333333333331483 * asinh( 0.3418 * logit(p)  )) ;  
+}
+
+// need to add citation to this  (slight modification from a HP. calculators forum post)
+real inv_Phi_approx_from_logit_prob(real logit_p) { 
+      return 5.494 *  sinh(0.33333333333333331483 * asinh( 0.3418 * logit_p  )) ; 
+}
+
+// need to add citation to this (slight modification from a HP. calculators forum post)
+vector inv_Phi_approx_from_logit_prob(vector logit_p) { 
+      return 5.494 *  sinh(0.33333333333333331483 * asinh( 0.3418 *logit_p  )) ; 
+}
+
+
+
+
+
+// vector rowwise_sum(matrix M) {      // M is (N x T) matrix
+//       return M * rep_vector(1.0, cols(M));
+// }
+// 
+// vector rowwise_max(matrix M) {      // M is (N x T) matrix
+// 
+//       int N =  rows(M);
+//       vector[N] rowwise_maxes;
+//       
+//       for (n in 1:N) {
+//         rowwise_maxes[n] = max(M[n, ]);
+//       }
+//       
+//       return rowwise_maxes;
+// }
+// 
+// vector log_sum_exp_2d(matrix array_2d_to_lse) {
+//   
+//       int N = rows(array_2d_to_lse);
+//       matrix[N, 2] rowwise_maxes_2d_array;
+//       rowwise_maxes_2d_array[, 1] =  rowwise_max(array_2d_to_lse);
+//       rowwise_maxes_2d_array[, 2] =  rowwise_maxes_2d_array[, 1];
+//       return  rowwise_maxes_2d_array[, 1] + log(rowwise_sum(exp((array_2d_to_lse  -  rowwise_maxes_2d_array))));
+//       
+// }
+// 
+
+ 
+ 
+ 
+ 
+ 
+ 
 
 
 
