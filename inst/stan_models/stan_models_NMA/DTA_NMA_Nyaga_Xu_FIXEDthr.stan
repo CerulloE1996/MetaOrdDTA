@@ -83,35 +83,17 @@ parameters {
 
 transformed parameters {
 
-          // for (t in 1:n_tests) {
-          //         // Get values for test t
-          //     
-          //         
-          //         // Do something with test_values...
-          //         
-          //         // If you need to update values
-          //         vector[n_thr[t]] updated_values = test_values; // Do some operations
-          //         flat_values = set_test_values(flat_values, updated_values, start_index, end_index, t);
-          // }
           ////
           //// ---- Construct (global) cutpoints:
           ////
-          vector[n_total_C_if_fixed] C_vec;
-          //// array[n_index_tests] vector[n_thr_max] C;  //// Global cutpoints for each test ("staggered" array/matrix using "n_thr[t]" to index correctly) - "staggered" array
+          vector[n_total_C_if_fixed] C_vec;  //// Global cutpoints for each test ("staggered" array/matrix using "n_thr[t]" to index correctly)
           {
             int counter = 1;
             for (t in 1:n_index_tests) {
                   int n_thr_t = n_thr[t];
-                // vector[n_thr_t] C_raw_vec_test_t;
-                // for (k in 1:n_thr_t) {
-                //     C_raw_vec_test_t[k] = C_raw_vec[counter];
-                //     counter += 1;
-                // }
-                 vector[n_thr_t] C_raw_vec_test_t = get_test_values(C_raw_vec, start_index, end_index, t);
-                 vector[n_thr_t] C_vec_test_t = ((softplus == 1) ? construct_C_using_SP_jacobian(C_raw_vec_test_t) : construct_C_using_exp_jacobian(C_raw_vec_test_t));
-                 C_vec = update_test_values(C_vec, C_vec_test_t, start_index, end_index, t);
-                 
-                 //// C[t][1:n_thr_t] = ((softplus == 1) ? construct_C_using_SP_jacobian(C_raw_vec_test_t) : construct_C_using_exp_jacobian(C_raw_vec_test_t));
+                  vector[n_thr_t] C_raw_vec_test_t = get_test_values(C_raw_vec, start_index, end_index, t);
+                  vector[n_thr_t] C_vec_test_t = ((softplus == 1) ? construct_C_using_SP_jacobian(C_raw_vec_test_t) : construct_C_using_exp_jacobian(C_raw_vec_test_t));
+                  C_vec = update_test_values(C_vec, C_vec_test_t, start_index, end_index, t);
             }
           }
           ////
@@ -125,21 +107,11 @@ transformed parameters {
           for (c in 1:2) {
               //// eta's ("beta_eta") correspond to shared (between tests) component of "beta" - eta_{s, i} ~ normal(0, sigma_{i}).
               beta_eta[, c] = beta_sigma[c] * beta_eta_z[, c];  //// beta_eta[s, c] ~ normal(0.0, beta_sigma[c]);
-                //// Compute test-specific deviations ("delta" in Nyaga notation):
+              //// Compute test-specific deviations ("delta" in Nyaga notation):
               for (t in 1:n_index_tests) { 
                  beta_delta[t][, c] = beta_tau[t, c] * beta_delta_z[t][, c]; //// beta_delta[t][s, c] ~ normal(0.0, beta_tau[t, c]);
               }
           }
-          // for (s in 1:n_studies) {
-          //     for (c in 1:2) {
-          //       //// eta's ("beta_eta") correspond to shared (between tests) component of "beta" - eta_{s, i} ~ normal(0, sigma_{i}).
-          //       beta_eta[s, c] = 0.0 + beta_sigma[c] * beta_eta_z[s, c];      //// beta_eta[s, c]      ~ normal(0.0, beta_sigma[c]);
-          //       //// Compute test-specific deviations ("delta" in Nyaga notation):
-          //       for (t in 1:n_index_tests) {
-          //          beta_delta[t][s, c] = 0.0 + beta_tau[t, c] * beta_delta_z[t][s, c]; //// beta_delta[t][s, c] ~ normal(0.0, beta_tau[t, c]);
-          //       }
-          //     }
-          // }
           ////
           //// ---- Log-likelihood stuff:
           ////
@@ -257,8 +229,7 @@ model {
                    }
                }
           }
-          // C_raw_vec ~ normal(0, 10); //// TEMP
-    
+          
 }
 
  
@@ -312,14 +283,10 @@ generated quantities {
                 vector[2] beta_delta_t_pred      = to_vector(normal_rng(rep_vector(0.0, 2), beta_tau[t, 1:2]));
                 ////
                 vector[2] beta_pred = to_vector(beta_mu[t, 1:2]) + beta_eta_pred[1:2] + beta_delta_t_pred[1:2];
-                // real beta_nd_pred      = beta_mu[t, 1] + beta_eta_pred[1] + beta_delta_t_pred[1];
-                // real beta_d_pred       = beta_mu[t, 2] + beta_eta_pred[2] + beta_delta_t_pred[2];
                 ////
-                // for (k in 1:n_thr[t]) {
-                      Fp_pred[t][1:n_thr_t] = 1.0 - Phi_approx(C_vec_t - beta_pred[1]);
-                      Sp_pred[t][1:n_thr_t] = 1.0 - Fp_pred[t][1:n_thr_t];
-                      Se_pred[t][1:n_thr_t] = 1.0 - Phi_approx(C_vec_t - beta_pred[2]);
-                // }
+                Fp_pred[t][1:n_thr_t] = 1.0 - Phi_approx(C_vec_t - beta_pred[1]);
+                Sp_pred[t][1:n_thr_t] = 1.0 - Fp_pred[t][1:n_thr_t];
+                Se_pred[t][1:n_thr_t] = 1.0 - Phi_approx(C_vec_t - beta_pred[2]);
           }
           ////
           //// ---- Model-predicted ("re-constructed") data:

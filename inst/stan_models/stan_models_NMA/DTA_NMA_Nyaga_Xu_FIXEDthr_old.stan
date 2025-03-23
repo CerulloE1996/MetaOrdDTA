@@ -5,7 +5,6 @@ functions {
         //// Include files to compile the necessary custom (user-defined) Stan functions:
         ////
         #include "Stan_fns_basic.stan"
-        #include "Stan_fns_Box_Cox.stan"
         #include "Stan_fns_corr.stan"
         #include "Stan_fns_ordinal_and_cutpoints.stan"
         #include "Stan_fns_log_lik.stan"
@@ -21,11 +20,10 @@ data {
           array[n_index_tests] int<lower=1> n_thr;
           array[n_index_tests] int<lower=2> n_cat;
           int<lower=1> n_thr_max; // corresponding to the test with the most thresholds/cutpoints. 
-          int<lower=1> n_cat_max; // corresponding to the test with the most thresholds/cutpoints. 
+          int<lower=2> n_cat_max; // corresponding to the test with the most thresholds/cutpoints. 
           ////
           array[n_studies, n_index_tests] int n_obs_cutpoints; //// OBSERVED cutpoints for test t in study s
           ////
-          // array[n_studies] int<lower=0, upper=n_index_tests> n_index_tests_per_study;  // Tests per study
           array[n_studies, n_index_tests] int<lower=0, upper=1> indicator_index_test_in_study;   // Binary indicator if test t is in study s
           ////
           //// ---- Data:
@@ -43,23 +41,13 @@ data {
           matrix<lower=0.0>[n_index_tests, 2] prior_beta_tau_SD;
           vector<lower=0.0>[2] prior_beta_sigma_SD; //// "sigma's (Nyaga et al. notation) are shared between tests.
           ////
-          //// ---- Priors for raw_scale:
+          //// ---- Induced-Dirichlet priors:
           ////
-          matrix[n_index_tests, 2] prior_raw_scale_mu_mean;
-          matrix<lower=0.0>[n_index_tests, 2] prior_raw_scale_mu_SD;
-          matrix<lower=0.0>[n_index_tests, 2] prior_raw_scale_tau_SD; 
-          vector<lower=0.0>[2] prior_raw_scale_sigma_SD; //// "sigma's (Nyaga et al. notation) are shared between tests.
-          ////
-          //// ---- Priors for box-cox:
-          ////
-          vector[n_index_tests] prior_boxcox_lambda_mean;
-          vector<lower=0.0>[n_index_tests] prior_boxcox_lambda_SD;
+          array[n_index_tests] vector<lower=0.0>[n_thr_max + 1] prior_dirichlet_alpha;
           ////
           //// ---- Other:
           ////
-          int<lower=0, upper=1> box_cox;
           int<lower=0, upper=1> softplus;
-          array[n_index_tests] vector[n_thr_max] cts_thr_values;
   
 }
 
@@ -77,76 +65,81 @@ transformed data {
 
 
 parameters {
-
+  
           matrix[n_index_tests, 2] beta_mu;
-          matrix[n_index_tests, 2] raw_scale_mu;
           ////
-          vector<lower=-5.0, upper=5.0>[n_index_tests] lambda;
+          vector[n_total_C_if_fixed] C_raw_vec;  //// RAW LOG-DIFFERENCES - Global cutpoints for each test (staggered array/matrix using "n_thr[t]" to index correctly)
           ////
           //// ---- "NMA" params:
           ////
           vector<lower=0.0>[2] beta_sigma;              //// Variance component - Between-study SD (Nyaga's σ)
           matrix<lower=0.0>[n_index_tests, 2] beta_tau; //// Variance component - Test-specific SD (Nyaga's τ) - delta_{s, c, t} ~ normal(0, tau_{c, t}).
+          ////
           matrix[n_studies, 2] beta_eta_z;              //// Standard normal RVs for study-level effects - eta[s, 1:2] ~ multi_normal({0, 0}, Sigma).
           array[n_index_tests] matrix[n_studies, 2] beta_delta_z; //// Standard normal RVs for test-specific effects
-          ////
-          vector<lower=0.0>[2] raw_scale_sigma;
-          matrix<lower=0.0>[n_index_tests, 2] raw_scale_tau;
-          matrix[n_studies, 2] raw_scale_eta_z;
-          array[n_index_tests] matrix[n_studies, 2] raw_scale_delta_z;
         
 }
 
 
 transformed parameters {
-    
+
+          // for (t in 1:n_tests) {
+          //         // Get values for test t
+          //     
+          //         
+          //         // Do something with test_values...
+          //         
+          //         // If you need to update values
+          //         vector[n_thr[t]] updated_values = test_values; // Do some operations
+          //         flat_values = set_test_values(flat_values, updated_values, start_index, end_index, t);
+          // }
           ////
-          //// ---- Cutpoint params:
+          //// ---- Construct (global) cutpoints:
           ////
-          //// array[n_index_tests] vector[n_thr_max] C;
-          vector[n_total_C_if_fixed] C_vec;  //// Global cutpoints for each test ("staggered" array/matrix using "n_thr[t]" to index correctly)
-          ////
-          //// ---- Construct cutpoints for each test:
-          ////
-          for (t in 1:n_index_tests) {
-                int n_thr_t = n_thr[t];
-                vector[n_thr_t] C_vec_test_t = ((box_cox == 0) ? log(cts_thr_values[t][1:n_thr[t]]) : fn_Stan_box_cox(cts_thr_values[t][1:n_thr[t]], lambda[t]));
-                C_vec = update_test_values(C_vec, C_vec_test_t, start_index, end_index, t);
-                //// C[t][1:n_thr[t]] = ((box_cox == 0) ? log(cts_thr_values[t][1:n_thr[t]]) : fn_Stan_box_cox(cts_thr_values[t][1:n_thr[t]], lambda[t]));
+          vector[n_total_C_if_fixed] C_vec;
+          //// array[n_index_tests] vector[n_thr_max] C;  //// Global cutpoints for each test ("staggered" array/matrix using "n_thr[t]" to index correctly) - "staggered" array
+          {
+            int counter = 1;
+            for (t in 1:n_index_tests) {
+                  int n_thr_t = n_thr[t];
+                // vector[n_thr_t] C_raw_vec_test_t;
+                // for (k in 1:n_thr_t) {
+                //     C_raw_vec_test_t[k] = C_raw_vec[counter];
+                //     counter += 1;
+                // }
+                 vector[n_thr_t] C_raw_vec_test_t = get_test_values(C_raw_vec, start_index, end_index, t);
+                 vector[n_thr_t] C_vec_test_t = ((softplus == 1) ? construct_C_using_SP_jacobian(C_raw_vec_test_t) : construct_C_using_exp_jacobian(C_raw_vec_test_t));
+                 C_vec = update_test_values(C_vec, C_vec_test_t, start_index, end_index, t);
+                 
+                 //// C[t][1:n_thr_t] = ((softplus == 1) ? construct_C_using_SP_jacobian(C_raw_vec_test_t) : construct_C_using_exp_jacobian(C_raw_vec_test_t));
+            }
           }
           ////
           //// ---- "NMA" params:
-          //// ---- Declare Study-level random effects (eta in Nyaga notation) - eta[s, 1:2] ~ multi_normal({0, 0}, Sigma):
           ////
-          matrix[n_studies, 2] beta_eta      = rep_matrix(0.0, n_studies, 2);
-          matrix[n_studies, 2] raw_scale_eta = rep_matrix(0.0, n_studies, 2);
+          matrix[n_studies, 2] beta_eta = rep_matrix(0.0, n_studies, 2);
+          array[n_index_tests] matrix[n_studies, 2] beta_delta = init_array_of_matrices(n_studies, 2, n_index_tests, 0.0);
           ////
           //// ---- Compute Study-level random effects (eta in Nyaga notation):
           ////
-          for (s in 1:n_studies) {
-              for (c in 1:2) {
-                //// eta's ("beta_eta") correspond to shared (between tests) component of "beta" - eta_{s, i} ~ normal(0, sigma_{i}).
-                beta_eta[s, c]      = 0.0 + beta_sigma[c]      * beta_eta_z[s, c];      //// beta_eta[s, c]      ~ normal(0.0, beta_sigma[c]);
-                raw_scale_eta[s, c] = 0.0 + raw_scale_sigma[c] * raw_scale_eta_z[s, c]; //// raw_scale_eta[s, c] ~ normal(0.0, raw_scale_sigma[c]);
+          for (c in 1:2) {
+              //// eta's ("beta_eta") correspond to shared (between tests) component of "beta" - eta_{s, i} ~ normal(0, sigma_{i}).
+              beta_eta[, c] = beta_sigma[c] * beta_eta_z[, c];  //// beta_eta[s, c] ~ normal(0.0, beta_sigma[c]);
+                //// Compute test-specific deviations ("delta" in Nyaga notation):
+              for (t in 1:n_index_tests) { 
+                 beta_delta[t][, c] = beta_tau[t, c] * beta_delta_z[t][, c]; //// beta_delta[t][s, c] ~ normal(0.0, beta_tau[t, c]);
               }
           }
-          ////
-          //// ---- Declare test-specific deviations ("delta" in Nyaga notation) - delta_{s, c, t} ~ normal(0, tau_{c, t}):
-          ////
-          array[n_index_tests] matrix[n_studies, 2] beta_delta      = init_array_of_matrices(n_studies, 2, n_index_tests, 0.0);
-          array[n_index_tests] matrix[n_studies, 2] raw_scale_delta = init_array_of_matrices(n_studies, 2, n_index_tests, 0.0);
-          ////
-          //// ---- Compute test-specific deviations ("delta" in Nyaga notation) - delta_{s, c, t} ~ normal(0, tau_{c, t}):
-          ////
-          for (t in 1:n_index_tests) {
-                for (s in 1:n_studies) {
-                      for (c in 1:2) {
-                          //// delta's ("beta_delta") correspond to shared (between tests) component of "beta"   -   delta_{s, c, t} ~ normal(0, tau_{c, t}):
-                          beta_delta[t][s, c]      = 0.0 + beta_tau[t, c] * beta_delta_z[t][s, c];           //// beta_delta[t][s, c]      ~ normal(0.0, beta_tau[t, c]);
-                          raw_scale_delta[t][s, c] = 0.0 + raw_scale_tau[t, c] * raw_scale_delta_z[t][s, c]; //// raw_scale_delta[t][s, c] ~ normal(0.0, raw_scale_tau[t, c]);
-                      }
-                }
-          }
+          // for (s in 1:n_studies) {
+          //     for (c in 1:2) {
+          //       //// eta's ("beta_eta") correspond to shared (between tests) component of "beta" - eta_{s, i} ~ normal(0, sigma_{i}).
+          //       beta_eta[s, c] = 0.0 + beta_sigma[c] * beta_eta_z[s, c];      //// beta_eta[s, c]      ~ normal(0.0, beta_sigma[c]);
+          //       //// Compute test-specific deviations ("delta" in Nyaga notation):
+          //       for (t in 1:n_index_tests) {
+          //          beta_delta[t][s, c] = 0.0 + beta_tau[t, c] * beta_delta_z[t][s, c]; //// beta_delta[t][s, c] ~ normal(0.0, beta_tau[t, c]);
+          //       }
+          //     }
+          // }
           ////
           //// ---- Log-likelihood stuff:
           ////
@@ -157,45 +150,37 @@ transformed parameters {
                     array[n_index_tests, 2] matrix[n_studies, n_thr_max] latent_cumul_prob = init_nested_array_of_matrices(n_studies, n_thr_max, n_index_tests, 2, positive_infinity());
                     ////
                     array[n_index_tests] matrix[n_studies, 2] locations = init_array_of_matrices(n_studies, 2, n_index_tests, 0.0);
-                    array[n_index_tests] matrix[n_studies, 2] scales    = init_array_of_matrices(n_studies, 2, n_index_tests, 1.0);
                     ////
                     for (t in 1:n_index_tests) {
                           vector[n_thr[t]] C_vec_t = get_test_values(C_vec, start_index, end_index, t);
                           for (s in 1:n_studies) {
                                 if (indicator_index_test_in_study[s, t] == 1) {
-          
-                                        for (cut_i in 1:n_obs_cutpoints[s, t]) { //// only loop through the OBSERVED cutpoints for test t in study s
+                                    for (cut_i in 1:n_obs_cutpoints[s, t]) { //// only loop through the OBSERVED cutpoints for test t in study s
+                                        ////
+                                        int k = to_int(cutpoint_index[t, 1][s, cut_i]);
+                                        if (k < n_thr[t]) {
+                                            ////
+                                            for (c in 1:2) {
+                                                //// pi_{s, c, t} = Phi(mu_{c, t} + eta_{s, c} + delta_{s, c, t}):
+                                                locations[t][s, c] =  beta_mu[t, c] + beta_eta[s, c] + beta_delta[t][s, c];
                                                 ////
-                                                int k = to_int(cutpoint_index[t, 1][s, cut_i]);
-                                                if (k < n_thr[t]) {
-                                                    ////
-                                                    for (c in 1:2) {
-                                                        //// pi_{s, c, t} = Phi(mu_{c, t} + eta_{s, c} + delta_{s, c, t}).
-                                                        locations[t][s, c]     =  beta_mu[t, c]     + beta_eta[s, c]      + beta_delta[t][s, c]; 
-                                                        real raw_scale_given_c = raw_scale_mu[t, c] + raw_scale_eta[s, c] + raw_scale_delta[t][s, c];
-                                                        scales[t][s, c] = ((softplus == 1) ? softplus_scaled_jacobian(raw_scale_given_c) : exp_jacobian(raw_scale_given_c));
-                                                    }
-                                                    ////
-                                                    //// latent_cumul_prob[c, t, s, cut_i] = (C[t][k] - location)/scale;
-                                                    for (c in 1:2) {
-                                                        latent_cumul_prob[t, c][s, cut_i] = (C_vec_t[k] - locations[t][s, c])/scales[t][s, c];
-                                                    }
-                                                }
+                                                latent_cumul_prob[t, c][s, cut_i] = (C_vec_t[k] - locations[t][s, c]);
+                                            }
                                         }
+                                    }
                                 }
                          }
                     }
-                    // if (abs(sum(raw_scale_SD)) != 0.0) target += log(abs(sum(raw_scale_SD)));      // double-checked the log-derivative of this by hand (correct)
-                    // if (abs(sum(raw_scale_z)) != 0.0)  target += log(abs(sum(raw_scale_z)));  // double-checked the log-derivative of this by hand (correct)
                     ////
-                    //// ---- Calculate CUMULATIVE probabilities (vectorised):
+                    //// ---- Calculate CUMULATIVE probabilities:
                     ////
                     for (t in 1:n_index_tests) {
+                          int n_thr_t = n_thr[t];
                           for (s in 1:n_studies) {
                              if (indicator_index_test_in_study[s, t] == 1) {
-                                for (c in 1:2) {
-                                    cumul_prob[t, c][s, 1:n_thr[t]] = Phi_approx(latent_cumul_prob[t, c][s, 1:n_thr[t]]); //// INCREASING sequence (as C_k > C_{k - 1})
-                                }
+                                 for (c in 1:2) {
+                                    cumul_prob[t, c][s, 1:n_thr_t] = Phi_approx(latent_cumul_prob[t, c][s, 1:n_thr_t]); //// INCREASING sequence (as C_k > C_{k - 1})
+                                 }
                              }
                           }
                     }
@@ -213,7 +198,9 @@ transformed parameters {
                         cond_prob[t, ] = log_lik_outs[2];
                     }
           }
-      
+          
+                    
+ 
 }
 
 
@@ -222,26 +209,41 @@ model {
           ////
           //// ---- Priors:
           ////
-          lambda ~ normal(prior_boxcox_lambda_mean, prior_boxcox_lambda_SD);
-          ////
           to_vector(beta_mu)  ~ normal(to_vector(prior_beta_mu_mean), to_vector(prior_beta_mu_SD));
           to_vector(beta_tau) ~ normal(0.0, to_vector(prior_beta_tau_SD));  //// delta_{s, i, t} ~ normal(0, tau_{i, t}):
           ////
-          to_vector(raw_scale_mu)  ~ normal(to_vector(prior_raw_scale_mu_mean), to_vector(prior_raw_scale_mu_SD));
-          to_vector(raw_scale_tau) ~ normal(0.0, to_vector(prior_beta_tau_SD));  //// delta_{s, i, t} ~ normal(0, tau_{i, t}):
-          ////
           for (c in 1:2) {
-            beta_sigma[c]      ~ normal(0.0, prior_beta_sigma_SD[c]);      //// eta[s, i] ~ normal(0, sigma[i]):
-            raw_scale_sigma[c] ~ normal(0.0, prior_raw_scale_sigma_SD[c]); //// eta[s, i] ~ normal(0, sigma[i]):
+            beta_sigma[c] ~ normal(0.0, prior_beta_sigma_SD[c]);      //// eta[s, i] ~ normal(0, sigma[i]):
           }
           ////
-          target += std_normal_lpdf(to_vector(beta_eta_z));      //// (part of between-test / between-study model, NOT prior) - eta[s, i] ~ normal(0, sigma[i]):
-          target += std_normal_lpdf(to_vector(raw_scale_eta_z)); //// (part of between-test / between-study model, NOT prior) - eta[s, i] ~ normal(0, sigma[i]):
+          //// ---- Induced-dirichlet ** Prior ** model:
           ////
+          {
+              // array[n_index_tests] matrix[n_studies, n_thr_max] Ind_Dir_anchor;
+              for (t in 1:n_index_tests) {
+                    int n_thr_t = n_thr[t];
+                    int n_cat_t = n_thr_t + 1;
+                    vector[n_thr_t] C_vec_t = get_test_values(C_vec, start_index, end_index, t);
+                    ////
+                    vector[n_thr_t] Ind_Dir_cumul      = C_vec_t; // - Ind_Dir_anchor;
+                    vector[n_thr_t] Ind_Dir_cumul_prob = Phi_approx(Ind_Dir_cumul);
+                    vector[n_cat_t] Ind_Dir_ord_prob   = cumul_probs_to_ord_probs(Ind_Dir_cumul_prob);
+                    ////
+                    vector[n_thr_t] rho = std_normal_approx_pdf(Ind_Dir_cumul, Ind_Dir_cumul_prob);
+                    Ind_Dir_ord_prob ~ induced_dirichlet_given_rho(rho, prior_dirichlet_alpha[t][1:n_cat_t]);
+              }
+          }
+          ////
+          //// ---- Likelihood / Observational Model:
+          ////
+          //// (part of between-test / between-study model, NOT prior) - eta[s, i] ~ normal(0, sigma[i]):
+          target += std_normal_lpdf(to_vector(beta_eta_z)); 
+          ////
+          //// (part of between-test / between-study model, NOT prior)  -   delta_{s, i, t} ~ normal(0, tau_{i, t}):
           for (t in 1:n_index_tests) {
-             target += std_normal_lpdf(to_vector(beta_delta_z[t])); ////    (part of between-test / between-study model, NOT prior)  -   delta_{s, i, t} ~ normal(0, tau_{i, t}):
-             target += std_normal_lpdf(to_vector(raw_scale_delta_z[t])); ////   (part of between-test / between-study model, NOT prior)  -   delta_{s, i, t} ~ normal(0, tau_{i, t}):
+             target += std_normal_lpdf(to_vector(beta_delta_z[t])); 
           }
+          ////
           ////
           //// ---- Increment the log-likelihood:
           ////
@@ -249,16 +251,17 @@ model {
                for (s in 1:n_studies) {
                    int observed = to_int(indicator_index_test_in_study[s, t]);
                    if (observed == 1) {
-                     for (c in 1:2) {
-                       target +=  sum(log_lik[t, c][s, 1:n_thr[t]]);
-                     }
+                      for (c in 1:2) {
+                         target += sum(log_lik[t, c][s, 1:n_thr[t]]);
+                      }
                    }
                }
           }
+          // C_raw_vec ~ normal(0, 10); //// TEMP
     
 }
 
-
+ 
 generated quantities {
 
           //// Summary accuracy parameters (at each threshold):
@@ -293,35 +296,30 @@ generated quantities {
           for (t in 1:n_index_tests) {
                   int n_thr_t = n_thr[t];
                   vector[n_thr_t] C_vec_t = get_test_values(C_vec, start_index, end_index, t);
-                  Fp[t][1:n_thr_t] =   1.0 - Phi_approx((C_vec_t - beta_mu[t, 1])/softplus_scaled(raw_scale_mu[t, 1]));
+                  Fp[t][1:n_thr_t] =   1.0 - Phi_approx((C_vec_t - beta_mu[t, 1]));
                   Sp[t][1:n_thr_t] =   1.0 - Fp[t][1:n_thr_t];
-                  Se[t][1:n_thr_t] =   1.0 - Phi_approx((C_vec_t - beta_mu[t, 2])/softplus_scaled(raw_scale_mu[t, 2]));
+                  Se[t][1:n_thr_t] =   1.0 - Phi_approx((C_vec_t - beta_mu[t, 2]));
           }
           ////
           //// ---- Calculate predictive accuracy:
           ////
           vector[2] beta_eta_pred      = to_vector(normal_rng(rep_vector(0.0, 2), beta_sigma[1:2]));  //// shared between tests
-          vector[2] raw_scale_eta_pred = to_vector(normal_rng(rep_vector(0.0, 2), raw_scale_sigma[1:2]));  //// shared between tests
           ////
           for (t in 1:n_index_tests) {
                 int n_thr_t = n_thr[t];
                 vector[n_thr_t] C_vec_t = get_test_values(C_vec, start_index, end_index, t);
                 ////
-                real beta_nd_delta_t_pred      = normal_rng(0.0, beta_tau[t, 1]);
-                real beta_d_delta_t_pred       = normal_rng(0.0, beta_tau[t, 2]);
-                real raw_scale_nd_delta_t_pred = normal_rng(0.0, raw_scale_tau[t, 1]);
-                real raw_scale_d_delta_t_pred  = normal_rng(0.0, raw_scale_tau[t, 2]);
+                vector[2] beta_delta_t_pred      = to_vector(normal_rng(rep_vector(0.0, 2), beta_tau[t, 1:2]));
                 ////
-                real beta_nd_pred      = beta_mu[t, 1] + beta_eta_pred[1] + beta_nd_delta_t_pred;
-                real beta_d_pred       = beta_mu[t, 2] + beta_eta_pred[2] + beta_d_delta_t_pred;
-                real raw_scale_nd_pred = raw_scale_mu[t, 1] + raw_scale_eta_pred[1]  + raw_scale_nd_delta_t_pred;
-                real raw_scale_d_pred  = raw_scale_mu[t, 2] + raw_scale_eta_pred[2]  + raw_scale_d_delta_t_pred;
+                vector[2] beta_pred = to_vector(beta_mu[t, 1:2]) + beta_eta_pred[1:2] + beta_delta_t_pred[1:2];
+                // real beta_nd_pred      = beta_mu[t, 1] + beta_eta_pred[1] + beta_delta_t_pred[1];
+                // real beta_d_pred       = beta_mu[t, 2] + beta_eta_pred[2] + beta_delta_t_pred[2];
                 ////
-                {
-                      Fp_pred[t][1:n_thr_t] =   1.0 - Phi_approx((C_vec_t - beta_nd_pred)/softplus_scaled(raw_scale_nd_pred));
-                      Sp_pred[t][1:n_thr_t] =   1.0 - Fp_pred[t][1:n_thr_t];
-                      Se_pred[t][1:n_thr_t] =   1.0 - Phi_approx((C_vec_t - beta_d_pred)/softplus_scaled(raw_scale_d_pred));
-                }
+                // for (k in 1:n_thr[t]) {
+                      Fp_pred[t][1:n_thr_t] = 1.0 - Phi_approx(C_vec_t - beta_pred[1]);
+                      Sp_pred[t][1:n_thr_t] = 1.0 - Fp_pred[t][1:n_thr_t];
+                      Se_pred[t][1:n_thr_t] = 1.0 - Phi_approx(C_vec_t - beta_pred[2]);
+                // }
           }
           ////
           //// ---- Model-predicted ("re-constructed") data:
@@ -333,7 +331,6 @@ generated quantities {
                   for (t in 1:n_index_tests) {
                       for (s in 1:n_studies) {
                             if (indicator_index_test_in_study[s, t] == 1) {
-        
                                       for (c in 1:2) {
                                          for (cut_i in 1:to_int(n_obs_cutpoints[s, t])) {
         
@@ -354,7 +351,6 @@ generated quantities {
         
                                          }
                                       }
-        
                             }
                       }
                   }
