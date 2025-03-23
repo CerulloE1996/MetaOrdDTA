@@ -78,37 +78,63 @@ R_fn_set_inits_NMA <- function(    inits,
           } else if (cts == FALSE) { ## ordinal (Xu-based or R&G-based)
             
                         if (model_parameterisation == "R&G") {
-                                    ##
-                                    ## Set default inits for the locations ("beta"):
-                                    ##
-                                    inits$beta_mu <- if_null_then_set_to(inits$beta_mu, 0.0)
-                                    inits$beta_SD <- if_null_then_set_to(inits$beta_SD, 0.001)
-                                    inits$beta_z  <- if_null_then_set_to(inits$beta_z,  rep(0.001, n_studies))
-                                    ##
-                                    ## Default inits for raw scale parameters ("gamma"):
-                                    ##
-                                    if (softplus == TRUE) {
-                                      inits$raw_scale_mu <- if_null_then_set_to(inits$raw_scale_mu, 0.55)  ## since: softplus(+0.5*0.55) ~ 1,  softplus(-0.5*0.55) ~ 1.
-                                    } else { 
-                                      inits$raw_scale_mu <- if_null_then_set_to(inits$raw_scale_mu, 0.001) ## since: exp(+0.5*0.001) ~ 1,  exp(-0.5*0.001) ~ 1.
-                                    }
-                                    inits$raw_scale_SD <- if_null_then_set_to(inits$raw_scale_mu, 0.001)
-                                    inits$raw_scale_z  <- if_null_then_set_to(inits$raw_scale_mu, rep(0.001, n_studies))
+                          
+                                    # ##
+                                    # ## Set default inits for the locations ("beta"):
+                                    # ##
+                                    # inits$beta_mu <- if_null_then_set_to(inits$beta_mu, 0.0)
+                                    # inits$beta_SD <- if_null_then_set_to(inits$beta_SD, 0.001)
+                                    # inits$beta_z  <- if_null_then_set_to(inits$beta_z,  rep(0.001, n_studies))
+                                    # ##
+                                    # ## Default inits for raw scale parameters ("gamma"):
+                                    # ##
+                                    # if (softplus == TRUE) {
+                                    #   inits$raw_scale_mu <- if_null_then_set_to(inits$raw_scale_mu, 0.55)  ## since: softplus(+0.5*0.55) ~ 1,  softplus(-0.5*0.55) ~ 1.
+                                    # } else { 
+                                    #   inits$raw_scale_mu <- if_null_then_set_to(inits$raw_scale_mu, 0.001) ## since: exp(+0.5*0.001) ~ 1,  exp(-0.5*0.001) ~ 1.
+                                    # }
+                                    # inits$raw_scale_SD <- if_null_then_set_to(inits$raw_scale_mu, 0.001)
+                                    # inits$raw_scale_z  <- if_null_then_set_to(inits$raw_scale_mu, rep(0.001, n_studies))
                           
                           
                         } else if (model_parameterisation == "Xu") {
+                          
                                     ##
                                     ## Set default inits for the locations ("beta"):
                                     ##
-                                    inits$beta_mu <- if_null_then_set_to(inits$beta_mu, c(-1, +1))
-                                    inits$beta_SD <- if_null_then_set_to(inits$beta_SD, rep(0.001, 2))
-                                    inits$beta_z  <- if_null_then_set_to(inits$beta_z,  array(0.001, dim = c(2, n_studies)))
+                                    inits$beta_mu <- if_null_then_set_to(inits$beta_mu <- array(c(rep(-1.0, n_index_tests), rep(+1.0, n_index_tests)),
+                                                                                                dim = c(n_index_tests, 2))
                                     ##
                                     ## Default inits for the between-study corr matrix ("beta_L_Omega"):
                                     ##
                                     inits_Omega <- array(0.001, dim = c(2, 2))
                                     diag(inits_Omega) <- c(1.0, 1.0)
                                     inits$beta_L_Omega <- t(chol(inits_Omega))
+                                    ##
+                                    ## Default inits for the cutpoints:
+                                    ##
+                                    n_total_C_if_fixed <- sum(n_thr)
+                                    inits$C_raw_vec <- if_null_then_set_to(inits$C_raw_vec,
+                                                                           rep(-2.0, n_total_C_if_fixed))
+                                    ##
+                                    inits$beta_sigma <- if_null_then_set_to(inits$beta_sigma, rep(0.001, 2))
+                                    inits$beta_tau   <- if_null_then_set_to(inits$beta_tau, array(0.001, dim = c(n_index_tests, 2)))
+                                    ##
+                                    inits$beta_eta_z <- if_null_then_set_to(inits$beta_eta_z, array(0.001, dim = c(n_studies, 2)))
+                                    ##
+                                    init_beta_delta_z <- list()
+                                    for (t in 1:n_index_tests) {
+                                      init_beta_delta_z[[t]] <- array(0.001, dim = c(n_studies, 2))
+                                    }
+                                    inits$beta_delta_z <- if_null_then_set_to(inits$beta_delta_z, init_beta_delta_z)
+                                    ##
+                                    ## Default inits for the between-study corr matrix ("beta_corr"):
+                                    ##
+                                    inits$beta_corr <- if_null_then_set_to(inits$beta_corr, 
+                                                                           0.5*(priors$beta_corr_lb + priors$beta_corr_ub))
+                                    check_vec_length(inits, "beta_corr", 1)
+ 
+                                    
                           
                         }
                         ##
