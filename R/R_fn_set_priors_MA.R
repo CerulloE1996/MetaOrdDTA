@@ -64,7 +64,9 @@ R_fn_set_priors_MA <- function(   priors,
                         ## sp_scaled(0.0 + 2*1.0) ~ 3.07 (-> ~ 3x the mean (if the mean pooled scale is 1)):
                         priors$prior_raw_scale_SD_SD   <- if_null_then_set_to(priors$prior_raw_scale_SD_SD, rep(1.0, 2)) 
                         check_vec_length(priors, "prior_raw_scale_SD_SD", 2)
-                  } else {  ## if using log-normal / exp() for scales (priors will need to be of smaller magnitude as exp() amplifies much more that softplus(x)).
+                        ## if using log-normal / exp() for scales (priors will need to be of smaller magnitude as exp() amplifies
+                        ## much more that softplus(x)):
+                  } else { 
                         ##
                         ## since: e.g., exp(0.0 + 2*1.0) = 7.39:
                         priors$prior_raw_scale_mu_SD   <- if_null_then_set_to(priors$prior_raw_scale_mu_SD, rep(1.0, 2))  

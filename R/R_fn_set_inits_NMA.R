@@ -77,7 +77,7 @@ R_fn_set_inits_NMA <- function(    inits,
                         
           } else if (cts == FALSE) { ## ordinal (Xu-based or R&G-based)
             
-                        if (ord_model_parameterisation == "R&G") {
+                        if (model_parameterisation == "R&G") {
                                     ##
                                     ## Set default inits for the locations ("beta"):
                                     ##

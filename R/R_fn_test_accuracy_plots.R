@@ -153,6 +153,7 @@ R_fn_sROC_plot <- function( stan_model_file_name,
                  plot_list <- list()
                  ##
                  ## --------- Plot 1:
+                 ##
                  plot_1 <-  ggplot(df_all, mapping = aes(x = Fp_median, y = Se_median, color = Model)) + 
                             geom_line(linewidth = 0.5) + 
                             geom_point(size = 3) + 
@@ -168,8 +169,9 @@ R_fn_sROC_plot <- function( stan_model_file_name,
                  ##
                  print(plot_1)
                  plot_list[[1]] <- plot_1
-                
-                ## --------- Plot 2:
+                 ##
+                 ## --------- Plot 2:
+                 ##
                  plot_2 <-    ggplot(df_all, mapping = aes(x = Fp_median, y = Se_median, color = Model)) + 
                               geom_line(linewidth = 1.0) + 
                               geom_point(size = 3) + 

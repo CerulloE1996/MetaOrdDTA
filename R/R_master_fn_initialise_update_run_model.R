@@ -13,7 +13,7 @@
 initialise_update_run_model <- function(      debugging = FALSE,
                                               ##
                                               x, 
-                                              n_index_tests_per_study = NULL,
+                                              # n_index_tests_per_study = NULL,
                                               indicator_index_test_in_study = NULL,
                                               ##
                                               internal_obj,
@@ -26,7 +26,10 @@ initialise_update_run_model <- function(      debugging = FALSE,
                                               ##
                                               init_lists_per_chain
 ) {
-    
+            
+          try({ 
+                  n_index_tests_per_study <- rowSums(indicator_index_test_in_study)
+          }, silent = TRUE)
           ##
           if (debugging) message(paste("initialise_update_run_model", "hello_there_1"))
           ##
@@ -35,7 +38,7 @@ initialise_update_run_model <- function(      debugging = FALSE,
           prep_data_and_model_outs <-  prep_data_and_model( debugging = debugging, 
                                                                          ##
                                                                          x = x,
-                                                                         n_index_tests_per_study = n_index_tests_per_study,
+                                                                         # n_index_tests_per_study = n_index_tests_per_study,
                                                                          indicator_index_test_in_study = indicator_index_test_in_study,
                                                                          ##
                                                                          internal_obj = internal_obj,
@@ -184,22 +187,15 @@ initialise_update_run_model <- function(      debugging = FALSE,
             # any(!(is.numeric(new_n[[1]])))
             # 
             # 
-            
-            init_lists_per_chain[[1]]$
-                    
-            priors$prior_beta_mu_SD
-            
-            internal_obj$outs_data$stan_data_list$box_cox <- 0
-            
             internal_obj$outs_stan_init <- R_fn_init_stan_inits_external(    
                                                                       stan_data_list       = internal_obj$outs_data$stan_data_list,
                                                                       stan_model_file_path = internal_obj$outs_stan_model_name$stan_model_file_path,
                                                                       stan_model_obj       = internal_obj$outs_stan_compile$stan_model_obj,
                                                                       n_chains             = MCMC_params$n_chains,
-                                                                      init_lists_per_chain = 0.001)
+                                                                      init_lists_per_chain = init_lists_per_chain)
           
           })
-          internal_obj$outs_data$stan_data_list$n[[1]][[1]]
+          # internal_obj$outs_data$stan_data_list$n[[1]][[1]]
           # init_lists_per_chain[[1]]
           ##
           if (debugging) message(paste("initialise_update_run_model", "hello_there_4"))
@@ -216,7 +212,7 @@ initialise_update_run_model <- function(      debugging = FALSE,
                                                            stan_model_obj = internal_obj$outs_stan_init$stan_model_obj,
                                                            ##
                                                            n_chains = MCMC_params$n_chains, 
-                                                           init_lists_per_chain = 0.001,
+                                                           init_lists_per_chain = init_lists_per_chain,
                                                            ##
                                                            seed = MCMC_params$seed,
                                                            n_burnin = MCMC_params$n_burnin, 

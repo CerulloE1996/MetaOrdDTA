@@ -109,10 +109,10 @@ R_fn_prep_NMA_data <- function( x = NULL,
           stan_data_list$cutpoint_index[[c]] <- list()
           ##
           for (t in 1:n_index_tests) {
-              stan_data_list$x_with_missings[[c]][[t]] <- array(-1, dim = c(n_studies, n_thr_max)) ## "staggered" array.
-              stan_data_list$x[[c]][[t]] <- array(-1, dim = c(n_studies, n_thr_max)) ## "staggered" array.
-              stan_data_list$n[[c]][[t]] <- array(-1, dim = c(n_studies, n_thr_max)) ## "staggered" array.
-              stan_data_list$cutpoint_index[[c]][[t]] <- array(-1, dim = c(n_studies, n_thr_max)) ## "staggered" array.
+              stan_data_list$x_with_missings[[c]][[t]] <- array(-1, dim = c(n_studies, stan_data_list$n_thr_max)) ## "staggered" array.
+              stan_data_list$x[[c]][[t]] <- array(-1, dim = c(n_studies, stan_data_list$n_thr_max)) ## "staggered" array.
+              stan_data_list$n[[c]][[t]] <- array(-1, dim = c(n_studies, stan_data_list$n_thr_max)) ## "staggered" array.
+              stan_data_list$cutpoint_index[[c]][[t]] <- array(-1, dim = c(n_studies, stan_data_list$n_thr_max)) ## "staggered" array.
           }
       
     }
@@ -260,10 +260,10 @@ R_fn_prep_NMA_data <- function( x = NULL,
             if (!(is.array(stan_data_list$x_with_missings))) {
 
               ## Initialize 4D arrays:
-              x_with_missings_array <- array(NA_real_, dim = c(n_index_tests, 2, n_studies, n_thr_max))
-              n_array <- array(NA_real_, dim = c(n_index_tests, 2, n_studies, n_thr_max))
-              x_array <- array(NA_real_, dim = c(n_index_tests, 2, n_studies, n_thr_max))
-              cutpoint_index_array <- array(NA_real_, dim = c(n_index_tests, 2, n_studies, n_thr_max))
+              x_with_missings_array <- array(NA_real_, dim = c(n_index_tests, 2, n_studies, stan_data_list$n_thr_max))
+              n_array <- array(NA_real_, dim = c(n_index_tests, 2, n_studies, stan_data_list$n_thr_max))
+              x_array <- array(NA_real_, dim = c(n_index_tests, 2, n_studies, stan_data_list$n_thr_max))
+              cutpoint_index_array <- array(NA_real_, dim = c(n_index_tests, 2, n_studies, stan_data_list$n_thr_max))
 
 
               ## Fill 4D arrays w/ list elements:

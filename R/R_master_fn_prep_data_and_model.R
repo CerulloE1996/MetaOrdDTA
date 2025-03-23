@@ -9,7 +9,7 @@
 prep_data_and_model <- function(  debugging = FALSE,
                                   ##
                                   x, 
-                                  n_index_tests_per_study = NULL, ## only needed for NMA
+                                  # n_index_tests_per_study = NULL, ## only needed for NMA
                                   indicator_index_test_in_study = NULL, ## only needed for NMA
                                   ##
                                   internal_obj,
@@ -23,6 +23,11 @@ prep_data_and_model <- function(  debugging = FALSE,
                                   init_lists_per_chain
 ) {
   
+          try({ 
+            n_index_tests_per_study <- rowSums(indicator_index_test_in_study)
+          }, silent = TRUE)
+          print(paste("n_index_tests_per_study = "))
+          cat(n_index_tests_per_study)
           ##
           ## ---- Unpack elements from grouped lists:
           ##
@@ -111,16 +116,14 @@ prep_data_and_model <- function(  debugging = FALSE,
                  }
               
                  outs_data <- data_fn( x = x,
-                                       # box_cox  = advanced_model_options$box_cox,
-                                       # softplus = advanced_model_options$softplus,
                                        n_index_tests_per_study = n_index_tests_per_study,
                                        indicator_index_test_in_study = indicator_index_test_in_study)
           }
            ##
           internal_obj$outs_data <- outs_data
-          ##
-          print(paste("internal_obj$outs_data$stan_data_list = "))
-          print(str(internal_obj$outs_data$stan_data_list))
+          # ##
+          # print(paste("internal_obj$outs_data$stan_data_list = "))
+          # print(str(internal_obj$outs_data$stan_data_list))
           ##
           if (basic_model_options$network == FALSE) { 
                  internal_obj$outs_data$n_tests <- 1
@@ -153,9 +156,9 @@ prep_data_and_model <- function(  debugging = FALSE,
                                                                          debugging = TRUE,
                                                                          force_recompile = FALSE,
                                                                          quiet = FALSE)
-          ##
-          message(paste("internal_obj$outs_stan_compile = "))
-          print(internal_obj$outs_stan_compile)
+          # ##
+          # message(paste("internal_obj$outs_stan_compile = "))
+          # print(internal_obj$outs_stan_compile)
           ##
           ## -----------------  Set priors (using R package defaults): --------------------------------------------------
           ##
@@ -186,8 +189,8 @@ prep_data_and_model <- function(  debugging = FALSE,
                              ##
                              n_index_tests = internal_obj$outs_data$n_index_tests)
           ##
-          message(paste("priors = "))
-          print(priors)
+          # message(paste("priors = "))
+          # print(priors)
           ##
           ## ----------------- Set initial values (using R package defaults) - AFTER priors have been set!: -------------
           ##
@@ -199,12 +202,14 @@ prep_data_and_model <- function(  debugging = FALSE,
           #   MCMC_params$n_chains <- MetaOrdDTA::if_null_then_set_to( MCMC_params$n_chains, round(parallel::detectCores()/2))
           # })
           ##
-          # init_lists_per_chain = NULL
-          print(paste("n_chains = ", MCMC_params$n_chains))
-          ##
-          print(paste("init_lists_per_chain[[1]] = "))
-          print(init_lists_per_chain)
-          ##
+          # # init_lists_per_chain = NULL
+          # print(paste("n_chains = ", MCMC_params$n_chains))
+          # ##
+          # try({ 
+          #     print(paste("init_lists_per_chain[[1]] = "))
+          #     print(init_lists_per_chain)
+          # })
+          # ##
           try({
             if (is.null(init_lists_per_chain)) {
                   init_lists_per_chain <- list()
@@ -221,8 +226,8 @@ prep_data_and_model <- function(  debugging = FALSE,
             # }
           })
           ##
-          print(paste("advanced_model_options = "))
-          print(advanced_model_options)
+          # print(paste("advanced_model_options = "))
+          # print(advanced_model_options)
           ##
           if (basic_model_options$network)  { 
             inits_fn <- R_fn_set_inits_NMA
@@ -230,27 +235,28 @@ prep_data_and_model <- function(  debugging = FALSE,
             inits_fn <- R_fn_set_inits_MA
           }
           ##
-          for (i in 1:MCMC_params$n_chains) {
-               init_lists_per_chain[[i]] <- inits_fn( 
-                                                     inits = init_lists_per_chain[[i]],
-                                                     priors = priors,
-                                                     ##
-                                                     # network = basic_model_options$network,
-                                                     cts     = basic_model_options$cts,
-                                                     ##
-                                                     n_index_tests   = internal_obj$outs_data$n_index_tests,
-                                                     n_studies = internal_obj$outs_data$n_studies,
-                                                     n_thr     = internal_obj$outs_data$n_thr,
-                                                     ##
-                                                     model_parameterisation        = advanced_model_options$model_parameterisation,
-                                                     random_thresholds             = advanced_model_options$random_thresholds,
-                                                     Dirichlet_random_effects_type = advanced_model_options$Dirichlet_random_effects_type,
-                                                     softplus                      = advanced_model_options$softplus)
-          }
-          ##
-          message(paste("init_lists_per_chain[[1]] = "))
-          print(init_lists_per_chain[[1]])
-          init_lists_per_chain
+          try({ 
+            for (i in 1:MCMC_params$n_chains) {
+                 init_lists_per_chain[[i]] <- inits_fn( 
+                                                       inits = init_lists_per_chain[[i]],
+                                                       priors = priors,
+                                                       ##
+                                                       cts     = basic_model_options$cts,
+                                                       ##
+                                                       n_index_tests   = internal_obj$outs_data$n_index_tests,
+                                                       n_studies = internal_obj$outs_data$n_studies,
+                                                       n_thr     = internal_obj$outs_data$n_thr,
+                                                       ##
+                                                       model_parameterisation        = advanced_model_options$model_parameterisation,
+                                                       random_thresholds             = advanced_model_options$random_thresholds,
+                                                       Dirichlet_random_effects_type = advanced_model_options$Dirichlet_random_effects_type,
+                                                       softplus                      = advanced_model_options$softplus)
+            }
+          })
+          # ##
+          # message(paste("init_lists_per_chain[[1]] = "))
+          # print(init_lists_per_chain[[1]])
+          # init_lists_per_chain
           # init_lists_per_chain[[1]]$inits$
           # ##
           # ## ---- Pack the modified variables back into the lists:

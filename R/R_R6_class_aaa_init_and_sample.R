@@ -179,6 +179,8 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                     ##
                     x = NULL,
                     ##
+                    indicator_index_test_in_study = NULL,
+                    ##
                     ## ---- Basic modelling options (user-inputted element-by-element)
                     ##
                     basic_model_options = list(
@@ -257,6 +259,8 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                     ##
                     initialize = function(  x = self$x,
                                             ##
+                                            indicator_index_test_in_study = self$indicator_index_test_in_study,
+                                            ##
                                             network = NULL,
                                             cts = NULL,
                                             prior_only = NULL,
@@ -288,6 +292,8 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                               ## ---- Data:
                               ##
                               self$x <- x
+                              ##
+                              self$indicator_index_test_in_study <- indicator_index_test_in_study
                               ##
                               ## ---- "basic_model_options" list:
                               ##
@@ -321,6 +327,8 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                               ## -----------  call initialising fn's: ------------------------------------------------------------------------------------------------------------
                               ##
                               local_prep_data_and_model_outs <-  MetaOrdDTA:::prep_data_and_model(  x = self$x,
+                                                                                                    ##
+                                                                                                    indicator_index_test_in_study = self$indicator_index_test_in_study,
                                                                                                     ##
                                                                                                     internal_obj = self$internal_obj,
                                                                                                     ##
@@ -384,6 +392,7 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                     #'@return Returns self invisibly, allowing for method chaining of this classes (MetaOrd_model) methods. E.g.: model$sample(...)$summary(...). 
                     ##
                     sample = function(  x = self$x, ## data is allowed to be updated without re-initialising (as long as "network" and "cts" are the same)
+                                        indicator_index_test_in_study = self$indicator_index_test_in_study,
                                         ##
                                         cts = self$basic_model_options$cts,
                                         network = self$basic_model_options$network,
@@ -447,6 +456,7 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                     ## Update class members ** only if ** new values provided:
                                     ##
                                     if (!identical(self$x, x))  { self$x <- x ; params_same <- 0 }
+                                    if (!identical(self$indicator_index_test_in_study, indicator_index_test_in_study))  { self$indicator_index_test_in_study <- indicator_index_test_in_study ; params_same <- 0 }
                                     ##
                                     if (!identical(self$basic_model_options$network, network)) { self$basic_model_options$network <- network ; params_same <- 0 }
                                     if (!identical(self$basic_model_options$cts, cts)) { self$basic_model_options$cts <- cts ; params_same <- 0 }
@@ -491,6 +501,7 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                 local_model_samples_obj <-       MetaOrdDTA:::initialise_update_run_model(     debugging = FALSE,
                                                                                                                ##
                                                                                                                x = self$x,
+                                                                                                               indicator_index_test_in_study = self$indicator_index_test_in_study,
                                                                                                                ##
                                                                                                                internal_obj = self$internal_obj,
                                                                                                                ##
