@@ -7,7 +7,6 @@
 prep_data_and_model(
   debugging = FALSE,
   x,
-  n_index_tests_per_study = NULL,
   indicator_index_test_in_study = NULL,
   internal_obj,
   basic_model_options,

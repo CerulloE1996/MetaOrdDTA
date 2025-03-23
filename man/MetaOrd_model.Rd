@@ -184,6 +184,7 @@ Create a new "MetaOrd_model" object.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{MetaOrd_model$new(
   x = self$x,
+  indicator_index_test_in_study = self$indicator_index_test_in_study,
   network = NULL,
   cts = NULL,
   prior_only = NULL,
@@ -241,6 +242,7 @@ Sample from the model
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{MetaOrd_model$sample(
   x = self$x,
+  indicator_index_test_in_study = self$indicator_index_test_in_study,
   cts = self$basic_model_options$cts,
   network = self$basic_model_options$network,
   prior_only = self$basic_model_options$prior_only,

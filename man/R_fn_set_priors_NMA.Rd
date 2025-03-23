@@ -11,7 +11,7 @@ R_fn_set_priors_NMA(
   random_thresholds,
   Dirichlet_random_effects_type,
   softplus,
-  n_tests,
+  n_index_tests,
   n_thr,
   n_cat
 )

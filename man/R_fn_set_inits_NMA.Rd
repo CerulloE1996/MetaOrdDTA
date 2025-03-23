@@ -8,7 +8,7 @@ R_fn_set_inits_NMA(
   inits,
   priors,
   n_studies,
-  n_tests,
+  n_index_tests,
   n_thr,
   cts,
   model_parameterisation,
