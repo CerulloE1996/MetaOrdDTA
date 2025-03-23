@@ -41,6 +41,12 @@ data {
           matrix<lower=0.0>[n_index_tests, 2] prior_beta_tau_SD;
           vector<lower=0.0>[2] prior_beta_sigma_SD; //// "sigma's (Nyaga et al. notation) are shared between tests.
           ////
+          //// Priors (and possible restrictions) for between-study correlations:
+          ////
+          real<lower=-1.0, upper=+1.0> beta_corr_lb;
+          real<lower=beta_corr_lb, upper=+1.0>  beta_corr_ub;
+          real<lower=0.0>  prior_beta_corr_LKJ;
+          ////
           //// ---- Induced-Dirichlet priors:
           ////
           array[n_index_tests] vector<lower=0.0>[n_thr_max + 1] prior_dirichlet_alpha;
@@ -77,12 +83,19 @@ parameters {
           ////
           matrix[n_studies, 2] beta_eta_z;              //// Standard normal RVs for study-level effects - eta[s, 1:2] ~ multi_normal({0, 0}, Sigma).
           array[n_index_tests] matrix[n_studies, 2] beta_delta_z; //// Standard normal RVs for test-specific effects
+          ////
+          real beta_corr;  //// between-study corr (possibly restricted)
         
 }
 
 
 transformed parameters {
 
+          ////
+          //// ---- Construct simple 2x2 (bivariate) between-study corr matrices:
+          ////
+          cholesky_factor_corr[2] beta_L_Omega = make_restricted_bivariate_L_Omega_jacobian(beta_corr, beta_corr_lb, beta_corr_ub);
+          corr_matrix[2] beta_Omega      = multiply_lower_tri_self_transpose(beta_L_Omega);
           ////
           //// ---- Construct (global) cutpoints:
           ////
@@ -104,9 +117,10 @@ transformed parameters {
           ////
           //// ---- Compute Study-level random effects (eta in Nyaga notation):
           ////
+          for (s in 1:n_studies) {
+              beta_eta[s, 1:2] = to_row_vector( diag_pre_multiply(beta_sigma, beta_L_Omega) * to_vector(beta_eta_z[s, 1:2]) );  //// beta_eta[s, 1:2] ~ normal({0.0, 0.0}, Sigma);
+          }
           for (c in 1:2) {
-              //// eta's ("beta_eta") correspond to shared (between tests) component of "beta" - eta_{s, i} ~ normal(0, sigma_{i}).
-              beta_eta[, c] = beta_sigma[c] * beta_eta_z[, c];  //// beta_eta[s, c] ~ normal(0.0, beta_sigma[c]);
               //// Compute test-specific deviations ("delta" in Nyaga notation):
               for (t in 1:n_index_tests) { 
                  beta_delta[t][, c] = beta_tau[t, c] * beta_delta_z[t][, c]; //// beta_delta[t][s, c] ~ normal(0.0, beta_tau[t, c]);
@@ -183,6 +197,7 @@ model {
           ////
           to_vector(beta_mu)  ~ normal(to_vector(prior_beta_mu_mean), to_vector(prior_beta_mu_SD));
           to_vector(beta_tau) ~ normal(0.0, to_vector(prior_beta_tau_SD));  //// delta_{s, i, t} ~ normal(0, tau_{i, t}):
+          beta_Omega ~ lkj_corr(prior_beta_corr_LKJ); //// possibly truncated
           ////
           for (c in 1:2) {
             beta_sigma[c] ~ normal(0.0, prior_beta_sigma_SD[c]);      //// eta[s, i] ~ normal(0, sigma[i]):

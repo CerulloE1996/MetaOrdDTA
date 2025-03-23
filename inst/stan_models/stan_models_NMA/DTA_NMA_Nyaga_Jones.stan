@@ -55,6 +55,16 @@ data {
           vector[n_index_tests] prior_boxcox_lambda_mean;
           vector<lower=0.0>[n_index_tests] prior_boxcox_lambda_SD;
           ////
+          //// Priors (and possible restrictions) for between-study correlations:
+          ////
+          real<lower=-1.0, upper=+1.0> beta_corr_lb;
+          real<lower=beta_corr_lb, upper=+1.0>  beta_corr_ub;
+          real<lower=0.0>  prior_beta_corr_LKJ;
+          ////
+          real<lower=-1.0, upper=+1.0> raw_scale_corr_lb;
+          real<lower=raw_scale_corr_lb, upper=+1.0>  raw_scale_corr_ub;
+          real<lower=0.0>  prior_raw_scale_corr_LKJ;
+          ////
           //// ---- Other:
           ////
           int<lower=0, upper=1> box_cox;
@@ -94,6 +104,11 @@ parameters {
           matrix<lower=0.0>[n_index_tests, 2] raw_scale_tau;
           matrix[n_studies, 2] raw_scale_eta_z;
           array[n_index_tests] matrix[n_studies, 2] raw_scale_delta_z;
+          ////
+          //// ---- Between-study corr's:
+          ////
+          real beta_corr;       //// between-study corr (possibly restricted)
+          real raw_scale_corr;  //// between-study corr (possibly restricted)
         
 }
 
@@ -101,9 +116,18 @@ parameters {
 transformed parameters {
     
           ////
+          //// ---- Construct simple 2x2 (bivariate) between-study corr matrices:
+          ////
+          cholesky_factor_corr[2] beta_L_Omega      = make_restricted_bivariate_L_Omega_jacobian(beta_corr, beta_corr_lb, beta_corr_ub);
+          cholesky_factor_cov[2]  beta_L_Sigma      = diag_pre_multiply(beta_sigma, beta_L_Omega);
+          corr_matrix[2] beta_Omega      = multiply_lower_tri_self_transpose(beta_L_Omega);
+          ////
+          cholesky_factor_corr[2] raw_scale_L_Omega = make_restricted_bivariate_L_Omega_jacobian(raw_scale_corr, raw_scale_corr_lb, raw_scale_corr_ub);
+          cholesky_factor_cov[2]  raw_scale_L_Sigma = diag_pre_multiply(raw_scale_sigma, raw_scale_L_Omega);
+          corr_matrix[2] raw_scale_Omega = multiply_lower_tri_self_transpose(raw_scale_L_Omega);
+          ////
           //// ---- Cutpoint params:
           ////
-          //// array[n_index_tests] vector[n_thr_max] C;
           vector[n_total_C_if_fixed] C_vec;  //// Global cutpoints for each test ("staggered" array/matrix using "n_thr[t]" to index correctly)
           ////
           //// ---- Construct cutpoints for each test:
@@ -124,12 +148,13 @@ transformed parameters {
           //// ---- Compute Study-level random effects (eta in Nyaga notation):
           ////
           for (s in 1:n_studies) {
-              for (c in 1:2) {
-                //// eta's ("beta_eta") correspond to shared (between tests) component of "beta" - eta_{s, i} ~ normal(0, sigma_{i}).
-                beta_eta[s, c]      = 0.0 + beta_sigma[c]      * beta_eta_z[s, c];      //// beta_eta[s, c]      ~ normal(0.0, beta_sigma[c]);
-                raw_scale_eta[s, c] = 0.0 + raw_scale_sigma[c] * raw_scale_eta_z[s, c]; //// raw_scale_eta[s, c] ~ normal(0.0, raw_scale_sigma[c]);
-              }
+              beta_eta[s, 1:2]      = to_row_vector( beta_L_Sigma      * to_vector(beta_eta_z[s, 1:2]) );  //// beta_eta[s, 1:2] ~ normal({0.0, 0.0}, Sigma);
+              raw_scale_eta[s, 1:2] = to_row_vector( raw_scale_L_Sigma * to_vector(raw_scale_eta_z[s, 1:2]) );  //// beta_eta[s, 1:2] ~ normal({0.0, 0.0}, Sigma);
           }
+          ////
+          // for (c in 1:2) {
+          //     raw_scale_eta[1:n_studies, c] = 0.0 + raw_scale_sigma[c] * raw_scale_eta_z[1:n_studies, c]; //// raw_scale_eta[s, c] ~ normal(0.0, raw_scale_sigma[c]);
+          // }
           ////
           //// ---- Declare test-specific deviations ("delta" in Nyaga notation) - delta_{s, c, t} ~ normal(0, tau_{c, t}):
           ////
@@ -139,13 +164,13 @@ transformed parameters {
           //// ---- Compute test-specific deviations ("delta" in Nyaga notation) - delta_{s, c, t} ~ normal(0, tau_{c, t}):
           ////
           for (t in 1:n_index_tests) {
-                for (s in 1:n_studies) {
+                // for (s in 1:n_studies) {
                       for (c in 1:2) {
                           //// delta's ("beta_delta") correspond to shared (between tests) component of "beta"   -   delta_{s, c, t} ~ normal(0, tau_{c, t}):
-                          beta_delta[t][s, c]      = 0.0 + beta_tau[t, c] * beta_delta_z[t][s, c];           //// beta_delta[t][s, c]      ~ normal(0.0, beta_tau[t, c]);
-                          raw_scale_delta[t][s, c] = 0.0 + raw_scale_tau[t, c] * raw_scale_delta_z[t][s, c]; //// raw_scale_delta[t][s, c] ~ normal(0.0, raw_scale_tau[t, c]);
+                          beta_delta[t][1:n_studies, c]      = beta_tau[t, c] * beta_delta_z[t][1:n_studies, c];           //// beta_delta[t][s, c]      ~ normal(0.0, beta_tau[t, c]);
+                          raw_scale_delta[t][1:n_studies, c] = raw_scale_tau[t, c] * raw_scale_delta_z[t][1:n_studies, c]; //// raw_scale_delta[t][s, c] ~ normal(0.0, raw_scale_tau[t, c]);
                       }
-                }
+                // }
           }
           ////
           //// ---- Log-likelihood stuff:
@@ -226,9 +251,11 @@ model {
           ////
           to_vector(beta_mu)  ~ normal(to_vector(prior_beta_mu_mean), to_vector(prior_beta_mu_SD));
           to_vector(beta_tau) ~ normal(0.0, to_vector(prior_beta_tau_SD));  //// delta_{s, i, t} ~ normal(0, tau_{i, t}):
+          beta_Omega ~ lkj_corr(prior_beta_corr_LKJ);
           ////
           to_vector(raw_scale_mu)  ~ normal(to_vector(prior_raw_scale_mu_mean), to_vector(prior_raw_scale_mu_SD));
           to_vector(raw_scale_tau) ~ normal(0.0, to_vector(prior_beta_tau_SD));  //// delta_{s, i, t} ~ normal(0, tau_{i, t}):
+          raw_scale_Omega ~ lkj_corr(prior_raw_scale_corr_LKJ);
           ////
           for (c in 1:2) {
             beta_sigma[c]      ~ normal(0.0, prior_beta_sigma_SD[c]);      //// eta[s, i] ~ normal(0, sigma[i]):
@@ -278,6 +305,40 @@ generated quantities {
           array[n_index_tests] matrix[n_studies, n_thr_max] x_hat_d  = init_array_of_matrices(n_studies, n_thr_max, n_index_tests, -1.0);
           array[n_index_tests] matrix[n_studies, n_thr_max] dev_nd   = init_array_of_matrices(n_studies, n_thr_max, n_index_tests, -1.0);
           array[n_index_tests] matrix[n_studies, n_thr_max] dev_d    = init_array_of_matrices(n_studies, n_thr_max, n_index_tests, -1.0);
+          ////
+          matrix[n_index_tests, n_thr_max] LRpos;  
+          matrix[n_index_tests, n_thr_max] LRneg; 
+          matrix[n_index_tests, n_thr_max] DOR; 
+          matrix[n_index_tests, n_thr_max] PPV; 
+          matrix[n_index_tests, n_thr_max] NPV; 
+          matrix[n_index_tests, n_thr_max] Youden_index; 
+          matrix[n_index_tests, n_thr_max] Youden_index_weighted; 
+          ////
+          matrix[n_index_tests, 2] beta_tau_sq = square(beta_tau);
+          vector[2] sigmabsq;
+          matrix[n_index_tests, n_index_tests] sigmasq[2];
+          matrix[n_index_tests, n_index_tests] rho[2];
+          matrix[n_index_tests, n_index_tests] rho12[2];
+          ////
+          sigmabsq[1] = Sigma[1, 1];
+          sigmabsq[2] = Sigma[2, 2];
+          
+          for (d in 1:2) {
+             for (k in 1:n_tests) {
+                  beta_tau_sq[t, c] = square(beta_tau[t, c]); ////* tau[k,d]; // for model w/ diff SD's across tests
+             }
+          }
+                    
+          for (d in 1:2) {
+              for (k in 1:n_tests) {
+                  for (l in 1:n_tests) {
+                      sigmasq[d, k, l] = (sigmabsq[d] + tausq[k, d]) * ((sigmabsq[d] + tausq[l, d])); 
+                      rho[d, k, l] = sigmabsq[d] / sqrt(sigmasq[d,k,l]);
+                      //// rho12 is the correlation between the t1'th and t2'th test (t1=t2 and t1 =/=t2 both possible) 
+                      rho12[d, k, l] =      Omega[1,1]*sqrt(Sigma[1,1])*sqrt(Sigma[2,2]) / sqrt( (Sigma[1,1] + tausq[k,d]) * (Sigma[2,2] + tausq[l,d]) );
+                  }
+              }
+          }
           ////
           //// ---- Calculate study-specific accuracy:
           ////
