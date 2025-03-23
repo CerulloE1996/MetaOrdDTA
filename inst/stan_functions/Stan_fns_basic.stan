@@ -5,7 +5,7 @@
 ////
 //// "Basic" custom Stan functions: ---------------------------------------------------------------------------------------
 ////
-array[] matrix init_array_of_matrices( int n_rows, 
+array[] matrix init_array_of_matrices( data int n_rows, 
                                        data int n_cols,
                                        data int n_arrays,
                                        real init_val) {
@@ -21,6 +21,31 @@ array[] matrix init_array_of_matrices( int n_rows,
       return array_out;
           
 }
+
+
+
+
+
+
+array[,] matrix init_nested_array_of_matrices(  data int n_rows, 
+                                                data int n_cols,
+                                                data int n_arrays_rows,
+                                                data int n_arrays_cols,
+                                                real init_val) { 
+                                 
+        array[n_arrays_rows, n_arrays_cols] matrix[n_rows, n_cols] array_of_arrays_out;
+                                 
+        for (i in 1:n_arrays_rows) {
+              for (j in 1:n_arrays_cols) {
+                       array_of_arrays_out[i, j]  = rep_matrix(init_val, n_rows, n_cols);
+              }
+        }
+          
+          return array_of_arrays_out;
+                                 
+                                 
+}
+
 
 
 array[] matrix compute_ss_accuracy_from_cumul_prob( array[] matrix cumul_prob, 

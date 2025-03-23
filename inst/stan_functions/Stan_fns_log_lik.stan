@@ -5,7 +5,7 @@
         
 
 
-array[] matrix compute_log_lik_binomial_fact (  array[] matrix cumul_prob,
+array[,] matrix compute_log_lik_binomial_fact (  array[] matrix cumul_prob,
                                                 data array[] matrix x, 
                                                 data array[] matrix n,
                                                 data array[] int n_obs_cutpoints
@@ -80,7 +80,11 @@ array[] matrix compute_log_lik_binomial_fact (  array[] matrix cumul_prob,
            }
            
            
-           return(log_lik);
+                    
+           array[2, 2] matrix[n_studies, n_thr] out;
+           out[1] = log_lik;
+           out[2] = cond_prob;
+           return(out);
            
 
 
@@ -91,7 +95,7 @@ array[] matrix compute_log_lik_binomial_fact (  array[] matrix cumul_prob,
            
            
 
-array[] matrix compute_log_lik_binomial_fact_NMA (  array[] matrix cumul_prob,
+array[,] matrix compute_log_lik_binomial_fact_NMA (  array[] matrix cumul_prob,
                                                     data array[] matrix x, 
                                                     data array[] matrix n,
                                                     data array[] int n_obs_cutpoints,
@@ -111,9 +115,6 @@ array[] matrix compute_log_lik_binomial_fact_NMA (  array[] matrix cumul_prob,
         //// ---- Multinomial (factorised Binomial) likelihood:
         ////
         for (c in 1:2) {
-            matrix[n_studies, n_thr] binomial_n;
-            matrix[n_studies, n_thr] binomial_N;
-            matrix[n_studies, n_thr] binomial_N_minus_n;
             for (s in 1:n_studies) {
               
                   int observed = to_int(indicator_index_test_t_in_study[s]);
@@ -126,39 +127,40 @@ array[] matrix compute_log_lik_binomial_fact_NMA (  array[] matrix cumul_prob,
                                   //// Skip if the current count is zero (no observations to classify)
                                   if (x_current != 0)  {
                                   
-                                        //// Conditional probability of being at or below the current cutpoint - given being at or below the next cutpoint:
-                                        if (cut_i == n_obs_cutpoints[s]) { 
+                                         //// Conditional probability of being at or below the current cutpoint - given being at or below the next cutpoint:
+                                         if (cut_i == n_obs_cutpoints[s]) { 
                                                  cond_prob[c][s, cut_i] = cumul_prob[c][s, cut_i] / 1.0;
-                                        } else {
+                                         } else {
                                               if (x_next > 0) { 
                                                  cond_prob[c][s, cut_i] = cumul_prob[c][s, cut_i] / cumul_prob[c][s, cut_i + 1];
                                               } else { 
                                                  cond_prob[c][s, cut_i] = 1.0;
                                               }
-                                        }
+                                         }
                                         
-                                        //// Binomial for observations at or below current cutpoint out of those at or below next cutpoint
-                                        // log_lik[c][s, cut_i] = binomial_lpmf(x_current | x_next, cond_prob[c][s, cut_i]);
-                                        binomial_n[s, cut_i] = x_current;
-                                        binomial_N[s, cut_i] = x_next;
-                                        binomial_N_minus_n[s, cut_i] = x_next - x_current;
-                                        
-                                       real log_cond_prob =  log(cond_prob[c][s, cut_i]);
-                                       real log_1m_cond_prob = log1m(cond_prob[c][s, cut_i]);
-                                       real gamma_fn_stuff = lgamma(binomial_N[s, cut_i] + 1) - lgamma(binomial_n[s, cut_i] + 1) + lgamma(binomial_N_minus_n[s, cut_i] + 1);
-                                       
-                                       if (is_inf(log_cond_prob) == 0) { 
-                                           log_lik[c][s, cut_i] = binomial_n[s, cut_i] * log_cond_prob;
-                                       }
-                                       if (is_inf(log_1m_cond_prob) == 0) { 
-                                           log_lik[c][s, cut_i] += binomial_N_minus_n[s, cut_i] * log_1m_cond_prob;
-                                       }
-                                          if (is_inf(gamma_fn_stuff) == 0) { 
-                                           log_lik[c][s, cut_i] += gamma_fn_stuff;
-                                       }
-                                          // // log_lik[c][s, cut_i] = binomial_n .* log(cond_prob[c][s, cut_i]);
-                                          // // log_lik[c][s, cut_i] += binomial_N_minus_n .* log1m(cond_prob[c][s, cut_i]);
-                                          // log_lik[c][s, cut_i] += lgamma(binomial_N + 1) - lgamma(binomial_n + 1) + lgamma(binomial_N_minus_n + 1);
+                                         //// Binomial for observations at or below current cutpoint out of those at or below next cutpoint
+                                         // log_lik[c][s, cut_i] = binomial_lpmf(x_current | x_next, cond_prob[c][s, cut_i]);
+                                         real binomial_n = x_current;
+                                         real binomial_N = x_next;
+                                         real binomial_N_minus_n = x_next - x_current;
+                                         ////
+                                         real log_cond_prob =    log(cond_prob[c][s, cut_i]);
+                                         if (is_inf(log_cond_prob) == 0) { 
+                                             log_lik[c][s, cut_i] = binomial_n * log_cond_prob;
+                                         }
+                                         real log_1m_cond_prob = log1m(cond_prob[c][s, cut_i]);
+                                         if (is_inf(log_1m_cond_prob) == 0) { 
+                                             log_lik[c][s, cut_i] += binomial_N_minus_n * log_1m_cond_prob;
+                                         }
+                                         real gamma_fn_stuff =   lgamma(binomial_N + 1);
+                                         gamma_fn_stuff     += - lgamma(binomial_n + 1);
+                                         gamma_fn_stuff     += + lgamma(binomial_N_minus_n + 1);
+                                         if (is_inf(gamma_fn_stuff) == 0) { 
+                                             log_lik[c][s, cut_i] += gamma_fn_stuff;
+                                         }
+                                         // // log_lik[c][s, cut_i] = binomial_n .* log(cond_prob[c][s, cut_i]);
+                                         // // log_lik[c][s, cut_i] += binomial_N_minus_n .* log1m(cond_prob[c][s, cut_i]);
+                                         // log_lik[c][s, cut_i] += lgamma(binomial_N + 1) - lgamma(binomial_n + 1) + lgamma(binomial_N_minus_n + 1);
                                   }
                           }
                     } 
@@ -194,8 +196,10 @@ array[] matrix compute_log_lik_binomial_fact_NMA (  array[] matrix cumul_prob,
               }
            }
            
-           
-           return(log_lik);
+           array[2, 2] matrix[n_studies, n_thr] out;
+           out[1] = log_lik;
+           out[2] = cond_prob;
+           return(out);
            
 
 
