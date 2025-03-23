@@ -102,7 +102,7 @@ transformed parameters {
         ////
         //// ---- Likelihood stuff:
         ////
-        array[2] matrix[n_studies, n_thr] cumul_prob = init_array_of_matrices(n_studies, n_thr, 2, 1.0);
+        array[2] matrix[n_studies, n_thr] cumul_prob = init_array_of_matrices(n_studies, n_thr, 2, 1.0); 
         array[2] matrix[n_studies, n_thr] cond_prob  = init_array_of_matrices(n_studies, n_thr, 2, 0.0);
         array[2] matrix[n_studies, n_thr] log_lik    = init_array_of_matrices(n_studies, n_thr, 2, 0.0);
         {
@@ -122,6 +122,11 @@ transformed parameters {
                          beta[, s]      = beta_mu      + diag_pre_multiply(beta_SD, beta_L_Omega) * beta_z[, s];
                          raw_scale[, s] = raw_scale_mu + diag_pre_multiply(raw_scale_SD, raw_scale_L_Omega) * raw_scale_z[, s];
                     }
+                    
+                      // vector[n_studies] beta_wt = beta_SD - w_beta * (beta_SD - 1);
+                      // beta[c, s] = (beta_z * beta_SD + beta_mu * w_beta) ./ beta_wt;  // Recentered individual parameters
+                      // 
+                      // beta_z ~ normal(beta_mu * (1.0 - w_beta), beta_wt);
                 }
                 //// 
                 //// ---- Compute scales and Jacobian adjustment for raw_scale -> scale transformation (w/ Jacobian for raw_scale -> scale)

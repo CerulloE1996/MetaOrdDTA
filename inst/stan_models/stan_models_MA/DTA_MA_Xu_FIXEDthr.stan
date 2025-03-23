@@ -116,15 +116,15 @@ transformed parameters {
 
 
 model {
-  
+
         ////
-        //// Priors:
+        //// ---- Priors:
         ////
         beta_mu ~ normal(prior_beta_mu_mean, prior_beta_mu_SD);
         beta_SD ~ normal(prior_beta_SD_mean, prior_beta_SD_SD);
         beta_Omega ~ lkj_corr(prior_beta_corr_LKJ);
         ////
-        //// Induced-dirichlet ** Prior ** model:
+        //// ---- Induced-dirichlet ** Prior ** model:
         ////
         {
            vector[n_thr] Ind_Dir_cumul  = C - Ind_Dir_anchor;
@@ -146,7 +146,7 @@ model {
         }
   
 }
- 
+
 
 generated quantities {
 
