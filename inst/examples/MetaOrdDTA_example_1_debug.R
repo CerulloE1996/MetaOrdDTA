@@ -10,7 +10,6 @@ rm(list = ls())
 
 
 
-#  
 {
   ## First remove any possible package fragments:
   ## Find user_pkg_install_dir:
@@ -81,6 +80,19 @@ devtools::install(local_pkg_dir,
 
 
 
+
+
+##
+## ---- Load NMA data:
+##
+setwd(local_pkg_dir)
+data <- readRDS("data_example_1_NMA_list.RDS")
+x_NMA <- data$x_NMA
+x <- x_NMA
+indicator_index_test_in_study <- data$indicator_index_test_in_study
+##
+n_studies <- nrow(x_NMA[[1]][[1]])
+n_index_tests <- length(x_NMA[[1]])
 
 ##  -----------  Compile + initialise the model using "MVP_model$new(...)"  ----------------------------------
 ##
@@ -241,80 +253,70 @@ n_chains <- 8
   
 
 
-# MetaOrdDTA:::R_fn_compile_stan_model_basic_given_file_name( stan_model_file_name = "DTA_NMA_Nyaga_Jones.stan",
-#                                                cts = TRUE,
-#                                                network = TRUE,
-#                                                prior_only = FALSE,
-#                                                force_recompile = FALSE,
-#                                                debugging = TRUE)
-
-
-data_outs <- R_fn_prep_NMA_data(  x = x_NMA, 
-                     n_index_tests_per_study = n_index_tests_per_study,
-                     indicator_index_test_in_study = indicator_index_test_in_study)
-
-t <- 1
-c <- 1
-data_outs$stan_data_list$x_with_missings[t, c, ,]
-data_outs$stan_data_list$x[t, c, ,]
-data_outs$stan_data_list$n[t, c, ,]
- 
-# 
-# stan_data_list       = internal_obj$outs_data$stan_data_list
-# 
-# # Check if all list elements have names
-# check_names <- function(x) {
-#   if (is.list(x)) {
-#     # Check if this list has names
-#     if (length(x) > 0 && is.null(names(x))) {
-#       return(FALSE)
-#     }
-#     # Recursively check all elements
-#     return(all(sapply(x, check_names)))
-#   }
-#   return(TRUE)
-# }
-# 
-# # Fix by adding names to all list elements
-# add_names <- function(x, prefix = "item") {
-#   if (is.list(x)) {
-#     if (length(x) > 0 && is.null(names(x))) {
-#       names(x) <- paste0(prefix, 1:length(x))
-#     }
-#     for (i in 1:length(x)) {
-#       x[[i]] <- add_names(x[[i]], paste0(prefix, "_", i))
-#     }
-#   }
-#   return(x)
-# }
-# 
-# 
-# # See if there are unnamed elements
-# check_names(init_lists_per_chain)
-# 
-# # Apply the fix
-# init_lists_per_chain <- add_names(init_lists_per_chain)
-# ##
-# internal_obj$outs_data$stan_data_list <- stan_data_list
-# 
-# 
 
 
 
-##
-## Softplus or exp:
+
+####
+#### -------------------------- NMA:
+####
+network <- TRUE
 ##
 softplus <- TRUE
-network  <- TRUE 
 
 
 
+#### ----
+{
+  model_parameterisation = "Jones"
+  box_cox <- TRUE
+  cts <- TRUE
+  random_thresholds <-  FALSE
+  Dirichlet_random_effects_type <- "none"
+  # ##
+  # inits <- list(beta_mu = c(-1, +1),
+  #                                      beta_SD = c(0.01, 0.01),
+  #                                      beta_z = array(0.01, dim = c(2, n_studies)),
+  #                                      C_raw_vec = rep(-2.0, n_thr),
+  #                                      C = seq(from = -2, to = 2, length = n_thr))
+  # init_lists_per_chain <- replicate(n_chains, inits, simplify = FALSE)
+}
+
+
+
+
+
+{
+  model_parameterisation = "Xu"
+  box_cox <- FALSE
+  cts <- FALSE
+  random_thresholds <-  FALSE
+  Dirichlet_random_effects_type <- "fixed"
+  # ##
+  # inits <- list(beta_mu = c(-1, +1),
+  #                                      beta_SD = c(0.01, 0.01),
+  #                                      beta_z = array(0.01, dim = c(2, n_studies)),
+  #                                      C_raw_vec = rep(-2.0, n_thr),
+  #                                      C = seq(from = -2, to = 2, length = n_thr))
+  # init_lists_per_chain <- replicate(n_chains, inits, simplify = FALSE)
+}
+
+ 
+
+
+
+
+
+n_chains <- 4 #### parallel::detectCores() / 2
 # internal_obj$outs_data$stan_data_list$x
 # internal_obj$outs_data$stan_data_list$n
 # 
 # any(is.na(unlist(internal_obj$outs_data$stan_data_list$n)))
+init_lists_per_chain <- NULL
 
-model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(  x = x_subset, 
+model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(  x = x, 
+                                                  indicator_index_test_in_study = indicator_index_test_in_study,
+                                                  ## n_index_tests_per_study = n_index_tests_per_study,
                                                   ##
                                                   # priors = priors,
                                                   ##
@@ -322,6 +324,7 @@ model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(  x = x_subset,
                                                   ##
                                                   cts = cts,
                                                   network = network,
+                                                  ##
                                                   prior_only = FALSE,
                                                   ##
                                                   softplus = softplus,
@@ -332,9 +335,92 @@ model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(  x = x_subset,
                                                   random_thresholds = random_thresholds,
                                                   Dirichlet_random_effects_type = Dirichlet_random_effects_type, ## only used if random cutpoints
                                                   ##
-                                                  init_lists_per_chain = init_lists_per_chain)
+                                                  init_lists_per_chain = init_lists_per_chain
+                                                  )
 
- # model_prep_obj$internal_obj$outs_data$stan_data_list
+# model_prep_obj$internal_obj$outs_data$stan_data_list
+init_lists_per_chain <- model_prep_obj$init_lists_per_chain
+priors <- model_prep_obj$priors
+##
+n_studies <- nrow(x[[1]][[1]])
+n_index_tests <- length(x[[1]])
+
+# if (model_parameterisation == "Jones") {
+#     priors$prior_beta_mu_SD      <- array(5.0, dim = c(n_index_tests, 2))
+#     priors$prior_raw_scale_mu_SD <- array(5.0, dim = c(n_index_tests, 2))
+#     ##
+#     priors$prior_beta_sigma_SD      <- rep(1.0, 2)
+#     priors$prior_raw_scale_sigma_SD <- rep(1.0, 2)
+#     ##
+#     priors$prior_beta_tau_SD      <- array(1.0, dim = c(n_index_tests, 2))
+#     priors$prior_raw_scale_tau_SD <- array(1.0, dim = c(n_index_tests, 2))
+#     ##
+#     ##
+#     ##
+#     ##
+#     for (kk in 1:n_chains) {
+#       init_lists_per_chain[[kk]]$beta_eta <- array(0.001, dim = c(n_studies, 2))
+#       init_lists_per_chain[[kk]]$raw_scale_eta <- array(0.001, dim = c(n_studies, 2))
+#       ##
+#       init_lists_per_chain[[kk]]$beta_delta <- list()
+#       init_lists_per_chain[[kk]]$raw_scale_delta <- list()
+#       for (t in 1:n_index_tests) {
+#         init_lists_per_chain[[kk]]$beta_delta[[t]] <- array(0.001, dim = c(n_studies, 2))
+#         init_lists_per_chain[[kk]]$raw_scale_delta[[t]] <- array(0.001, dim = c(n_studies, 2))
+#       }
+#     }
+#     
+# }
+
+
+# 
+# if (model_parameterisation == "Xu") {
+#   
+#     # n_total_C_if_fixed <- 0
+#     # for (t in 1:n_index_tests) { 
+#     #   # for (k in 1:n_thr[t]) {
+#     #      n_total_C_if_fixed <- n_total_C_if_fixed +  ncol(x[[1]][[t]])
+#     #   # }
+#     # }
+#     # priors$n_total_C_if_fixed <- n_total_C_if_fixed  
+#     # ##
+#     # priors$prior_beta_mu_mean     <- array(0.0, dim = c(n_index_tests, 2))
+#     # ##
+#     # priors$prior_beta_mu_SD       <- array(1.0, dim = c(n_index_tests, 2))
+#     # ##
+#     # priors$prior_beta_sigma_SD    <- rep(1.0, 2)
+#     # ##
+#     # priors$prior_beta_tau_SD      <- array(1.0, dim = c(n_index_tests, 2))
+#     # ##
+#     # priors$prior_dirichlet_alpha <- array(1.0, dim = c(n_index_tests, 28))
+#     ##
+#     ##
+#     ##
+#     for (kk in 1:n_chains) {
+#       init_lists_per_chain[[kk]]$C_raw_vec <- rep(-2.0, n_total_C_if_fixed)
+#       ##
+#       init_lists_per_chain[[kk]]$beta_mu <- array(c(rep(-1.0, n_index_tests), rep(+1.0, n_index_tests)),
+#                                                   dim = c(n_index_tests, 2))
+#       ##
+#       init_lists_per_chain[[kk]]$beta_sigma <- rep(0.001, 2)
+#       init_lists_per_chain[[kk]]$beta_tau <- array(0.001, dim = c(n_index_tests, 2))
+#       ##
+#       init_lists_per_chain[[kk]]$beta_eta <- array(0.001, dim = c(n_studies, 2))
+#       ##
+#       init_lists_per_chain[[kk]]$beta_delta <- list()
+#       for (t in 1:n_index_tests) {
+#         init_lists_per_chain[[kk]]$beta_delta[[t]] <- array(0.001, dim = c(n_studies, 2))
+#       }
+#     }
+#   
+# }
+
+
+##
+str(init_lists_per_chain)
+# 
+# model_prep_obj$internal_obj$outs_data$stan_data_list$box_cox = FALSE
+
 
 
 ##
@@ -365,7 +451,280 @@ model_summary_and_trace_obj <- model_samples_obj$summary(
                                           ##
                                           use_BayesMVP_for_faster_summaries = TRUE)
 
-model_summary_and_trace_obj$get_summary_main() %>% print(n = 1000)
+tibble_main <- model_summary_and_trace_obj$get_summary_main() %>% print(n = 100)
+##
+tibble_gq <- model_summary_and_trace_obj$get_summary_generated_quantities() %>% print(n = 100)
+
+
+n_thr_max <- max(model_prep_obj$internal_obj$outs_data$n_thr)
+##
+Se_median_array <- Sp_median_array <- Fp_median_array    <- array(dim = c(n_index_tests, n_thr_max))
+Se_mean_array <- Sp_mean_array <- Fp_mean_array    <- array(dim = c(n_index_tests, n_thr_max))
+##
+Se_lower_array <- Sp_lower_array <- Fp_lower_array <- array(dim = c(n_index_tests, n_thr_max))
+Se_upper_array <- Sp_upper_array <- Fp_upper_array <- array(dim = c(n_index_tests, n_thr_max))
+##
+Se_pred_lower_array <- Sp_pred_lower_array <- Fp_pred_lower_array <- array(dim = c(n_index_tests, n_thr_max))
+Se_pred_upper_array <- Sp_pred_upper_array <- Fp_pred_upper_array <- array(dim = c(n_index_tests, n_thr_max))
+
+# str(Se_array)
+
+Se <- dplyr::filter(tibble_gq, (stringr::str_detect(parameter, "Se")) &
+                             (!(stringr::str_detect(parameter, "Se_pred"))))
+Sp <- dplyr::filter(tibble_gq, (stringr::str_detect(parameter, "Sp")) &
+                      (!(stringr::str_detect(parameter, "Sp_pred"))))
+Fp  <- dplyr::filter(tibble_gq, (stringr::str_detect(parameter, "Fp")) &
+                      (!(stringr::str_detect(parameter, "Fp_pred"))))
+##
+Se_pred <- dplyr::filter(tibble_gq, (stringr::str_detect(parameter, "Se_pred")))
+Sp_pred <- dplyr::filter(tibble_gq, (stringr::str_detect(parameter, "Sp_pred")))
+Fp_pred <- dplyr::filter(tibble_gq, (stringr::str_detect(parameter, "Fp_pred")))
+
+counter <- 1 
+for (k in 1:n_thr_max) {
+  for (t in 1:n_index_tests) {
+      # test_vec[counter] <- t
+      ## Posterior medians (of pooled estimates):
+      Se_median_array[t, k] <- Se$`50%`[counter]
+      Sp_median_array[t, k] <- Sp$`50%`[counter]
+      Fp_median_array[t, k] <- Fp$`50%`[counter]
+      ## Posterior means (of pooled estimates):
+      Se_mean_array[t, k] <- Se$mean[counter]
+      Sp_mean_array[t, k] <- Sp$mean[counter]
+      Fp_mean_array[t, k] <- Fp$mean[counter]
+      ## Posterior lower 95% (of pooled estimates):
+      Se_lower_array[t, k] <- Se$`2.5%`[counter]
+      Sp_lower_array[t, k] <- Sp$`2.5%`[counter]
+      Fp_lower_array[t, k] <- Fp$`2.5%`[counter]
+      ## Posterior upper 95% (of pooled estimates):
+      Se_upper_array[t, k] <- Se$`97.5%`[counter]
+      Sp_upper_array[t, k] <- Sp$`97.5%`[counter]
+      Fp_upper_array[t, k] <- Fp$`97.5%`[counter]
+      ## Posterior lower prediction 95% (of pooled estimates):
+      Se_pred_lower_array[t, k] <- Se_pred$`2.5%`[counter]
+      Sp_pred_lower_array[t, k] <- Sp_pred$`2.5%`[counter]
+      Fp_pred_lower_array[t, k] <- Fp_pred$`2.5%`[counter]
+      ## Posterior upper prediction 95% (of pooled estimates):
+      Se_pred_upper_array[t, k] <- Se_pred$`97.5%`[counter]
+      Sp_pred_upper_array[t, k] <- Sp_pred$`97.5%`[counter]
+      Fp_pred_upper_array[t, k] <- Fp_pred$`97.5%`[counter]
+      ##
+      counter <- counter + 1
+  }
+}
+
+test_vec <- thr_vec <- c()
+counter <- 1 
+for (t in 1:n_index_tests) {
+  for (k in 1:n_thr_max) {
+      test_vec[counter] <- t
+      thr_vec[counter] <- k
+      ##
+      counter <- counter + 1
+  }
+}
+
+n_rows_total <- length(test_vec)
+
+##
+## Make tibble for ggplot (to make sROC plots, etc):
+##
+Se_mean_array
+c(t(Se_mean_array))
+
+
+stan_model_file_name <- "NMA_Xu"
+model_name <- stan_model_file_name
+
+tibble_NMA <- tibble(  Model = rep(model_name, n_rows_total),
+                       ##
+                       test = factor(test_vec),
+                       test_char = paste0("test ", test),
+                       threshold = thr_vec,
+                       ##
+                       Se_median = c(t(Se_median_array)),
+                       Sp_median = c(t(Sp_median_array)),
+                       Fp_median = c(t(Fp_median_array)),
+                       ##
+                       Se_mean = c(t(Se_mean_array)),
+                       Sp_mean = c(t(Sp_mean_array)),
+                       Fp_mean = c(t(Fp_mean_array)),
+                       ##
+                       Se_lower = c(t(Se_lower_array)),
+                       Sp_lower = c(t(Sp_lower_array)),
+                       Fp_lower = c(t(Fp_lower_array)),
+                       ##
+                       Se_upper = c(t(Se_upper_array)),
+                       Sp_upper = c(t(Sp_upper_array)),
+                       Fp_upper = c(t(Fp_upper_array)),
+                       ##
+                       Se_pred_lower = c(t(Se_pred_lower_array)),
+                       Sp_pred_lower = c(t(Sp_pred_lower_array)),
+                       Fp_pred_lower = c(t(Fp_pred_lower_array)),
+                       ##
+                       Se_pred_upper = c(t(Se_pred_upper_array)),
+                       Sp_pred_upper = c(t(Sp_pred_upper_array)),
+                       Fp_pred_upper = c(t(Fp_pred_upper_array)))
+
+
+
+
+tibble_NMA
+polygon_Conf_list <- polygon_Pred_list <- list()
+for (t in 1:n_index_tests) {
+    tibble_test_t <- dplyr::filter(tibble_NMA, test == t)
+    ##
+    ## Tibbles for 95% credible region:
+    ##
+    tibble_Conf_polygon_test_t <- create_confidence_polygon(tibble_test_t, model_name = model_name)
+    n_rows = nrow(tibble_Conf_polygon_test_t)
+    tibble_Conf_polygon_test_t <- tibble_Conf_polygon_test_t %>% dplyr::mutate(test = rep(t, n_rows),
+                                                                               test_char = paste0("test ", test))
+    polygon_Conf_list[[t]] <- tibble_Conf_polygon_test_t
+    ##
+    ## Tibbles for 95% prediction region:
+    ##
+    tibble_Pred_polygon_test_t <- create_prediction_polygon(tibble_test_t, model_name = model_name)
+    n_rows = nrow(tibble_Pred_polygon_test_t)
+    tibble_Pred_polygon_test_t <- tibble_Pred_polygon_test_t %>% dplyr::mutate(test = rep(t, n_rows), 
+                                                                               test_char = paste0("test ", test))
+    polygon_Pred_list[[t]] <- tibble_Pred_polygon_test_t
+    # polygon_Pred_list[[t]] <- create_prediction_polygon(tibble_test_t, model_name = model_name)
+}
+##
+## ---- Final conf and prediction regions tibbles:
+##
+polygon_Conf_tibble <- tibble(data.table::rbindlist(polygon_Conf_list)) %>% dplyr::filter(!(is.na(x))) %>% print(n = 100)
+polygon_Pred_tibble <- tibble(data.table::rbindlist(polygon_Pred_list)) %>% dplyr::filter(!(is.na(x))) %>% print(n = 100)
+
+##
+## ---- Plot 1 (all tests on 1 plot):
+##
+plot_1 <-  ggplot(tibble_NMA, mapping = aes(x = Fp_median, y = Se_median, colour = test)) + 
+  geom_line(linewidth = 0.5) + 
+  geom_point(size = 3) + 
+  theme_bw(base_size = 16) + 
+  xlab("False positive rate (Fp)") + 
+  ylab("Sensitivity (Se)")
+plot_1
+
+##
+## ---- Plot 2 (each test on separate panel):
+##
+plot_2 <-  ggplot(tibble_NMA, mapping = aes(x = Fp_median, y = Se_median, colour = Model)) + 
+  geom_line(linewidth = 0.5) + 
+  geom_point(size = 3) + 
+  theme_bw(base_size = 16) + 
+  facet_wrap(~ test_char) + 
+  xlab("False positive rate (Fp)") + 
+  ylab("Sensitivity (Se)")
+plot_2
+
+
+##
+## ---- Plot 3 (plot w/ 95% confidence region):
+##
+conf_region_colour <- pred_region_colour <- "blue"
+##
+plot_3 <-   plot_2  + 
+  ##
+  geom_polygon(data = polygon_Conf_tibble,
+               aes(x = x, y = y, colour = Model),
+               fill = conf_region_colour, 
+               alpha = 0.40)
+  # geom_polygon(data = polygon_Pred_tibble, aes(x = x, y = y), fill = pred_region_colour, alpha = 0.25) + 
+  ##
+plot_3
+
+
+
+##
+## ---- Plot 4 (plot w/ 95% prediction region):
+##
+plot_4 <-  plot_2 +  geom_polygon(
+               data = polygon_Pred_tibble,
+               aes(x = x, y = y, colour = Model),
+               fill = pred_region_colour, 
+               alpha = 0.40)
+plot_4
+
+
+##
+## ---- Plot 5 (plot w/ BOTH the 95% confidence + prediction regions):
+##
+plot_5 <-  plot_2 + 
+  geom_polygon(
+      data = polygon_Conf_tibble,
+      aes(x = x, y = y, colour = Model),
+      fill = pred_region_colour, 
+      alpha = 0.40) + 
+  ##
+  geom_polygon(
+      data = polygon_Pred_tibble,
+      aes(x = x, y = y, colour = Model),
+      fill = pred_region_colour, 
+      alpha = 0.20)
+plot_5
+
+
+
+
+Se_abs_diffs_sim <- Sp_abs_diffs_sim <- list()
+Se_mean_of_diffs_sim <- Sp_mean_of_diffs_sim <- c()
+Se_sum_of_diffs_sim <- Sp_sum_of_diffs_sim <- c()
+Se_max_of_diffs_sim <- Sp_max_of_diffs_sim <- c()
+
+for (t in 1:n_index_tests) {
+    Se_abs_diffs_sim[[t]] <- abs(true_Se_OVERALL_weighted[[t]] - 100 * Se_mean_array[t, 1:n_thr[t]])
+    Sp_abs_diffs_sim[[t]] <- abs(true_Sp_OVERALL_weighted[[t]] - 100 * Sp_mean_array[t, 1:n_thr[t]])
+    ##
+    Se_mean_of_diffs_sim[t] <- mean(Se_abs_diffs_sim[[t]])
+    Sp_mean_of_diffs_sim[t] <- mean(Sp_abs_diffs_sim[[t]])
+    ##
+    Se_sum_of_diffs_sim[t] <- sum(Se_abs_diffs_sim[[t]])
+    Sp_sum_of_diffs_sim[t] <- sum(Sp_abs_diffs_sim[[t]])
+    ##
+    Se_max_of_diffs_sim[t] <- max(Se_abs_diffs_sim[[t]])
+    Sp_max_of_diffs_sim[t] <- max(Sp_abs_diffs_sim[[t]])
+}
+
+
+
+{
+      message(paste("Se_mean_of_diffs_sim = ")) ## , Se_sum_of_diffs_sim))
+      print(Se_mean_of_diffs_sim)
+      ##
+      message(paste("Se_sum_of_diffs_sim = ")) ## , Se_sum_of_diffs_sim))
+      print(Se_sum_of_diffs_sim)
+      ##
+      message(paste("Se_max_of_diffs_sim = ")) ## , Se_sum_of_diffs_sim))
+      print(Se_max_of_diffs_sim)
+}
+##
+{
+      message(paste("Sp_mean_of_diffs_sim = ")) ## , Se_sum_of_diffs_sim))
+      print(Sp_mean_of_diffs_sim)
+      ##
+      message(paste("Sp_sum_of_diffs_sim = ")) ## , Se_sum_of_diffs_sim))
+      print(Sp_sum_of_diffs_sim)
+      ##
+      message(paste("Sp_max_of_diffs_sim = ")) ## , Se_sum_of_diffs_sim))
+      print(Sp_max_of_diffs_sim)
+}
+
+
+
+true_Se_OVERALL_weighted[[1]] - 100 * Se_mean_array[1, 1:n_thr[1]] 
+true_Se_OVERALL_weighted[[2]] - 100 * Se_mean_array[2, 1:n_thr[2]] 
+true_Se_OVERALL_weighted[[3]] - 100 * Se_mean_array[3, 1:n_thr[3]] 
+true_Se_OVERALL_weighted[[4]] - 100 * Se_mean_array[4, 1:n_thr[4]] 
+
+
+true_Sp_OVERALL_weighted[[1]] - 100 * Sp_mean_array[1, 1:n_thr[1]] 
+true_Sp_OVERALL_weighted[[2]] - 100 * Sp_mean_array[2, 1:n_thr[2]] 
+true_Sp_OVERALL_weighted[[3]] - 100 * Sp_mean_array[3, 1:n_thr[3]] 
+true_Sp_OVERALL_weighted[[4]] - 100 * Sp_mean_array[4, 1:n_thr[4]] 
+
 
 ##
 ## ----  Plots: ----------------------------------------------------------------------
@@ -1353,6 +1712,48 @@ str(log_lik_trace) # will be NULL unless you specify  "save_log_lik_trace = TRUE
 
 
 
+
+
+
+# 
+# stan_data_list       = internal_obj$outs_data$stan_data_list
+# 
+# # Check if all list elements have names
+# check_names <- function(x) {
+#   if (is.list(x)) {
+#     # Check if this list has names
+#     if (length(x) > 0 && is.null(names(x))) {
+#       return(FALSE)
+#     }
+#     # Recursively check all elements
+#     return(all(sapply(x, check_names)))
+#   }
+#   return(TRUE)
+# }
+# 
+# # Fix by adding names to all list elements
+# add_names <- function(x, prefix = "item") {
+#   if (is.list(x)) {
+#     if (length(x) > 0 && is.null(names(x))) {
+#       names(x) <- paste0(prefix, 1:length(x))
+#     }
+#     for (i in 1:length(x)) {
+#       x[[i]] <- add_names(x[[i]], paste0(prefix, "_", i))
+#     }
+#   }
+#   return(x)
+# }
+# 
+# 
+# # See if there are unnamed elements
+# check_names(init_lists_per_chain)
+# 
+# # Apply the fix
+# init_lists_per_chain <- add_names(init_lists_per_chain)
+# ##
+# internal_obj$outs_data$stan_data_list <- stan_data_list
+# 
+# 
 
 
 
