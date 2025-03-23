@@ -109,7 +109,10 @@ transformed parameters {
             ////
             //// ---- Multinomial (factorised binomial likelihood)
             ////
-            log_lik = compute_log_lik_binomial_fact(cumul_prob, x, n, n_obs_cutpoints);
+            array[2, 2] matrix[n_studies, n_thr] log_lik_outs;
+            log_lik_outs = compute_log_lik_binomial_fact(cumul_prob, x, n, n_obs_cutpoints);
+            log_lik = log_lik_outs[1];
+            cond_prob = log_lik_outs[2];
         }
       
 }
@@ -131,8 +134,8 @@ model {
            vector[n_thr] Ind_Dir_cumul_prob = Phi_approx(Ind_Dir_cumul);
            vector[n_cat] Ind_Dir_ord_prob = cumul_probs_to_ord_probs(Ind_Dir_cumul_prob);
            ////
-           vector[n_thr] rho = std_normal_approx_pdf(Ind_Dir_cumul[1:n_thr], Ind_Dir_cumul_prob[1:n_thr]);
-           Ind_Dir_ord_prob[1:n_cat] ~ induced_dirichlet_given_rho(rho, prior_alpha);
+           vector[n_thr] rho = std_normal_approx_pdf(Ind_Dir_cumul, Ind_Dir_cumul_prob);
+           Ind_Dir_ord_prob ~ induced_dirichlet_given_rho(rho, prior_alpha);
         }
         ////
         //// ---- Likelihood / Model:

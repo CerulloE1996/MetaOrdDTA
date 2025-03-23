@@ -119,14 +119,9 @@ transformed parameters {
                     //// ---- Between-study model for location and scale:
                     ////
                     for (s in 1:n_studies) {
-                         beta[, s]      = beta_mu      + diag_pre_multiply(beta_SD, beta_L_Omega) * beta_z[, s];
-                         raw_scale[, s] = raw_scale_mu + diag_pre_multiply(raw_scale_SD, raw_scale_L_Omega) * raw_scale_z[, s];
+                         beta[, s]      = beta_mu      + beta_L_Sigma * beta_z[, s];
+                         raw_scale[, s] = raw_scale_mu + raw_scale_L_Sigma * raw_scale_z[, s];
                     }
-                    
-                      // vector[n_studies] beta_wt = beta_SD - w_beta * (beta_SD - 1);
-                      // beta[c, s] = (beta_z * beta_SD + beta_mu * w_beta) ./ beta_wt;  // Recentered individual parameters
-                      // 
-                      // beta_z ~ normal(beta_mu * (1.0 - w_beta), beta_wt);
                 }
                 //// 
                 //// ---- Compute scales and Jacobian adjustment for raw_scale -> scale transformation (w/ Jacobian for raw_scale -> scale)
@@ -148,7 +143,10 @@ transformed parameters {
                 ////
                 //// ------- Multinomial (factorised binomial likelihood)
                 ////
-                log_lik = compute_log_lik_binomial_fact(cumul_prob, x, n, n_obs_cutpoints);
+                array[2, 2] matrix[n_studies, n_thr] log_lik_outs;
+                log_lik_outs = compute_log_lik_binomial_fact(cumul_prob, x, n, n_obs_cutpoints);
+                log_lik = log_lik_outs[1];
+                cond_prob = log_lik_outs[2];
         }
       
 }
@@ -161,13 +159,13 @@ model {
         ////
         beta_mu    ~ normal(prior_beta_mu_mean, prior_beta_mu_SD);
         beta_SD    ~ normal(prior_beta_SD_mean, prior_beta_SD_SD);
-        beta_Omega ~ lkj_corr(prior_beta_corr_LKJ); //// possibly truncated
+        beta_Omega ~ lkj_corr(prior_beta_corr_LKJ);
         ////
         //// Priors for scales:
         ////
         raw_scale_mu    ~ normal(prior_raw_scale_mu_mean, prior_raw_scale_mu_SD);
         raw_scale_SD    ~ normal(prior_raw_scale_SD_mean, prior_raw_scale_SD_SD);
-        raw_scale_Omega ~ lkj_corr(prior_raw_scale_corr_LKJ); //// possibly truncated
+        raw_scale_Omega ~ lkj_corr(prior_raw_scale_corr_LKJ);
         ////
         //// Prior for box-cox parameters:
         ////
