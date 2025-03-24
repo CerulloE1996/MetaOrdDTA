@@ -10,6 +10,7 @@ functions {
         #include "Stan_fns_ordinal_and_cutpoints.stan"
         #include "Stan_fns_log_lik.stan"
         #include "Stan_fns_ragged.stan"
+        #include "Stan_fns_NMA.stan"
 }
 
 
@@ -55,7 +56,7 @@ data {
           vector[n_index_tests] prior_boxcox_lambda_mean;
           vector<lower=0.0>[n_index_tests] prior_boxcox_lambda_SD;
           ////
-          //// Priors (and possible restrictions) for between-study correlations:
+          //// ---- Priors (and possible restrictions) for between-study correlations:
           ////
           real<lower=-1.0, upper=+1.0> beta_corr_lb;
           real<lower=beta_corr_lb, upper=+1.0>  beta_corr_ub;
@@ -152,10 +153,6 @@ transformed parameters {
               raw_scale_eta[s, 1:2] = to_row_vector( raw_scale_L_Sigma * to_vector(raw_scale_eta_z[s, 1:2]) );  //// beta_eta[s, 1:2] ~ normal({0.0, 0.0}, Sigma);
           }
           ////
-          // for (c in 1:2) {
-          //     raw_scale_eta[1:n_studies, c] = 0.0 + raw_scale_sigma[c] * raw_scale_eta_z[1:n_studies, c]; //// raw_scale_eta[s, c] ~ normal(0.0, raw_scale_sigma[c]);
-          // }
-          ////
           //// ---- Declare test-specific deviations ("delta" in Nyaga notation) - delta_{s, c, t} ~ normal(0, tau_{c, t}):
           ////
           array[n_index_tests] matrix[n_studies, 2] beta_delta      = init_array_of_matrices(n_studies, 2, n_index_tests, 0.0);
@@ -196,8 +193,8 @@ transformed parameters {
                                                     ////
                                                     for (c in 1:2) {
                                                         //// pi_{s, c, t} = Phi(mu_{c, t} + eta_{s, c} + delta_{s, c, t}).
-                                                        locations[t][s, c]     =  beta_mu[t, c]     + beta_eta[s, c]      + beta_delta[t][s, c]; 
-                                                        real raw_scale_given_c = raw_scale_mu[t, c] + raw_scale_eta[s, c] + raw_scale_delta[t][s, c];
+                                                        locations[t][s, c]     =  beta_mu[t, c]      + beta_eta[s, c]      + beta_delta[t][s, c]; 
+                                                        real raw_scale_given_c =  raw_scale_mu[t, c] + raw_scale_eta[s, c] + raw_scale_delta[t][s, c];
                                                         scales[t][s, c] = ((softplus == 1) ? softplus_scaled_jacobian(raw_scale_given_c) : exp_jacobian(raw_scale_given_c));
                                                     }
                                                     ////
@@ -287,8 +284,10 @@ model {
 
 
 generated quantities {
-
-          //// Summary accuracy parameters (at each threshold):
+  
+          ////
+          //// ---- Summary accuracy parameters (at each threshold):
+          ////
           array[n_index_tests] vector[n_thr_max] Se;
           array[n_index_tests] vector[n_thr_max] Sp;
           array[n_index_tests] vector[n_thr_max] Fp;
@@ -305,40 +304,6 @@ generated quantities {
           array[n_index_tests] matrix[n_studies, n_thr_max] x_hat_d  = init_array_of_matrices(n_studies, n_thr_max, n_index_tests, -1.0);
           array[n_index_tests] matrix[n_studies, n_thr_max] dev_nd   = init_array_of_matrices(n_studies, n_thr_max, n_index_tests, -1.0);
           array[n_index_tests] matrix[n_studies, n_thr_max] dev_d    = init_array_of_matrices(n_studies, n_thr_max, n_index_tests, -1.0);
-          ////
-          matrix[n_index_tests, n_thr_max] LRpos;  
-          matrix[n_index_tests, n_thr_max] LRneg; 
-          matrix[n_index_tests, n_thr_max] DOR; 
-          matrix[n_index_tests, n_thr_max] PPV; 
-          matrix[n_index_tests, n_thr_max] NPV; 
-          matrix[n_index_tests, n_thr_max] Youden_index; 
-          matrix[n_index_tests, n_thr_max] Youden_index_weighted; 
-          ////
-          matrix[n_index_tests, 2] beta_tau_sq = square(beta_tau);
-          vector[2] sigmabsq;
-          matrix[n_index_tests, n_index_tests] sigmasq[2];
-          matrix[n_index_tests, n_index_tests] rho[2];
-          matrix[n_index_tests, n_index_tests] rho12[2];
-          ////
-          sigmabsq[1] = Sigma[1, 1];
-          sigmabsq[2] = Sigma[2, 2];
-          
-          for (d in 1:2) {
-             for (k in 1:n_tests) {
-                  beta_tau_sq[t, c] = square(beta_tau[t, c]); ////* tau[k,d]; // for model w/ diff SD's across tests
-             }
-          }
-                    
-          for (d in 1:2) {
-              for (k in 1:n_tests) {
-                  for (l in 1:n_tests) {
-                      sigmasq[d, k, l] = (sigmabsq[d] + tausq[k, d]) * ((sigmabsq[d] + tausq[l, d])); 
-                      rho[d, k, l] = sigmabsq[d] / sqrt(sigmasq[d,k,l]);
-                      //// rho12 is the correlation between the t1'th and t2'th test (t1=t2 and t1 =/=t2 both possible) 
-                      rho12[d, k, l] =      Omega[1,1]*sqrt(Sigma[1,1])*sqrt(Sigma[2,2]) / sqrt( (Sigma[1,1] + tausq[k,d]) * (Sigma[2,2] + tausq[l,d]) );
-                  }
-              }
-          }
           ////
           //// ---- Calculate study-specific accuracy:
           ////
@@ -392,32 +357,29 @@ generated quantities {
                   array[n_index_tests, 2] matrix[n_studies, n_thr_max] dev   = init_nested_array_of_matrices(n_studies, n_thr_max, n_index_tests, 2, -1.0);
                   ////
                   for (t in 1:n_index_tests) {
-                      for (s in 1:n_studies) {
+                        for (s in 1:n_studies) {
                             if (indicator_index_test_in_study[s, t] == 1) {
-        
-                                      for (c in 1:2) {
-                                         for (cut_i in 1:to_int(n_obs_cutpoints[s, t])) {
-        
-                                                  //// Model-estimated data:
-                                                  x_hat[t, c][s, cut_i] = cond_prob[t, c][s, cut_i] * n[t, c][s, cut_i];  	 //// Fitted values
-        
-                                                  //// Compute residual deviance contribution:
-                                                  real n_i =  (n[t, c][s, cut_i]);
-                                                  real x_i =  (x[t, c][s, cut_i]);
-                                                  real x_hat_i =  (x_hat[t, c][s, cut_i]);
-                                                  real log_x_minus_log_x_hat = log(x_i) - log(x_hat_i);
-                                                  real log_diff_n_minus_x = log(n_i - x_i);
-                                                  real log_diff_n_minus_x_hat = log(abs(n_i - x_hat_i));
-        
-                                                  // array[n_index_tests, 2] matrix[n_studies, n_thr_max] n;
-        
-                                                  dev[t, c][s, cut_i] = 2.0 * ( x_i * log_x_minus_log_x_hat + (n_i - x_i) * (log_diff_n_minus_x - log_diff_n_minus_x_hat) );
-        
-                                         }
-                                      }
-        
+                                for (c in 1:2) {
+                                   for (cut_i in 1:to_int(n_obs_cutpoints[s, t])) {
+  
+                                            //// Model-estimated data:
+                                            x_hat[t, c][s, cut_i] = cond_prob[t, c][s, cut_i] * n[t, c][s, cut_i];  	 //// Fitted values
+  
+                                            //// Compute residual deviance contribution:
+                                            real n_i =  (n[t, c][s, cut_i]);
+                                            real x_i =  (x[t, c][s, cut_i]);
+                                            real x_hat_i =  (x_hat[t, c][s, cut_i]);
+                                            real log_x_minus_log_x_hat = log(x_i) - log(x_hat_i);
+                                            real log_diff_n_minus_x = log(n_i - x_i);
+                                            real log_diff_n_minus_x_hat = log(abs(n_i - x_hat_i));
+  
+                                            // array[n_index_tests, 2] matrix[n_studies, n_thr_max] n;
+                                            dev[t, c][s, cut_i] = 2.0 * ( x_i * log_x_minus_log_x_hat + (n_i - x_i) * (log_diff_n_minus_x - log_diff_n_minus_x_hat) );
+  
+                                   }
+                                }
                             }
-                      }
+                        }
                   }
                   ////
                   //// ---- Store deviance and x_hat split by disease status:
@@ -429,7 +391,128 @@ generated quantities {
                        dev_d[t]    = dev[t, 2];
                   }
           }
+          ////
+          //// ---- NMA: Compute between-study heterogeneity + correlations for "beta":
+          ////
+          matrix[n_index_tests, 2] beta_tau_sq = square(beta_tau);
+          array[2] matrix[n_index_tests, n_index_tests] beta_sigma_sq;
+          array[2] matrix[n_index_tests, n_index_tests] beta_rho;
+          array[2] matrix[n_index_tests, n_index_tests] beta_rho12;
+          cov_matrix[2] beta_Sigma = multiply_lower_tri_self_transpose(beta_L_Sigma);
+          {
+            array[3, 2] matrix[n_tests, n_tests] NMA_Nyaga_outs_beta = compute_Nyaga_NMA_summaries(n_tests, beta_tau_sq, beta_Sigma, beta_Omega);
+            beta_sigma_sq = NMA_Nyaga_outs_beta[1];
+            beta_rho      = NMA_Nyaga_outs_beta[2];
+            beta_rho12    = NMA_Nyaga_outs_beta[3];
+          }
+          ////
+          //// ---- NMA: Compute between-study heterogeneity + correlations for "raw_scale":
+          ////
+          matrix[n_index_tests, 2] raw_scale_tau_sq = square(raw_scale_tau);
+          array[2] matrix[n_index_tests, n_index_tests] raw_scale_sigma_sq;
+          array[2] matrix[n_index_tests, n_index_tests] raw_scale_rho;
+          array[2] matrix[n_index_tests, n_index_tests] raw_scale_rho12;
+          ////
+          cov_matrix[2] raw_scale_Sigma = multiply_lower_tri_self_transpose(raw_scale_L_Sigma);
+          {
+            array[3, 2] matrix[n_tests, n_tests] NMA_Nyaga_outs_beta = compute_Nyaga_NMA_summaries(n_tests, raw_scale_tau_sq, raw_scale_Sigma, raw_scale_Omega);
+            raw_scale_sigma_sq = NMA_Nyaga_outs_beta[1];
+            raw_scale_rho      = NMA_Nyaga_outs_beta[2];
+            raw_scale_rho12    = NMA_Nyaga_outs_beta[3];
+          }
+          ////
+          //// ---- NMA: Compute "rank statistics" + other summary (non-comparative) estimates:
+          ////
+          array[n_index_tests] vector[n_thr_max] LRpos;  
+          array[n_index_tests] vector[n_thr_max] LRneg; 
+          array[n_index_tests] vector[n_thr_max] DOR; 
+          array[n_index_tests] vector[n_thr_max] Youden_index; 
+          array[n_index_tests] vector[n_thr_max] Youden_index_weighted; 
+          for (t in 1:n_index_tests) {
+            
+                    int n_thr_t = n_thr[t];
+                    array[n_thr_t] int n_thr_t_index = linspaced_int_array(n_thr_t, 1, n_thr_t);
+                    vector[n_thr_t] Se_test_t = Se[t][n_thr_t_index];
+                    vector[n_thr_t] Sp_test_t = Sp[t][n_thr_t_index];
+                    vector[n_thr_t] Fp_test_t = Fp[t][n_thr_t_index];
+                    ////
+                    //// ---- Youden index:
+                    ////
+                    Youden_index[t][n_thr_t_index] = Se_test_t + Sp_test_t - 1.0;
+                    ////
+                    //// ---- Weighted Youden index (weight = 0.5 -> same as youden, weight > 0.5 -> more importance on Se):
+                    ////
+                    real youden_weight = 0.50;
+                    Youden_index_weighted[t][n_thr_t_index] = 2.0 * (youden_weight .* Se_test_t + (1.0 - youden_weight) .* Sp_test_t);
+                    ////
+                    //// ---- DOR:
+                    ////
+                  	DOR[t][n_thr_t_index] = (Se_test_t .* Sp_test_t) ./ ((1.0 - Se_test_t) .* (1.0 - Sp_test_t));
+                    ////
+                    //// ---- "Likelihood Ratio's" (LR's):
+                    ////
+                   	LRpos[t][n_thr_t_index] = Se_test_t ./ Sp_test_t;
+    	              LRneg[t][n_thr_t_index] = (1.0 - Se_test_t) ./ Sp_test_t;
+    	              // ////
+    	              // //// PPV and NPV (using user-inputted prev data vector)
+    	              // ////
+    	              // PPV[t][n_thr_t_index] = Se[t] * prev[Test[n]] / ( Se[t]*prev[Test[n]] + (1-Sp[t])*(1.0-prev[Test[n]]) );
+    	              // NPV[t][n_thr_t_index] = Sp[t] * prev[Test[n]] / ( (1.0-Se[t])*prev[Test[n]] + Sp[t]*(1.0-prev[Test[n]]) );
+    	              
+          }
+          ////
+          //// ---- NMA: Compute pairwise accuracy differences + ratios:
+          ////
+          array[n_index_tests, n_index_tests] matrix[n_thr_max, n_thr_max] diff_Se;
+          array[n_index_tests, n_index_tests] matrix[n_thr_max, n_thr_max] diff_Sp;
+          array[n_index_tests, n_index_tests] matrix[n_thr_max, n_thr_max] ratio_Se;
+          array[n_index_tests, n_index_tests] matrix[n_thr_max, n_thr_max] ratio_Sp;
+          for (t1 in 1:(n_tests - 1)) {
+              
+                    int n_thr_t1 = n_thr[t1];
+                    array[n_thr_t1] int n_thr_t1_index = linspaced_int_array(n_thr_t1, 1, n_thr_t1);
+                          
+                    for (t2 in (t1 + 1):n_tests) {
+                      
+                            int n_thr_t2 = n_thr[t2];
+                            array[n_thr_t2] int n_thr_t2_index = linspaced_int_array(n_thr_t2, 1, n_thr_t2);
+                            ////
+                            //// Get vectors of accuracies for all thresholds:
+                            ////
+                            vector[n_thr_t1] Se_test_t1 = Se[t1][n_thr_t1_index];
+                            vector[n_thr_t2] Se_test_t2 = Se[t2][n_thr_t2_index];
+                            vector[n_thr_t1] Sp_test_t1 = Sp[t1][n_thr_t1_index];
+                            vector[n_thr_t2] Sp_test_t2 = Sp[t2][n_thr_t2_index];
+                            ////
+                            //// Compute all pairwise differences:
+                            ////
+                            diff_Se[t1, t2][n_thr_t1_index, n_thr_t2_index] = compute_between_test_diffs( Se_test_t1, Se_test_t2, n_thr_t1, n_thr_t2);
+                            diff_Sp[t1, t2][n_thr_t1_index, n_thr_t2_index] = compute_between_test_diffs( Sp_test_t1, Sp_test_t2, n_thr_t1, n_thr_t2);
+                            ////
+                            //// Compute all pairwise ratios:
+                            ////
+                            ratio_Se[t1, t2][n_thr_t1_index, n_thr_t2_index] = compute_between_test_ratios(Se_test_t1, Se_test_t2, n_thr_t1, n_thr_t2);
+                            ratio_Sp[t1, t2][n_thr_t1_index, n_thr_t2_index] = compute_between_test_ratios(Sp_test_t1, Sp_test_t2, n_thr_t1, n_thr_t2);
+                      
+                    }
+                  
+          }
 
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
