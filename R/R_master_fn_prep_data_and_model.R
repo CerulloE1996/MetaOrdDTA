@@ -33,7 +33,6 @@ prep_data_and_model <- function(  debugging = FALSE,
           ##
           default_fns_list <- list(  network = default_network,
                                      cts = default_cts,
-                                     ##
                                      model_parameterisation = default_model_parameterisation,
                                      random_thresholds = default_random_thresholds,
                                      Dirichlet_random_effects_type = default_Dirichlet_random_effects_type,
@@ -153,7 +152,7 @@ prep_data_and_model <- function(  debugging = FALSE,
                                                                          network    = basic_model_options$network, 
                                                                          prior_only = basic_model_options$prior_only,
                                                                          ##
-                                                                         debugging = TRUE,
+                                                                         debugging = debugging,
                                                                          force_recompile = FALSE,
                                                                          quiet = FALSE)
           # ##
@@ -177,6 +176,9 @@ prep_data_and_model <- function(  debugging = FALSE,
           priors <- prior_fn(  
                              priors = priors,
                              ##
+                             n_index_tests = internal_obj$outs_data$n_index_tests,
+                             n_studies = internal_obj$outs_data$n_studies,
+                             ##
                              cts     = basic_model_options$cts,
                              ##
                              model_parameterisation        = advanced_model_options$model_parameterisation,
@@ -185,9 +187,7 @@ prep_data_and_model <- function(  debugging = FALSE,
                              softplus                      = advanced_model_options$softplus,
                              ##
                              n_cat = internal_obj$outs_data$n_cat,
-                             n_thr = internal_obj$outs_data$n_thr,
-                             ##
-                             n_index_tests = internal_obj$outs_data$n_index_tests)
+                             n_thr = internal_obj$outs_data$n_thr)
           ##
           # message(paste("priors = "))
           # print(priors)

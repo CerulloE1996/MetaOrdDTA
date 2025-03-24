@@ -64,8 +64,6 @@ R_fn_get_stan_model_file_name <- function( cts,
                                                  file_string_3,
                                                  file_string_4,
                                                  ".stan")
-           
-          
           
         } else if (cts == TRUE) {
           

@@ -22,11 +22,6 @@ R_fn_set_inits_NMA <- function(    inits,
                                    softplus
 )  {
   
-          
-          #       matrix[n_studies, 2] beta_eta_z;       //// Standard normal RVs for study-level effects - eta[s, 1:2] ~ multi_normal({0, 0}, Sigma).
-  #               array[n_index_tests] matrix[n_studies, 2] beta_delta_z;       //// Standard normal RVs for test-specific effects
-  
-
           ##
           n_cat <- n_thr + 1
           n_tests <- n_index_tests
@@ -77,7 +72,7 @@ R_fn_set_inits_NMA <- function(    inits,
                         
           } else if (cts == FALSE) { ## ordinal (Xu-based or R&G-based)
             
-                        if (model_parameterisation == "R&G") {
+                          if (model_parameterisation %in% c("R&G", "HSROC")) { 
                           
                                     # ##
                                     # ## Set default inits for the locations ("beta"):
@@ -97,13 +92,13 @@ R_fn_set_inits_NMA <- function(    inits,
                                     # inits$raw_scale_z  <- if_null_then_set_to(inits$raw_scale_mu, rep(0.001, n_studies))
                           
                           
-                        } else if (model_parameterisation == "Xu") {
+                          } else if (model_parameterisation %in% c("Xu", "bivariate")) {
                           
                                     ##
                                     ## Set default inits for the locations ("beta"):
                                     ##
-                                    inits$beta_mu <- if_null_then_set_to(inits$beta_mu <- array(c(rep(-1.0, n_index_tests), rep(+1.0, n_index_tests)),
-                                                                                                dim = c(n_index_tests, 2))
+                                    inits$beta_mu <- if_null_then_set_to(inits$beta_mu, 
+                                                                         array(c(rep(-1.0, n_index_tests), rep(+1.0, n_index_tests)), dim = c(n_index_tests, 2)))
                                     ##
                                     ## Default inits for the between-study corr matrix ("beta_L_Omega"):
                                     ##
@@ -130,35 +125,41 @@ R_fn_set_inits_NMA <- function(    inits,
                                     ##
                                     ## Default inits for the between-study corr matrix ("beta_corr"):
                                     ##
-                                    inits$beta_corr <- if_null_then_set_to(inits$beta_corr, 
-                                                                           0.5*(priors$beta_corr_lb + priors$beta_corr_ub))
-                                    check_vec_length(inits, "beta_corr", 1)
- 
-                                    
-                          
+                                    inits$beta_corr <- if_null_then_set_to(inits$beta_corr, 0.5*(priors$beta_corr_lb + priors$beta_corr_ub))
+                                    # check_vec_length(inits, "beta_corr", 1)
+                                    # ##
                         }
                         ##
                         ## Default inits for the cutpoints and/or induced-Dirichlet parameters:
                         ## NOTE: these are the same whether using "R&G" or "Xu" parameterisation
                         ##
                         if (random_thresholds == FALSE) { 
-                                    ##
-                                    ## Default inits for the cutpoints:
-                                    ##
-                                    inits$C <- seq(from = -2.0, to = 2.0, length = n_thr)
+                                    # ##
+                                    # ## Default inits for the cutpoints:
+                                    # ##
+                                    # inits$C <- seq(from = -2.0, to = 2.0, length = n_thr)
                           
                         } else if (random_thresholds == TRUE) { 
+                                    # ##
+                                    # ## Default inits for the cutpoints:
+                                    # ##
+                                    # cutpoint_vec <- seq(from = -2.0, to = 2.0, length = n_thr)
+                                    # inits$C_array <- if_null_then_set_to(inits$C_array, list(cutpoint_vec, cutpoint_vec))
+                                    # ##
+                                    # ## Default inits for "induced-Dirichlet" between-study model (for the cutpoints):
+                                    # ##
+                                    # inits$dirichlet_cat_means_phi <- if_null_then_set_to(inits$dirichlet_cat_means_phi, rep(1/n_cat, n_cat))
+                                    # inits$kappa <- if_null_then_set_to(inits$kappa, rep(100, n_index_tests))
                                     ##
-                                    ## Default inits for the cutpoints:
+                                    n_total_pooled_cat  <- sum(n_cat)
+                                    n_thr_random = n_thr * n_studies
+                                    n_total_C_if_random <- sum(n_thr_random)
                                     ##
-                                    cutpoint_vec <- seq(from = -2.0, to = 2.0, length = n_thr)
-                                    inits$C_array <- list(cutpoint_vec, cutpoint_vec)
+                                    inits$alpha_vec <- if_null_then_set_to(inits$alpha_vec, rep(10.0, n_total_pooled_cat))
+                                    check_vec_length(inits, "alpha_vec", n_total_pooled_cat)
                                     ##
-                                    ## Default inits for "induced-Dirichlet" between-study model (for the cutpoints):
-                                    ##
-                                   
-                                    inits$dirichlet_cat_means_phi <- rep(1/n_cat, n_cat)
-                                    inits$kappa <- 100
+                                    inits$C_raw_vec <- if_null_then_set_to(inits$C_raw_vec, rep(-2.0, n_total_C_if_random))
+                                    check_vec_length(inits, "C_raw_vec", n_total_C_if_random)
                           
                         }
                         

@@ -2,6 +2,30 @@
 
 
 
+#' if_null_then_set_to
+#' @keywords internal
+#' @export
+if_null_then_set_to <- function(x, 
+                                set_to_thif_null, 
+                                debugging = FALSE)  {
+  
+  if (is.null(x)) {
+    y <- set_to_thif_null
+    return(y)
+  } else { 
+    y <- x
+    return(y)
+  }
+  
+  # if (debugging) print(paste(y))
+  
+ 
+}
+
+
+
+ 
+
 
 #' simplex_to_unconstrained
 #' @export
@@ -45,6 +69,9 @@ simplex_to_unconstrained <- function(x) {
 }
 
 
+
+
+
 #' generate_inits_for_raw_simplex_vec
 #' @export
 generate_inits_for_raw_simplex_vec <- function( n_thr, 
@@ -68,6 +95,9 @@ generate_inits_for_raw_simplex_vec <- function( n_thr,
   
   
 }
+
+
+
 
 
 
@@ -431,27 +461,6 @@ convert_list_of_arrays_to_one_big_array <- function(draws_array_list) {
 
 
 
-
-
-
-#' if_null_then_set_to
-#' @keywords internal
-#' @export
-if_null_then_set_to <- function(x, 
-                                set_to_thif_null, 
-                                debugging = FALSE)  {
-  
-        if (is.null(x)) {
-            y <- set_to_thif_null
-        } else { 
-            y <- x
-        }
-  
-        if (debugging) print(paste(y))
-        
-        return(y)
-
-}
 
 
 

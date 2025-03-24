@@ -11,6 +11,8 @@
 #' @export
 R_fn_set_priors_MA <- function(   priors,
                                   ##
+                                  n_studies = NULL,     ## keep as dummy input!
+                                  n_index_tests = NULL, ## keep as dummy input!
                                   cts,
                                   ##
                                   model_parameterisation,
@@ -22,8 +24,9 @@ R_fn_set_priors_MA <- function(   priors,
                                   n_thr,
                                   n_cat
 )  {
- 
-       
+  
+        n_index_tests <- 1 ## since MA (not NMA)
+        
         if (cts == TRUE) { 
           
                   message("Configuring priors for continuous (Jones et al) -based model")

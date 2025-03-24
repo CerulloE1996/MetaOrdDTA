@@ -114,6 +114,8 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                     ##
                     ## -------------------------  Store all "important" parameters as class members / define them first:
                     ##
+                    debugging = NULL,
+                    ##
                     ## ----  Core / internal objects (NOT user-inputted)
                     ##
                     outs_data = list(
@@ -257,7 +259,9 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                     #'@param init_lists_per_chain List of initial values for each chain. See class documentation for details.
                     #'@return Returns self$model_initial_obj, an object generated from the "MetaOrdDTA::prep_data_and_model" function.
                     ##
-                    initialize = function(  x = self$x,
+                    initialize = function(  debugging = FALSE,
+                                            ##
+                                            x = self$x,
                                             ##
                                             indicator_index_test_in_study = self$indicator_index_test_in_study,
                                             ##
@@ -285,9 +289,11 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                             init_lists_per_chain = self$init_lists_per_chain
                                             ) {
                       
-                              message(("aaa_class_hello_1"))
+                              # message(("aaa_class_hello_1"))
                               ##
                               ## ---- Store important parameters as class members:
+                              ##
+                              self$debugging <- debugging
                               ##
                               ## ---- Data:
                               ##
@@ -321,23 +327,24 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                               ##
                               self$MCMC_params$n_chains <- n_chains
                               ##
-                              message(("aaa_class_hello_2"))
-                              
+                              # message(("aaa_class_hello_2"))
                               ##
                               ## -----------  call initialising fn's: ------------------------------------------------------------------------------------------------------------
                               ##
-                              local_prep_data_and_model_outs <-  MetaOrdDTA:::prep_data_and_model(  x = self$x,
-                                                                                                    ##
-                                                                                                    indicator_index_test_in_study = self$indicator_index_test_in_study,
-                                                                                                    ##
-                                                                                                    internal_obj = self$internal_obj,
-                                                                                                    ##
-                                                                                                    basic_model_options = self$basic_model_options,
-                                                                                                    advanced_model_options = self$advanced_model_options,
-                                                                                                    MCMC_params = self$MCMC_params,
-                                                                                                    ##
-                                                                                                    priors = self$priors,
-                                                                                                    init_lists_per_chain = self$init_lists_per_chain)
+                              local_prep_data_and_model_outs <-  MetaOrdDTA:::prep_data_and_model(  
+                                                                                    debugging = self$debugging,
+                                                                                    ##
+                                                                                    x = self$x,
+                                                                                    indicator_index_test_in_study = self$indicator_index_test_in_study,
+                                                                                    ##
+                                                                                    internal_obj = self$internal_obj,
+                                                                                    ##
+                                                                                    basic_model_options = self$basic_model_options,
+                                                                                    advanced_model_options = self$advanced_model_options,
+                                                                                    MCMC_params = self$MCMC_params,
+                                                                                    ##
+                                                                                    priors = self$priors,
+                                                                                    init_lists_per_chain = self$init_lists_per_chain)
                               
                               
                               ## output of MetaOrdDTA:::prep_data_and_model:
@@ -391,7 +398,9 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                     #'\code{"dense"}. The default is \code{"diag"} (i.e. a diagonal metric).
                     #'@return Returns self invisibly, allowing for method chaining of this classes (MetaOrd_model) methods. E.g.: model$sample(...)$summary(...). 
                     ##
-                    sample = function(  x = self$x, ## data is allowed to be updated without re-initialising (as long as "network" and "cts" are the same)
+                    sample = function(  debugging = self$debugging,
+                                        ##
+                                        x = self$x, ## data is allowed to be updated without re-initialising (as long as "network" and "cts" are the same)
                                         indicator_index_test_in_study = self$indicator_index_test_in_study,
                                         ##
                                         cts = self$basic_model_options$cts,
@@ -498,20 +507,21 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                 ##
                                 ## -----------  call "initialise_update_run_model" fn ----------------------------------------------------------------------------
                                 ##
-                                local_model_samples_obj <-       MetaOrdDTA:::initialise_update_run_model(     debugging = FALSE,
-                                                                                                               ##
-                                                                                                               x = self$x,
-                                                                                                               indicator_index_test_in_study = self$indicator_index_test_in_study,
-                                                                                                               ##
-                                                                                                               internal_obj = self$internal_obj,
-                                                                                                               ##
-                                                                                                               basic_model_options = self$basic_model_options,
-                                                                                                               advanced_model_options = self$advanced_model_options,
-                                                                                                               MCMC_params = self$MCMC_params,
-                                                                                                               ##
-                                                                                                               priors = self$priors,
-                                                                                                               ##
-                                                                                                               init_lists_per_chain = self$init_lists_per_chain)
+                                local_model_samples_obj <-       MetaOrdDTA:::initialise_update_run_model(     
+                                                                                               debugging = self$debugging,
+                                                                                               ##
+                                                                                               x = self$x,
+                                                                                               indicator_index_test_in_study = self$indicator_index_test_in_study,
+                                                                                               ##
+                                                                                               internal_obj = self$internal_obj,
+                                                                                               ##
+                                                                                               basic_model_options = self$basic_model_options,
+                                                                                               advanced_model_options = self$advanced_model_options,
+                                                                                               MCMC_params = self$MCMC_params,
+                                                                                               ##
+                                                                                               priors = self$priors,
+                                                                                               ##
+                                                                                               init_lists_per_chain = self$init_lists_per_chain)
 
                                 self$internal_obj <- local_model_samples_obj$internal_obj
                                 ##
@@ -547,7 +557,9 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                     #'@param save_trace_tibbles Whether to save the trace as tibble dataframes as well as 3D arrays. Default is FALSE. 
                     #'@return Returns a new MetaOrd_plot_and_diagnose object (from the "MetaOrd_plot_and_diagnose" R6 class) for creating MCMC diagnostics and plots.
                     ##
-                    summary = function(       compute_main_params = TRUE,
+                    summary = function(       debugging = self$debugging,
+                                              ##
+                                              compute_main_params = TRUE,
                                               compute_transformed_parameters = TRUE,
                                               compute_generated_quantities = TRUE,
                                               save_log_lik_trace = TRUE,
@@ -578,29 +590,32 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                             ##
                             ## create model fit object (includes model summary tables + traces + divergence info) by calling "BayesMVP::create_summary_and_traces" -----------------
                             ##
-                            local_model_summary_and_trace_obj <- MetaOrdDTA:::create_summary_and_traces(  package = "MetaOrdDTA",
-                                                                                                          use_bridgestan = FALSE,
-                                                                                                          use_BayesMVP_for_faster_summaries = use_BayesMVP_for_faster_summaries,
-                                                                                                          ##
-                                                                                                          # stan_model_sample_output = stan_model_sample_output,
-                                                                                                          # stan_param_names_list = stan_param_names_list,
-                                                                                                          internal_obj = self$internal_obj,
-                                                                                                          MCMC_params  = self$MCMC_params,
-                                                                                                          ##
-                                                                                                          model_results  = NULL,
-                                                                                                          init_object = NULL,
-                                                                                                          ##
-                                                                                                          n_nuisance = 0,
-                                                                                                          ##
-                                                                                                          compute_main_params = compute_main_params,
-                                                                                                          compute_transformed_parameters = compute_transformed_parameters,
-                                                                                                          compute_generated_quantities = compute_generated_quantities,
-                                                                                                          ##
-                                                                                                          save_log_lik_trace = save_log_lik_trace,
-                                                                                                          ##
-                                                                                                          compute_nested_rhat = compute_nested_rhat,
-                                                                                                          n_superchains = n_superchains,
-                                                                                                          save_trace_tibbles = save_trace_tibbles)
+                            local_model_summary_and_trace_obj <- MetaOrdDTA:::create_summary_and_traces(  
+                                                                                  #### debugging = self$debugging,
+                                                                                  ##
+                                                                                  package = "MetaOrdDTA",
+                                                                                  use_bridgestan = FALSE,
+                                                                                  use_BayesMVP_for_faster_summaries = use_BayesMVP_for_faster_summaries,
+                                                                                  ##
+                                                                                  # stan_model_sample_output = stan_model_sample_output,
+                                                                                  # stan_param_names_list = stan_param_names_list,
+                                                                                  internal_obj = self$internal_obj,
+                                                                                  MCMC_params  = self$MCMC_params,
+                                                                                  ##
+                                                                                  model_results  = NULL,
+                                                                                  init_object = NULL,
+                                                                                  ##
+                                                                                  n_nuisance = 0,
+                                                                                  ##
+                                                                                  compute_main_params = compute_main_params,
+                                                                                  compute_transformed_parameters = compute_transformed_parameters,
+                                                                                  compute_generated_quantities = compute_generated_quantities,
+                                                                                  ##
+                                                                                  save_log_lik_trace = save_log_lik_trace,
+                                                                                  ##
+                                                                                  compute_nested_rhat = compute_nested_rhat,
+                                                                                  n_superchains = n_superchains,
+                                                                                  save_trace_tibbles = save_trace_tibbles)
                             
                             self$internal_obj$HMC_info <- local_model_summary_and_trace_obj$HMC_info
                             self$internal_obj$efficiency_info <- local_model_summary_and_trace_obj$efficiency_info

@@ -11,6 +11,9 @@
 #' @export
 R_fn_set_priors_NMA <- function(  priors,
                                   ##
+                                  n_studies,
+                                  n_index_tests,
+                                  ##
                                   cts,
                                   ##
                                   model_parameterisation,
@@ -18,8 +21,6 @@ R_fn_set_priors_NMA <- function(  priors,
                                   Dirichlet_random_effects_type,
                                   ##
                                   softplus,
-                                  ##
-                                  n_index_tests,
                                   ##
                                   n_thr,
                                   n_cat
@@ -36,41 +37,29 @@ R_fn_set_priors_NMA <- function(  priors,
                     ##
                     ## Set priors for the locations ("beta"):
                     ##
-                    priors$prior_beta_mu_mean <- if_null_then_set_to(priors$prior_beta_mu_mean, 
-                                                                     0.0, array(dim = c(n_index_tests, 2)))
-                    priors$prior_beta_mu_SD <- if_null_then_set_to(priors$prior_beta_mu_SD, 
-                                                                     5.0, array(dim = c(n_index_tests, 2)))
+                    priors$prior_beta_mu_mean <- if_null_then_set_to(priors$prior_beta_mu_mean, array(0.0, dim = c(n_index_tests, 2)))
+                    priors$prior_beta_mu_SD <- if_null_then_set_to(priors$prior_beta_mu_SD, array(5.0, dim = c(n_index_tests, 2)))
                     ##
-                    priors$prior_beta_tau_SD <- if_null_then_set_to(priors$prior_beta_tau_SD, 
-                                                                    1.0, array(dim = c(n_index_tests, 2)))
+                    priors$prior_beta_tau_SD <- if_null_then_set_to(priors$prior_beta_tau_SD, array(1.0, dim = c(n_index_tests, 2)))
                     ##
-                    priors$prior_beta_sigma_SD <- if_null_then_set_to(priors$prior_beta_sigma_SD, 
-                                                                     rep(1.0, 2))
+                    priors$prior_beta_sigma_SD <- if_null_then_set_to(priors$prior_beta_sigma_SD, rep(1.0, 2))
                     ##
                     ## Set priors for raw scales ("gamma"):
                     ##
                     if (softplus == TRUE) {
-                          priors$prior_raw_scale_mu_mean <- if_null_then_set_to(priors$prior_raw_scale_mu_mean, 
-                                                                           array(dim = c(n_index_tests, 2), 0.0))
-                          priors$prior_raw_scale_mu_SD <- if_null_then_set_to(priors$prior_raw_scale_mu_SD, 
-                                                                         array(dim = c(n_index_tests, 2), 5.0))
+                          priors$prior_raw_scale_mu_mean <- if_null_then_set_to(priors$prior_raw_scale_mu_mean, array(0.0, dim = c(n_index_tests, 2)))
+                          priors$prior_raw_scale_mu_SD <- if_null_then_set_to(priors$prior_raw_scale_mu_SD, array(5.0, dim = c(n_index_tests, 2)))
                           ##
-                          priors$prior_raw_scale_tau_SD <- if_null_then_set_to(priors$prior_raw_scale_tau_SD, 
-                                                                          array(dim = c(n_index_tests, 2), 1.0))
-                          ##
-                          priors$prior_raw_scale_sigma_SD <- if_null_then_set_to(priors$prior_raw_scale_sigma_SD, 
-                                                                            rep(1.0, 2))
+                          priors$prior_raw_scale_tau_SD <- if_null_then_set_to(priors$prior_raw_scale_tau_SD, array(1.0, dim = c(n_index_tests, 2)))
+                          ##alpha_lb
+                          priors$prior_raw_scale_sigma_SD <- if_null_then_set_to(priors$prior_raw_scale_sigma_SD, rep(1.0, 2))
                     } else if (softplus == FALSE) {
-                          priors$prior_raw_scale_mu_mean <- if_null_then_set_to(priors$prior_raw_scale_mu_mean, 
-                                                                                array(dim = c(n_index_tests, 2), 0.0))
-                          priors$prior_raw_scale_mu_SD <- if_null_then_set_to(priors$prior_raw_scale_mu_SD, 
-                                                                              array(dim = c(n_index_tests, 2), 2.5))
+                          priors$prior_raw_scale_mu_mean <- if_null_then_set_to(priors$prior_raw_scale_mu_mean, array(0.0, dim = c(n_index_tests, 2)))
+                          priors$prior_raw_scale_mu_SD <- if_null_then_set_to(priors$prior_raw_scale_mu_SD, array(2.5, dim = c(n_index_tests, 2)))
                           ##
-                          priors$prior_raw_scale_tau_SD <- if_null_then_set_to(priors$prior_raw_scale_tau_SD, 
-                                                                               array(dim = c(n_index_tests, 2), 1.0))
+                          priors$prior_raw_scale_tau_SD <- if_null_then_set_to(priors$prior_raw_scale_tau_SD, array(1.0, dim = c(n_index_tests, 2)))
                           ##
-                          priors$prior_raw_scale_sigma_SD <- if_null_then_set_to(priors$prior_raw_scale_sigma_SD, 
-                                                                                 rep(1.0, 2))
+                          priors$prior_raw_scale_sigma_SD <- if_null_then_set_to(priors$prior_raw_scale_sigma_SD, rep(1.0, 2))
                     }
                     ## Set priors for box-cox:
                     priors$prior_boxcox_lambda_mean <- if_null_then_set_to(priors$prior_boxcox_lambda_mean, rep(0.0, n_index_tests))
@@ -101,7 +90,7 @@ R_fn_set_priors_NMA <- function(  priors,
     } else if (cts == FALSE) { ## ordinal
       
                     ####
-                    if (model_parameterisation == "Xu") {
+                    if (model_parameterisation %in% c("Xu", "bivariate")) {
                                 ##
                                 ## Set priors for the locations ("beta"):
                                 ##
@@ -129,9 +118,28 @@ R_fn_set_priors_NMA <- function(  priors,
                                 ##
                                 ## Induced-Dirichlet priors:
                                 ##
-                                priors$prior_dirichlet_alpha <- if_null_then_set_to(priors$prior_dirichlet_alpha, 
-                                                                                    array(1.0, dim = c(n_index_tests, max(n_thr))))
-                     }
+                                priors$prior_dirichlet_alpha <- if_null_then_set_to(priors$prior_dirichlet_alpha, array(1.0, dim = c(n_index_tests, max(n_thr) + 1)))
+                                ##
+                                n_total_pooled_cat  <- sum(n_cat)
+                                n_thr_random = n_thr * n_studies
+                                n_total_C_if_random <- sum(n_thr_random)
+                                ##
+                                priors$n_total_C_if_random <- n_total_C_if_random
+                                priors$n_total_pooled_cat  <- n_total_pooled_cat
+                                ##
+                                priors$alpha_lb         <- if_null_then_set_to(priors$alpha_lb, 1.0)
+                                priors$prior_alpha_mean <- if_null_then_set_to(priors$prior_alpha_mean, array(1.0, dim = c(n_index_tests, max(n_thr) + 1)))
+                                priors$prior_alpha_SD   <- if_null_then_set_to(priors$prior_alpha_SD,   array(1.0, dim = c(n_index_tests, max(n_thr) + 1)))
+                                
+                    } else if (model_parameterisation %in% c("R&G", "HSROC")) { 
+                      
+                      
+                      
+                    }
+      
+      
+      
+      
                     
       
     }
