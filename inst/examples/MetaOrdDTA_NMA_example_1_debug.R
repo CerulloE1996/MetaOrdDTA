@@ -80,8 +80,6 @@ devtools::install(local_pkg_dir,
 
 
 
-
-
 ##
 ## ---- Load NMA data:
 ##
@@ -92,21 +90,25 @@ x <- x_NMA
 indicator_index_test_in_study <- data$indicator_index_test_in_study
 ##
 n_studies <- nrow(x_NMA[[1]][[1]])
-n_index_tests <- length(x_NMA[[1]])
+n_index_tests <- 4##  length(x_NMA[[1]])
 
 subset <- TRUE
 n_subset <- 5
 
 if (subset) {
-  for (c in 1:2) {
-    for (t in 1:n_index_tests) {
-      x_NMA[[c]] <- x_NMA[[c]][1:n_subset]
+  indicator_index_test_in_study <- indicator_index_test_in_study[1:n_subset,1:4]
+    for (c in 1:2) {
+      for (t in 1:n_index_tests) {
+        x_NMA[[c]][[t]] <- x_NMA[[c]][[t]][1:n_subset, ]
+      }
     }
-  }
-  n_studies <- nrow(x_NMA[[1]][[1]])
-  n_index_tests <- length(x_NMA[[1]])
+    n_studies <- nrow(x_NMA[[1]][[1]])
+    n_index_tests <- length(x_NMA[[1]])
+    for (c in 1:2) {
+       x_NMA[[c]][[n_index_tests + 1]] <- NULL
+    }
 }
-
+x <- x_NMA
 
 
 ##  -----------  Compile + initialise the model using "MVP_model$new(...)"  ----------------------------------
@@ -133,148 +135,8 @@ if (subset) {
 # n_thr <- ncol(x_subset[[1]])
 
 ##
-## ----  Initialise / select model: --------------------------------------------------
-# ##
-# ##
-# #### n_chains <- ifelse(parallel::detectCores() > 32, 64, 16)
-# n_chains <- 8
-# ##
-#  
-# # 
-# #### ----
-# {
-#   model_parameterisation = "Jones"
-#   box_cox <- TRUE
-#   cts <- TRUE
-#   random_thresholds <-  FALSE
-#   Dirichlet_random_effects_type <- "none"
-#   ##
-#   inits_for_Xu_fixed_thr_model <- list(beta_mu = c(-1, +1),
-#                                        beta_SD = c(0.01, 0.01),
-#                                        beta_z = array(0.01, dim = c(2, n_studies)),
-#                                        C_raw_vec = rep(-2.0, n_thr),
-#                                        C = seq(from = -2, to = 2, length = n_thr))
-#   init_lists_per_chain <- replicate(n_chains, inits_for_Xu_fixed_thr_model, simplify = FALSE)
-# }
-# 
-# 
-# 
-# 
-# #### ----
-# {
-#   model_parameterisation = "Xu"
-#   ##
-#   box_cox <- FALSE
-#   cts <- FALSE
-#   ##
-#   random_thresholds <-  FALSE
-#   Dirichlet_random_effects_type <- "SD"
-#   ##
-#   priors <- list(prior_alpha = rep(1.0, n_thr + 1), 
-#                  ##
-#                  prior_beta_mu_mean = c(0.0, 0.0),
-#                  prior_beta_mu_SD = c(1.0, 1.0),
-#                  prior_beta_SD_mean = c(0.0, 0.0),
-#                  prior_beta_sd_SD = c(0.5, 0.5),
-#                  prior_beta_corr_LKJ = 2.0)
-#   ##
-#   inits_for_Xu_fixed_thr_model <- list(beta_mu = c(-1, +1),
-#                                        beta_SD = c(0.01, 0.01),
-#                                        beta_z = array(0.01, dim = c(2, n_studies)),
-#                                        C_raw_vec = rep(-2.0, n_thr),
-#                                        C = seq(from = -2, to = 2, length = n_thr))
-#   init_lists_per_chain <- replicate(n_chains, inits_for_Xu_fixed_thr_model, simplify = FALSE)
-# }
-# 
-# 
-# 
-# #### ----
-# {
-#       model_parameterisation = "Xu"
-#       ##
-#       box_cox <- FALSE
-#       cts <- FALSE
-#       ##
-#       random_thresholds <-  TRUE
-#    #   Dirichlet_random_effects_type <- "SD"
-#      #  Dirichlet_random_effects_type <- "kappa"
-#        Dirichlet_random_effects_type <- "alpha"
-#       ##
-#       priors <- list(  prior_alpha = rep(1.0, n_thr + 1), 
-#                        ##
-#                        prior_beta_mu_mean = c(0.0, 0.0),
-#                        prior_beta_mu_SD = c(1.0, 1.0),
-#                        prior_beta_SD_mean = c(0.0, 0.0),
-#                        prior_beta_sd_SD = c(0.5, 0.5),
-#                        ##
-#                        prior_beta_corr_LKJ = 2.0, 
-#                        ##
-#                        prior_dirichlet_cat_means_alpha = rep(1.0, n_thr + 1),
-#                        ##
-#                        prior_dirichlet_cat_SDs_mean    = rep(0.0, n_thr + 1),
-#                        prior_dirichlet_cat_SDs_SD      = rep(0.025, n_thr + 1),
-#                        ##
-#                        kappa_lb = 1.0,
-#                        prior_kappa_mean = rep(0, 1),
-#                        prior_kappa_SD = rep(500, 1),
-#                        ##
-#                        alpha_lb = 1.0,
-#                        prior_alpha_mean = rep(0, 1),
-#                        prior_alpha_SD = rep(50, 1)
-#                        )
-#       ## inits:
-#       cutpoint_vec <- seq(from = -3.0, to = 3.0, length = n_thr)
-#       C_array <- array(dim = c(n_studies, n_thr))
-#       for (s in 1:n_studies) { 
-#         C_array[s, ] <- cutpoint_vec
-#       }
-#       ##
-#       n_sets_of_C <- 1
-#       C_raw <- list()
-#       for (c in 1:n_sets_of_C) {
-#          C_raw_mat <- array(-2.0, dim = c(n_studies, n_thr))
-#          C_raw[[c]] <- C_raw_mat
-#       }
-#       ##
-#       # rand_simplex <- gtools::rdirichlet(n = 1, alpha = rep(10, n_cat))
-#       phi_raw <- generate_inits_for_raw_simplex_vec(n_thr = n_thr, seed = seed, width = 0.01)
-#       ##
-#       dirichlet_cat_means_phi <- rep( 1/(n_thr + 1), n_thr + 1)
-#       inits_for_Xu_rand_thr_model <- list( beta_mu = c(-1, +1),
-#                                            beta_SD = c(0.01, 0.01),
-#                                            beta_z = array(0.01, dim = c(2, n_studies)),
-#                                            ##
-#                                            # dirichlet_cat_means_phi = list(c(rand_simplex), c(rand_simplex)),
-#                                            C_raw_vec = rep(-2.0, n_thr),
-#                                            C_array = C_array, 
-#                                            C_raw = C_raw_mat,
-#                                            ##
-#                                            alpha = (rep(10.0, n_thr + 1)),
-#                                            ##
-#                                            dirichlet_cat_means_phi = list(dirichlet_cat_means_phi),
-#                                            kappa = rep(1000, 1),
-#                                            ##
-#                                            phi_raw = phi_raw
-#                                            )
-#       init_lists_per_chain <- replicate(n_chains, inits_for_Xu_rand_thr_model, simplify = FALSE)
-#       
-#       dirichlet_cat_means_phi*1000
-#       
-#  
-# 
-#       
-#       
-# }
-#   
-# 
-
-
-
-
-
-####
-#### -------------------------- NMA:
-####
+## ----  Initialise / select model: --------------------------------------------------------------------------- NMA:
+##
 network <- TRUE
 ##
 softplus <- TRUE
@@ -301,22 +163,38 @@ softplus <- TRUE
 
 
 
-# {
-#   model_parameterisation = "Xu"
-#   box_cox <- FALSE
-#   cts <- FALSE
-#   random_thresholds <-  FALSE
-#   Dirichlet_random_effects_type <- "fixed"
-#   # ##
-#   # inits <- list(beta_mu = c(-1, +1),
-#   #                                      beta_SD = c(0.01, 0.01),
-#   #                                      beta_z = array(0.01, dim = c(2, n_studies)),
-#   #                                      C_raw_vec = rep(-2.0, n_thr),
-#   #                                      C = seq(from = -2, to = 2, length = n_thr))
-#   # init_lists_per_chain <- replicate(n_chains, inits, simplify = FALSE)
-# }
-# 
-#  
+{
+  model_parameterisation = "Xu"
+  box_cox <- FALSE
+  cts <- FALSE
+  random_thresholds <-  FALSE
+  Dirichlet_random_effects_type <- "fixed"
+  # ##
+  # inits <- list(beta_mu = c(-1, +1),
+  #                                      beta_SD = c(0.01, 0.01),
+  #                                      beta_z = array(0.01, dim = c(2, n_studies)),
+  #                                      C_raw_vec = rep(-2.0, n_thr),
+  #                                      C = seq(from = -2, to = 2, length = n_thr))
+  # init_lists_per_chain <- replicate(n_chains, inits, simplify = FALSE)
+}
+
+
+
+
+{
+  model_parameterisation = "Xu"
+  box_cox <- FALSE
+  cts <- FALSE
+  random_thresholds <-  TRUE
+  Dirichlet_random_effects_type <- "alpha"
+  # ##
+  # inits <- list(beta_mu = c(-1, +1),
+  #                                      beta_SD = c(0.01, 0.01),
+  #                                      beta_z = array(0.01, dim = c(2, n_studies)),
+  #                                      C_raw_vec = rep(-2.0, n_thr),
+  #                                      C = seq(from = -2, to = 2, length = n_thr))
+  # init_lists_per_chain <- replicate(n_chains, inits, simplify = FALSE)
+}
 
 
 
@@ -439,6 +317,26 @@ str(init_lists_per_chain)
 # model_prep_obj$internal_obj$outs_data$stan_data_list$box_cox = FALSE
 
 priors
+
+
+# n_thr_random = n_thr * n_studies
+# n_total_C_if_random <- sum(n_thr_random)
+# 
+# 
+# init_lists_per_chain[[1]]$C_raw_vec <-  rep(-2.0, n_total_C_if_random)
+# 
+# priors$n_total_C_if_random <- n_total_C_if_random
+
+# 
+# n_thr <- model_prep_obj$internal_obj$outs_data$n_thr
+# n_cat <- n_thr + 1
+# n_total_pooled_cat  <- sum(n_cat)
+# n_thr_random = n_thr * n_studies
+# n_total_C_if_random <- sum(n_thr_random)
+# ##
+# for (kk in 1:n_chains) {
+#   init_lists_per_chain[[kk]]$C_raw_vec <- if_null_then_set_to(init_lists_per_chain[[kk]]$C_raw_vec, rep(-2.0, n_total_C_if_random))
+# }
 
 ##
 ## ----  Sample model: ----------------------------------------------------------------
