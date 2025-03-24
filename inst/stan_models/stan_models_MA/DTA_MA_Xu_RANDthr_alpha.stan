@@ -16,7 +16,7 @@ functions {
 data {
   
         ////
-        //// Data:
+        //// ---- Data:
         ////
         int<lower=1> n_studies;
         int<lower=1> n_thr;
@@ -27,28 +27,28 @@ data {
         array[2] matrix[n_studies, n_thr] x;
         array[2] matrix[n_studies, n_thr] cutpoint_index;
         ////
-        //// Priors for locations:
+        //// ---- Priors for locations ("beta"):
         ////
         vector[2] prior_beta_mu_mean;
         vector[2] prior_beta_mu_SD;
         vector[2] prior_beta_SD_mean;
         vector[2] prior_beta_SD_SD;
         ////
-        //// Priors for between-study correlation matrix:
+        //// ---- Priors for between-study correlation matrix:
         ////
         real<lower=-1.0> beta_corr_lb;
         real<lower=beta_corr_lb, upper=1.0>  beta_corr_ub;
         real<lower=0.0>  prior_beta_corr_LKJ;
         ////
-        //// Priors for cutpoints (using "Induced-Dirichlet" ordinal probs):
+        //// ---- Induced-Dirichlet priors:
         ////
-        vector[n_thr + 1] prior_dirichlet_cat_means_alpha;
-        real<lower=0.0> prior_kappa_mean;
-        real<lower=0.0> prior_kappa_SD;
-        real<lower=0.0> prior_alpha_mean;
-        real<lower=0.0> prior_alpha_SD;
+        // vector[n_thr + 1] prior_dirichlet_cat_means_alpha;
+        // real<lower=0.0> prior_kappa_mean;
+        // real<lower=0.0> prior_kappa_SD;
+        vector<lower=0.0>[n_thr + 1] prior_alpha_mean;
+        vector<lower=0.0>[n_thr + 1] prior_alpha_SD;
         ////
-        //// Other:
+        //// ---- Other:
         ////
         real<lower=0.0> alpha_lb;
         int<lower=0, upper=1> softplus;
@@ -58,7 +58,6 @@ transformed data {
     
         int n_cat = n_thr + 1; //// Number of ordinal categories for index test
         matrix[n_studies, n_thr] Ind_Dir_anchor = rep_matrix(0.0, n_studies, n_thr);
-        int n_sets_of_C = 1;
         
 }
   
@@ -72,10 +71,9 @@ parameters {
         ////
         real beta_corr;  //// between-study corr (possibly restricted)
         ////
-        matrix<lower=-15.0, upper=15.0>[n_studies, n_thr] C_raw;
-        // ////
-        // simplex[n_cat] dirichlet_cat_means_phi;
-        vector[n_cat - 1] phi_raw;
+        matrix[n_studies, n_thr] C_raw;
+        ////
+        // vector[n_cat - 1] phi_raw;
         vector<lower=alpha_lb, upper=1000.0>[n_cat] alpha;
         
 }
@@ -84,7 +82,7 @@ parameters {
 transformed parameters { 
   
         ////
-        //// ---- Construct (global) cutpoints + simplex:
+        //// ---- Construct study-specific cutpoints:
         ////
         matrix[n_studies, n_thr] C; ////= convert_C_array_to_mat(C_array);
         for (s in 1:n_studies) {
@@ -92,7 +90,7 @@ transformed parameters {
                  vector[n_thr] C_vec_temp = ((softplus == 1) ? construct_C_using_SP_jacobian(C_raw_vec_temp) : construct_C_using_exp_jacobian(C_raw_vec_temp));
                  C[s, ] = to_row_vector(C_vec_temp);
         }
-        simplex[n_cat] dirichlet_cat_means_phi = stickbreaking_logistic_simplex_constrain_jacobian(phi_raw);
+        // simplex[n_cat] dirichlet_cat_means_phi = stickbreaking_logistic_simplex_constrain_jacobian(phi_raw);
         ////
         //// ---- Likelihood stuff:
         ////
@@ -140,7 +138,10 @@ transformed parameters {
                 ////
                 //// ---- Multinomial (factorised Binomial) likelihood:
                 ////
-                log_lik = compute_log_lik_binomial_fact(cumul_prob, x, n, n_obs_cutpoints);
+                array[2, 2] matrix[n_studies, n_thr] log_lik_outs;
+                log_lik_outs = compute_log_lik_binomial_fact(cumul_prob, x, n, n_obs_cutpoints);
+                log_lik = log_lik_outs[1];
+                cond_prob = log_lik_outs[2];
         }
         
 }
@@ -161,8 +162,8 @@ model {
                 matrix[n_studies, n_thr] Ind_Dir_cumul_prob = Phi_approx(Ind_Dir_cumul);
                 matrix[n_studies, n_cat] Ind_Dir_ord_prob = cumul_probs_to_ord_probs(Ind_Dir_cumul_prob);
                 ////
-                //// can put a "flat" prior on the simplex dirichlet_cat_means_phi.
-                dirichlet_cat_means_phi ~ dirichlet(prior_dirichlet_cat_means_alpha);
+                // //// can put a "flat" prior on the simplex dirichlet_cat_means_phi.
+                // dirichlet_cat_means_phi ~ dirichlet(prior_dirichlet_cat_means_alpha);
                 alpha ~ normal(prior_alpha_mean, prior_alpha_SD);
                 ////
                 for (s in 1:n_studies) {
@@ -187,49 +188,37 @@ model {
 generated quantities {
 
           ////
-          //// Calculate summary accuracy (using mean parameters):
+          //// ---- Calculate summary accuracy (using mean parameters):
           ////
-          vector[n_thr] Fp; //// = 1.0 - Phi_approx(C_mu - beta_mu[1]);
-          vector[n_thr] Sp; //// = 1.0 - Fp;
-          vector[n_thr] Se; //// = 1.0 - Phi_approx(C_mu - beta_mu[2]);
+          vector[n_cat] prob_ord_mu   = alpha / sum(alpha);  //// dirichlet_cat_means_phi[c];
+          vector[n_thr] prob_cumul_mu = ord_probs_to_cumul_probs(prob_ord_mu);
+          vector[n_thr] C_mu = cumul_probs_to_C(prob_cumul_mu, 0.0, 1.0);
           ////
-          {
-              vector[n_cat] prob_ord_mu   = alpha / sum(alpha);  //// dirichlet_cat_means_phi[c];
-              vector[n_thr] prob_cumul_mu = ord_probs_to_cumul_probs(prob_ord_mu);
-              vector[n_thr] C_mu = cumul_probs_to_C(prob_cumul_mu, 0.0, 1.0);
-              ////
-              Fp = 1.0 - Phi_approx(C_mu - beta_mu[1]);
-              Sp = 1.0 - Fp;
-              Se = 1.0 - Phi_approx(C_mu - beta_mu[2]);
-          }
+          vector[n_thr] Fp = 1.0 - Phi_approx(C_mu - beta_mu[1]);
+          vector[n_thr] Sp = 1.0 - Fp;
+          vector[n_thr] Se = 1.0 - Phi_approx(C_mu - beta_mu[2]);
           ////
-          //// Calculate predictive accuracy:
+          //// ---- Calculate predictive accuracy:
           ////
-          vector[n_thr] Fp_pred; //// = 1.0 - Phi_approx(C_mu - beta_mu[1]);
-          vector[n_thr] Sp_pred; //// = 1.0 - Fp;
-          vector[n_thr] Se_pred; //// = 1.0 - Phi_approx(C_mu - beta_mu[2]);
+          vector[n_cat] prob_ord_pred   = dirichlet_rng(alpha); //// Simulate from Dirichlet by using the summary "alpha" parameters.
+          vector[n_thr] prob_cumul_pred = ord_probs_to_cumul_probs(prob_ord_pred);  //// Compute PREDICTED cumulative probabilities.
+          vector[n_thr] C_pred = cumul_probs_to_C(prob_cumul_pred, 0.0, 1.0);  //// Compute PREDICTED cutpoints.
           ////
-          {
-              vector[n_cat] prob_ord_pred   = dirichlet_rng(alpha); //// Simulate from Dirichlet by using the summary "alpha" parameters.
-              vector[n_thr] prob_cumul_pred = ord_probs_to_cumul_probs(prob_ord_pred);  //// Compute PREDICTED cumulative probabilities.
-              vector[n_thr] C_pred = cumul_probs_to_C(prob_cumul_pred, 0.0, 1.0);  //// Compute PREDICTED cutpoints.
-              ////
-              vector[2] beta_pred =  multi_normal_cholesky_rng(beta_mu, beta_L_Sigma);
-              ////
-              Fp_pred = 1.0 - Phi_approx(C_pred - beta_pred[1]);
-              Sp_pred = 1.0 - Fp_pred;
-              Se_pred = 1.0 - Phi_approx(C_pred - beta_pred[2]);
-          }
+          vector[2] beta_pred =  multi_normal_cholesky_rng(beta_mu, beta_L_Sigma);
           ////
-          //// Calculate study-specific accuracy:
+          vector[n_thr] Fp_pred = 1.0 - Phi_approx(C_pred - beta_pred[1]);
+          vector[n_thr] Sp_pred = 1.0 - Fp_pred;
+          vector[n_thr] Se_pred = 1.0 - Phi_approx(C_pred - beta_pred[2]);
+          ////
+          //// ---- Calculate study-specific accuracy:
           ////
           matrix[n_studies, n_thr] fp = 1.0 - cumul_prob[1];
           matrix[n_studies, n_thr] sp = 1.0 - fp;
           matrix[n_studies, n_thr] se = 1.0 - cumul_prob[2];
-          // ////
-          // //// Compute between-study correlation matrix for location parameters:
-          // ////
-          // corr_matrix[2] beta_Omega = multiply_lower_tri_self_transpose(beta_L_Omega);
+          ////
+          //// Compute between-study variance-covariance matrix for location parameters:
+          ////
+          corr_matrix[2] beta_Sigma = multiply_lower_tri_self_transpose(beta_L_Sigma);
           ////
           //// vector[n_thr] C_MU_empirical; //// = rowMedians(C);  //// Empirical-mean cutpoints:
           ////

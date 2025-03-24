@@ -116,7 +116,10 @@ transformed parameters {
                 ////
                 //// ---- Multinomial (factorised binomial likelihood)
                 ////
-                log_lik = compute_log_lik_binomial_fact(cumul_prob, x, n, n_obs_cutpoints);
+                array[2, 2] matrix[n_studies, n_thr] log_lik_outs;
+                log_lik_outs = compute_log_lik_binomial_fact(cumul_prob, x, n, n_obs_cutpoints);
+                log_lik = log_lik_outs[1];
+                cond_prob = log_lik_outs[2];
         }
       
 }
