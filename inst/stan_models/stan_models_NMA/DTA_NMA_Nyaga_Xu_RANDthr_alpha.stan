@@ -67,33 +67,7 @@ data {
 transformed data {
  
              int n_tests = n_index_tests;
-             // int n_total_pooled_cat = sum(n_cat);
-//           ////
-//           array[n_index_tests] int<lower=1> n_thr_random;
-//           // array[n_index_tests] int<lower=2> n_cat_random;
-//           for (t in 1:n_index_tests) {
-//              n_thr_random[t] = n_studies * n_thr[t];
-//              // n_cat_random[t] = n_studies * n_cat[t];
-//           }
-//           int n_total_C_if_random   = sum(n_thr_random);
-//           // // int n_total_cat_if_random = sum(n_cat_random);
-//           // ////
-//           // //// ---- Calculate indices for thresholds:
-//           // ////
-//           // array[n_tests] int start_thr_i = calculate_start_indices(n_thr, n_tests);
-//           // array[n_tests] int end_thr_i   = calculate_end_indices(n_thr, n_tests, start_thr_i);
-//           // ////
-//           // // array[n_tests] int start_rand_thr_i = calculate_start_indices_study(n_studies, n_thr, n_tests);
-//           // // array[n_tests] int end_thr_index   = calculate_end_indices_study(n_studies, n_thr, n_tests, start_thr_index);
-//           // ////
-//           // //// ---- Calculate indices for categories:
-//           // ////
-//           // array[n_tests] int start_cat_i = calculate_start_indices(n_cat, n_tests);
-//           // array[n_tests] int end_cat_i   = calculate_end_indices(n_cat, n_tests, start_cat_i);
-//           // ////
-//           // // array[n_tests] int start_cat_index = calculate_start_indices_study(n_studies, n_cat, n_tests);
-//           // // array[n_tests] int end_cat_index   = calculate_end_indices_study(n_studies, n_cat, n_tests, start_cat_index);
-      
+             
 }
 
 
@@ -348,7 +322,7 @@ generated quantities {
           ////
           //// ---- Compute Induced-Dirichlet "SD" params:
           ////
-          array[n_index_tests] vector<lower=0.0>[n_cat_max] dirichlet_cat_SDs_sigma;
+          array[n_index_tests] vector[n_cat_max] dirichlet_cat_SDs_sigma;
           vector[n_index_tests] alpha_0;
           for (t in 1:n_index_tests) {
                 int n_cat_t = n_cat[t];

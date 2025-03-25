@@ -85,7 +85,7 @@ parameters {
           matrix[n_studies, 2] beta_eta_z;              //// Standard normal RVs for study-level effects - eta[s, 1:2] ~ multi_normal({0, 0}, Sigma).
           array[n_index_tests] matrix[n_studies, 2] beta_delta_z; //// Standard normal RVs for test-specific effects
           ////
-          real beta_corr;  //// between-study corr (possibly restricted)
+          real<lower=-1.0, upper=1.0> beta_corr;  //// between-study corr (possibly restricted)
         
 }
 
@@ -96,7 +96,8 @@ transformed parameters {
           //// ---- Construct simple 2x2 (bivariate) between-study corr matrices:
           ////
           cholesky_factor_corr[2] beta_L_Omega = make_restricted_bivariate_L_Omega_jacobian(beta_corr, beta_corr_lb, beta_corr_ub);
-          corr_matrix[2] beta_Omega      = multiply_lower_tri_self_transpose(beta_L_Omega);
+          corr_matrix[2] beta_Omega  = multiply_lower_tri_self_transpose(beta_L_Omega);
+          cholesky_factor_cov[2] beta_L_Sigma = diag_pre_multiply(beta_sigma, beta_L_Omega);
           ////
           //// ---- Construct (global) cutpoints:
           ////
@@ -119,7 +120,7 @@ transformed parameters {
           //// ---- Compute Study-level random effects (eta in Nyaga notation):
           ////
           for (s in 1:n_studies) {
-              beta_eta[s, 1:2] = to_row_vector( diag_pre_multiply(beta_sigma, beta_L_Omega) * to_vector(beta_eta_z[s, 1:2]) );  //// beta_eta[s, 1:2] ~ normal({0.0, 0.0}, Sigma);
+              beta_eta[s, 1:2] = to_row_vector( beta_L_Sigma * to_vector(beta_eta_z[s, 1:2]) );  //// beta_eta[s, 1:2] ~ normal({0.0, 0.0}, Sigma);
           }
           for (c in 1:2) {
               //// Compute test-specific deviations ("delta" in Nyaga notation):

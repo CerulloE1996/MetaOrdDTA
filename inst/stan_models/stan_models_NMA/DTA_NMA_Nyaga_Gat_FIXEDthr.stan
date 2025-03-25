@@ -1,13 +1,16 @@
 
 
-////
-//// Include files to compile the necessary Stan functions:
-////
-#include "../stan_functions/Stan_fns_basic.stan"
-#include "../stan_functions/Stan_fns_induced_Dirichlet.stan"
-#include "../stan_functions/Stan_fns_cutpoints.Stan"
-#include "../stan_functions/Stan_fns_simplex.Stan"
-
+functions {
+        ////
+        //// Include files to compile the necessary custom (user-defined) Stan functions:
+        ////
+        #include "Stan_fns_basic.stan"
+        #include "Stan_fns_corr.stan"
+        #include "Stan_fns_ordinal_and_cutpoints.stan"
+        #include "Stan_fns_log_lik.stan"
+        #include "Stan_fns_ragged.stan"
+        #include "Stan_fns_NMA.stan"
+}
 
 
 data {
