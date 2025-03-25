@@ -106,12 +106,6 @@ R_fn_set_inits_NMA <- function(    inits,
                                     diag(inits_Omega) <- c(1.0, 1.0)
                                     inits$beta_L_Omega <- t(chol(inits_Omega))
                                     ##
-                                    ## Default inits for the cutpoints:
-                                    ##
-                                    n_total_C_if_fixed <- sum(n_thr)
-                                    inits$C_raw_vec <- if_null_then_set_to(inits$C_raw_vec,
-                                                                           rep(-2.0, n_total_C_if_fixed))
-                                    ##
                                     inits$beta_sigma <- if_null_then_set_to(inits$beta_sigma, rep(0.001, 2))
                                     inits$beta_tau   <- if_null_then_set_to(inits$beta_tau, array(0.001, dim = c(n_index_tests, 2)))
                                     ##
@@ -138,6 +132,12 @@ R_fn_set_inits_NMA <- function(    inits,
                                     # ## Default inits for the cutpoints:
                                     # ##
                                     # inits$C <- seq(from = -2.0, to = 2.0, length = n_thr)
+                                    ##
+                                    ## Default inits for the cutpoints:
+                                    ##
+                                    n_total_C_if_fixed <- sum(n_thr)
+                                    inits$C_raw_vec <- if_null_then_set_to(inits$C_raw_vec,
+                                                                           rep(-2.0, n_total_C_if_fixed))
                           
                         } else if (random_thresholds == TRUE) { 
                                     # ##
