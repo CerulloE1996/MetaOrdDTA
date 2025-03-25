@@ -128,8 +128,8 @@ R_fn_set_priors_NMA <- function(  priors,
                                 priors$n_total_pooled_cat  <- n_total_pooled_cat
                                 ##
                                 priors$alpha_lb         <- if_null_then_set_to(priors$alpha_lb, 1.0)
-                                priors$prior_alpha_mean <- if_null_then_set_to(priors$prior_alpha_mean, array(1.0, dim = c(n_index_tests, max(n_thr) + 1)))
-                                priors$prior_alpha_SD   <- if_null_then_set_to(priors$prior_alpha_SD,   array(1.0, dim = c(n_index_tests, max(n_thr) + 1)))
+                                priors$prior_alpha_mean <- if_null_then_set_to(priors$prior_alpha_mean, array(0.0, dim = c(n_index_tests, max(n_thr) + 1)))
+                                priors$prior_alpha_SD   <- if_null_then_set_to(priors$prior_alpha_SD,   array(10.0, dim = c(n_index_tests, max(n_thr) + 1)))
                                 
                     } else if (model_parameterisation %in% c("R&G", "HSROC")) { 
                       
