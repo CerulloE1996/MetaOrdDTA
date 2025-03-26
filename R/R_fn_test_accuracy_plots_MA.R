@@ -69,46 +69,39 @@ create_prediction_polygon <- function(df,
 
 
 
-# conf_region_colour <- "blue"
-# pred_region_colour <- "blue"
-# 
-# stan_model_file_name = stan_model_file_name
-# stan_mod_samples = stan_mod_samples
-# df_true = NULL
-# conf_region_colour = "blue"
-# pred_region_colour = "blue"
 
 
 
 
 
-
-
-
-
-#' R_fn_sROC_plot
+#' R_fn_sROC_plot_MA
 #' @keywords internal
 #' @export
-R_fn_sROC_plot <- function( stan_model_file_name,
-                            stan_mod_samples,
-                            df_true = NULL,
-                            conf_region_colour = "blue", 
-                            pred_region_colour = "blue"
+R_fn_sROC_plot_MA <- function(  stan_model_file_name,
+                                stan_mod_samples,
+                                ##
+                                df_true = NULL,
+                                ##
+                                conf_region_colour = "blue", 
+                                pred_region_colour = "blue",
+                                ##
+                                n_index_tests = 1, ## dummy arg - needed for compatability / R6 class
+                                n_thr = NULL       ## dummy arg - needed for compatability / R6 class
 ) {
   
             require(ggplot2)
+            require(dplyr)
      
             model_name <- stan_model_file_name
             # stan_mod_samples$summary(c("Se"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
             try({
-              Se <- stan_mod_samples$summary(c("Se"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
-              Se_pred <- stan_mod_samples$summary(c("Se_pred"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
-              ##
-              Sp <- stan_mod_samples$summary(c("Sp"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
-              Sp_pred <- stan_mod_samples$summary(c("Sp_pred"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
-              ##
-              Fp <- stan_mod_samples$summary(c("Fp"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
-              Fp_pred <- stan_mod_samples$summary(c("Fp_pred"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
+                Se <- stan_mod_samples$summary(c("Se"), mean, quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
+                Sp <- stan_mod_samples$summary(c("Sp"), mean, quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
+                Fp <- stan_mod_samples$summary(c("Fp"), mean, quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
+                ##
+                Se_pred <- stan_mod_samples$summary(c("Se_pred"), mean, quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
+                Sp_pred <- stan_mod_samples$summary(c("Sp_pred"), mean, quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
+                Fp_pred <- stan_mod_samples$summary(c("Fp_pred"), mean, quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
             })
             ##
             n_thr <- nrow(Se)
@@ -179,8 +172,8 @@ R_fn_sROC_plot <- function( stan_model_file_name,
                               geom_line(linewidth = 1.0) + 
                               geom_point(size = 3) + 
                               theme_bw(base_size = 16) +
-                              geom_polygon(data = polygon_Conf, aes(x = x, y = y), fill = conf_region_colour, alpha = 0.50) +
-                              geom_polygon(data = polygon_Pred, aes(x = x, y = y), fill = pred_region_colour, alpha = 0.25)
+                              geom_polygon(data = polygon_Conf, aes(x = x, y = y), fill = conf_region_colour, alpha = 0.40) +
+                              geom_polygon(data = polygon_Pred, aes(x = x, y = y), fill = pred_region_colour, alpha = 0.20)
                              
                  
                  if (!(is.null(df_true))) { 
@@ -194,12 +187,11 @@ R_fn_sROC_plot <- function( stan_model_file_name,
                  
              }
              
-             return(list(plot_1 = plot_1,
-                         plot_2 = plot_2,
-                         plot_list = plot_list,
-                         polygon_Conf = polygon_Conf,
-                         polygon_Pred = polygon_Pred,
-                         df_fitted = df_fitted))
+             return(list(  plot_list = plot_list,
+                           ##
+                           polygon_Conf = polygon_Conf,
+                           polygon_Pred = polygon_Pred,
+                           df_fitted = df_fitted))
    
 
 }

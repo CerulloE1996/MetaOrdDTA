@@ -21,15 +21,22 @@ initialise_update_run_model <- function(      debugging = FALSE,
                                               basic_model_options,
                                               advanced_model_options,
                                               MCMC_params,
+                                              other_advanced_options,
                                               ##
                                               priors,
                                               ##
                                               init_lists_per_chain
 ) {
             
-          try({ 
-                  n_index_tests_per_study <- rowSums(indicator_index_test_in_study)
-          }, silent = TRUE)
+          if (basic_model_options$network) {
+            try({ 
+              n_index_tests_per_study <- rowSums(indicator_index_test_in_study)
+            }, silent = TRUE)
+            print(paste("n_index_tests_per_study = "))
+            cat(n_index_tests_per_study)
+          } else { 
+            n_index_tests_per_study <- NULL
+          }
           ##
           if (debugging) message(paste("initialise_update_run_model", "hello_there_1"))
           ##
@@ -46,6 +53,7 @@ initialise_update_run_model <- function(      debugging = FALSE,
                                                                          basic_model_options = basic_model_options,
                                                                          advanced_model_options = advanced_model_options,
                                                                          MCMC_params = MCMC_params,
+                                                                         other_advanced_options = other_advanced_options,
                                                                          ##
                                                                          priors = priors,
                                                                          ##
@@ -56,6 +64,7 @@ initialise_update_run_model <- function(      debugging = FALSE,
           basic_model_options <- prep_data_and_model_outs$basic_model_options
           advanced_model_options <- prep_data_and_model_outs$advanced_model_options
           MCMC_params <- prep_data_and_model_outs$MCMC_params
+          other_advanced_options <- prep_data_and_model_outs$other_advanced_options
           ##
           init_lists_per_chain <- prep_data_and_model_outs$init_lists_per_chain
           ##
@@ -117,7 +126,7 @@ initialise_update_run_model <- function(      debugging = FALSE,
                         ##
                         internal_obj$stan_model_MA_path <- "/home/enzo/Documents/Work/PhD_work/R_packages/MetaOrdDTA/inst/stan_models/stan_models_MA"
                         
-                        if (prior_only) {
+                        if (basic_model_options$prior_only) {
                           internal_obj$outs_stan_model_name$stan_model_file_path <- file.path( internal_obj$outs_stan_model_name$stan_model_MA_path,
                                                                           "prior_only",
                                                                           internal_obj$outs_stan_model_name$stan_model_file_name)
@@ -161,38 +170,38 @@ initialise_update_run_model <- function(      debugging = FALSE,
           # init_lists_per_chain[[1]]$inits
           try({
             
-            # 
-            # internal_obj$outs_stan_compile$stan_model_obj$variables()$parameters
-            # 
-            # ( is.numeric((internal_obj$outs_data$stan_data_list$n)) == FALSE)
-            # 
-            # str(internal_obj$outs_data$stan_data_list$n)
-            # old_n <- internal_obj$outs_data$stan_data_list$n
-            # new_n <- list()
-            # indicator_index_test_in_study
-            # for (c in 1:2) { 
-            #     new_n[[c]] <- list()
-            #     ##
-            #     for (t in 1:n_tests) { 
-            #       try({ 
-            #         new_n[[c]][[t]] <- old_n[[c]][[t]]
-            #       })
-            #     }
-            # }
-            # 
-            # str(new_n)
-            # 
-            # any(!(is.numeric(new_n[[1]][[4]])))
-            # 
-            # any(!(is.numeric(new_n[[1]])))
-            # 
-            # 
-            internal_obj$outs_stan_init <- R_fn_init_stan_inits_external(    
-                                                                      stan_data_list       = internal_obj$outs_data$stan_data_list,
-                                                                      stan_model_file_path = internal_obj$outs_stan_model_name$stan_model_file_path,
-                                                                      stan_model_obj       = internal_obj$outs_stan_compile$stan_model_obj,
-                                                                      n_chains             = MCMC_params$n_chains,
-                                                                      init_lists_per_chain = init_lists_per_chain)
+                # 
+                # internal_obj$outs_stan_compile$stan_model_obj$variables()$parameters
+                # 
+                # ( is.numeric((internal_obj$outs_data$stan_data_list$n)) == FALSE)
+                # 
+                # str(internal_obj$outs_data$stan_data_list$n)
+                # old_n <- internal_obj$outs_data$stan_data_list$n
+                # new_n <- list()
+                # indicator_index_test_in_study
+                # for (c in 1:2) { 
+                #     new_n[[c]] <- list()
+                #     ##
+                #     for (t in 1:n_tests) { 
+                #       try({ 
+                #         new_n[[c]][[t]] <- old_n[[c]][[t]]
+                #       })
+                #     }
+                # }
+                # 
+                # str(new_n)
+                # 
+                # any(!(is.numeric(new_n[[1]][[4]])))
+                # 
+                # any(!(is.numeric(new_n[[1]])))
+                # 
+                # 
+                internal_obj$outs_stan_init <- R_fn_init_stan_inits_external(    
+                                                                          stan_data_list       = internal_obj$outs_data$stan_data_list,
+                                                                          stan_model_file_path = internal_obj$outs_stan_model_name$stan_model_file_path,
+                                                                          stan_model_obj       = internal_obj$outs_stan_compile$stan_model_obj,
+                                                                          n_chains             = MCMC_params$n_chains,
+                                                                          init_lists_per_chain = init_lists_per_chain)
           
           })
           # internal_obj$outs_data$stan_data_list$n[[1]][[1]]

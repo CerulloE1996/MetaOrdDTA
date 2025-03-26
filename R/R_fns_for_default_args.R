@@ -55,7 +55,7 @@ default_model_parameterisation <- function(cts) {
   if (cts) { 
     model_parameterisation <- "Jones"
   } else   {
-    model_parameterisation <- "R&G"
+    model_parameterisation <- "HSROC" ## ord "R&G"
   }
   
   # print(paste("model_parameterisation = ", model_parameterisation))

@@ -17,29 +17,28 @@ prep_data_and_model <- function(  debugging = FALSE,
                                   basic_model_options,
                                   advanced_model_options,
                                   MCMC_params,
+                                  other_advanced_options = NULL,
                                   ##
                                   priors,
                                   ##
                                   init_lists_per_chain
 ) {
-  
-          try({ 
-            n_index_tests_per_study <- rowSums(indicator_index_test_in_study)
-          }, silent = TRUE)
-          print(paste("n_index_tests_per_study = "))
-          cat(n_index_tests_per_study)
+          
+          if (is.null(other_advanced_options$advanced_compile)) { 
+            other_advanced_options$advanced_compile <- FALSE
+          }
           ##
           ## ---- Unpack elements from grouped lists:
           ##
-          default_fns_list <- list(  network = default_network,
-                                     cts = default_cts,
-                                     model_parameterisation = default_model_parameterisation,
-                                     random_thresholds = default_random_thresholds,
-                                     Dirichlet_random_effects_type = default_Dirichlet_random_effects_type,
+          default_fns_list <- list(  network = MetaOrdDTA:::default_network,
+                                     cts = MetaOrdDTA:::default_cts,
+                                     model_parameterisation = MetaOrdDTA:::default_model_parameterisation,
+                                     random_thresholds = MetaOrdDTA:::default_random_thresholds,
+                                     Dirichlet_random_effects_type = MetaOrdDTA:::default_Dirichlet_random_effects_type,
                                      ##
-                                     box_cox = default_box_cox,
+                                     box_cox = MetaOrdDTA:::default_box_cox,
                                      ##
-                                     softplus = default_softplus)
+                                     softplus = MetaOrdDTA:::default_softplus)
           
           ##
           default_n_chains <- round(parallel::detectCores()/2)
@@ -107,11 +106,22 @@ prep_data_and_model <- function(  debugging = FALSE,
           ##
           ## -----------------  Setup data: ---------------------------------------------------------------------------
           ##
+          if (basic_model_options$network) {
+              try({ 
+                n_index_tests_per_study <- rowSums(indicator_index_test_in_study)
+              }, silent = TRUE)
+              print(paste("n_index_tests_per_study = "))
+              cat(n_index_tests_per_study)
+          } else { 
+              n_index_tests_per_study <- NULL
+          }
+          
+          
           {
                  if (basic_model_options$network)  { 
-                      data_fn <- R_fn_prep_NMA_data
+                      data_fn <- MetaOrdDTA:::R_fn_prep_NMA_data
                  } else { 
-                      data_fn <- R_fn_prep_MA_data
+                      data_fn <- MetaOrdDTA:::R_fn_prep_MA_data
                  }
               
                  outs_data <- data_fn( x = x,
@@ -131,7 +141,7 @@ prep_data_and_model <- function(  debugging = FALSE,
           ##
           ## ----- Get the Stan model file (.stan file) name: ----------------------------------------------------------
           ##
-          internal_obj$outs_stan_model_name  <- R_fn_get_stan_model_file_name(
+          internal_obj$outs_stan_model_name  <- MetaOrdDTA:::R_fn_get_stan_model_file_name(
                                                                 network    = basic_model_options$network, 
                                                                 cts        = basic_model_options$cts, 
                                                                 prior_only = basic_model_options$prior_only, 
@@ -144,17 +154,59 @@ prep_data_and_model <- function(  debugging = FALSE,
           print(internal_obj$outs_stan_model_name)
           ##
           ## ----------------- Compile Stan model (if necessary): ------------------------------------------------------
-          ##
-          internal_obj$outs_stan_compile <- R_fn_compile_stan_model_basic_given_file_name( 
-                                                                         stan_model_file_name = internal_obj$outs_stan_model_name$stan_model_file_name,
-                                                                         ##
-                                                                         cts        = basic_model_options$cts, 
-                                                                         network    = basic_model_options$network, 
-                                                                         prior_only = basic_model_options$prior_only,
-                                                                         ##
-                                                                         debugging = debugging,
-                                                                         force_recompile = FALSE,
-                                                                         quiet = FALSE)
+          ## 
+          ## R_fn_compile_stan_advanced_given_file_name
+          ## R_fn_compile_stan_model_basic_given_file_name
+          if (other_advanced_options$advanced_compile) {
+                  
+                  other_advanced_options$force_recompile <- MetaOrdDTA:::if_null_then_set_to(other_advanced_options$force_recompile, TRUE)
+                  other_advanced_options$quiet <- MetaOrdDTA:::if_null_then_set_to(other_advanced_options$quiet, FALSE)
+                  ##
+                  set_custom_CXX_CPP_flags <- other_advanced_options$set_custom_CXX_CPP_flags
+                  CCACHE_PATH <- other_advanced_options$CCACHE_PATH
+                  custom_cpp_user_header_file_path <- other_advanced_options$custom_cpp_user_header_file_path
+                  CXX_COMPILER_PATH <- other_advanced_options$CXX_COMPILER_PATH
+                  CPP_COMPILER_PATH <- other_advanced_options$CPP_COMPILER_PATH
+                  MATH_FLAGS <- other_advanced_options$MATH_FLAGS
+                  FMA_FLAGS <- other_advanced_options$FMA_FLAGS
+                  AVX_FLAGS <- other_advanced_options$AVX_FLAGS
+                  THREAD_FLAGS <- other_advanced_options$THREAD_FLAGS
+ 
+                  internal_obj$outs_stan_compile <- MetaOrdDTA:::R_fn_compile_stan_advanced_given_file_name( 
+                                                                                 stan_model_file_name = internal_obj$outs_stan_model_name$stan_model_file_name,
+                                                                                 ##
+                                                                                 cts        = basic_model_options$cts, 
+                                                                                 network    = basic_model_options$network, 
+                                                                                 prior_only = basic_model_options$prior_only,
+                                                                                 ##
+                                                                                 debugging = debugging,
+                                                                                 force_recompile = other_advanced_options$force_recompile,
+                                                                                 quiet = other_advanced_options$quiet,
+                                                                                 ##
+                                                                                 set_custom_CXX_CPP_flags = FALSE, 
+                                                                                 CCACHE_PATH = " ", 
+                                                                                 custom_cpp_user_header_file_path = NULL, ## if wish to include custom C++ files
+                                                                                 CXX_COMPILER_PATH = NULL,
+                                                                                 CPP_COMPILER_PATH = NULL,
+                                                                                 MATH_FLAGS = NULL,
+                                                                                 FMA_FLAGS = NULL,
+                                                                                 AVX_FLAGS = NULL,
+                                                                                 THREAD_FLAGS = NULL)
+          } else { 
+                  
+                  internal_obj$outs_stan_compile <- MetaOrdDTA:::R_fn_compile_stan_model_basic_given_file_name( 
+                                                                                stan_model_file_name = internal_obj$outs_stan_model_name$stan_model_file_name,
+                                                                                ##
+                                                                                cts        = basic_model_options$cts, 
+                                                                                network    = basic_model_options$network, 
+                                                                                prior_only = basic_model_options$prior_only,
+                                                                                ##
+                                                                                debugging = debugging,
+                                                                                force_recompile = FALSE,
+                                                                                quiet = FALSE)
+            
+          }
+          
           # ##
           # message(paste("internal_obj$outs_stan_compile = "))
           # print(internal_obj$outs_stan_compile)
@@ -269,6 +321,7 @@ prep_data_and_model <- function(  debugging = FALSE,
                       basic_model_options = basic_model_options,
                       advanced_model_options = advanced_model_options,
                       MCMC_params = MCMC_params,
+                      other_advanced_options = other_advanced_options,
                       ##
                       init_lists_per_chain = init_lists_per_chain,
                       ##

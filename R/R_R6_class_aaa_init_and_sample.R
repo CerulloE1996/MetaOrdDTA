@@ -132,7 +132,7 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                     ##
                     outs_stan_compile = list( 
                         stan_model_obj = NULL, 
-                        # stan_model_file_name = NULL,
+                        #### stan_model_file_name = NULL,
                         stan_model_file_path = NULL,
                         ##
                         pkg_root_directory = NULL,
@@ -143,7 +143,7 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                         stan_MA_prior_directory = NULL,
                         ##
                         stan_NMA_directory = NULL,
-                        stan_NMA_directory = NULL
+                        stan_NMA_prior_directory = NULL
                     ),
                     ##
                     outs_stan_init = list( 
@@ -171,10 +171,10 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                         outs_stan_init = NULL,
                         outs_stan_sampling = NULL,
                         ##
-                        HMC_info = NULL, ## new
-                        efficiency_info = NULL, ## new
-                        summaries = NULL, ## new
-                        traces = NULL ## new
+                        HMC_info = NULL,
+                        efficiency_info = NULL,
+                        summaries = NULL,
+                        traces = NULL
                     ),
                     ##
                     ## ---- Data (user-inputted - MANDATORY argument)
@@ -209,6 +209,26 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                       softplus = NULL
                     ),
                     ##
+                    ## ---- other "advanced" user-inputted options (e.g. C++ compiler flags - OPTIONAL - user-inputted element-by-element)
+                    ##
+                    other_advanced_options = list(
+                      advanced_compile = NULL, ## default is false (aka a "basic" compile)
+                      ##
+                      force_recompile = NULL,
+                      quiet = NULL,
+                      compile = NULL,
+                      ##
+                      set_custom_CXX_CPP_flags = NULL,
+                      CCACHE_PATH = NULL,
+                      custom_cpp_user_header_file_path = NULL,
+                      CXX_COMPILER_PATH = NULL,
+                      CPP_COMPILER_PATH = NULL,
+                      MATH_FLAGS = NULL,
+                      FMA_FLAGS = NULL,
+                      AVX_FLAGS = NULL,
+                      THREAD_FLAGS = NULL
+                    ),
+                    ##
                     ## ---- priors  (OPTIONAL - user-inputted element-by-element)
                     ##
                     priors = NULL,
@@ -235,7 +255,8 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                     ##
                     ## ---- Other class members:
                     ##
-                    ## ---------- constructor - initialize using the prep_data_and_model fn (this wraps the prep_data_and_model function with $new()) - store all important parameters:
+                    ## ---------- constructor - initialize using the prep_data_and_model fn (this wraps the prep_data_and_model function with $new())
+                    ## - store all important parameters:
                     #'@description Create a new "MetaOrd_model" object.
                     #'@param x The dataset. See class documentation for details.
                     ##
@@ -286,7 +307,25 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                             priors = NULL,
                                             ##
                                             n_chains = NULL,
-                                            init_lists_per_chain = self$init_lists_per_chain
+                                            init_lists_per_chain = self$init_lists_per_chain,
+                                            ##
+                                            ## Other "advanced" options (non-modelling options e.g. compiler / C++ / Stan flags):
+                                            ##
+                                            advanced_compile = FALSE, ## default is standard/"basic" compile
+                                            ##
+                                            force_recompile = FALSE,
+                                            quiet = FALSE,
+                                            compile = TRUE,
+                                            ##
+                                            set_custom_CXX_CPP_flags = FALSE, 
+                                            CCACHE_PATH = " ", 
+                                            custom_cpp_user_header_file_path = NULL, ## if wish to include custom C++ files
+                                            CXX_COMPILER_PATH = NULL,
+                                            CPP_COMPILER_PATH = NULL,
+                                            MATH_FLAGS = NULL,
+                                            FMA_FLAGS = NULL,
+                                            AVX_FLAGS = NULL,
+                                            THREAD_FLAGS = NULL
                                             ) {
                       
                               # message(("aaa_class_hello_1"))
@@ -301,19 +340,37 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                               ##
                               self$indicator_index_test_in_study <- indicator_index_test_in_study
                               ##
-                              ## ---- "basic_model_options" list:
+                              ## ---- make INTERNAL "basic_model_options" list:
                               ##
-                              self$basic_model_options$network <- network
-                              self$basic_model_options$cts <- cts
+                              self$basic_model_options$network    <- network
+                              self$basic_model_options$cts        <- cts
                               self$basic_model_options$prior_only <- prior_only
                               ##
-                              ## ---- "advanced_model_options" list:
+                              ## ---- make INTERNAL "advanced_model_options" list:
                               ##
                               self$advanced_model_options$model_parameterisation        <- model_parameterisation
                               self$advanced_model_options$random_thresholds             <- random_thresholds
                               self$advanced_model_options$Dirichlet_random_effects_type <- Dirichlet_random_effects_type
                               self$advanced_model_options$box_cox  <- box_cox
                               self$advanced_model_options$softplus <- softplus
+                              ##
+                              ## ---- make INTERNAL "other_advanced_options" list:
+                              ##
+                              self$other_advanced_options$advanced_compile <- advanced_compile
+                              ##
+                              self$other_advanced_options$force_recompile <- force_recompile
+                              self$other_advanced_options$quiet <- quiet
+                              self$other_advanced_options$compile <- compile
+                              ##
+                              self$other_advanced_options$set_custom_CXX_CPP_flags <- set_custom_CXX_CPP_flags
+                              self$other_advanced_options$CCACHE_PATH              <- CCACHE_PATH
+                              self$other_advanced_options$custom_cpp_user_header_file_path <- custom_cpp_user_header_file_path
+                              self$other_advanced_options$CXX_COMPILER_PATH  <- CXX_COMPILER_PATH
+                              self$other_advanced_options$CXX_COMPILER_PATH  <- CXX_COMPILER_PATH
+                              self$other_advanced_options$MATH_FLAGS   <- MATH_FLAGS
+                              self$other_advanced_options$FMA_FLAGS    <- FMA_FLAGS
+                              self$other_advanced_options$AVX_FLAGS    <- AVX_FLAGS
+                              self$other_advanced_options$THREAD_FLAGS <- THREAD_FLAGS
                               ##
                               ## ---- priors:
                               ##
@@ -342,23 +399,10 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                                                                     basic_model_options = self$basic_model_options,
                                                                                     advanced_model_options = self$advanced_model_options,
                                                                                     MCMC_params = self$MCMC_params,
+                                                                                    other_advanced_options = self$other_advanced_options,
                                                                                     ##
                                                                                     priors = self$priors,
                                                                                     init_lists_per_chain = self$init_lists_per_chain)
-                              
-                              
-                              ## output of MetaOrdDTA:::prep_data_and_model:
-                              # return(list(  full_outputs = full_outputs,
-                              #               ##
-                              #               internal_obj = internal_obj,
-                              #               basic_model_options = basic_model_options,
-                              #               advanced_model_options = advanced_model_options,
-                              #               MCMC_params = MCMC_params,
-                              #               ##
-                              #               priors = priors,
-                              #               ##
-                              #               init_lists_per_chain = init_lists_per_chain))
-                                                                                                 
                               
                               ##
                               ## ---- Update R grouped lists:
@@ -368,6 +412,7 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                               self$basic_model_options    <- local_prep_data_and_model_outs$basic_model_options
                               self$advanced_model_options <- local_prep_data_and_model_outs$advanced_model_options
                               self$MCMC_params            <- local_prep_data_and_model_outs$MCMC_params
+                              self$other_advanced_options <- local_prep_data_and_model_outs$other_advanced_options
                               ##
                               self$priors <- local_prep_data_and_model_outs$priors
                               ##
@@ -518,6 +563,7 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                                                                                basic_model_options = self$basic_model_options,
                                                                                                advanced_model_options = self$advanced_model_options,
                                                                                                MCMC_params = self$MCMC_params,
+                                                                                               other_advanced_options = self$other_advanced_options,
                                                                                                ##
                                                                                                priors = self$priors,
                                                                                                ##
@@ -936,12 +982,31 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                  cat("Summary object structure:\n")
                                  str(self$internal_obj)
                                }
+                     
+                     
+                               network <- self$basic_model_options$network
+                               if (network) { 
+                                 sROC_plot_fn  <- MetaOrdDTA:::R_fn_sROC_plot_NMA
+                                 n_index_tests <- self$internal_obj$outs_data$n_tests
+                                 n_thr         <- self$internal_obj$outs_data$n_thr
+                               } else { 
+                                 sROC_plot_fn  <- MetaOrdDTA:::R_fn_sROC_plot_MA
+                                 n_index_tests <- 1     ## dummy arg - needed for compatability / R6 class
+                                 n_thr         <- n_thr ## dummy arg - needed for compatability / R6 class
+                               }
+                     
                                ##
-                               sROC_plot_outs <- MetaOrdDTA:::R_fn_sROC_plot( stan_model_file_name = self$internal_obj$outs_stan_model_name$stan_model_file_name,
-                                                                              stan_mod_samples = self$internal_obj$outs_stan_sampling$stan_mod_samples,
-                                                                              df_true = df_true,
-                                                                              conf_region_colour = conf_region_colour,
-                                                                              pred_region_colour = pred_region_colour)
+                               sROC_plot_outs <- sROC_plot_fn(    stan_model_file_name = self$internal_obj$outs_stan_model_name$stan_model_file_name,
+                                                                  stan_mod_samples     = self$internal_obj$outs_stan_sampling$stan_mod_samples,
+                                                                  ##
+                                                                  df_true = df_true,
+                                                                  ##
+                                                                  conf_region_colour = conf_region_colour,
+                                                                  pred_region_colour = pred_region_colour,
+                                                                  ##
+                                                                  n_index_tests = n_index_tests,
+                                                                  n_thr = n_thr)
+                                                                  
                                ##
                                df_fitted <- sROC_plot_outs$df_fitted
                                plot_1    <- sROC_plot_outs$plot_1

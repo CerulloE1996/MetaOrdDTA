@@ -1,8 +1,7 @@
 
 
-#### ------- R function to compile Stan model  ------------------------------------------------------------------------------------------------------------------------------
-     
-    
+#### ------- R function to compile Stan model  -----------------------------------------------------------------------------------
+
 R_fn_compile_stan_advanced_given_file_name <- function( stan_model_file_name, 
                                                         cts,
                                                         network,
@@ -11,12 +10,11 @@ R_fn_compile_stan_advanced_given_file_name <- function( stan_model_file_name,
                                                         debugging = FALSE,
                                                         force_recompile = FALSE,
                                                         quiet = FALSE,
+                                                        compile = TRUE,
                                                         ##
-                                                        set_custom_optimised_CXX_CPP_flags = FALSE, 
+                                                        set_custom_CXX_CPP_flags = FALSE, 
                                                         CCACHE_PATH = " ", 
-                                                        user_home_dir = NULL,
-                                                        user_BayesMVP_dir = NULL,
-                                                        custom_cpp_user_header_file_path = NULL,
+                                                        custom_cpp_user_header_file_path = NULL, ## if wish to include custom C++ files
                                                         CXX_COMPILER_PATH = NULL,
                                                         CPP_COMPILER_PATH = NULL,
                                                         MATH_FLAGS = NULL,
@@ -35,9 +33,9 @@ R_fn_compile_stan_advanced_given_file_name <- function( stan_model_file_name,
                                                                               prior_only = prior_only,
                                                                               ##
                                                                               debugging = debugging,
-                                                                              force_recompile = FALSE,
+                                                                              force_recompile = force_recompile,
                                                                               quiet = quiet,
-                                                                              compile = FALSE)
+                                                                              compile = compile)
                     
                     stan_model_file_name <- outs_stan_basic_wo_compiling$stan_model_file_name
                     stan_model_file_path <- outs_stan_basic_wo_compiling$stan_model_file_path
@@ -208,15 +206,15 @@ R_fn_compile_stan_advanced_given_file_name <- function( stan_model_file_name,
                     LDFLAGS <- LINKER_FLAGS
                     
                     
-                    cmdstan_cpp_flags <- list(  paste0("CC = ", CC),
-                                                paste0("CXX = ", CXX),
-                                                paste0("PKG_CPPFLAGS = ", PKG_CPPFLAGS),
-                                                paste0("PKG_CXXFLAGS = ", PKG_CXXFLAGS),
-                                                paste0("CPPFLAGS = ", CPPFLAGS),
-                                                paste0("CXXFLAGS = ", CXXFLAGS),
-                                                paste0("CFLAGS = ", CFLAGS), 
-                                                paste0("CXX_STD = ", CXX_STD), 
-                                                paste0("LDFLAGS = ", LDFLAGS))
+                    cmdstan_cpp_flags <- list(  paste0("override CC = ", CC),
+                                                paste0("override CXX = ", CXX),
+                                                paste0("override PKG_CPPFLAGS = ", PKG_CPPFLAGS),
+                                                paste0("override PKG_CXXFLAGS = ", PKG_CXXFLAGS),
+                                                paste0("override CPPFLAGS = ", CPPFLAGS),
+                                                paste0("override CXXFLAGS = ", CXXFLAGS),
+                                                paste0("override CFLAGS = ", CFLAGS), 
+                                                paste0("override CXX_STD = ", CXX_STD), 
+                                                paste0("override LDFLAGS = ", LDFLAGS))
                     
                     ## Print the C++ flags being used to compile the Stan model:
                     message(paste("BASE_FLAGS set to:"))
@@ -236,19 +234,21 @@ R_fn_compile_stan_advanced_given_file_name <- function( stan_model_file_name,
                           Sys.chmod(stan_model_file_path, mode = "0755")  # Read/write/execute for owner, read/execute for others
                         }
                         ##
-                        if (set_custom_optimised_CXX_CPP_flags == TRUE) {
+                        if (set_custom_CXX_CPP_flags == TRUE) {
                           
                               if (is.null(custom_cpp_user_header_file_path)) {
                                 stan_model_obj <- cmdstanr::cmdstan_model(  stan_model_file_path,
                                                                    force_recompile = force_recompile,
-                                                                   quiet = FALSE,
-                                                                   cpp_options = cmdstan_cpp_flags)
+                                                                   quiet = quiet,
+                                                                   cpp_options = cmdstan_cpp_flags,
+                                                                   include_paths = stan_functions_directory)
                               } else { 
                                 stan_model_obj <- cmdstanr::cmdstan_model(  stan_model_file_path,
                                                                    force_recompile = force_recompile,
-                                                                   quiet = FALSE,
+                                                                   quiet = quiet,
                                                                    user_header = custom_cpp_user_header_file_path,
-                                                                   cpp_options = cmdstan_cpp_flags)
+                                                                   cpp_options = cmdstan_cpp_flags,
+                                                                   include_paths = stan_functions_directory)
                               }
                           
                         } else { 
@@ -256,13 +256,15 @@ R_fn_compile_stan_advanced_given_file_name <- function( stan_model_file_name,
                               if (is.null(custom_cpp_user_header_file_path)) {
                                 stan_model_obj <- cmdstanr::cmdstan_model(  stan_model_file_path,
                                                                  force_recompile = force_recompile,
-                                                                 quiet = FALSE)
+                                                                 quiet = quiet,
+                                                                 include_paths = stan_functions_directory)
                                                                 
                               } else { 
                                 stan_model_obj <- cmdstanr::cmdstan_model(  stan_model_file_path,
                                                                  force_recompile = force_recompile,
-                                                                 quiet = FALSE,
-                                                                 user_header = custom_cpp_user_header_file_path)
+                                                                 quiet = quiet,
+                                                                 user_header = custom_cpp_user_header_file_path,
+                                                                 include_paths = stan_functions_directory)
                                                                
                               }
                           
@@ -282,17 +284,28 @@ R_fn_compile_stan_advanced_given_file_name <- function( stan_model_file_name,
                     ##
                     FLAGS_CUSTOM_MACROS <- list(BASE_FLAGS = BASE_FLAGS)
                     
-                                            
-                                            
                     
-                    return(list(stan_model_obj = stan_model_obj, 
-                                FLAGS_STANDARD_MACROS = FLAGS_STANDARD_MACROS,
-                                FLAGS_CUSTOM_MACROS = FLAGS_CUSTOM_MACROS,
-                                cmdstan_cpp_flags = cmdstan_cpp_flags))
-                    
-                    
-                    
-                    
+                    ##
+                    ## output list:
+                    ##
+                    return(list( FLAGS_STANDARD_MACROS = FLAGS_STANDARD_MACROS,
+                                 FLAGS_CUSTOM_MACROS = FLAGS_CUSTOM_MACROS,
+                                 cmdstan_cpp_flags = cmdstan_cpp_flags,
+                                 ##
+                                 stan_model_obj = stan_model_obj, 
+                                 ##
+                                 stan_model_file_name = stan_model_file_name,
+                                 stan_model_file_path = stan_model_file_path,
+                                 ##
+                                 pkg_root_directory = pkg_root_directory,
+                                 stan_models_directory = stan_models_directory,
+                                 stan_functions_directory = stan_functions_directory,
+                                 ##
+                                 stan_MA_directory = stan_MA_directory,
+                                 stan_MA_prior_directory = stan_MA_prior_directory,
+                                 ##
+                                 stan_NMA_directory = stan_NMA_directory,
+                                 stan_NMA_prior_directory = stan_NMA_prior_directory))
               
                     
 }

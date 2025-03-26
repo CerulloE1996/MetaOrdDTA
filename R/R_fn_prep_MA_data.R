@@ -5,7 +5,10 @@
 #' R_fn_prep_MA_data
 #' @keywords internal
 #' @export
-R_fn_prep_MA_data <- function(x = NULL) {
+R_fn_prep_MA_data <- function(x = NULL,
+                              n_index_tests_per_study = NULL,      ## dummy arg (needed for R pkg)
+                              indicator_index_test_in_study = NULL ## dummy arg (needed for R pkg)
+) {
     
  
     x_non_diseased <- x[[1]]
@@ -48,9 +51,11 @@ R_fn_prep_MA_data <- function(x = NULL) {
     for (c in 1:2) {
         stan_data_list$cutpoint_index[[c]] <- matrix(-1, nrow = n_studies, ncol = n_thr);
         stan_data_list$n[[c]] <- matrix(-1, nrow = n_studies, ncol = n_thr);
-        stan_data_list$x[[c]] <- matrix(-1, nrow = n_studies, ncol = n_thr);
-        stan_data_list$x[[c]] <- matrix(-1, nrow = n_studies, ncol = n_thr);
+        # stan_data_list$x[[c]] <- matrix(-1, nrow = n_studies, ncol = n_thr);
+        # stan_data_list$x_with_missings[[c]] <- matrix(-1, nrow = n_studies, ncol = n_thr);
     }
+    stan_data_list$x <- x
+    stan_data_list$x_with_missings <- x
     ##
     for (s in 1:n_studies) {
       

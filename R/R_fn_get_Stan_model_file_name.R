@@ -1,8 +1,4 @@
 
-
-
-
-
 #' R_fn_get_stan_model_file_name
 #' @keywords internal
 #' @export
@@ -30,7 +26,7 @@ R_fn_get_stan_model_file_name <- function( cts,
                   ##
                   ## Now get the Stan model file name string:
                   ##
-                  if (model_parameterisation == "Gatsonis") { 
+                  if (model_parameterisation %in% c("R&G", "Gatsonis", "HSROC")) { 
                     file_string_2 <- "Gat_"
                   } else { 
                     file_string_2 <- "Xu_"

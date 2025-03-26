@@ -114,7 +114,7 @@ R_fn_set_priors_MA <- function(   priors,
           
                   message("Configuring priors for ordinal model")
           
-                  if (model_parameterisation == "R&G") { 
+                  if (model_parameterisation %in% c("HSROC", "R&G", "Gatsonis")) { 
                     
                           message("Configuring priors for HSROC-based (Rutter & Gatsonis) -based ordinal model")
                           ##
@@ -158,7 +158,7 @@ R_fn_set_priors_MA <- function(   priors,
                           check_vec_length(priors, "prior_raw_scale_mu_SD",   1)
                           check_vec_length(priors, "prior_raw_scale_SD_SD",   1)
                           
-                  } else if (model_parameterisation == "Xu") {
+                  } else if (model_parameterisation %in% c("bivariate", "Xu")) {
                     
                           message("Configuring priors for Xu et al. -based ordinal model")
                           ##
@@ -202,9 +202,9 @@ R_fn_set_priors_MA <- function(   priors,
                           ## Set default priors for the cutpoints (using Dirichlet ** priors ** (not model) on the "Induced-Dirichlet" ordinal probs):
                           ##
                           ## implies a uniform simplex:
-                          priors$prior_alpha <- if_null_then_set_to(priors$prior_alpha, rep(1.0, n_cat)) 
+                          priors$prior_dirichlet_alpha <- if_null_then_set_to(priors$prior_dirichlet_alpha, rep(1.0, n_cat)) 
                           ##
-                          # check_vec_length(priors, "prior_alpha", n_cat)
+                          # check_vec_length(priors, "prior_dirichlet_alpha", n_cat)
                           
                   } else if (random_thresholds == FALSE) { 
                     

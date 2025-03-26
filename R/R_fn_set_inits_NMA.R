@@ -10,7 +10,8 @@ R_fn_set_inits_NMA <- function(    inits,
                                    priors,
                                    ##
                                    n_studies,
-                                   n_index_tests,
+                                   n_tests = NULL, ##  may be dummy argument (needed for pkg)
+                                   n_index_tests = NULL,   ##  may be dummy argument (needed for pkg)
                                    n_thr,
                                    ##
                                    cts,
@@ -34,9 +35,9 @@ R_fn_set_inits_NMA <- function(    inits,
                         ##
                         ## NMA params for beta:
                         ##
-                        inits$beta_sigma   <- if_null_then_set_to(inits$beta_sigma, rep(0.001, 2))
-                        inits$beta_tau     <- if_null_then_set_to(inits$beta_tau,      array(dim = c(n_tests, 2),   0.001))
-                        inits$beta_eta_z   <- if_null_then_set_to(inits$beta_eta_z,    array(dim = c(n_studies, 2), 0.001))
+                        inits$beta_sigma <- if_null_then_set_to(inits$beta_sigma, rep(0.001, 2))
+                        inits$beta_tau   <- if_null_then_set_to(inits$beta_tau,   array(dim = c(n_tests, 2),   0.001))
+                        inits$beta_eta_z <- if_null_then_set_to(inits$beta_eta_z, array(dim = c(n_studies, 2), 0.001))
                         ##
                         init_beta_delta_z <- list()    
                         for (t in 1:n_tests) { 
@@ -69,10 +70,15 @@ R_fn_set_inits_NMA <- function(    inits,
                         ## Set default inits for box-cox ("lambda"):
                         ##
                         inits$lambda <- if_null_then_set_to(inits$lambda, rep(0.001, n_tests))
+                        ##
+                        ## Default inits for the between-study corr matrix ("beta_corr" and "raw_scale_corr):
+                        ##
+                        inits$beta_corr      <- if_null_then_set_to(inits$beta_corr, 0.5*(priors$beta_corr_lb + priors$beta_corr_ub))
+                        inits$raw_scale_corr <- if_null_then_set_to(inits$raw_scale_corr, 0.5*(priors$raw_scale_corr_corr_lb + priors$raw_scale_corr_corr_ub))
                         
           } else if (cts == FALSE) { ## ordinal (Xu-based or R&G-based)
             
-                          if (model_parameterisation %in% c("R&G", "HSROC")) { 
+                          if (model_parameterisation %in% c("R&G", "HSROC", "Gatsonis")) { 
                           
                                     # ##
                                     # ## Set default inits for the locations ("beta"):
