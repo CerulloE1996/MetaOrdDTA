@@ -332,6 +332,59 @@ array[] matrix map_latent_cumul_prob_to_fixed_C( vector C,
 }
 
 
+////
+////  Get the cutpoint index (k) to map "latent_cumul_prob[c][s, cut_i]" to correct cutpoint "C[k]":
+////
+array[] matrix map_latent_cumul_prob_to_fixed_hetero_C( array[] vector C, 
+                                  matrix locations, 
+                                  matrix scales, 
+                                  data int n_studies,
+                                  data array[] int n_obs_cutpoints,
+                                  data array[] matrix cutpoint_index) {
+          
+      int n_thr = num_elements(C[1]);  
+      array[2] matrix[n_studies, n_thr] latent_cumul_prob;
+      for (c in 1:2) {
+          latent_cumul_prob[c] = rep_matrix(positive_infinity(), n_studies, n_thr);
+      }
+      for (s in 1:n_studies) {
+                for (c in 1:2) {
+                      for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
+                              int k = to_int(cutpoint_index[c][s, cut_i]);
+                              latent_cumul_prob[c][s, cut_i] = (C[c][k] - locations[c, s])/scales[c, s];
+                      }
+                }
+      }
+      
+      return latent_cumul_prob;
+                                    
+}
+array[] matrix map_latent_cumul_prob_to_fixed_hetero_C( array[] vector C, 
+                                  matrix locations, 
+                                  real scale, 
+                                  data int n_studies,
+                                  data array[] int n_obs_cutpoints,
+                                  data array[] matrix cutpoint_index) {
+          
+      int n_thr = num_elements(C[1]);  
+      array[2] matrix[n_studies, n_thr] latent_cumul_prob;
+      for (c in 1:2) {
+          latent_cumul_prob[c] = rep_matrix(positive_infinity(), n_studies, n_thr);
+      }
+      for (s in 1:n_studies) {
+                for (c in 1:2) {
+                      for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
+                              int k = to_int(cutpoint_index[c][s, cut_i]);
+                              latent_cumul_prob[c][s, cut_i] = (C[c][k] - locations[c, s])/scale;
+                      }
+                }
+      }
+      
+      return latent_cumul_prob;
+                                    
+}
+
+
 
 
 
