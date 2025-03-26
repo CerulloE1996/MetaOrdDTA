@@ -40,7 +40,7 @@ data {
         //// 
         //// ---- Priors for cutpoints (using "induced-Dirichlet"):
         //// 
-        vector<lower=0.0>[n_thr + 1] prior_alpha;
+        vector<lower=0.0>[n_thr + 1] prior_dirichlet_alpha;
         ////
         //// ---- Other:
         ////
@@ -52,7 +52,7 @@ data {
 transformed data { 
     
         int n_cat = n_thr + 1; //// Number of ordinal categories for index test
-        vector[n_thr] Ind_Dir_anchor = rep_vector(0.0, n_thr);
+        // vector[n_thr] Ind_Dir_anchor = rep_vector(0.0, n_thr);
 }
   
 
@@ -63,9 +63,10 @@ parameters {
         vector<lower=0.0>[2] beta_SD;   
         matrix[2, n_studies] beta_z;    //// Study-specific random-effects (off-centered parameterisation)
         ////
-        real beta_corr;  //// between-study corr (possibly restricted)
+        real<lower=-1.0, upper=1.0> beta_corr;  //// between-study corr (possibly restricted)
         ////
-        vector[n_thr] C_raw_vec;   //// Global cutpoints ("raw" / unconstrained)
+        array[2] vector[n_thr] C_raw_vec;   //// Global cutpoints ("raw" / unconstrained)
+        // array[2] ordered[n_thr] C;   //// Global cutpoints
       
 }
 
@@ -75,13 +76,17 @@ transformed parameters {
         ////
         //// ---- Construct (global) cutpoints:
         ////
-        vector[n_thr] C = ((softplus == 1) ? construct_C_using_SP_jacobian(C_raw_vec) : construct_C_using_exp_jacobian(C_raw_vec));
+        array[2] vector[n_thr] C;
+        for (c in 1:2) {
+            if (softplus == 1) C[c] = construct_C_using_SP_jacobian( C_raw_vec[c]);
+            else               C[c] = construct_C_using_exp_jacobian(C_raw_vec[c]);
+        }
         ////
         //// ---- Construct simple 2x2 (bivariate) between-study corr matrices for between-study model:
         ////
-        corr_matrix[2] beta_Omega = make_restricted_bivariate_Omega_jacobian(beta_corr, beta_corr_lb, beta_corr_ub);
-        cholesky_factor_corr[2] beta_L_Omega = cholesky_decompose(beta_Omega);
-        cholesky_factor_cov[2]  beta_L_Sigma = diag_pre_multiply(beta_SD, beta_L_Omega);
+        cholesky_factor_corr[2] beta_L_Omega      = make_restricted_bivariate_L_Omega_jacobian(beta_corr, beta_corr_lb, beta_corr_ub);
+        cholesky_factor_cov[2]  beta_L_Sigma      = diag_pre_multiply(beta_SD, beta_L_Omega);
+        corr_matrix[2] beta_Omega = multiply_lower_tri_self_transpose(beta_L_Omega);
         ////
         //// ---- Likelihood stuff:
         ////
@@ -99,7 +104,7 @@ transformed parameters {
             //// ---- Get the cutpoint index (k) to map "latent_cumul_prob[c][s, cut_i]" to correct cutpoint "C[k]":
             ////
             real scale = 1.0; // since using Xu param.
-            latent_cumul_prob = map_latent_cumul_prob_to_fixed_C(C, beta, scale, n_studies, n_obs_cutpoints, cutpoint_index);
+            latent_cumul_prob = map_latent_cumul_prob_to_fixed_hetero_C(C, beta, scale, n_studies, n_obs_cutpoints, cutpoint_index);
             ////
             //// ---- Calculate CUMULATIVE probabilities (vectorised):
             ////
@@ -129,13 +134,13 @@ model {
         ////
         //// ---- Induced-dirichlet ** Prior ** model:
         ////
-        {
-           vector[n_thr] Ind_Dir_cumul  = C - Ind_Dir_anchor;
+        for (c in 1:2) {
+           vector[n_thr] Ind_Dir_cumul  = C[c];// - Ind_Dir_anchor;
            vector[n_thr] Ind_Dir_cumul_prob = Phi_approx(Ind_Dir_cumul);
            vector[n_cat] Ind_Dir_ord_prob = cumul_probs_to_ord_probs(Ind_Dir_cumul_prob);
            ////
            vector[n_thr] rho = std_normal_approx_pdf(Ind_Dir_cumul, Ind_Dir_cumul_prob);
-           Ind_Dir_ord_prob ~ induced_dirichlet_given_rho(rho, prior_alpha);
+           Ind_Dir_ord_prob ~ induced_dirichlet_given_rho(rho, prior_dirichlet_alpha);
         }
         ////
         //// ---- Likelihood / Model:
@@ -156,17 +161,17 @@ generated quantities {
           ////
           //// Calculate summary accuracy (using mean parameters):
           ////
-          vector[n_thr] Fp = 1.0 - Phi_approx(C - beta_mu[1]);
+          vector[n_thr] Fp = 1.0 - Phi_approx(C[1] - beta_mu[1]);
           vector[n_thr] Sp = 1.0 - Fp;
-          vector[n_thr] Se = 1.0 - Phi_approx(C - beta_mu[2]);
+          vector[n_thr] Se = 1.0 - Phi_approx(C[2] - beta_mu[2]);
           ////
           //// Calculate predictive accuracy:
           ////
           vector[2] beta_pred =  multi_normal_cholesky_rng(beta_mu, beta_L_Sigma);
           ////
-          vector[n_thr] Fp_pred = 1.0 - Phi_approx(C - beta_pred[1]);
+          vector[n_thr] Fp_pred = 1.0 - Phi_approx(C[1] - beta_pred[1]);
           vector[n_thr] Sp_pred = 1.0 - Fp_pred;
-          vector[n_thr] Se_pred = 1.0 - Phi_approx(C - beta_pred[2]);
+          vector[n_thr] Se_pred = 1.0 - Phi_approx(C[2] - beta_pred[2]);
           ////
           //// Calculate study-specific accuracy:
           ////

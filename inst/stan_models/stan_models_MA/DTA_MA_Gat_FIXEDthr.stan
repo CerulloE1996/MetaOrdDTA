@@ -13,7 +13,9 @@ functions {
 
 
 data {
-    
+        ////
+        //// ---- Data:
+        ////
         int<lower=1> n_studies;
         int<lower=1> n_thr;
         array[n_studies] int n_obs_cutpoints;  //// OBSERVED cutpoints for test in study s
@@ -22,19 +24,27 @@ data {
         array[2] matrix[n_studies, n_thr] x;
         array[2] matrix[n_studies, n_thr] n;
         array[2] matrix[n_studies, n_thr] cutpoint_index;
-        //// Priors for beta:
+        ////
+        //// ---- Priors for location ("beta"):
+        ////
         real prior_beta_mu_mean;
         real prior_beta_mu_SD;
         real prior_beta_SD_mean;
         real prior_beta_SD_SD;
-        //// Priors for raw_scale:
+        ////
+        //// ---- Priors for raw_scale ("gamma"):
+        ////
         real prior_raw_scale_mu_mean;
         real prior_raw_scale_mu_SD;
         real prior_raw_scale_SD_mean;
         real prior_raw_scale_SD_SD;
-        //// Induced-Dirichlet priors:
-        vector<lower=0.0>[n_thr + 1] prior_alpha; // Induced-Dirichlet prior vector 
-        //// Other:
+        ////
+        //// ---- Induced-Dirichlet priors:
+        ////
+        vector<lower=0.0>[n_thr + 1] prior_dirichlet_alpha; // Induced-Dirichlet prior vector 
+        ////
+        //// ---- Other:
+        ////
         int<lower=0, upper=1> softplus;
   
 }
@@ -44,8 +54,8 @@ transformed data {
     
         int n_cat = n_thr + 1; //// Number of ordinal categories for index test
         vector[n_thr] Ind_Dir_anchor = rep_vector(0.0, n_thr);
-        real mult_nd = (1)*(-0.5);
-        real mult_d  = (1)*(+0.5);
+        real mult_nd = (1)*(-1.0);
+        real mult_d  = (1)*(+1.0); //// hence: mult_d > mult_nd
         
 }
   
@@ -61,17 +71,18 @@ parameters {
         real<lower=0.0> raw_scale_SD;   
         vector[n_studies] raw_scale_z;
         ////
-        vector[n_thr] C_raw_vec;   //// Global cutpoints ("raw" / unconstrained)
+        // vector[n_thr] C_raw_vec;   //// Global cutpoints ("raw" / unconstrained)
+        ordered[n_thr] C;   //// Global cutpoints
         
 }
-
+ 
 
 transformed parameters { 
   
         ////
         //// ---- Construct (global) cutpoints:
         ////
-        vector[n_thr] C = ((softplus == 1) ? construct_C_using_SP_jacobian(C_raw_vec) : construct_C_using_exp_jacobian(C_raw_vec));
+        // vector[n_thr] C = ((softplus == 1) ? construct_C_using_SP_jacobian(C_raw_vec) : construct_C_using_exp_jacobian(C_raw_vec));
         ////
         //// ---- Likelihood stuff:
         ////
@@ -99,27 +110,28 @@ transformed parameters {
                         real raw_scale_baseline_nd = mult_nd*raw_scale_baseline; // "gamma_nd"
                         real raw_scale_baseline_d  = mult_d*raw_scale_baseline; // "gamma_d"
                         scales[1, s] =  ((softplus == 1) ? softplus_scaled(raw_scale_baseline_nd) : exp_jacobian(raw_scale_baseline_nd));
-                        scales[2, s] =  ((softplus == 1) ? softplus_scaled(raw_scale_baseline_d)  : exp_jacobian(raw_scale_baseline_d))
+                        scales[2, s] =  ((softplus == 1) ? softplus_scaled(raw_scale_baseline_d)  : exp_jacobian(raw_scale_baseline_d));
                         ////
                     }
                 }
                 ////
                 //// ---- Get the cutpoint index (k) to map "latent_cumul_prob[c][s, cut_i]" to correct cutpoint "C[k]":
                 ////
-                latent_cumul_prob = map_latent_cumul_prob_to_fixed_C(C, beta, scales, n_studies, n_obs_cutpoints, cutpoint_index);
+                latent_cumul_prob = map_latent_cumul_prob_to_fixed_C(C, locations, scales, n_studies, n_obs_cutpoints, cutpoint_index);
                 ////
                 //// ---- Calculate CUMULATIVE probabilities (vectorised):
                 ////
                 for (c in 1:2) {
                     cumul_prob[c] = Phi_approx(latent_cumul_prob[c]); //// INCREASING sequence (as C_k > C_{k - 1})
                 }
-                ////
-                //// ---- Multinomial (factorised binomial likelihood)
-                ////
-                array[2, 2] matrix[n_studies, n_thr] log_lik_outs;
-                log_lik_outs = compute_log_lik_binomial_fact(cumul_prob, x, n, n_obs_cutpoints);
-                log_lik = log_lik_outs[1];
-                cond_prob = log_lik_outs[2];
+                // ////
+                // //// ---- Multinomial (factorised binomial likelihood)
+                // ////
+                log_lik = compute_log_lik_binomial_fact(cumul_prob, x, n, n_obs_cutpoints);
+                // array[2, 2] matrix[n_studies, n_thr] log_lik_outs;
+                // log_lik_outs = compute_log_lik_binomial_fact(cumul_prob, x, n, n_obs_cutpoints);
+                // log_lik   = log_lik_outs[1];
+                // cond_prob = log_lik_outs[2];
         }
       
 }
@@ -140,17 +152,16 @@ model {
         //// Induced-dirichlet ** Prior ** model:
         ////
         {
-           vector[n_thr] Ind_Dir_cumul  = C - Ind_Dir_anchor;
+           vector[n_thr] Ind_Dir_cumul  = C; //- Ind_Dir_anchor;
            vector[n_thr] Ind_Dir_cumul_prob = Phi_approx(Ind_Dir_cumul);
            vector[n_cat] Ind_Dir_ord_prob = cumul_probs_to_ord_probs(Ind_Dir_cumul_prob);
            ////
            vector[n_thr] rho = std_normal_approx_pdf(Ind_Dir_cumul[1:n_thr], Ind_Dir_cumul_prob[1:n_thr]);
-           Ind_Dir_ord_prob[1:n_cat] ~ induced_dirichlet_given_rho(rho, prior_alpha);
+           Ind_Dir_ord_prob[1:n_cat] ~ induced_dirichlet_given_rho(rho, prior_dirichlet_alpha);
         }
         ////
         //// Likelihood / Model:
         ////
-        //// target += Jacobian_raw_scale_to_scale;
         target += std_normal_lpdf(to_vector(beta_z)); // part of between-study model, NOT prior
         target += std_normal_lpdf(to_vector(raw_scale_z)); // part of between-study model, NOT prior
         ////
@@ -183,6 +194,9 @@ generated quantities {
           //// Calculate predictive accuracy:
           ////
           real beta_pred      = normal_rng(beta_mu, beta_SD);
+          real location_nd_pred = mult_nd*beta_pred;
+          real location_d_pred  = mult_d*beta_pred;
+          ////
           real raw_scale_pred = normal_rng(raw_scale_mu, raw_scale_SD); //// raw_scale_mu;
           real raw_scale_nd_pred = mult_nd*beta_pred;
           real raw_scale_d_pred  = mult_d*beta_pred;
@@ -213,10 +227,10 @@ generated quantities {
               for (s in 1:n_studies) {
                   for (c in 1:2) {
                      for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
-                      
+
                             //// Model-estimated data:
                             x_hat[c][s, cut_i] = cond_prob[c][s, cut_i] * n[c][s, cut_i];  	 // Fitted values
-                          
+
                             //// Compute residual deviance contribution:
                             real n_i =  (n[c][s, cut_i]);
                             real x_i =  (x[c][s, cut_i]);
@@ -224,13 +238,13 @@ generated quantities {
                             real log_x_minus_log_x_hat = log(x_i) - log(x_hat_i);
                             real log_diff_n_minus_x = log(n_i - x_i);
                             real log_diff_n_minus_x_hat = log(abs(n_i - x_hat_i));
-                             
-                            dev[c][s, cut_i] = 2.0 * ( x_i * log_x_minus_log_x_hat + (n_i - x_i) * (log_diff_n_minus_x - log_diff_n_minus_x_hat) ); 
-                          
+
+                            dev[c][s, cut_i] = 2.0 * ( x_i * log_x_minus_log_x_hat + (n_i - x_i) * (log_diff_n_minus_x - log_diff_n_minus_x_hat) );
+
                      }
                   }
               }
-              
+
              x_hat_nd = x_hat[1];
              dev_nd = dev[1];
              x_hat_d = x_hat[2];
