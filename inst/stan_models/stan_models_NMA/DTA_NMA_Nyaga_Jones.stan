@@ -13,7 +13,7 @@ functions {
         #include "Stan_fns_NMA.stan"
 }
 
-
+ 
 data {
       
           int<lower=1> n_studies;
@@ -68,8 +68,8 @@ data {
           ////
           //// ---- Other:
           ////
-          int<lower=0, upper=1> box_cox;
           int<lower=0, upper=1> softplus;
+          int<lower=0, upper=1> box_cox;
           array[n_index_tests] vector[n_thr_max] cts_thr_values;
   
 }
@@ -319,9 +319,13 @@ generated quantities {
           for (t in 1:n_index_tests) {
                   int n_thr_t = n_thr[t];
                   vector[n_thr_t] C_vec_t = get_test_values(C_vec, start_index, end_index, t);
-                  Fp[t][1:n_thr_t] =   1.0 - Phi_approx((C_vec_t - beta_mu[t, 1])/softplus_scaled(raw_scale_mu[t, 1]));
+                  ////
+                  real scale_mu_nd_t = ((softplus == 1) ? softplus_scaled(raw_scale_mu[t, 1]) : exp(raw_scale_mu[t, 1]));
+                  real scale_mu_d_t  = ((softplus == 1) ? softplus_scaled(raw_scale_mu[t, 2]) : exp(raw_scale_mu[t, 2]));
+                  ////
+                  Fp[t][1:n_thr_t] =   1.0 - Phi_approx((C_vec_t - beta_mu[t, 1])/scale_mu_nd_t);
                   Sp[t][1:n_thr_t] =   1.0 - Fp[t][1:n_thr_t];
-                  Se[t][1:n_thr_t] =   1.0 - Phi_approx((C_vec_t - beta_mu[t, 2])/softplus_scaled(raw_scale_mu[t, 2]));
+                  Se[t][1:n_thr_t] =   1.0 - Phi_approx((C_vec_t - beta_mu[t, 2])/scale_mu_d_t);
           }
           ////
           //// ---- Calculate predictive accuracy:
@@ -338,15 +342,18 @@ generated quantities {
                 real raw_scale_nd_delta_t_pred = normal_rng(0.0, raw_scale_tau[t, 1]);
                 real raw_scale_d_delta_t_pred  = normal_rng(0.0, raw_scale_tau[t, 2]);
                 ////
-                real beta_nd_pred      = beta_mu[t, 1] + beta_eta_pred[1] + beta_nd_delta_t_pred;
-                real beta_d_pred       = beta_mu[t, 2] + beta_eta_pred[2] + beta_d_delta_t_pred;
-                real raw_scale_nd_pred = raw_scale_mu[t, 1] + raw_scale_eta_pred[1]  + raw_scale_nd_delta_t_pred;
-                real raw_scale_d_pred  = raw_scale_mu[t, 2] + raw_scale_eta_pred[2]  + raw_scale_d_delta_t_pred;
+                real beta_nd_pred_t      = beta_mu[t, 1] + beta_eta_pred[1] + beta_nd_delta_t_pred;
+                real beta_d_pred_t       = beta_mu[t, 2] + beta_eta_pred[2] + beta_d_delta_t_pred;
+                ////
+                real raw_scale_nd_pred_t = raw_scale_mu[t, 1] + raw_scale_eta_pred[1]  + raw_scale_nd_delta_t_pred;
+                real raw_scale_d_pred_t  = raw_scale_mu[t, 2] + raw_scale_eta_pred[2]  + raw_scale_d_delta_t_pred;
+                real scale_pred_nd_t = ((softplus == 1) ? softplus_scaled(raw_scale_nd_pred_t) : exp(raw_scale_nd_pred_t));
+                real scale_pred_d_t  = ((softplus == 1) ? softplus_scaled(raw_scale_d_pred_t)  : exp(raw_scale_d_pred_t));
                 ////
                 {
-                      Fp_pred[t][1:n_thr_t] =   1.0 - Phi_approx((C_vec_t - beta_nd_pred)/softplus_scaled(raw_scale_nd_pred));
+                      Fp_pred[t][1:n_thr_t] =   1.0 - Phi_approx((C_vec_t - beta_nd_pred_t)/scale_pred_nd_t);
                       Sp_pred[t][1:n_thr_t] =   1.0 - Fp_pred[t][1:n_thr_t];
-                      Se_pred[t][1:n_thr_t] =   1.0 - Phi_approx((C_vec_t - beta_d_pred)/softplus_scaled(raw_scale_d_pred));
+                      Se_pred[t][1:n_thr_t] =   1.0 - Phi_approx((C_vec_t - beta_d_pred_t)/scale_pred_d_t);
                 }
           }
           ////
@@ -428,6 +435,14 @@ generated quantities {
           array[n_index_tests] vector[n_thr_max] DOR; 
           array[n_index_tests] vector[n_thr_max] Youden_index; 
           array[n_index_tests] vector[n_thr_max] Youden_index_weighted; 
+          //// Initialise:
+          for (t in 1:n_index_tests) {
+                    LRpos[t] = rep_vector(-1.0, n_thr_max);
+                    LRneg[t] = rep_vector(-1.0, n_thr_max);
+                    DOR[t]   = rep_vector(-1.0, n_thr_max);
+                    Youden_index[t]          = rep_vector(-1.0, n_thr_max);
+                    Youden_index_weighted[t] = rep_vector(-1.0, n_thr_max);
+          }
           for (t in 1:n_index_tests) {
             
                     int n_thr_t = n_thr[t];
@@ -463,10 +478,10 @@ generated quantities {
           ////
           //// ---- NMA: Compute pairwise accuracy differences + ratios:
           ////
-          array[n_index_tests, n_index_tests] matrix[n_thr_max, n_thr_max] diff_Se;
-          array[n_index_tests, n_index_tests] matrix[n_thr_max, n_thr_max] diff_Sp;
-          array[n_index_tests, n_index_tests] matrix[n_thr_max, n_thr_max] ratio_Se;
-          array[n_index_tests, n_index_tests] matrix[n_thr_max, n_thr_max] ratio_Sp;
+          array[n_index_tests, n_index_tests] matrix[n_thr_max, n_thr_max] diff_Se  = init_nested_array_of_matrices(n_thr_max, n_thr_max, n_index_tests, n_index_tests, -1.0);
+          array[n_index_tests, n_index_tests] matrix[n_thr_max, n_thr_max] diff_Sp  = init_nested_array_of_matrices(n_thr_max, n_thr_max, n_index_tests, n_index_tests, -1.0);
+          array[n_index_tests, n_index_tests] matrix[n_thr_max, n_thr_max] ratio_Se = init_nested_array_of_matrices(n_thr_max, n_thr_max, n_index_tests, n_index_tests, -1.0);
+          array[n_index_tests, n_index_tests] matrix[n_thr_max, n_thr_max] ratio_Sp = init_nested_array_of_matrices(n_thr_max, n_thr_max, n_index_tests, n_index_tests, -1.0);
           for (t1 in 1:(n_tests - 1)) {
               
                     int n_thr_t1 = n_thr[t1];
