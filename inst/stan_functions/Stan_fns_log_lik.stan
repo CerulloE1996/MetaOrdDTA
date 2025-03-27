@@ -5,7 +5,7 @@
         
 
 
-array[] matrix compute_log_lik_binomial_fact (   array[] matrix cumul_prob,
+array[,] matrix compute_log_lik_binomial_fact (   array[] matrix cumul_prob,
                                                   data array[] matrix x, 
                                                   data array[] matrix n,
                                                   data array[] int n_obs_cutpoints
@@ -19,7 +19,6 @@ array[] matrix compute_log_lik_binomial_fact (   array[] matrix cumul_prob,
               cond_prob[c] = rep_matrix(1.0, n_studies, n_thr);
               log_lik[c]   = rep_matrix(0.0, n_studies, n_thr);
           }
-          
           ////
           //// ---- Multinomial (factorised Binomial) likelihood:
           ////
@@ -100,11 +99,11 @@ array[] matrix compute_log_lik_binomial_fact (   array[] matrix cumul_prob,
               }
           }
            
-          return(log_lik);
-          // array[2, 2] matrix[n_studies, n_thr] out;
-          // out[1] = log_lik;
-          // out[2] = cond_prob;
-          // return(out);
+          // return(log_lik);
+          array[2, 2] matrix[n_studies, n_thr] outs;
+          outs[1, ] = log_lik;
+          outs[2, ] = cond_prob;
+          return(outs);
            
 }
            
