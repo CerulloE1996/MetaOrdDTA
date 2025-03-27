@@ -25,7 +25,7 @@ rm(list = ls())
   unlink(pkg_install_path, recursive = TRUE, force = TRUE)
   unlink(pkg_temp_install_path, recursive = TRUE, force = TRUE)
 }
-# 
+
 
 os <- .Platform$OS.type
 
@@ -80,49 +80,47 @@ devtools::install(local_pkg_dir,
 
 
 
-##
-## ---- Load NMA data:
-##
-setwd(local_pkg_dir)
-data <- readRDS("data_example_1_NMA_list.RDS")
-x_NMA <- data$x_NMA
-x <- x_NMA
-indicator_index_test_in_study <- data$indicator_index_test_in_study
-##
-n_studies <- nrow(x_NMA[[1]][[1]])
-n_index_tests <- 4##  length(x_NMA[[1]])
+# ##
+# ## ---- Load NMA data:
+# ##
+# setwd(local_pkg_dir)
+# data <- readRDS("data_example_1_NMA_list.RDS")
+# x_NMA <- data$x_NMA
+# x <- x_NMA
+# indicator_index_test_in_study <- data$indicator_index_test_in_study
+# ##
+# n_studies <- nrow(x_NMA[[1]][[1]])
+# n_index_tests <- 4##  length(x_NMA[[1]])
+# 
+# subset <- TRUE
+# n_subset <- 5
+# 
+# if (subset) {
+#   indicator_index_test_in_study <- indicator_index_test_in_study[1:n_subset,1:4]
+#     for (c in 1:2) {
+#       for (t in 1:n_index_tests) {
+#         x_NMA[[c]][[t]] <- x_NMA[[c]][[t]][1:n_subset, ]
+#       }
+#     }
+#     n_studies <- nrow(x_NMA[[1]][[1]])
+#     n_index_tests <- length(x_NMA[[1]])
+#     for (c in 1:2) {
+#        x_NMA[[c]][[n_index_tests + 1]] <- NULL
+#     }
+# }
+# x <- x_NMA
 
-subset <- TRUE
-n_subset <- 5
 
-if (subset) {
-  indicator_index_test_in_study <- indicator_index_test_in_study[1:n_subset,1:4]
-    for (c in 1:2) {
-      for (t in 1:n_index_tests) {
-        x_NMA[[c]][[t]] <- x_NMA[[c]][[t]][1:n_subset, ]
-      }
-    }
-    n_studies <- nrow(x_NMA[[1]][[1]])
-    n_index_tests <- length(x_NMA[[1]])
-    for (c in 1:2) {
-       x_NMA[[c]][[n_index_tests + 1]] <- NULL
-    }
-}
-x <- x_NMA
-
-
-##  -----------  Compile + initialise the model using "MVP_model$new(...)"  ----------------------------------
-##
-## ----  Prepare the data to use: ----------------------------------------------------------------------------
-##
-## Read in data ("x" - aggregative cumulative counts w/ "missing thresholds" in each study marked as "-1"):
-##
+#  -----------  Compile + initialise the model using "MVP_model$new(...)"  ----------------------------------
+#
+# ----  Prepare the data to use: ----------------------------------------------------------------------------
+#
+# Read in data ("x" - aggregative cumulative counts w/ "missing thresholds" in each study marked as "-1"):
+#
 # x <- list(x_nd, x_d)
 # saveRDS(object = x, file = file.path(local_pkg_dir, "MetaOrdDTA_example_data_1.RDS"))
-# x <- readRDS(file.path(local_pkg_dir, "inst", "examples", "MetaOrdDTA_example_data_1.RDS"))
-# 
-# x <- list(x_nd, x_d)
-# 
+x <- readRDS(file.path(local_pkg_dir, "inst", "examples", "MetaOrdDTA_example_data_1.RDS"))
+
 # x_full <- x
 # 
 # x_subset <- list()
@@ -130,16 +128,16 @@ x <- x_NMA
 # for (c in 1:2) {
 #   x_subset[[c]] <- x[[c]][1:N_subset, ]
 # }
-#  
-# n_studies <- nrow(x_subset[[1]])
-# n_thr <- ncol(x_subset[[1]])
+
+n_studies <- nrow(x[[1]])
+n_thr <- ncol(x[[1]])
 
 ##
 ## ----  Initialise / select model: --------------------------------------------------------------------------- NMA:
 ##
-network <- TRUE
+network <- FALSE
 ##
-softplus <- TRUE
+softplus <- FALSE
 
 
 
@@ -181,26 +179,26 @@ softplus <- TRUE
 
 
 
+# {
+#   model_parameterisation = "Xu"
+#   box_cox <- FALSE
+#   cts <- FALSE
+#   random_thresholds <-  TRUE
+#   Dirichlet_random_effects_type <- "alpha"
+#   # ##
+#   # inits <- list(beta_mu = c(-1, +1),
+#   #                                      beta_SD = c(0.01, 0.01),
+#   #                                      beta_z = array(0.01, dim = c(2, n_studies)),
+#   #                                      C_raw_vec = rep(-2.0, n_thr),
+#   #                                      C = seq(from = -2, to = 2, length = n_thr))
+#   # init_lists_per_chain <- replicate(n_chains, inits, simplify = FALSE)
+# }
+# 
+# 
+# 
+
 {
-  model_parameterisation = "Xu"
-  box_cox <- FALSE
-  cts <- FALSE
-  random_thresholds <-  TRUE
-  Dirichlet_random_effects_type <- "alpha"
-  # ##
-  # inits <- list(beta_mu = c(-1, +1),
-  #                                      beta_SD = c(0.01, 0.01),
-  #                                      beta_z = array(0.01, dim = c(2, n_studies)),
-  #                                      C_raw_vec = rep(-2.0, n_thr),
-  #                                      C = seq(from = -2, to = 2, length = n_thr))
-  # init_lists_per_chain <- replicate(n_chains, inits, simplify = FALSE)
-}
-
-
-
-
-{
-  model_parameterisation = "Gatsonis"
+  model_parameterisation = "R&G"
   box_cox <- FALSE
   cts <- FALSE
   random_thresholds <-  FALSE
@@ -214,152 +212,87 @@ softplus <- TRUE
   # init_lists_per_chain <- replicate(n_chains, inits, simplify = FALSE)
 }
 
+# 
+# 
+# 
+# {
+#   model_parameterisation = "R&G"
+#   box_cox <- FALSE
+#   cts <- FALSE
+#   random_thresholds <-  TRUE
+#   Dirichlet_random_effects_type <- "alpha"
+#   # ##
+#   # inits <- list(beta_mu = c(-1, +1),
+#   #                                      beta_SD = c(0.01, 0.01),
+#   #                                      beta_z = array(0.01, dim = c(2, n_studies)),
+#   #                                      C_raw_vec = rep(-2.0, n_thr),
+#   #                                      C = seq(from = -2, to = 2, length = n_thr))
+#   # init_lists_per_chain <- replicate(n_chains, inits, simplify = FALSE)
+# }
+# 
+# 
 
 
 
-{
-  model_parameterisation = "Gatsonis"
-  box_cox <- FALSE
-  cts <- FALSE
-  random_thresholds <-  TRUE
-  Dirichlet_random_effects_type <- "alpha"
-  # ##
-  # inits <- list(beta_mu = c(-1, +1),
-  #                                      beta_SD = c(0.01, 0.01),
-  #                                      beta_z = array(0.01, dim = c(2, n_studies)),
-  #                                      C_raw_vec = rep(-2.0, n_thr),
-  #                                      C = seq(from = -2, to = 2, length = n_thr))
-  # init_lists_per_chain <- replicate(n_chains, inits, simplify = FALSE)
-}
-
-
-
-
-
-n_chains <- 8 #### parallel::detectCores() / 2
+n_chains <- 2 #### parallel::detectCores() / 2
 # internal_obj$outs_data$stan_data_list$x
 # internal_obj$outs_data$stan_data_list$n
 # 
 # any(is.na(unlist(internal_obj$outs_data$stan_data_list$n)))
 init_lists_per_chain <- NULL
 
-model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(  debugging = TRUE,
-                                                  ##
-                                                  x = x_NMA, 
-                                                  indicator_index_test_in_study = indicator_index_test_in_study,
-                                                  ## n_index_tests_per_study = n_index_tests_per_study,
-                                                  ##
-                                                  # priors = priors,
-                                                  ##
-                                                  n_chains = n_chains,
-                                                  ##
-                                                  cts = cts,
-                                                  network = network,
-                                                  ##
-                                                  prior_only = FALSE,
-                                                  ##
-                                                  softplus = softplus,
-                                                  ##
-                                                  box_cox = box_cox,
-                                                  ##
-                                                  model_parameterisation = model_parameterisation,
-                                                  random_thresholds = random_thresholds,
-                                                  Dirichlet_random_effects_type = Dirichlet_random_effects_type, ## only used if random cutpoints
-                                                  ##
-                                                  init_lists_per_chain = init_lists_per_chain,
-                                                  ##
-                                                  advanced_compile = TRUE, ## default is standard/"basic" compile
-                                                  ##
-                                                  ## force_recompile = TRUE,
-                                                  ##
-                                                  set_custom_CXX_CPP_flags = TRUE, 
-                                                  CCACHE_PATH = "/usr/bin/ccache", 
-                                                  custom_cpp_user_header_file_path = NULL, ## if wish to include custom C++ files
-                                                  CXX_COMPILER_PATH = "override g++",
-                                                  CPP_COMPILER_PATH = "override gcc",
-                                                  MATH_FLAGS = "-fno-math-errno  -fno-signed-zeros -fno-trapping-math",
-                                                  FMA_FLAGS = "-mfma",
-                                                  AVX_FLAGS = "-mavx -mavx2",
-                                                  THREAD_FLAGS = "-pthread -DSTAN_THREADS"
-                                                  )
+model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(  
+                  debugging = TRUE,
+                  ##
+                  x = x, 
+                  indicator_index_test_in_study = NULL,
+                  # n_index_tests_per_study = NULL,
+                  ##
+                  # priors = priors,
+                  ##
+                  n_chains = n_chains,
+                  ##
+                  cts = cts,
+                  network = network,
+                  ##
+                  prior_only = FALSE,
+                  ##
+                  softplus = softplus,
+                  ##
+                  box_cox = box_cox,
+                  ##
+                  model_parameterisation = model_parameterisation,
+                  random_thresholds = random_thresholds,
+                  Dirichlet_random_effects_type = Dirichlet_random_effects_type, ## only used if random cutpoints
+                  ##
+                  init_lists_per_chain = init_lists_per_chain,
+                  ##
+                  advanced_compile = FALSE, ## default is standard/"basic" compile
+                  ##
+                  ## force_recompile = TRUE,
+                  ##
+                  set_custom_CXX_CPP_flags = TRUE, 
+                  CCACHE_PATH = "/usr/bin/ccache", 
+                  custom_cpp_user_header_file_path = NULL, ## if wish to include custom C++ files
+                  CXX_COMPILER_PATH = "override g++",
+                  CPP_COMPILER_PATH = "override gcc",
+                  MATH_FLAGS = "-fno-math-errno  -fno-signed-zeros -fno-trapping-math",
+                  FMA_FLAGS = "-mfma",
+                  AVX_FLAGS = "-mavx -mavx2",
+                  THREAD_FLAGS = "-pthread -DSTAN_THREADS"
+                  )
 
 # model_prep_obj$internal_obj$outs_data$stan_data_list
 init_lists_per_chain <- model_prep_obj$init_lists_per_chain
 priors <- model_prep_obj$priors
 ##
-n_studies <- nrow(x[[1]][[1]])
-n_index_tests <- length(x[[1]])
+n_studies <- nrow(x[[1]])
+n_index_tests <- 1# length(x[[1]])
 
-# if (model_parameterisation == "Jones") {
-#     priors$prior_beta_mu_SD      <- array(5.0, dim = c(n_index_tests, 2))
-#     priors$prior_raw_scale_mu_SD <- array(5.0, dim = c(n_index_tests, 2))
-#     ##
-#     priors$prior_beta_sigma_SD      <- rep(1.0, 2)
-#     priors$prior_raw_scale_sigma_SD <- rep(1.0, 2)
-#     ##
-#     priors$prior_beta_tau_SD      <- array(1.0, dim = c(n_index_tests, 2))
-#     priors$prior_raw_scale_tau_SD <- array(1.0, dim = c(n_index_tests, 2))
-#     ##
-#     ##
-#     ##
-#     ##
-#     for (kk in 1:n_chains) {
-#       init_lists_per_chain[[kk]]$beta_eta <- array(0.001, dim = c(n_studies, 2))
-#       init_lists_per_chain[[kk]]$raw_scale_eta <- array(0.001, dim = c(n_studies, 2))
-#       ##
-#       init_lists_per_chain[[kk]]$beta_delta <- list()
-#       init_lists_per_chain[[kk]]$raw_scale_delta <- list()
-#       for (t in 1:n_index_tests) {
-#         init_lists_per_chain[[kk]]$beta_delta[[t]] <- array(0.001, dim = c(n_studies, 2))
-#         init_lists_per_chain[[kk]]$raw_scale_delta[[t]] <- array(0.001, dim = c(n_studies, 2))
-#       }
-#     }
-#     
-# }
-
-
-# 
-# if (model_parameterisation == "Xu") {
-#   
-#     # n_total_C_if_fixed <- 0
-#     # for (t in 1:n_index_tests) { 
-#     #   # for (k in 1:n_thr[t]) {
-#     #      n_total_C_if_fixed <- n_total_C_if_fixed +  ncol(x[[1]][[t]])
-#     #   # }
-#     # }
-#     # priors$n_total_C_if_fixed <- n_total_C_if_fixed  
-#     # ##
-#     # priors$prior_beta_mu_mean     <- array(0.0, dim = c(n_index_tests, 2))
-#     # ##
-#     # priors$prior_beta_mu_SD       <- array(1.0, dim = c(n_index_tests, 2))
-#     # ##
-#     # priors$prior_beta_sigma_SD    <- rep(1.0, 2)
-#     # ##
-#     # priors$prior_beta_tau_SD      <- array(1.0, dim = c(n_index_tests, 2))
-#     # ##
-#     # priors$prior_dirichlet_alpha <- array(1.0, dim = c(n_index_tests, 28))
-#     ##
-#     ##
-#     ##
-#     for (kk in 1:n_chains) {
-#       init_lists_per_chain[[kk]]$C_raw_vec <- rep(-2.0, n_total_C_if_fixed)
-#       ##
-#       init_lists_per_chain[[kk]]$beta_mu <- array(c(rep(-1.0, n_index_tests), rep(+1.0, n_index_tests)),
-#                                                   dim = c(n_index_tests, 2))
-#       ##
-#       init_lists_per_chain[[kk]]$beta_sigma <- rep(0.001, 2)
-#       init_lists_per_chain[[kk]]$beta_tau <- array(0.001, dim = c(n_index_tests, 2))
-#       ##
-#       init_lists_per_chain[[kk]]$beta_eta <- array(0.001, dim = c(n_studies, 2))
-#       ##
-#       init_lists_per_chain[[kk]]$beta_delta <- list()
-#       for (t in 1:n_index_tests) {
-#         init_lists_per_chain[[kk]]$beta_delta[[t]] <- array(0.001, dim = c(n_studies, 2))
-#       }
-#     }
-#   
-# }
-
+stan_data_list <- model_prep_obj$internal_obj$outs_data$stan_data_list
+  
+stan_data_list
+ 
 
 ##
 str(init_lists_per_chain)
@@ -387,6 +320,21 @@ priors
 # for (kk in 1:n_chains) {
 #   init_lists_per_chain[[kk]]$C_raw_vec <- if_null_then_set_to(init_lists_per_chain[[kk]]$C_raw_vec, rep(-2.0, n_total_C_if_random))
 # }
+
+for (kk in 1:n_chains) {
+  init_lists_per_chain[[kk]]$C_raw_vec <- rep(-2.0, n_thr)
+  init_lists_per_chain[[kk]]$C <- seq(from = -2.0, to = 2.0, length = n_thr)
+}
+
+
+for (kk in 1:n_chains) {
+  init_lists_per_chain[[kk]]$C_raw_vec <- list( rep(-2.0, n_thr), rep(-2.0, n_thr))
+  init_lists_per_chain[[kk]]$C <- list( seq(from = -2.0, to = 2.0, length = n_thr), 
+                                        seq(from = -2.0, to = 2.0, length = n_thr))
+}
+
+
+model_parameterisation
 
 ##
 ## ----  Sample model: ----------------------------------------------------------------
@@ -427,7 +375,10 @@ tibble_gq   %>% print(n = 1000)
 dplyr::filter(tibble_gq, (stringr::str_detect(parameter, "LRpos")))
 
 
- 
+stan_mod_samples <- model_summary_and_trace_obj$internal_obj$outs_stan_sampling$stan_mod_samples
+Se <- stan_mod_samples$summary(c("Se"), mean, quantiles = ~ quantile(., na.rm = TRUE, probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
+
+
 
 ##
 ## ----  Plots: ----------------------------------------------------------------------
@@ -897,15 +848,15 @@ sum(abs(100*df_true$Sp_true  - 100*Sp_Cerullo)) - sum(abs(100*df_true$Sp_true  -
       x = x
       n_chains = n_chains
       ##
-      cts = TRUE
-      network = TRUE
+      cts = FALSE
+      network = FALSE
       ##
       prior_only = FALSE
       ##
       softplus = TRUE
       ##
       ##
-      model_parameterisation = "Jones"
+      model_parameterisation = "Gatsonis"
       random_thresholds = FALSE
       Dirichlet_random_effects_type = "none"
       box_cox <- FALSE ## cannot input ACTUAL NA's into Stan!
