@@ -136,12 +136,26 @@ R_fn_set_priors_NMA <- function(  priors,
                                 ##
                                 ## Set priors for the locations ("beta"):
                                 ##
-                                priors$prior_beta_mu_mean <- c(if_null_then_set_to(priors$prior_beta_mu_mean, array(dim = c(n_index_tests, 1), 0.0)))
-                                priors$prior_beta_mu_SD <- c(if_null_then_set_to(priors$prior_beta_mu_SD, array(dim = c(n_index_tests, 1), 1.0)))
+                                priors$prior_beta_mu_mean  <- c(if_null_then_set_to(priors$prior_beta_mu_mean, array(dim = c(n_index_tests, 1), 0.0)))
+                                priors$prior_beta_mu_SD    <- c(if_null_then_set_to(priors$prior_beta_mu_SD, array(dim = c(n_index_tests, 1), 1.0)))
                                 ##
-                                priors$prior_beta_tau_SD <- c(if_null_then_set_to(priors$prior_beta_tau_SD, array(dim = c(n_index_tests, 1), 1.0)))
+                                priors$prior_beta_tau_SD   <- c(if_null_then_set_to(priors$prior_beta_tau_SD, array(dim = c(n_index_tests, 1), 1.0)))
                                 ##
                                 priors$prior_beta_sigma_SD <- c(if_null_then_set_to(priors$prior_beta_sigma_SD, rep(1.0, 1)))
+                                ##
+                                ## Priors for raw_scale ("gamma"):
+                                ##
+                                if (softplus == TRUE) {
+                                      priors$prior_raw_scale_mu_mean  <- c(if_null_then_set_to(priors$prior_raw_scale_mu_mean, array(dim = c(n_index_tests, 1), 0.0)))
+                                      priors$prior_raw_scale_mu_SD    <- c(if_null_then_set_to(priors$prior_raw_scale_mu_SD,   array(dim = c(n_index_tests, 1), 1.0)))
+                                      priors$prior_raw_scale_tau_SD   <- c(if_null_then_set_to(priors$prior_raw_scale_tau_SD,  array(dim = c(n_index_tests, 1), 1.0)))
+                                      priors$prior_raw_scale_sigma_SD <- c(if_null_then_set_to(priors$prior_raw_scale_sigma_SD, rep(1.0, 1)))
+                                } else { 
+                                      priors$prior_raw_scale_mu_mean  <- c(if_null_then_set_to(priors$prior_raw_scale_mu_mean, array(dim = c(n_index_tests, 1), 0.0)))
+                                      priors$prior_raw_scale_mu_SD    <- c(if_null_then_set_to(priors$prior_raw_scale_mu_SD,   array(dim = c(n_index_tests, 1), 0.5)))
+                                      priors$prior_raw_scale_tau_SD   <- c(if_null_then_set_to(priors$prior_raw_scale_tau_SD,  array(dim = c(n_index_tests, 1), 0.5)))
+                                      priors$prior_raw_scale_sigma_SD <- c(if_null_then_set_to(priors$prior_raw_scale_sigma_SD, rep(0.5, 1)))
+                                }
                                 ##
                                 ## Set default priors for the between-study corr matricex for beta ("beta_L_Omega") and "raw_scale_L_Omega"):
                                 ##

@@ -96,7 +96,47 @@ R_fn_set_inits_NMA <- function(    inits,
                                     # }
                                     # inits$raw_scale_SD <- if_null_then_set_to(inits$raw_scale_mu, 0.001)
                                     # inits$raw_scale_z  <- if_null_then_set_to(inits$raw_scale_mu, rep(0.001, n_studies))
-                          
+                            
+                                    ##
+                                    ## Default inits for the cutpoints and/or induced-Dirichlet parameters:
+                                    ## NOTE: these are the same whether using "R&G" or "Xu" parameterisation
+                                    ##
+                                    if (random_thresholds == FALSE) { 
+                                      # ##
+                                      # ## Default inits for the cutpoints:
+                                      # ##
+                                      # inits$C <- seq(from = -2.0, to = 2.0, length = n_thr)
+                                      ##
+                                      ## Default inits for the cutpoints:
+                                      ##
+                                      n_total_C_if_fixed <- sum(n_thr)
+                                      inits$C_raw_vec <- if_null_then_set_to(inits$C_raw_vec,
+                                                                             rep(-2.0, n_total_C_if_fixed))
+                                      
+                                    } else if (random_thresholds == TRUE) { 
+                                      # ##
+                                      # ## Default inits for the cutpoints:
+                                      # ##
+                                      # cutpoint_vec <- seq(from = -2.0, to = 2.0, length = n_thr)
+                                      # inits$C_array <- if_null_then_set_to(inits$C_array, list(cutpoint_vec, cutpoint_vec))
+                                      # ##
+                                      # ## Default inits for "induced-Dirichlet" between-study model (for the cutpoints):
+                                      # ##
+                                      # inits$dirichlet_cat_means_phi <- if_null_then_set_to(inits$dirichlet_cat_means_phi, rep(1/n_cat, n_cat))
+                                      # inits$kappa <- if_null_then_set_to(inits$kappa, rep(100, n_index_tests))
+                                      ##
+                                      n_total_pooled_cat  <- sum(n_cat)
+                                      n_thr_random = n_thr * n_studies
+                                      n_total_C_if_random <- sum(n_thr_random)
+                                      ##
+                                      inits$alpha_vec <- if_null_then_set_to(inits$alpha_vec, rep(10.0, n_total_pooled_cat))
+                                      check_vec_length(inits, "alpha_vec", n_total_pooled_cat)
+                                      ##
+                                      inits$C_raw_vec <- if_null_then_set_to(inits$C_raw_vec, rep(-2.0, n_total_C_if_random))
+                                      check_vec_length(inits, "C_raw_vec", n_total_C_if_random)
+                                      
+                                    }
+                                  
                           
                           } else if (model_parameterisation %in% c("Xu", "bivariate")) {
                           
@@ -128,46 +168,48 @@ R_fn_set_inits_NMA <- function(    inits,
                                     inits$beta_corr <- if_null_then_set_to(inits$beta_corr, 0.5*(priors$beta_corr_lb + priors$beta_corr_ub))
                                     # check_vec_length(inits, "beta_corr", 1)
                                     # ##
+                                    
+                                    ##
+                                    ## Default inits for the cutpoints and/or induced-Dirichlet parameters:
+                                    ## NOTE: these are the same whether using "R&G" or "Xu" parameterisation
+                                    ##
+                                    if (random_thresholds == FALSE) { 
+                                      # ##
+                                      # ## Default inits for the cutpoints:
+                                      # ##
+                                      # inits$C <- seq(from = -2.0, to = 2.0, length = n_thr)
+                                      ##
+                                      ## Default inits for the cutpoints:
+                                      ##
+                                      n_total_C_if_fixed <- sum(n_thr)
+                                      inits$C_raw_vec <- if_null_then_set_to(inits$C_raw_vec,
+                                                                             rep(-2.0, n_total_C_if_fixed))
+                                      
+                                    } else if (random_thresholds == TRUE) { 
+                                      # ##
+                                      # ## Default inits for the cutpoints:
+                                      # ##
+                                      # cutpoint_vec <- seq(from = -2.0, to = 2.0, length = n_thr)
+                                      # inits$C_array <- if_null_then_set_to(inits$C_array, list(cutpoint_vec, cutpoint_vec))
+                                      # ##
+                                      # ## Default inits for "induced-Dirichlet" between-study model (for the cutpoints):
+                                      # ##
+                                      # inits$dirichlet_cat_means_phi <- if_null_then_set_to(inits$dirichlet_cat_means_phi, rep(1/n_cat, n_cat))
+                                      # inits$kappa <- if_null_then_set_to(inits$kappa, rep(100, n_index_tests))
+                                      ##
+                                      n_total_pooled_cat  <- sum(n_cat)
+                                      n_thr_random = n_thr * n_studies
+                                      n_total_C_if_random <- sum(n_thr_random)
+                                      ##
+                                      inits$alpha_vec <- if_null_then_set_to(inits$alpha_vec, rep(10.0, n_total_pooled_cat))
+                                      check_vec_length(inits, "alpha_vec", n_total_pooled_cat)
+                                      ##
+                                      inits$C_raw_vec <- if_null_then_set_to(inits$C_raw_vec, rep(-2.0, n_total_C_if_random))
+                                      check_vec_length(inits, "C_raw_vec", n_total_C_if_random)
+                                      
+                                    }
                         }
-                        ##
-                        ## Default inits for the cutpoints and/or induced-Dirichlet parameters:
-                        ## NOTE: these are the same whether using "R&G" or "Xu" parameterisation
-                        ##
-                        if (random_thresholds == FALSE) { 
-                                    # ##
-                                    # ## Default inits for the cutpoints:
-                                    # ##
-                                    # inits$C <- seq(from = -2.0, to = 2.0, length = n_thr)
-                                    ##
-                                    ## Default inits for the cutpoints:
-                                    ##
-                                    n_total_C_if_fixed <- sum(n_thr)
-                                    inits$C_raw_vec <- if_null_then_set_to(inits$C_raw_vec,
-                                                                           rep(-2.0, n_total_C_if_fixed))
-                          
-                        } else if (random_thresholds == TRUE) { 
-                                    # ##
-                                    # ## Default inits for the cutpoints:
-                                    # ##
-                                    # cutpoint_vec <- seq(from = -2.0, to = 2.0, length = n_thr)
-                                    # inits$C_array <- if_null_then_set_to(inits$C_array, list(cutpoint_vec, cutpoint_vec))
-                                    # ##
-                                    # ## Default inits for "induced-Dirichlet" between-study model (for the cutpoints):
-                                    # ##
-                                    # inits$dirichlet_cat_means_phi <- if_null_then_set_to(inits$dirichlet_cat_means_phi, rep(1/n_cat, n_cat))
-                                    # inits$kappa <- if_null_then_set_to(inits$kappa, rep(100, n_index_tests))
-                                    ##
-                                    n_total_pooled_cat  <- sum(n_cat)
-                                    n_thr_random = n_thr * n_studies
-                                    n_total_C_if_random <- sum(n_thr_random)
-                                    ##
-                                    inits$alpha_vec <- if_null_then_set_to(inits$alpha_vec, rep(10.0, n_total_pooled_cat))
-                                    check_vec_length(inits, "alpha_vec", n_total_pooled_cat)
-                                    ##
-                                    inits$C_raw_vec <- if_null_then_set_to(inits$C_raw_vec, rep(-2.0, n_total_C_if_random))
-                                    check_vec_length(inits, "C_raw_vec", n_total_C_if_random)
-                          
-                        }
+
                         
             
             
