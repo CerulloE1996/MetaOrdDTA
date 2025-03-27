@@ -199,6 +199,8 @@ softplus <- TRUE
 
 
 
+
+
 {
   model_parameterisation = "Gatsonis"
   box_cox <- FALSE
@@ -289,6 +291,8 @@ priors <- model_prep_obj$priors
 ##
 n_studies <- nrow(x[[1]][[1]])
 n_index_tests <- length(x[[1]])
+
+init_lists_per_chain
 
 # if (model_parameterisation == "Jones") {
 #     priors$prior_beta_mu_SD      <- array(5.0, dim = c(n_index_tests, 2))

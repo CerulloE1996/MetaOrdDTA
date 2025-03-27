@@ -84,8 +84,8 @@ devtools::install(local_pkg_dir,
 # ## ---- Load NMA data:
 # ##
 # setwd(local_pkg_dir)
-# data <- readRDS("data_example_1_NMA_list.RDS")
-# x_NMA <- data$x_NMA
+data <- readRDS("data_example_1_NMA_list.RDS")
+x_NMA <- data$x_NMA
 # x <- x_NMA
 # indicator_index_test_in_study <- data$indicator_index_test_in_study
 # ##
@@ -119,7 +119,7 @@ devtools::install(local_pkg_dir,
 #
 # x <- list(x_nd, x_d)
 # saveRDS(object = x, file = file.path(local_pkg_dir, "MetaOrdDTA_example_data_1.RDS"))
-x <- readRDS(file.path(local_pkg_dir, "inst", "examples", "MetaOrdDTA_example_data_1.RDS"))
+## x <- readRDS(file.path(local_pkg_dir, "inst", "examples", "MetaOrdDTA_example_data_1.RDS"))
 
 # x_full <- x
 # 
@@ -233,8 +233,14 @@ softplus <- FALSE
 # 
 
 
+x <- list()
+for (c in 1:2) {
+  x[[c]] <- x_NMA[[c]][[4]]
+}
 
-n_chains <- 2 #### parallel::detectCores() / 2
+
+
+n_chains <- 8 #### parallel::detectCores() / 2
 # internal_obj$outs_data$stan_data_list$x
 # internal_obj$outs_data$stan_data_list$n
 # 
@@ -267,7 +273,7 @@ model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(
                   ##
                   init_lists_per_chain = init_lists_per_chain,
                   ##
-                  advanced_compile = FALSE, ## default is standard/"basic" compile
+                  advanced_compile = TRUE, ## default is standard/"basic" compile
                   ##
                   ## force_recompile = TRUE,
                   ##
@@ -322,37 +328,52 @@ priors
 # }
 
 for (kk in 1:n_chains) {
-  init_lists_per_chain[[kk]]$C_raw_vec <- rep(-2.0, n_thr)
-  init_lists_per_chain[[kk]]$C <- seq(from = -2.0, to = 2.0, length = n_thr)
+  init_lists_per_chain[[kk]]$C_raw_vec <- rep(-10, n_thr)
+  init_lists_per_chain[[kk]]$raw_scale <- rep(0.001, n_studies)
+  init_lists_per_chain[[kk]]$beta_mu <- 0.01 
+init_lists_per_chain[[kk]]$C <- seq(from = -2.0, to = 2.0, length = n_thr)
 }
 
 
 for (kk in 1:n_chains) {
-  init_lists_per_chain[[kk]]$C_raw_vec <- list( rep(-2.0, n_thr), rep(-2.0, n_thr))
-  init_lists_per_chain[[kk]]$C <- list( seq(from = -2.0, to = 2.0, length = n_thr), 
-                                        seq(from = -2.0, to = 2.0, length = n_thr))
+  init_lists_per_chain[[kk]]$C_raw_vec <- list( rep(-3.0, n_thr), rep(-3.0, n_thr))
+ # init_lists_per_chain[[kk]]$C <- list( seq(from = -2.0, to = 2.0, length = n_thr), 
+  #                                      seq(from = -2.0, to = 2.0, length = n_thr))
 }
 
 
 model_parameterisation
 
+ init_lists_per_chain = NULL
+
+priors$prior_raw_scale_mu_SD <- 0.25
+priors$prior_raw_scale_SD_SD <- 0.125
+
+priors$prior_beta_mu_SD <- 1
+
+
+
+str(x_NMA)
+
+init_lists_per_chain = model_samples_obj$init_lists_per_chain
 ##
 ## ----  Sample model: ----------------------------------------------------------------
 ##
-model_samples_obj <-  model_prep_obj$sample(   n_burnin = 500,
-                                               n_iter = 500,
-                                               adapt_delta = 0.80, 
-                                               max_treedepth = 10,
-                                               metric_shape = "diag_e",
-                                               ##
-                                               priors = priors,
-                                               ##
-                                               n_chains = n_chains,
-                                               ##
-                                               init_lists_per_chain = init_lists_per_chain)
+model_samples_obj <-  model_prep_obj$sample(   
+                             n_burnin = 500,
+                             n_iter = 500,
+                             adapt_delta = 0.80, 
+                             max_treedepth = 10,
+                             metric_shape = "diag_e",
+                             ##
+                             priors = priors,
+                             ##
+                             n_chains = n_chains,
+                             ##
+                             init_lists_per_chain = init_lists_per_chain)
 
 
-##
+lk##
 ## ----  Summarise + output results: -------------------------------------------------
 ##
 model_summary_and_trace_obj <- model_samples_obj$summary(
