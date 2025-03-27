@@ -53,6 +53,8 @@ transformed data {
     
         int n_cat = n_thr + 1; //// Number of ordinal categories for index test
         // vector[n_thr] Ind_Dir_anchor = rep_vector(0.0, n_thr);
+        array[n_studies] int indicator_index_test_t_in_study;
+        for (s in 1:n_studies) indicator_index_test_t_in_study[s] = 1;
 }
   
 
@@ -72,53 +74,52 @@ parameters {
 
 
 transformed parameters { 
-  
-        ////
-        //// ---- Construct (global) cutpoints:
-        ////
-        array[2] vector[n_thr] C;
-        for (c in 1:2) {
-            if (softplus == 1) C[c] = construct_C_using_SP_jacobian( C_raw_vec[c]);
-            else               C[c] = construct_C_using_exp_jacobian(C_raw_vec[c]);
-        }
-        ////
-        //// ---- Construct simple 2x2 (bivariate) between-study corr matrices for between-study model:
-        ////
-        cholesky_factor_corr[2] beta_L_Omega      = make_restricted_bivariate_L_Omega_jacobian(beta_corr, beta_corr_lb, beta_corr_ub);
-        cholesky_factor_cov[2]  beta_L_Sigma      = diag_pre_multiply(beta_SD, beta_L_Omega);
-        corr_matrix[2] beta_Omega = multiply_lower_tri_self_transpose(beta_L_Omega);
-        ////
-        //// ---- Likelihood stuff:
-        ////
-        array[2] matrix[n_studies, n_thr] cumul_prob = init_array_of_matrices(n_studies, n_thr, 2, 1.0); // global
-        array[2] matrix[n_studies, n_thr] cond_prob  = init_array_of_matrices(n_studies, n_thr, 2, 0.0); // global
-        array[2] matrix[n_studies, n_thr] log_lik    = init_array_of_matrices(n_studies, n_thr, 2, 0.0); // global
-        {
-            matrix[2, n_studies] beta; // local
-            for (s in 1:n_studies) {
-               beta[1:2, s] = beta_mu[1:2] + beta_L_Sigma * beta_z[1:2, s];
-            }
+      
+            //// 
+            //// ---- Construct (global) cutpoints:
             ////
-            array[2] matrix[n_studies, n_thr] latent_cumul_prob = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity()); // local
-            ////
-            //// ---- Get the cutpoint index (k) to map "latent_cumul_prob[c][s, cut_i]" to correct cutpoint "C[k]":
-            ////
-            real scale = 1.0; // since using Xu param.
-            latent_cumul_prob = map_latent_cumul_prob_to_fixed_hetero_C(C, beta, scale, n_studies, n_obs_cutpoints, cutpoint_index);
-            ////
-            //// ---- Calculate CUMULATIVE probabilities (vectorised):
-            ////
+            array[2] vector[n_thr] C;
             for (c in 1:2) {
-                cumul_prob[c] = Phi_approx(latent_cumul_prob[c]);
+                if (softplus == 1) C[c] = construct_C_using_SP_jacobian( C_raw_vec[c]);
+                else               C[c] = construct_C_using_exp_jacobian(C_raw_vec[c]);
             }
             ////
-            //// ---- Multinomial (factorised binomial likelihood)
+            //// ---- Construct simple 2x2 (bivariate) between-study corr matrices for between-study model:
             ////
-            array[2, 2] matrix[n_studies, n_thr] log_lik_outs;
-            log_lik_outs = compute_log_lik_binomial_fact(cumul_prob, x, n, n_obs_cutpoints);
-            log_lik = log_lik_outs[1];
-            cond_prob = log_lik_outs[2];
-        }
+            cholesky_factor_corr[2] beta_L_Omega      = make_restricted_bivariate_L_Omega_jacobian(beta_corr, beta_corr_lb, beta_corr_ub);
+            cholesky_factor_cov[2]  beta_L_Sigma      = diag_pre_multiply(beta_SD, beta_L_Omega);
+            corr_matrix[2] beta_Omega = multiply_lower_tri_self_transpose(beta_L_Omega);
+            ////
+            array[2] matrix[n_studies, n_thr] cumul_prob = init_array_of_matrices(n_studies, n_thr, 2, 1.0);
+            ////
+            {
+                  matrix[2, n_studies] beta; // local
+                  for (s in 1:n_studies) {
+                     beta[1:2, s] = beta_mu[1:2] + beta_L_Sigma * beta_z[1:2, s];
+                  }
+                  ////
+                  //// ---- Get the cutpoint index (k) to map "latent_cumul_prob[c][s, cut_i]" to correct cutpoint "C[k]":
+                  ////
+                  array[2] matrix[n_studies, n_thr] latent_cumul_prob = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity()); // local
+                  real scale = 1.0; // since using Xu param.
+                  latent_cumul_prob = map_latent_cumul_prob_to_fixed_hetero_C(C, beta, scale, n_studies, n_obs_cutpoints, cutpoint_index);
+                  ////
+                  //// ---- Calculate CUMULATIVE probabilities (vectorised):
+                  ////
+                  for (c in 1:2) {
+                      cumul_prob[c] = Phi_approx(latent_cumul_prob[c]);
+                  }
+            }
+            // ////
+            // //// ---- Multinomial (factorised binomial likelihood)
+            // ////
+            // array[2] matrix[n_studies, n_thr] cond_prob  = init_array_of_matrices(n_studies, n_thr, 2, 1.0);
+            // array[2] matrix[n_studies, n_thr] log_lik    = init_array_of_matrices(n_studies, n_thr, 2, 0.0);
+            // // array[2] matrix[n_studies, n_thr] log_lik = compute_log_lik_binomial_fact(cumul_prob, x, n, n_obs_cutpoints);
+            array[2, 2] matrix[n_studies, n_thr] log_lik_outs = compute_log_lik_binomial_fact_NMA(cumul_prob, x, n, n_obs_cutpoints, indicator_index_test_t_in_study);
+            array[2] matrix[n_studies, n_thr] log_lik   = log_lik_outs[1, ];
+            array[2] matrix[n_studies, n_thr] cond_prob = log_lik_outs[2, ];
+     
       
 }
 
