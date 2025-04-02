@@ -35,11 +35,11 @@ R_fn_set_inits_MA <- function(    inits,
                                 ##
                                 inits$beta_mu <- if_null_then_set_to(inits$beta_mu, c(-1, +1))
                                 inits$beta_SD <- if_null_then_set_to(inits$beta_SD, rep(0.001, 2))
-                                inits$beta_z  <- if_null_then_set_to(inits$beta_z,  array(0.001, dim = c(2, n_studies)))
+                                inits$beta_z  <- if_null_then_set_to(inits$beta_z,  array(0.001, dim = c(n_studies, 2 )))
                                 ##
-                                check_vec_length(inits, "beta_mu", 2)
-                                check_vec_length(inits, "beta_SD", 2)
-                                check_array_dims(inits, "beta_z", c(2, n_studies))
+                                # check_vec_length(inits, "beta_mu", 2)
+                                # check_vec_length(inits, "beta_SD", 2)
+                                # check_array_dims(inits, "beta_z", c(n_studies, 2))
                                 ##
                                 ## Set default inits for the raw scales ("gamma"):
                                 ## NOTE: Default values depend of whether using log-normal / exp() 
@@ -49,29 +49,28 @@ R_fn_set_inits_MA <- function(    inits,
                                 ## since: softplus_scaled(0) = 1.0 and exp(0) = 1.0:
                                 inits$raw_scale_mu <- if_null_then_set_to(inits$raw_scale_mu, c(0.001, 0.001))  
                                 inits$raw_scale_SD <- if_null_then_set_to(inits$raw_scale_SD, rep(0.001, 2))
-                                inits$raw_scale_z  <- if_null_then_set_to(inits$raw_scale_z, 
-                                                                                array(0.001, dim = c(2, n_studies)))
+                                inits$raw_scale_z  <- if_null_then_set_to(inits$raw_scale_z, array(0.001, dim = c(n_studies, 2 )))
                                 ##
-                                check_vec_length(inits, "beta_mu", 2)
-                                check_vec_length(inits, "beta_SD", 2)
-                                check_array_dims(inits, "beta_z", c(2, n_studies))
+                                # check_vec_length(inits, "beta_mu", 2)
+                                # check_vec_length(inits, "beta_SD", 2)
+                                # check_array_dims(inits, "beta_z", c(n_studies, 2))
                                 ##
                                 ## Set default inits for box-cox ("lambda"):
                                 ##
                                 inits$lambda <- if_null_then_set_to(inits$lambda, 0.001)
-                                check_vec_length(inits, "lambda", 1)
+                                # check_vec_length(inits, "lambda", 1)
                                 ##
                                 ## Default inits for the between-study corr matrix ("beta_corr"):
                                 ##
                                 inits$beta_corr <- if_null_then_set_to(inits$beta_corr, 
                                                                         0.5*(priors$beta_corr_lb + priors$beta_corr_ub))
-                                check_vec_length(inits, "beta_corr", 1)
+                                # check_vec_length(inits, "beta_corr", 1)
                                 ##
                                 ## Default inits for the between-study corr matrix ("raw_scale_corr"):
                                 ##
                                 inits$raw_scale_corr <- if_null_then_set_to(inits$raw_scale_corr, 
                                                                                 0.5*(priors$raw_scale_corr_lb + priors$raw_scale_corr_ub))
-                                check_vec_length(inits, "raw_scale_corr", 1)
+                                # check_vec_length(inits, "raw_scale_corr", 1)
                   
                 } else if (cts == FALSE) { ## ordinal (Xu-based or R&G-based)
                   
@@ -84,9 +83,9 @@ R_fn_set_inits_MA <- function(    inits,
                                         inits$beta_SD <- if_null_then_set_to(inits$beta_SD, 0.001)
                                         inits$beta_z  <- if_null_then_set_to(inits$beta_z,  rep(0.001, n_studies))
                                         ##
-                                        check_vec_length(inits, "beta_mu", 1)
-                                        check_vec_length(inits, "beta_SD", 1)
-                                        check_vec_length(inits, "beta_z", n_studies)
+                                        # check_vec_length(inits, "beta_mu", 1)
+                                        # check_vec_length(inits, "beta_SD", 1)
+                                        # check_vec_length(inits, "beta_z", n_studies)
                                         ##
                                         ## Default inits for raw scale parameters ("gamma"):
                                         ##
@@ -94,10 +93,10 @@ R_fn_set_inits_MA <- function(    inits,
                                         inits$raw_scale_mu <- if_null_then_set_to(inits$raw_scale_mu, 0.001)   
                                         inits$raw_scale_SD <- if_null_then_set_to(inits$raw_scale_SD, 0.001)
                                         inits$raw_scale_z  <- if_null_then_set_to(inits$raw_scale_z, rep(0.001, n_studies))
-                                        ##
-                                        check_vec_length(inits, "raw_scale_mu", 1)
-                                        check_vec_length(inits, "raw_scale_SD", 1)
-                                        check_vec_length(inits, "raw_scale_z", n_studies)
+                                        # ##
+                                        # check_vec_length(inits, "raw_scale_mu", 1)
+                                        # check_vec_length(inits, "raw_scale_SD", 1)
+                                        # check_vec_length(inits, "raw_scale_z", n_studies)
 
                                                                                 ##
                                         ## Default inits for the cutpoints and/or induced-Dirichlet parameters:
@@ -144,16 +143,16 @@ R_fn_set_inits_MA <- function(    inits,
                                         inits$beta_SD <- if_null_then_set_to(inits$beta_SD, rep(0.001, 2))
                                         inits$beta_z  <- if_null_then_set_to(inits$beta_z,  array(0.001, dim = c(2, n_studies)))
                                         ##
-                                        check_vec_length(inits, "beta_mu", 2)
-                                        check_vec_length(inits, "beta_SD", 2)
-                                        check_array_dims(inits, "beta_z", c(2, n_studies))
+                                        # check_vec_length(inits, "beta_mu", 2)
+                                        # check_vec_length(inits, "beta_SD", 2)
+                                        # check_array_dims(inits, "beta_z", c(2, n_studies))
                                         ##
                                         ## Default inits for the between-study corr matrix ("beta_corr"):
                                         ##
                                         inits$beta_corr <- if_null_then_set_to(inits$beta_corr, 
                                                                             0.5*(priors$beta_corr_lb + priors$beta_corr_ub))
                                         ##
-                                        check_vec_length(inits, "beta_corr", 1)
+                                        # check_vec_length(inits, "beta_corr", 1)
                                         ##
                                         ## Default inits for the cutpoints and/or induced-Dirichlet parameters:
                                         ## NOTE: these are the same whether using "R&G" or "Xu" parameterisation

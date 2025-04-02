@@ -41,37 +41,45 @@ convert_to_aggregate_counts <- function(y_list,
           
           for (s in 1:n_studies) {
             
-            study_data <- y_list[[s]]
-            disease_status <- study_data[,1] # Col 1 is disease status / reference test
-            
-            ## Get n_total_d and n_total_nd:
-            n_total_d[s]  <- sum(disease_status == 1)
-            n_total_nd[s] <- sum(disease_status == 0)
-            
+                    study_data <- y_list[[s]]
+                    disease_status <- study_data[,1] # Col 1 is disease status / reference test
+                    
+                    ## Get n_total_d and n_total_nd:
+                    n_total_d[s]  <- sum(disease_status == 1)
+                    n_total_nd[s] <- sum(disease_status == 0)
+                
             for (t in 2:n_tests) { ## skip the BINARY reference test (test 1)
               
-              n_thr_t <- n_thr[t]
-              n_cat_t <- n_thr_t + 1
-              test_results   <- study_data[, t]
+                    n_thr_t <- n_thr[t]
+                    n_cat_t <- n_thr_t + 1
+                    test_results   <- study_data[, t]
+                    
+                    # Get counts for each threshold
+                    for (k in 1:n_thr_t) {
+                      
+                          ##
+                          ## False-negatives (FN's):
+                          ##
+                          x_d_list[[t - 1]][s, k] <- sum(test_results[disease_status == 1] >= k) # Pr(testing POSITIVE at threshold k) ##  Pr(TEST SCORE IS LESS THAN OR EQUAL TO THR k (i.e., )
+                          n_d_list[[t - 1]][s, k] <- x_d_list[[t - 1]][s, k]
+                          Se_per_study_list[[t - 1]][s, k] <-  (x_d_list[[t - 1]][s, k] / n_total_d[s])
+                          ##
+                          ## True negatives (TN's):
+                          ##
+                          x_nd_list[[t - 1]][s, k] <- sum(test_results[disease_status == 0] >= k) # Pr(testing POSITIVE at threshold k)
+                          n_nd_list[[t - 1]][s, k] <- x_nd_list[[t - 1]][s, k]
+                          Sp_per_study_list[[t - 1]][s, k] <- 1.0 - x_nd_list[[t - 1]][s, k] / n_total_nd[s]
+                          
+                    }
+                    
+                    # n_d_list[[t - 1]][s,  n_thr_t + 1] <- n_total_d[s]
+                    # n_nd_list[[t - 1]][s, n_thr_t + 1] <- n_total_nd[s]s
+                    n_d_list[[t  - 1]][s, 1] <- n_total_d[s]
+                    n_nd_list[[t - 1]][s, 1] <- n_total_nd[s]
+                    
               
-              # Get counts for each threshold
-              for (k in 1:n_thr_t) {
-                ##
-                ## False-negatives (FN's):
-                ##
-                x_d_list[[t - 1]][s, k] <- sum(test_results[disease_status == 1] <= k) # Pr(testing NEGATIVE at threshold k)
-                n_d_list[[t - 1]][s, k] <- x_d_list[[t - 1]][s, k]
-                Se_per_study_list[[t - 1]][s, k] <- 1.00 - (x_d_list[[t - 1]][s, k] / n_total_d[s])
-                ##
-                ## True negatives (TN's):
-                ##
-                x_nd_list[[t - 1]][s, k] <- sum(test_results[disease_status == 0] <= k) # Pr(testing NEGATIVE at threshold k)
-                n_nd_list[[t - 1]][s, k] <- x_nd_list[[t - 1]][s, k]
-                Sp_per_study_list[[t - 1]][s, k] <- x_nd_list[[t - 1]][s, k] / n_total_nd[s]
-              }
-              n_d_list[[t - 1]][s,  n_thr_t + 1] <- n_total_d[s]
-              n_nd_list[[t - 1]][s, n_thr_t + 1] <- n_total_nd[s]
             }
+            
           }
           
           {

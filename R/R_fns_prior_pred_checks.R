@@ -283,10 +283,10 @@ induced_Dirichlet_ppc_plot <- function(  method = "sigma",
                 log_alpha_ub <- other_args_list$log_alpha_ub
                 
                 if (is.null(log_alpha_lb)) { 
-                  log_alpha_lb <- Inf
+                  log_alpha_lb <- -Inf
                 }
                 if (is.null(log_alpha_ub)) { 
-                  log_alpha_ub <- -Inf
+                  log_alpha_ub <- Inf
                 }
                 
                 log_alpha[,i] <- truncnorm::rtruncnorm(n = n_cat, 
@@ -303,10 +303,10 @@ induced_Dirichlet_ppc_plot <- function(  method = "sigma",
                 alpha_ub <- other_args_list$alpha_ub
                 
                 if (is.null(alpha_lb)) { 
-                  alpha_lb <- Inf
+                  alpha_lb <- 0.0
                 }
                 if (is.null(alpha_ub)) { 
-                  alpha_ub <- -Inf
+                  alpha_ub <- Inf
                 }
                 
                 alpha[,i] <- truncnorm::rtruncnorm(n = n_cat, 
@@ -324,7 +324,8 @@ induced_Dirichlet_ppc_plot <- function(  method = "sigma",
   
   
   
-  df <- data.frame(p1 = res[1,], p2 = res[2,], dist = 1) %>% 
+  df <- data.frame(p1 = res[1,], 
+                   p2 = res[2,], dist = 1) %>% 
     dplyr::filter(!is.na(p1), !is.na(p2))     
   
   g1 <- ggplot(df, aes(p1, p2)) + 

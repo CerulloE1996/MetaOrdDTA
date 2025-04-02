@@ -246,8 +246,7 @@ R_fn_sROC_plot_NMA <- function( stan_model_file_name,
                             polygon_Conf_list   = polygon_Conf_list,
                             polygon_Conf_tibble = polygon_Conf_tibble,
                             polygon_Pred_list   = polygon_Pred_list,
-                            polygon_Pred_tibble = polygon_Pred_tibble,
-                            df_fitted = df_fitted))
+                            polygon_Pred_tibble = polygon_Pred_tibble))
                 
               
    

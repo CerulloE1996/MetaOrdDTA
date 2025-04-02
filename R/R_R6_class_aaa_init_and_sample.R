@@ -1006,17 +1006,17 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                                                   ##
                                                                   n_index_tests = n_index_tests,
                                                                   n_thr = n_thr)
-                                                                  
-                               ##
-                               df_fitted <- sROC_plot_outs$df_fitted
-                               plot_1    <- sROC_plot_outs$plot_1
-                               plot_2    <- sROC_plot_outs$plot_2
+                               #                                    
+                               # ##
+                               # df_fitted <- sROC_plot_outs$df_fitted
+                               # plot_1    <- sROC_plot_outs$plot_1
+                               # plot_2    <- sROC_plot_outs$plot_2
+                               # 
+                               # out_list <- list(plot_1 = plot_1, 
+                               #                  plot_2 = plot_2, 
+                               #                  df_fitted = df_fitted)
                                
-                               out_list <- list(plot_1 = plot_1, 
-                                                plot_2 = plot_2, 
-                                                df_fitted = df_fitted)
-                               
-                               return(out_list)
+                               return(sROC_plot_outs)
                      
                    }
   

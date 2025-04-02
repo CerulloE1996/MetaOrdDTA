@@ -27,11 +27,18 @@
 #' @keywords internal
 #' @export
 R_fn_sim_data_ordinal_MA <- function(   seed = 123,
-                                        n_studies = 25,
+                                        n_studies = 30,
                                         N_per_study_mean = 1000,
                                         N_per_study_SD   = 500,
                                         assume_perfect_GS = 1,
-                                        true_Mean_prev = 0.20) {
+                                        true_Mean_prev = 0.20,
+                                        true_SD_probit_prev = 0.25,
+                                        location_nd_between_study_SD = 0.25,
+                                        location_d_between_study_SD  = 0.50,
+                                        raw_scale_nd_between_study_SD =  0.125,
+                                        raw_scale_d_between_study_SD  =  0.250,
+                                        threshsolds_latent_between_study_SD = 0.10
+) {
    
 
      
@@ -66,7 +73,6 @@ R_fn_sim_data_ordinal_MA <- function(   seed = 123,
      
      ## Set true values for disease prevelance:
      true_Mean_probit_prev <- qnorm(true_Mean_prev)
-     true_SD_probit_prev <- 0.25
      true_probit_prev_per_study <- rnorm(n = n_studies, mean = true_Mean_probit_prev, sd = true_SD_probit_prev)
      true_prev_per_study <- pnorm(true_probit_prev_per_study)
      
@@ -80,8 +86,8 @@ R_fn_sim_data_ordinal_MA <- function(   seed = 123,
      ## ----------------------
      #### file_path <- file.path(MetaOrdinal_admin_path_examples, "true_mean_PHQ_9_Cerullo_Gat_params_list.RDS")
      true_mean_PHQ_9_Cerullo_Gat_params_list <- list() #### readRDS(file_path)
-     true_mean_PHQ_9_Cerullo_Gat_params_list$beta_mu <- -1.67
-     true_mean_PHQ_9_Cerullo_Gat_params_list$raw_scale_mu <- -0.061
+     true_mean_PHQ_9_Cerullo_Gat_params_list$beta_mu <- +1.67
+     true_mean_PHQ_9_Cerullo_Gat_params_list$raw_scale_mu <- +0.061
      
      true_mean_PHQ_9_Cerullo_Gat_params_list$C <- c(-2.2000, -2.0000, -1.5300, -1.1600, -0.8590,
                                                     -0.5780 ,-0.3300, -0.1020,  0.0908,  0.2640 ,
@@ -103,8 +109,8 @@ R_fn_sim_data_ordinal_MA <- function(   seed = 123,
      print(paste("true_C_mu_PHQ_9_Cerullo_Gat = "))
      print(true_C_mu_PHQ_9_Cerullo_Gat)
      ##
-     location_nd[5] <- -(-0.5)*true_beta_mu_PHQ_9_Cerullo_Gat ; location_nd[5]
-     location_d[5]  <- -(+0.5)*true_beta_mu_PHQ_9_Cerullo_Gat ;  location_d[5]
+     location_nd[5] <- -0.5*true_beta_mu_PHQ_9_Cerullo_Gat ; location_nd[5]
+     location_d[5]  <- +0.5*true_beta_mu_PHQ_9_Cerullo_Gat ;  location_d[5]
      # ##
      # scale_nd[5] <- exp(-0.5*true_raw_scale_mu_PHQ_9_Cerullo_Gat);
      # scale_d[5]  <- exp(+0.5*true_raw_scale_mu_PHQ_9_Cerullo_Gat);
@@ -118,10 +124,10 @@ R_fn_sim_data_ordinal_MA <- function(   seed = 123,
      # raw_scale_d
      ##
      raw_RG_scale <- c(0.00, -0.05, -0.10, -0.15, true_raw_scale_mu_PHQ_9_Cerullo_Gat)
-     raw_scale_nd_MEDIAN <- -(-0.5)*raw_RG_scale ## since median of log-normal is equal to exp(mu), and mean is exp(mu + 0.5*sd)
-     raw_scale_d_MEDIAN  <- -(+0.5)*raw_RG_scale ## since median of log-normal is equal to exp(mu), and mean is exp(mu + 0.5*sd)
-     scale_nd_MEDIAN <- exp(raw_scale_nd_MEDIAN)
-     scale_d_MEDIAN  <- exp(raw_scale_d_MEDIAN)
+     raw_scale_nd_MEDIAN <- -0.5*raw_RG_scale ## since median of log-normal is equal to exp(mu), and mean is exp(mu + 0.5*sd)
+     raw_scale_d_MEDIAN  <- +0.5*raw_RG_scale ## since median of log-normal is equal to exp(mu), and mean is exp(mu + 0.5*sd)
+     # scale_nd_MEDIAN <- exp(raw_scale_nd_MEDIAN)
+     # scale_d_MEDIAN  <- exp(raw_scale_d_MEDIAN)
      # ## check:
      # scale_nd_MEDIAN
      # scale_d_MEDIAN
@@ -134,7 +140,7 @@ R_fn_sim_data_ordinal_MA <- function(   seed = 123,
      max_threshold_across_all_tests <- max(n_thr_per_test)
      threshold_per_study_array <- array(NA, dim = c(n_studies, max_threshold_across_all_tests))
      Mean_of_thr_for_all_tests_array <- array(NA, dim = c(n_tests, max_threshold_across_all_tests))
-     SD_of_thr_for_all_tests_array <- array(0.125, dim = c(n_tests, max_threshold_across_all_tests)) ## between-study heterogenity for thresholds 
+     SD_of_thr_for_all_tests_array <- array(threshsolds_latent_between_study_SD, dim = c(n_tests, max_threshold_across_all_tests)) ## between-study heterogenity for thresholds 
      
      ## Set the "true values" of the mean threshold between studies for each test (on the * latent * scale):
      ## NOTE: currently assuming that the diseased and non-diseased latent classes have the SAME set of thresholds! 
@@ -188,20 +194,9 @@ R_fn_sim_data_ordinal_MA <- function(   seed = 123,
      ##
      # true_DGP_one_m_Se <- pnorm(location_d - Mean_of_thr_for_all_tests_array)
      # true_DGP_Sp       <- pnorm(location_nd - Mean_of_thr_for_all_tests_array)
-     
-     ##
-     ## Set between-study heterogenity for the locations (on latent probit scale):
-     ##
-     location_nd_SD <- 0.25
-     location_d_SD  <- 0.50
      ##
      location_nd_mu <- location_nd
      location_d_mu  <- location_d
-     ##
-     ## Set between-study heterogenity for the scales (on latent probit scale):
-     ##
-     raw_scale_nd_SD <- 0.25
-     raw_scale_d_SD  <- 0.50
     
     s <- 1
     
@@ -225,16 +220,16 @@ R_fn_sim_data_ordinal_MA <- function(   seed = 123,
              ##
              ## Draw study-specific locations:
              ##
-             location_nd_study_s <- rnorm(n = n_tests, mean = location_nd_mu,  sd = location_nd_SD)
-             location_d_study_s  <- rnorm(n = n_tests, mean = location_d_mu,   sd = location_d_SD)
+             location_nd_study_s <- rnorm(n = n_tests, mean = location_nd_mu,  sd = location_nd_between_study_SD)
+             location_d_study_s  <- rnorm(n = n_tests, mean = location_d_mu,   sd = location_d_between_study_SD)
              ##
              ## Draw study-specific RAW scale params::
              ##
-             raw_scale_nd_study_s <- rnorm(n = n_tests, mean = raw_scale_nd_MEDIAN,  sd = raw_scale_nd_SD)
-             raw_scale_d_study_s  <- rnorm(n = n_tests, mean = raw_scale_d_MEDIAN,   sd = raw_scale_d_SD)
+             raw_scale_nd_study_s <- rnorm(n = n_tests, mean = raw_scale_nd_MEDIAN,  sd = raw_scale_nd_between_study_SD)
+             raw_scale_d_study_s  <- rnorm(n = n_tests, mean = raw_scale_d_MEDIAN,   sd = raw_scale_d_between_study_SD)
              ##
-             scale_nd_study_s <- exp(-(-0.5)*raw_scale_nd_study_s)
-             scale_d_study_s  <- exp(-(+0.5)*raw_scale_d_study_s)
+             scale_nd_study_s <- exp(-0.5*raw_scale_nd_study_s)
+             scale_d_study_s  <- exp(+0.5*raw_scale_d_study_s)
              
              
              if (assume_perfect_GS == TRUE) {
@@ -276,7 +271,9 @@ R_fn_sim_data_ordinal_MA <- function(   seed = 123,
              L_Sigma_nd   <- t(chol(Sigma_nd)) # PD check (fails if not PD)
              L_Sigma_d    <- t(chol(Sigma_d))   ## BayesMVP:::Rcpp_Chol(Sigma_nd) # PD check (fails if not PD)
              ##
-             d_ind <- sort(rbinom(n = N, size = 1, prob = true_prev))
+             d_ind <- sort(rbinom(n = N,
+                                  size = 1, 
+                                  prob = true_prev))
              ##
              n_pos <- sum(d_ind)
              n_pos_OVERALL <- n_pos_OVERALL + n_pos
@@ -383,53 +380,6 @@ R_fn_sim_data_ordinal_MA <- function(   seed = 123,
              y_list[[s]] <- y
              y_df_list[[s]] <- data.frame(y)
              
-             # Sigma_nd_true_observed <- Sigma_d_true_observed <- array(dim = c(n_tests, n_tests))
-             # observed_correlations <- array(dim = c(n_tests, n_tests))
-             #
-             # for (i in 2:n_tests) {
-             #   for (j in 1:(i-1)) {
-             #     Sigma_nd_true_observed[i, j] <- cor(df_neg$latent_results[,i], df_neg$latent_results[,j])
-             #     Sigma_nd_true_observed[j, i] <-  Sigma_nd_true_observed[i, j]
-             #     Sigma_d_true_observed[i, j] <- cor(df_pos$latent_results[,i], df_pos$latent_results[,j])
-             #     Sigma_d_true_observed[j, i] <-  Sigma_d_true_observed[i, j]
-             #     observed_correlations[i, j] <- cor(y[, i], y[, j])
-             #     observed_correlations[j, i] <-  observed_correlations[i, j]
-             #   }
-             # }
-             # 
-             # true_corrs_observed_vec <- observed_correlations[upper.tri(observed_correlations )]
-             # 
-             # observed_table <- table(y[, 1], y[, 2], y[, 3], y[, 4], y[, 5])
-             # observed_table_probs_vec <- c(unlist(round(prop.table(observed_table), 4)))
-             # 
-             # observed_cell_counts <- observed_table_probs_vec * N
-             # 
-             # true_estimates_observed <-  c(Sigma_nd_true_observed[upper.tri(Sigma_nd_true_observed )], 
-             #                             Sigma_d_true_observed[upper.tri(Sigma_d_true_observed )], Sp_true_observed,  Se_true_observed, prev_true_observed ,
-             #                               true_corrs_observed_vec, observed_table_probs_vec, NA, NA)
-             # true_estimates  <-  c(Sigma_nd[upper.tri(Sigma_nd )],  Sigma_d[upper.tri(Sigma_d )], 1 - true_Fp_vec,  true_Se_vec, true_prev  ,
-             #                       rep(NA, length(true_corrs_observed_vec)), rep(NA, length(observed_table_probs_vec)), NA, NA)
-             #
-             # ## Print some key quantities:
-             # print(paste("N = ", N))
-             # print(paste("prev_true_observed = ", prev_true_observed))
-             # print(paste("Se_true_observed = ", Se_true_observed))
-             # print(paste("Sp_true_observed = ", Sp_true_observed))
-             #
-             # ## Populate lists:
-             # y_binary_list[[ii_dataset]] <- y
-             # ##
-             # Sigma_nd_true_observed_list[[ii_dataset]] <- Sigma_nd_true_observed
-             # Sigma_d_true_observed_list[[ii_dataset]] <- Sigma_d_true_observed
-             # ##
-             # Phi_Se_observed_list[[ii_dataset]] <- Phi_Se_observed_vec
-             # Phi_Fp_observed_list[[ii_dataset]] <- Phi_Fp_observed_vec
-             #
-             # ##
-             # true_correlations_observed_vec_list[[ii_dataset]] <- true_corrs_observed_vec
-             # observed_table_probs_list[[ii_dataset]] <- observed_table_probs_vec
-             # true_estimates_observed_list[[ii_dataset]] <- true_estimates_observed
-             # observed_cell_counts_list[[ii_dataset]] <- observed_cell_counts
      
      
    }
