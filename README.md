@@ -1,12 +1,4 @@
----
-editor_options: 
-  markdown: 
-    wrap: 72
-    title: "Your Document"
-output:
-  html_document:
-    css: styles.css
----
+
 
 **MetaOrdDTA** is an R package for the meta-analysis (MA) and
 network-meta-analysis (NMA) of medical (e.g., for diagnostic and
