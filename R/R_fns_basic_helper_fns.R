@@ -29,7 +29,9 @@ if_null_then_set_to <- function(x,
 
 #' simplex_to_unconstrained
 #' @export
-simplex_to_unconstrained <- function(x) {
+simplex_to_unconstrained <- function(x, seed = 123) {
+  
+     set.seed(seed, kind = "L'Ecuyer-CMRG")
       
       N <- length(x)
       y <- numeric(N-1)

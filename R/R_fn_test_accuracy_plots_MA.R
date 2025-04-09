@@ -153,7 +153,9 @@ R_fn_sROC_plot_MA <- function(  stan_model_file_name,
                  plot_1 <-  ggplot(df_all, mapping = aes(x = Fp_median, y = Se_median, color = Model)) + 
                             geom_line(linewidth = 0.5) + 
                             geom_point(size = 3) + 
-                            theme_bw(base_size = 16)
+                            theme_bw(base_size = 16) + 
+                   xlab("False positive rate (Fp)") + 
+                   ylab("Sensitivity (Se)")
                  plot_1
                  ##
                  if (!(is.null(df_true))) { 
@@ -173,7 +175,9 @@ R_fn_sROC_plot_MA <- function(  stan_model_file_name,
                               geom_point(size = 3) + 
                               theme_bw(base_size = 16) +
                               geom_polygon(data = polygon_Conf, aes(x = x, y = y), fill = conf_region_colour, alpha = 0.40) +
-                              geom_polygon(data = polygon_Pred, aes(x = x, y = y), fill = pred_region_colour, alpha = 0.20)
+                              geom_polygon(data = polygon_Pred, aes(x = x, y = y), fill = pred_region_colour, alpha = 0.20) + 
+                   xlab("False positive rate (Fp)") + 
+                   ylab("Sensitivity (Se)")
                              
                  
                  if (!(is.null(df_true))) { 

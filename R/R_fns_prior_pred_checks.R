@@ -210,6 +210,7 @@ induced_Dirichlet_ppc_plot <- function(  method = "sigma",
     
     
             use_log_kappa <- other_args_list$use_log_kappa
+            prior_dirichlet_cat_means_alpha <- other_args_list$prior_dirichlet_cat_means_alpha
     
             if (use_log_kappa == TRUE) {
               

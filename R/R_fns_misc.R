@@ -1,6 +1,42 @@
 
 
 
+# Define function to apply missingness pattern
+R_fn_apply_thr_missingness <- function(
+                                       thr_combo_vec = NULL, 
+                                       data_matrix, 
+                                       apply_missings_to_these_rows) {
+  
+ 
+          columns_to_make_missing <- thr_combo_vec
+        
+          
+          # Validate rows
+          if (any(apply_missings_to_these_rows > nrow(data_matrix)) || 
+              any(apply_missings_to_these_rows < 1)) {
+            stop("Row indices out of bounds")
+          }
+          
+          # Make a copy of the data matrix to avoid modifying the original
+          result_matrix <- data_matrix
+          
+          # Replace values with -1 in the specified rows and columns
+          for (row in apply_missings_to_these_rows) {
+            for (col in columns_to_make_missing) {
+              if (col <= ncol(data_matrix)) {
+                result_matrix[row, col] <- -1
+              } else {
+                warning(paste("Column", col, "exceeds matrix dimensions. Skipping."))
+              }
+            }
+          }
+          
+          return(result_matrix)
+  
+}
+
+
+
 
 
 
@@ -18,7 +54,7 @@ convert_to_aggregate_counts <- function(y_list,
 
           n_total_nd <- n_total_d <- numeric(n_studies)
           x_nd_list <- x_d_list <- list()
-          n_nd_list <- n_d_list <- list()
+          # n_nd_list <- n_d_list <- list()
           Se_per_study_list <- Sp_per_study_list <- list()
           
           ## Initialise lists:
@@ -28,11 +64,11 @@ convert_to_aggregate_counts <- function(y_list,
             n_thr_t <- n_thr[t]
             n_cat_t <- n_thr_t + 1
             ##
-            x_nd_list[[t - 1]] <- matrix(NA, n_studies, n_thr_t)
-            x_d_list[[t - 1]]  <- matrix(NA, n_studies, n_thr_t)
+            x_nd_list[[t - 1]] <- matrix(NA, n_studies, n_cat_t)
+            x_d_list[[t - 1]]  <- matrix(NA, n_studies, n_cat_t)
             ##
-            n_nd_list[[t - 1]] <- matrix(NA, n_studies, n_cat_t)
-            n_d_list[[t - 1]]  <- matrix(NA, n_studies, n_cat_t)
+            # n_nd_list[[t - 1]] <- matrix(NA, n_studies, n_cat_t)
+            # n_d_list[[t - 1]]  <- matrix(NA, n_studies, n_cat_t)
             ##
             Se_per_study_list[[t - 1]] <-  matrix(NA, n_studies, n_thr_t)
             Sp_per_study_list[[t - 1]] <-  matrix(NA, n_studies, n_thr_t)
@@ -54,57 +90,37 @@ convert_to_aggregate_counts <- function(y_list,
                     n_cat_t <- n_thr_t + 1
                     test_results   <- study_data[, t]
                     
+                    x_d_list[[t - 1]][s, 1]  <- n_total_d[s]
+                    x_nd_list[[t - 1]][s, 1] <- n_total_nd[s]
                     # Get counts for each threshold
                     for (k in 1:n_thr_t) {
-                      
                           ##
-                          ## False-negatives (FN's):
+                          ## True-positives (TP's):
                           ##
-                          x_d_list[[t - 1]][s, k] <- sum(test_results[disease_status == 1] >= k) # Pr(testing POSITIVE at threshold k) ##  Pr(TEST SCORE IS LESS THAN OR EQUAL TO THR k (i.e., )
-                          n_d_list[[t - 1]][s, k] <- x_d_list[[t - 1]][s, k]
-                          Se_per_study_list[[t - 1]][s, k] <-  (x_d_list[[t - 1]][s, k] / n_total_d[s])
+                          x_d_list[[t - 1]][s, k + 1]  <- sum(test_results[disease_status == 1] > k) # Pr(testing POSITIVE at threshold k) ##  Pr(TEST SCORE IS LESS THAN OR EQUAL TO THR k (i.e., )
                           ##
-                          ## True negatives (TN's):
+                          ## False-positives (FP's):
                           ##
-                          x_nd_list[[t - 1]][s, k] <- sum(test_results[disease_status == 0] >= k) # Pr(testing POSITIVE at threshold k)
-                          n_nd_list[[t - 1]][s, k] <- x_nd_list[[t - 1]][s, k]
-                          Sp_per_study_list[[t - 1]][s, k] <- 1.0 - x_nd_list[[t - 1]][s, k] / n_total_nd[s]
+                          x_nd_list[[t - 1]][s, k + 1] <- sum(test_results[disease_status == 0] > k) # Pr(testing POSITIVE at threshold k)
                           
                     }
+                    for (k in 1:n_thr_t) {
                     
-                    # n_d_list[[t - 1]][s,  n_thr_t + 1] <- n_total_d[s]
-                    # n_nd_list[[t - 1]][s, n_thr_t + 1] <- n_total_nd[s]s
-                    n_d_list[[t  - 1]][s, 1] <- n_total_d[s]
-                    n_nd_list[[t - 1]][s, 1] <- n_total_nd[s]
+                        Se_per_study_list[[t - 1]][s, k] <-        (sum(test_results[disease_status == 1] > k)  / n_total_d[s])
+                        Sp_per_study_list[[t - 1]][s, k] <- 1.0 - ((sum(test_results[disease_status == 0] > k)) / n_total_nd[s])
+                      
+                    }
+                    
+                    # # n_d_list[[t - 1]][s,  n_thr_t + 1] <- n_total_d[s]
+                    # # n_nd_list[[t - 1]][s, n_thr_t + 1] <- n_total_nd[s]s
+                    # x_d_list[[t  - 1]][s, 1] <- n_total_d[s]
+                    # x_nd_list[[t - 1]][s, 1] <- n_total_nd[s]
                     
               
             }
             
           }
-          
-          {
-            
-            n_nd_list_new <- n_d_list_new <- list()
-            
-            for (t in 2:n_tests) { ## skip the BINARY reference test (test 1)
-              n_nd_list_new[[t - 1]] <- matrix(NA, n_studies, n_thr_t)
-              n_d_list_new[[t - 1]]  <- matrix(NA, n_studies, n_thr_t)
-            }
-            
-            for (s in 1:n_studies) {
-              for (t in 2:n_tests) {
-                n_thr_t <- n_thr[t]
-                n_cat_t <- n_thr_t + 1
-                ##
-                n_nd_list_new[[t - 1]][s, 1:n_thr_t] <-  n_nd_list[[t - 1]][s, 2:n_cat_t]
-                n_d_list_new[[t - 1]][s, 1:n_thr_t]  <-  n_d_list[[t - 1]][s, 2:n_cat_t]
-              }
-            }
-            
-            n_nd_list <- n_nd_list_new
-            n_d_list  <- n_d_list_new
-            
-          }
+
           
           
           return(list(
@@ -112,8 +128,6 @@ convert_to_aggregate_counts <- function(y_list,
             n_total_d  = n_total_d, 
             x_nd_list = x_nd_list,
             x_d_list  = x_d_list,
-            n_nd_list = n_nd_list,
-            n_d_list  = n_d_list,
             Se_per_study_list = Se_per_study_list,
             Sp_per_study_list = Sp_per_study_list
           ))

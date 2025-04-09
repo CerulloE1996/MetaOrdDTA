@@ -17,7 +17,7 @@ R_fn_prep_MA_data <- function(x = NULL,
     ## Get "n_thr":
     ##
     try({ 
-        n_thr <- ncol(x_diseased)
+        n_thr <- ncol(x_diseased) - 1
     })
     ##
     n_cat <- n_thr + 1
@@ -28,8 +28,8 @@ R_fn_prep_MA_data <- function(x = NULL,
     ##
     ## Get totals:
     ##
-    n_total_nd <-  x_non_diseased[, n_thr]
-    n_total_d  <-  x_diseased[, n_thr]
+    n_total_nd <-  x_non_diseased[, 1]
+    n_total_d  <-  x_diseased[, 1]
     ##
     ## Make "stan_data_list":
     ##
@@ -41,7 +41,7 @@ R_fn_prep_MA_data <- function(x = NULL,
     stan_data_list$n_non_diseased <- n_total_nd
     stan_data_list$n_diseased <-     n_total_d
     ##
-    stan_data_list$n <- list()
+    # stan_data_list$n <- list()
     stan_data_list$x <- list()
     stan_data_list$x_with_missings <- list()
     ##
@@ -50,7 +50,7 @@ R_fn_prep_MA_data <- function(x = NULL,
     #
     for (c in 1:2) {
         stan_data_list$cutpoint_index[[c]] <- matrix(-1, nrow = n_studies, ncol = n_thr);
-        stan_data_list$n[[c]] <- matrix(-1, nrow = n_studies, ncol = n_thr);
+        # stan_data_list$n[[c]] <- matrix(-1, nrow = n_studies, ncol = n_thr);
         # stan_data_list$x[[c]] <- matrix(-1, nrow = n_studies, ncol = n_thr);
         # stan_data_list$x_with_missings[[c]] <- matrix(-1, nrow = n_studies, ncol = n_thr);
     }
@@ -61,36 +61,38 @@ R_fn_prep_MA_data <- function(x = NULL,
       
             for (c in 1:2) {
                 
-                cutpoint_counter = 0;
-                previous_non_missing_index = 1;
+                cutpoint_counter <- 0;
+                previous_non_missing_index <- 1;
                 
-                stan_data_list$cutpoint_index[[c]][s, 1] <- 1
+                # stan_data_list$cutpoint_index[[c]][s, 1] <- 1
                 
-                for (k in 2:(n_thr + 1)) {
+                # for (k in 2:(n_thr + 1)) {
+                  for (k in 2:(n_thr + 1)) {
                   
-                      if (k == (n_thr + 1)) {
-                        cond <- TRUE
-                      } else {
+                      # if (k == (n_thr + 1)) {
+                      #   cond <- TRUE
+                      # } else {
                         cond <- (stan_data_list$x_with_missings[[c]][s, k] != -1)
-                      }
+                      # }
                       
                       if (cond == TRUE)   {
                         
-                            cutpoint_counter = cutpoint_counter +  1;
+                            cutpoint_counter = cutpoint_counter + 1;
                             
-                            if (k != (n_thr + 1)) {
-                              stan_data_list$cutpoint_index[[c]][s, cutpoint_counter + 1] = k;
-                            }
+                            # if (k != (n_thr + 1)) {
+                              stan_data_list$cutpoint_index[[c]][s, cutpoint_counter] = k - 1;
+                            # }
                             
                             stan_data_list$x[[c]][s, cutpoint_counter] <-   stan_data_list$x_with_missings[[c]][s, previous_non_missing_index]
-                            if (cutpoint_counter > 1) {
-                              stan_data_list$n[[c]][s, cutpoint_counter - 1] <- stan_data_list$x[[c]][s, cutpoint_counter]
-                            }
                             
-                            if (k == n_thr) {
-                              stan_data_list$n[[1]][s, n_thr] <- stan_data_list$n_non_diseased[s]
-                              stan_data_list$n[[2]][s, n_thr] <- stan_data_list$n_diseased[s]
-                            }
+                            # if (cutpoint_counter > 1) {
+                            #   stan_data_list$n[[c]][s, cutpoint_counter] <- stan_data_list$x[[c]][s, cutpoint_counter - 1]
+                            # }
+                            
+                            # if (k == n_thr) {
+                            #   stan_data_list$n[[1]][s, n_thr] <- stan_data_list$n_non_diseased[s]
+                            #   stan_data_list$n[[2]][s, n_thr] <- stan_data_list$n_diseased[s]
+                            # }
                             
                             previous_non_missing_index <- k
                               
@@ -116,8 +118,9 @@ R_fn_prep_MA_data <- function(x = NULL,
     ##
     print(paste("n_obs_cutpoints = ")) ; print(stan_data_list$n_obs_cutpoints)
     print(paste("cutpoint_index = ")) ; print(stan_data_list$cutpoint_index)
-    print(paste("n = ")) ; print(stan_data_list$n[[1]])
+    # print(paste("n = ")) ; print(stan_data_list$n[[1]])
     print(paste("x = ")) ; print(stan_data_list$x[[1]])
+    print(paste("x_with_missings = ")) ; print(stan_data_list$x_with_missings[[1]])
     # print(paste("x_with_missings = ")) ; print(stan_data_list$x_with_missings[[1]])
     
     n_tests <- 1

@@ -837,7 +837,7 @@ create_summary_and_traces <- function(    package,
                    # trace_log_lik_3 <- NULL
                    # ##
                    message("trace_main = ")
-                   (str(trace_main))
+                   # (str(trace_main))
                    trace_main_3 <- MetaOrdDTA:::format_named_array_for_bayesplot(trace_main)
                    trace_main   <- trace_main_3
                    ##
@@ -855,12 +855,12 @@ create_summary_and_traces <- function(    package,
                 
    }
    ##
-   str(trace_main)
-   str(trace_tp)
-   str(trace_tp_wo_log_lik)
-   str(trace_gq)
-   str(trace_log_lik)
-   ##
+   # str(trace_main)
+   # str(trace_tp)
+   # str(trace_tp_wo_log_lik)
+   # str(trace_gq)
+   # str(trace_log_lik)
+   # ##
    ##
    n_cores <- parallel::detectCores()
    ##

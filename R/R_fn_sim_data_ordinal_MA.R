@@ -28,7 +28,7 @@
 #' @export
 R_fn_sim_data_ordinal_MA <- function(   seed = 123,
                                         n_studies = 30,
-                                        N_per_study_mean = 1000,
+                                        N_per_study_mean = 2000,
                                         N_per_study_SD   = 500,
                                         assume_perfect_GS = 1,
                                         true_Mean_prev = 0.20,
@@ -200,6 +200,15 @@ R_fn_sim_data_ordinal_MA <- function(   seed = 123,
     
     s <- 1
     
+    ## Compute true values of Se and Sp for the DGP (these will NOT vary between identical simulations with different seeds!):
+    true_DGM_Se <- true_DGM_Fp <- true_DGM_Sp <- list()
+    true_DGM_Se[[5]] <- 1 - pnorm((true_C_mu_PHQ_9_Cerullo_Gat - location_d[5])/exp(raw_scale_d_MEDIAN[5]))
+    true_DGM_Fp[[5]] <- 1 - pnorm((true_C_mu_PHQ_9_Cerullo_Gat - location_nd[5])/exp(raw_scale_nd_MEDIAN[5]))
+    true_DGM_Sp[[5]] <- 1 - true_DGM_Fp[[5]]
+    
+
+    
+    
    for (s in 1:n_studies) {
              
              N <- N_per_study_vec[s]
@@ -254,7 +263,7 @@ R_fn_sim_data_ordinal_MA <- function(   seed = 123,
              }
              ##
              Omega_nd <- as.matrix(Matrix::nearPD(Omega_nd, keepDiag = TRUE)$mat)
-             Omega_d <- as.matrix(Matrix::nearPD(Omega_d, keepDiag = TRUE)$mat)
+             Omega_d  <- as.matrix(Matrix::nearPD(Omega_d, keepDiag = TRUE)$mat)
              ##
              L_Omega_nd   <- t(chol(Omega_nd)) # PD check (fails if not PD)
              L_Omega_d    <- t(chol(Omega_d))   ## BayesMVP:::Rcpp_Chol(Sigma_nd) # PD check (fails if not PD)
@@ -305,22 +314,22 @@ R_fn_sim_data_ordinal_MA <- function(   seed = 123,
                
                        n_thr <- n_thr_per_test[t] 
                        
-                       threshold_lower <- -1000
+                       threshold_lower <- -9999
                        threshold_upper <- head(thr_for_all_tests_for_current_study_array[t, 1:n_thr], 1)
-                       y[, t] <- ifelse(  (latent_results[, t] > threshold_lower) & (latent_results[, t] < threshold_upper),
+                       y[, t] <- ifelse(  (latent_results[, t] > threshold_lower) & (latent_results[, t] <= threshold_upper),
                                                 1, 
                                                 y[, t])
                     
                        for (k in 2:(n_thr)) {
                            threshold_lower <- thr_for_all_tests_for_current_study_array[t, k - 1] ; threshold_lower
                            threshold_upper <- thr_for_all_tests_for_current_study_array[t, k]     ; threshold_upper
-                           y[, t] <- ifelse(  (latent_results[, t] > threshold_lower) & (latent_results[, t] < threshold_upper), 
+                           y[, t] <- ifelse(  (latent_results[, t] > threshold_lower) & (latent_results[, t] <= threshold_upper), 
                                                      k, 
                                                      y[, t])
                        }
                        
                        threshold_lower <- tail(thr_for_all_tests_for_current_study_array[t, 1:n_thr], 1)  
-                       threshold_upper <- +1000
+                       threshold_upper <- +9999
                        y[, t] <- ifelse(     (latent_results[, t] > threshold_lower) & (latent_results[, t] < threshold_upper),
                                                    n_thr + 1, 
                                                    y[, t])
@@ -341,7 +350,7 @@ R_fn_sim_data_ordinal_MA <- function(   seed = 123,
              for (t in 2:n_tests) {
                n_thr <- n_thr_per_test[t] 
                for (k in 1:n_thr) {
-                 n_TP_at_current_threshold <- sum(df_pos$y[, t] > k)
+                 n_TP_at_current_threshold <- sum(df_pos$y[, t] >= k + 1)
                  Se_current_study_all_tests_all_thresholds[t, k] <- n_TP_at_current_threshold/n_pos
                  ## Increment comulative counters:
                  n_TP_at_current_threshold_OVERALL[t, k] <- n_TP_at_current_threshold_OVERALL[t, k] + n_TP_at_current_threshold
@@ -354,7 +363,7 @@ R_fn_sim_data_ordinal_MA <- function(   seed = 123,
              for (t in 2:n_tests) {
                n_thr <- n_thr_per_test[t] 
                for (k in 1:n_thr) {
-                 n_FP_at_current_threshold <- sum(df_neg$y[, t] > k)
+                 n_FP_at_current_threshold <- sum(df_neg$y[, t] >= k + 1)
                  Fp_at_threshold_k <- n_FP_at_current_threshold/n_neg
                  Sp_at_threshold_k <- 1.0 - Fp_at_threshold_k
                  Sp_current_study_all_tests_all_thresholds[t, k] <- Sp_at_threshold_k
@@ -432,7 +441,11 @@ R_fn_sim_data_ordinal_MA <- function(   seed = 123,
      Se_per_study_ref = Se_per_study_ref,
      Sp_per_study_ref = Sp_per_study_ref,
      Se_OVERALL_all_tests_all_thresholds = Se_OVERALL_all_tests_all_thresholds,
-     Sp_OVERALL_all_tests_all_thresholds = Sp_OVERALL_all_tests_all_thresholds
+     Sp_OVERALL_all_tests_all_thresholds = Sp_OVERALL_all_tests_all_thresholds,
+     ##
+     true_DGM_Se = true_DGM_Se,
+     true_DGM_Fp = true_DGM_Fp,
+     true_DGM_Sp = true_DGM_Sp
      # true_DGP_one_m_Se = true_DGP_one_m_Se,
      # true_DGP_Sp = true_DGP_Sp
      # ## 

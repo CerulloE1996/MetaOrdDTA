@@ -206,6 +206,8 @@ R_fn_sROC_plot_NMA <- function( stan_model_file_name,
                                      aes(x = x, y = y, colour = Model),
                                      fill = conf_region_colour, 
                                      alpha = 0.40)
+                        # xlab("False positive rate (Fp)") + 
+                        # ylab("Sensitivity (Se)")
                       # geom_polygon(data = polygon_Pred_tibble, aes(x = x, y = y), fill = pred_region_colour, alpha = 0.25) + 
                       ##
                       print(plot_3)
@@ -217,7 +219,9 @@ R_fn_sROC_plot_NMA <- function( stan_model_file_name,
                         data = polygon_Pred_tibble,
                         aes(x = x, y = y, colour = Model),
                         fill = pred_region_colour, 
-                        alpha = 0.40)
+                        alpha = 0.40) 
+                        # xlab("False positive rate (Fp)") + 
+                        # ylab("Sensitivity (Se)")
                       print(plot_4)
                       plot_list[[4]] <- plot_4
                       ##
@@ -235,6 +239,8 @@ R_fn_sROC_plot_NMA <- function( stan_model_file_name,
                           aes(x = x, y = y, colour = Model),
                           fill = pred_region_colour, 
                           alpha = 0.20)
+                        # xlab("False positive rate (Fp)") + 
+                        # ylab("Sensitivity (Se)")
                       print(plot_5)
                       plot_list[[5]] <- plot_5
                 }
