@@ -7,17 +7,16 @@
 require(dplyr)
 require(cmdstanr)
 
-seed <- 123
-##
+
 n_tests <- 5
 n_index_tests <- n_tests - 1
 ##
-n_studies <- 10
-N_per_study_mean <- 2000
+n_studies <- 25
+N_per_study_mean <- 2500
 N_per_study_SD <- round(N_per_study_mean/4)
 assume_perfect_GS <- 1
 
-
+seed <- 123
 set.seed(seed)
 
 missing_indicator <- -1
@@ -26,11 +25,13 @@ options(max.print = 100000)
 
 
 # Run simulated data - this simulates data from FIVE (5) diagnostic tests (1 BINARY reference test + 4 ORDINAL index tests)
-sim_results <- MetaOrdDTA:::R_fn_sim_data_ordinal_MA(     n_studies = n_studies,
+sim_results <- R_fn_sim_data_ordinal_MA(     n_studies = n_studies,
                                                           N_per_study_mean = N_per_study_mean,
                                                           N_per_study_SD = N_per_study_SD,
                                                           assume_perfect_GS = assume_perfect_GS,
-                                                          seed = seed)
+                                                          seed = 123,
+                                                          threshsolds_latent_between_study_SD = 0.10)
+# index_test_chosen_index <- 1 + 2
 
 {
   
@@ -39,8 +40,7 @@ sim_results <- MetaOrdDTA:::R_fn_sim_data_ordinal_MA(     n_studies = n_studies,
     
     sim_results$n_thr_per_test
     sim_results$N_per_study_vec
-    
-    index_test_chosen_index <- 5
+
     # n_thr <- 10
     n_thr_vec <- sim_results$n_thr_per_test_excl_ref ; n_thr_vec
     # ## subset to remove ref test:
@@ -51,14 +51,23 @@ sim_results <- MetaOrdDTA:::R_fn_sim_data_ordinal_MA(     n_studies = n_studies,
     
 }
 
+
+{
+  true_DGM_Fp <- 100 * sim_results$true_DGM_Fp[[index_test_chosen_index]]
+  true_DGM_Sp <- 100 * sim_results$true_DGM_Sp[[index_test_chosen_index]]
+  true_DGM_Se <- 100 * sim_results$true_DGM_Se[[index_test_chosen_index]]
+}
+
+sim_results$Se_OVERALL_all_tests_all_thresholds
+
 sim_results$Se_OVERALL_all_tests_all_thresholds
 # sim_results$Se_OVERALL_all_tests_all_thresholds[1, 1:n_thr_vec[1]]
 sim_results$Se_OVERALL_all_tests_all_thresholds[2, 1:n_thr_vec[2]]
  
- true_Se_OVERALL <- sim_results$Se_OVERALL_all_tests_all_thresholds[index_test_chosen_index, 1:n_thr_vec[4]] ; true_Se_OVERALL
- true_Sp_OVERALL <- sim_results$Sp_OVERALL_all_tests_all_thresholds[index_test_chosen_index, 1:n_thr_vec[4]] ; true_Sp_OVERALL
+ true_Se_OVERALL <- sim_results$Se_OVERALL_all_tests_all_thresholds[index_test_chosen_index, 1:n_thr_vec[index_test_chosen_index - 1]] ; true_Se_OVERALL
+ true_Sp_OVERALL <- sim_results$Sp_OVERALL_all_tests_all_thresholds[index_test_chosen_index, 1:n_thr_vec[index_test_chosen_index - 1]] ; true_Sp_OVERALL
 
-  plot(y = true_Se_OVERALL, x = 1 - true_Sp_OVERALL)
+  # plot(y = true_Se_OVERALL, x = 1 - true_Sp_OVERALL)
 
 # sim_results$Se_per_study_all_tests_all_thresholds_list
 
@@ -76,6 +85,9 @@ for (s in 1:n_studies) {
     }
     y_list_example_1[[s]] <- y
 }
+
+min(y[,index_test_chosen_index])
+max(y[,index_test_chosen_index])
 
 # y_list_example_1
 
@@ -96,6 +108,10 @@ Sp_per_study_list <- agg_data_cumulative$Sp_per_study_list
 true_Se_OVERALL <- true_Sp_OVERALL <- list() 
 true_Se_OVERALL_weighted <- true_Sp_OVERALL_weighted <- list() 
 
+agg_data_cumulative$x_d_list
+
+# 0.9897257 0.9566693 0.8985080 0.7359064 0.3932815 
+# 0.2462610 0.5247035 0.7138989 0.9045126 0.9878030  # Sp
 
 for (t in 1:n_index_tests) {
   
@@ -121,27 +137,31 @@ true_Se_OVERALL[[3]] - true_Se_OVERALL_weighted[[3]]
 true_Sp_OVERALL[[3]] - true_Sp_OVERALL_weighted[[3]]
 
 
+true_Se_OVERALL_weighted
+true_Sp_OVERALL
+
+
 # #### ------------------- Apply ** MISSING TESTS ** (hence "NMA" - optional): --------------------------------------------------------------------
-# 
-# outs_NMA <- MetaOrdDTA:::create_test_in_study_for_NMA( seed = seed,
-#                                           n_studies = n_studies,
-#                                           n_tests_inc_ref = n_index_tests + 1,
-#                                           prob_present = 0.40, 
-#                                           min_index_tests_per_study = 1)
-# 
-# indicator_index_test_in_study <- outs_NMA$indicator_index_test_in_study ; indicator_index_test_in_study
-# n_index_tests_per_study      <- outs_NMA$n_index_tests_per_study ; n_index_tests_per_study
-# 
+
+outs_NMA <- MetaOrdDTA:::create_test_in_study_for_NMA( seed = seed,
+                                          n_studies = n_studies,
+                                          n_tests_inc_ref = n_index_tests + 1,
+                                          prob_present = 0.40,
+                                          min_index_tests_per_study = 1)
+
+indicator_index_test_in_study <- outs_NMA$indicator_index_test_in_study ; indicator_index_test_in_study
+n_index_tests_per_study      <- outs_NMA$n_index_tests_per_study ; n_index_tests_per_study
+
 # 
 # ## Then update the "true values" list:
-# for (t in 1:n_index_tests) { 
+# for (t in 1:n_index_tests) {
 #   indicator_mat <- array(1.0, dim = c(n_studies, n_thr_vec[t]))
 #   for (k in 1:n_thr_vec[t]) {
 #      indicator_mat[,k] <- ifelse(indicator_index_test_in_study[,t] == 0, NA, 1)
 #   }
 #   Se_per_study_list[[t]] <- Se_per_study_list[[t]] * indicator_mat
 # }
-# 
+# # 
 # 
 # ## Then re-calculate:
 # for (t in 1:n_index_tests) {
@@ -163,11 +183,93 @@ true_Sp_OVERALL[[3]] - true_Sp_OVERALL_weighted[[3]]
 # }
 
 
-#### ------------------- Apply ** MISSING THRESHOLDS ** (optional): -----------------------------------------------------------------------------
+
+agg_data_cumulative$x_nd_list
+####
+#### Non-diseased group:
+####
+x_nd <- agg_data_cumulative$x_nd_list
+# n_nd <- agg_data_cumulative$n_nd_list
+n_total_nd   <- agg_data_cumulative$n_total_nd
+print(paste("x_non_diseased_cumulative = ")) ; print(x_nd)
+####
+#### Diseased group:
+####
+x_d <- agg_data_cumulative$x_d_list
+# n_d <- agg_data_cumulative$n_d_list
+n_total_d      <- agg_data_cumulative$n_total_d
+print(paste("x_diseased_cumulative = ")) ; print(x_d)
+
+###
+### Prep / save final NMA simulated data outputs:
+x_NMA <- list(x_nd, x_d)
+x <- x_NMA
+
+data_example_1_NMA_list <- list()
+data_example_1_NMA_list$x_NMA <- x_NMA
+data_example_1_NMA_list$indicator_index_test_in_study <- indicator_index_test_in_study
+data_example_1_NMA_list$n_index_tests_per_study <- n_index_tests_per_study
+
+saveRDS(object = data_example_1_NMA_list, file = file.path(getwd(), "inst", "examples", "data_example_1_NMA_list.RDS"))
+
+
+
+
+
+#### ------------------- Apply ** MISSING THRESHOLDS ** : -----------------------------------------------------------------------------
 
 agg_data_cumulative_with_missing_thresholds <- agg_data_cumulative
 
 agg_data_cumulative_with_missing_thresholds$x_d_list
+
+x_PHQ9 <- list()
+PHQ9_index <- 4
+
+for (c in 1:2) {
+  x_PHQ9[[c]] <- x[[c]][[PHQ9_index]]
+}
+x_PHQ9
+
+
+
+x_PHQ9[[1]]
+
+
+## Apply PHQ-9 "missing thresholds":
+## (1) 1st quintile (e.g., studies 1-5   if 25 total studies)  0% of studies report @ ALL threshodls, so do nothing for these.
+## (2) 2nd quintile (e.g., studies 6-10  if 25 total studies) report 
+## (3) 3rd quintile (e.g., studies 11-15 if 25 total studies) report ...
+## (3) 4th quintile (e.g., studies 16-20 if 25 total studies) report ...
+## (3) 5th quintile (e.g., studies 21-25 if 25 total studies) report ...
+
+case_4_thr_combos_list <- list()
+##
+{
+    case_4_thr_combos_list$thr_combo_1  <- c(8, 9, 10, 11, 12)
+    case_4_thr_combos_list$thr_combo_2  <- c(10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21)
+    case_4_thr_combos_list$thr_combo_3  <- c(9, 10, 11, 12, 13)
+    case_4_thr_combos_list$thr_combo_4  <- c(10, 11, 12, 13, 14)
+    case_4_thr_combos_list$thr_combo_5  <- c(9, 10, 11, 12, 13, 14, 15)
+    case_4_thr_combos_list$thr_combo_6  <- c(6, 7, 8)
+    case_4_thr_combos_list$thr_combo_7  <- c(6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+    case_4_thr_combos_list$thr_combo_8  <- c(11, 12, 13)
+    case_4_thr_combos_list$thr_combo_9  <- c(5, 6, 7, 8, 9, 10, 11, 12)
+    case_4_thr_combos_list$thr_combo_10 <- c(4, 5, 6, 7, 8, 9, 10)
+    ## e.g. a study did 10 for screening and 15 for DIAGNOSIS (not common w/ PHQ-9 
+    ## but some studies do this or investigate it):
+    case_4_thr_combos_list$thr_combo_11 <- c(10, 15) 
+    ## this is also based on the study that looked at PHQ-9 for both screening (i.e., using the
+    ## standard/lower thresholds) AND DIAGNOSIS (higher thresholds):
+    case_4_thr_combos_list$thr_combo_12 <- c(9, 10, 11, 14, 15, 16) 
+}
+print(case_4_thr_combos_list)
+
+
+R_fn_apply_thr_missingness( thr_combo_name  =  thr_combos_list$thr_combo_1,
+                            thr_combo_vec = thr_combo_1,
+                            apply_missings_to_these_rows = c(1,2,3),
+                            data_matrix = x_PHQ9)
+
 
 # {
 # 
@@ -211,36 +313,6 @@ agg_data_cumulative_with_missing_thresholds$x_d_list
 # 
 # #  
 #  
-
-agg_data_cumulative_with_missing_thresholds$x_nd_list
-####
-#### Non-diseased group:
-####
-x_nd <- agg_data_cumulative_with_missing_thresholds$x_nd_list
-n_nd <- agg_data_cumulative_with_missing_thresholds$n_nd_list
-n_total_nd   <- agg_data_cumulative_with_missing_thresholds$n_total_nd
-print(paste("x_non_diseased_cumulative = ")) ; print(x_nd)
-####
-#### Diseased group:
-####
-x_d <- agg_data_cumulative_with_missing_thresholds$x_d_list
-n_d <- agg_data_cumulative_with_missing_thresholds$n_d_list
-n_total_d      <- agg_data_cumulative_with_missing_thresholds$n_total_d
-print(paste("x_diseased_cumulative = ")) ; print(x_d)
-
-###
-### Prep / save final NMA simulated data outputs:
-x_NMA <- list(x_nd, x_d)
-x <- x_NMA
-
-data_example_1_NMA_list <- list()
-data_example_1_NMA_list$x_NMA <- x_NMA
-data_example_1_NMA_list$indicator_index_test_in_study <- indicator_index_test_in_study
-data_example_1_NMA_list$n_index_tests_per_study <- n_index_tests_per_study
-
-saveRDS(object = data_example_1_NMA_list, file = file.path(getwd(), "inst", "examples", "data_example_1_NMA_list.RDS"))
-
-
 
 
 

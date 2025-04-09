@@ -90,25 +90,25 @@ x <- x_NMA
 indicator_index_test_in_study <- data$indicator_index_test_in_study
 ##
 n_studies <- nrow(x_NMA[[1]][[1]])
-n_index_tests <- 4##  length(x_NMA[[1]])
+n_index_tests <- 4 ##  length(x_NMA[[1]])
 
-subset <- TRUE
-n_subset <- 5
-
-if (subset) {
-  indicator_index_test_in_study <- indicator_index_test_in_study[1:n_subset,1:4]
-    for (c in 1:2) {
-      for (t in 1:n_index_tests) {
-        x_NMA[[c]][[t]] <- x_NMA[[c]][[t]][1:n_subset, ]
-      }
-    }
-    n_studies <- nrow(x_NMA[[1]][[1]])
-    n_index_tests <- length(x_NMA[[1]])
-    for (c in 1:2) {
-       x_NMA[[c]][[n_index_tests + 1]] <- NULL
-    }
-}
-x <- x_NMA
+# subset <- TRUE
+# n_subset <- 5
+# 
+# if (subset) {
+#   indicator_index_test_in_study <- indicator_index_test_in_study[1:n_subset,1:4]
+#     for (c in 1:2) {
+#       for (t in 1:n_index_tests) {
+#         x_NMA[[c]][[t]] <- x_NMA[[c]][[t]][1:n_subset, ]
+#       }
+#     }
+#     n_studies <- nrow(x_NMA[[1]][[1]])
+#     n_index_tests <- length(x_NMA[[1]])
+#     for (c in 1:2) {
+#        x_NMA[[c]][[n_index_tests + 1]] <- NULL
+#     }
+# }
+# x <- x_NMA
 
 
 ##  -----------  Compile + initialise the model using "MVP_model$new(...)"  ----------------------------------
