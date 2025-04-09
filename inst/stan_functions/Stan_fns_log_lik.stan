@@ -3,81 +3,79 @@
  
   
 
-array[,] matrix compute_log_lik_binomial_probit_fact (  array[] matrix latent_cumul, 
+array[,] matrix compute_log_lik_binomial_probit_fact (  array[] matrix latent_surv, 
                                                         int use_probit_link,
                                                         data array[] matrix x, 
-                                                        data array[] matrix n,
+                                                        // data array[] matrix n,
                                                         data array[] int n_obs_cutpoints
 ) {
         
           int n_studies = rows(x[1]);
-          int n_thr     = cols(x[1]);
+          int n_thr     = cols(x[1]) - 1;
           ////
-          // array[2] matrix[n_studies, n_thr] cumul_prob;
-          // array[2] matrix[n_studies, n_thr] cond_prob;
-          ////
-          array[2] matrix[n_studies, n_thr] log_cumul_prob;
-          array[2] matrix[n_studies, n_thr] log_cond_prob;
-          ////
+          array[2] matrix[n_studies, n_thr] surv_prob;
+          array[2] matrix[n_studies, n_thr] cond_prob;
           array[2] matrix[n_studies, n_thr] log_lik;
+          ////
           for (c in 1:2) { 
-              // cumul_prob[c] = rep_matrix(1.0, n_studies, n_thr);
-              // cond_prob[c]  = rep_matrix(1.0, n_studies, n_thr);
-              ////
-              log_cumul_prob[c] = rep_matrix(0.0, n_studies, n_thr);
-              log_cond_prob[c]  = rep_matrix(0.0, n_studies, n_thr);
-              log_lik[c]        = rep_matrix(0.0, n_studies, n_thr);
+              surv_prob[c]  = rep_matrix(1.0, n_studies, n_thr);
+              cond_prob[c]  = rep_matrix(1.0, n_studies, n_thr);
+              log_lik[c]    = rep_matrix(0.0, n_studies, n_thr);
           }
-          ////
-          //// ---- Calculate CUMULATIVE probabilities:
-          ////
+          //// ---- Calculate surv  probabilities:
           for (c in 1:2) {
-              if (use_probit_link == 1) log_cumul_prob[c][, 1:n_thr] = log(Phi(latent_cumul[c][, 1:n_thr])); //// INCREASING sequence (as C_k > C_{k - 1})
-              else                      log_cumul_prob[c][, 1:n_thr] = log_inv_logit(latent_cumul[c][, 1:n_thr]); //// INCREASING sequence (as C_k > C_{k - 1})
+              if (use_probit_link == 1) surv_prob[c] = Phi(latent_surv[c]); //// INCREASING sequence (as C_k > C_{k - 1})
+              else                      surv_prob[c] = inv_logit(latent_surv[c]); //// INCREASING sequence (as C_k > C_{k - 1})
           }
-          ////
           //// ---- Multinomial (factorised Binomial) likelihood:
-          ////
+          // matrix[n_studies, n_thr] probs;
+          // matrix[n_studies, n_thr] bin_n;
+          // matrix[n_studies, n_thr] bin_N_m_n;
           for (c in 1:2) {
               for (s in 1:n_studies) {
-                      for (cut_i in 2:(n_obs_cutpoints[s])) {
-                        
-                              //// Current and PREVIOUS cumulative counts //// next
-                              int x_current = to_int(x[c][s, cut_i]);
-                              int x_prev    = to_int(x[c][s, cut_i - 1]); //// to_int(n[c][s, cut_i]); // x_prev > x_next (counts are DECREASING)
-                              
-                              //// Skip if the current count is zero (no observations to classify)
+                      for (i in 1:n_obs_cutpoints[s]) {
+                         
+                              //// ---- Current and PREVIOUS survative counts //// next
+                              int x_current = to_int(x[c][s, i + 1]);
+                              int x_prev    = to_int(x[c][s, i + 0]); //// to_int(n[c][s, i]); // x_prev > x_next (counts are DECREASING)
+                              int x_diff    = x_prev - x_current;
+                
+                              //// ---- Skip if the current count is zero (no observations to classify)
                               if (x_current != 0)  {
                               
-                                       //// Conditional probability of being at or below the current cutpoint - given being at or below the next cutpoint
-                                       if (x_prev > 0)   log_cond_prob[c][s, cut_i] = log_cumul_prob[c][s, cut_i] - log_cumul_prob[c][s, cut_i - 1];  
-                                       ////  cumul_prob[c][s, cut_i] / cumul_prob[c][s, cut_i + 1];
-                                       else  log_cond_prob[c][s, cut_i] = 0.0; //// 1.0;
-
-                                       int binom_n = x_current;
-                                       int binom_N = x_prev;
-                                       int binom_N_m_n = x_prev - x_current;
+                                       //// ---- Conditional probability of being at or below the current cutpoint - given being at or below the next cutpoint
+                                       if (i == 1) {
+                                              //// cond_prob[c][s, 1] = surv_prob[c][s, 1]; // / 1.0; = surv_prob[1] /  surv_prob[0], and surv_prob[0] = 1.0.
+                                              cond_prob[c][s, i] = surv_prob[c][s, i]; //// surv_idx - 2]; // Adjust back by 2
+                                       } else if (i > 1) { //// so i = {3, 4, .... K}
+                                              if (x_prev > 0) {
+                                                  // For thresholds > 1, maintain the ratio calculation but with corrected indices
+                                                  real curr_surv = surv_prob[c][s, i]; ////  (surv_idx <= n_thr) ? surv_prob[c][s, surv_idx - 2] : 0.0;
+                                                  real prev_surv = surv_prob[c][s, i - 1] ; //// (prev_surv_idx <= n_thr) ? surv_prob[c][s, prev_surv_idx - 2] : 1.0;
+                                                  cond_prob[c][s, i] = curr_surv / prev_surv;
+                                              } else {
+                                                  cond_prob[c][s, i] = 0.0;
+                                              }
+                                       }
+                                       // probs[s, i] = cond_prob[c][s, i];
+                                       // bin_n[s, i]     = x_current;
+                                       // bin_N_m_n[s, i] = x_diff;
                                        ////
-                                       real log_prob = log_cond_prob[c][s, cut_i];
-                                      
-                                       // log_lik[c][s, cut_i]  = lchoose(binom_N, binom_n);  //// + log( p_pow_n * one_m_p_pow_N_m_n);
-                                       // log_lik[c][s, cut_i] += binom_n * log_prob + binom_N_m_n * log1m_exp(log_prob); //  + binom_N_m_n * log1m(current_prob); 
-                                       log_lik[c][s, cut_i] = binomial_lpmf(x_current | x_prev, exp(log_prob));
+                                       log_lik[c][s, i] = binomial_lpmf(x_current | x_prev, cond_prob[c][s, i]);
                                        
                               }
                               
                      }
 
-                  }
+                  } // end of n_studies loop
+                   // log_lik[c] = bin_n .* log(probs) +  bin_N_m_n .* log1m(probs);
        
-                 // log_lik[c] = binom_n .* log(cond_prob[c]) + binom_N_m_n .* log1m(cond_prob[c]);
-                 // // log_lik[c] += lgamma(binom_N + 1) - lgamma(binom_n + 1) + lgamma(binom_N_m_n + 1);
           }
         
             array[2, 3] matrix[n_studies, n_thr] out;
             out[, 1] = log_lik;
-            out[, 2] = exp(log_cond_prob);
-            out[, 3] = exp(log_cumul_prob);
+            out[, 2] = cond_prob;
+            out[, 3] = surv_prob;
             return(out);
            
 }
@@ -89,9 +87,13 @@ array[,] matrix compute_log_lik_binomial_probit_fact (  array[] matrix latent_cu
            
            
            
-//            
-// 
-// array[,] matrix compute_log_lik_binomial_probit_fact_NMA (  array[] matrix latent_cumul,
+           
+
+
+
+
+
+// array[,] matrix compute_log_lik_binomial_probit_fact_NMA (  array[] matrix latent_surv,
 //                                                             data array[] matrix x, 
 //                                                             data array[] matrix n,
 //                                                             data array[] int n_obs_cutpoints,
@@ -100,25 +102,25 @@ array[,] matrix compute_log_lik_binomial_probit_fact (  array[] matrix latent_cu
 //           
 //             int n_studies = rows(x[1]);
 //             int n_thr     = cols(x[1]);
-//             array[2] matrix[n_studies, n_thr] cumul_prob;
+//             array[2] matrix[n_studies, n_thr] surv_prob;
 //             array[2] matrix[n_studies, n_thr] cond_prob;
 //             ////
-//             array[2] matrix[n_studies, n_thr] log_cumul_prob;
+//             array[2] matrix[n_studies, n_thr] log_surv_prob;
 //             array[2] matrix[n_studies, n_thr] log_cond_prob;
 //             ////
 //             array[2] matrix[n_studies, n_thr] log_lik;
 //             for (c in 1:2) { 
-//                 log_cumul_prob[c] = rep_matrix(1.0, n_studies, n_thr);
+//                 log_surv_prob[c] = rep_matrix(1.0, n_studies, n_thr);
 //                 cond_prob[c]  = rep_matrix(1.0, n_studies, n_thr);
 //                 log_lik[c]    = rep_matrix(0.0, n_studies, n_thr);
 //             }
 //             ////
-//             //// ---- Calculate CUMULATIVE probabilities:
+//             //// ---- Calculate survATIVE probabilities:
 //             ////
 //             for (s in 1:n_studies) {
 //                if (indicator_index_test_t_in_study[s] == 1) {
 //                    for (c in 1:2) {
-//                       log_cumul_prob[c][s, 1:n_thr] = inv_logit(latent_cumul[c][s, 1:n_thr]); //// INCREASING sequence (as C_k > C_{k - 1})
+//                       log_surv_prob[c][s, 1:n_thr] = inv_logit(latent_surv[c][s, 1:n_thr]); //// INCREASING sequence (as C_k > C_{k - 1})
 //                    }
 //                }
 //             }
@@ -131,7 +133,7 @@ array[,] matrix compute_log_lik_binomial_probit_fact (  array[] matrix latent_cu
 //                       int observed = to_int(indicator_index_test_t_in_study[s]);
 //                       if (observed == 1)  {
 //                               for (cut_i in 1:n_obs_cutpoints[s]) {
-//                                       //// Current and next cumulative counts
+//                                       //// Current and next survative counts
 //                                       int x_current = to_int(x[c][s, cut_i]);
 //                                       int x_next    = to_int(n[c][s, cut_i]);
 //                                       
@@ -142,11 +144,11 @@ array[,] matrix compute_log_lik_binomial_probit_fact (  array[] matrix latent_cu
 //                                              if (cut_i == n_obs_cutpoints[s]) { 
 //                                                    vector[2] probs;
 //                                                    probs[1] = 0.999999999999999;
-//                                                    probs[2] = cumul_prob[c][s, cut_i] / 1.0;
+//                                                    probs[2] = surv_prob[c][s, cut_i] / 1.0;
 //                                                    cond_prob[c][s, cut_i] = min(probs);
 //                                              } else {
 //                                                   if (x_next > 0) { 
-//                                                      cond_prob[c][s, cut_i] = cumul_prob[c][s, cut_i] / cumul_prob[c][s, cut_i + 1];
+//                                                      cond_prob[c][s, cut_i] = surv_prob[c][s, cut_i] / surv_prob[c][s, cut_i + 1];
 //                                                   } else { 
 //                                                      cond_prob[c][s, cut_i] = 1.0;
 //                                                   }
@@ -178,7 +180,7 @@ array[,] matrix compute_log_lik_binomial_probit_fact (  array[] matrix latent_cu
 //             array[2, 3] matrix[n_studies, n_thr] out;
 //             out[, 1] = log_lik;
 //             out[, 2] = cond_prob;
-//             out[, 3] = cumul_prob;
+//             out[, 3] = surv_prob;
 //             return(out);
 // 
 // }

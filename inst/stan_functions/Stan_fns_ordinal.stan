@@ -1,7 +1,7 @@
 
 
 ////
-//// Custom Stan functions - ordinal regression + cutpoint functions  -----------------------------------------------------------------------------------
+//// Custom Stan functions - ordinal regression + cutpoint functions  ---------------------------------------------------------------------------
 ////
 
 ////
@@ -61,6 +61,51 @@ row_vector construct_C(  row_vector C_raw_vec,
 //// ---------------------------------------------------------------------------------------
 //// Induced-Dirichlet ("ind_dir") log-density function:
 //// NOTE: You can use this for both ind_dir PRIORS and ind_dir MODELS:
+//// NOTE: adapted from: Betancourt et al (see: https://betanalpha.github.io/assets/case_studies/ordinal_regression.html),
+//// HOWEVER my version has a (much) more computationally efficient (lower-trianglar) Jacobian computation, which is mathematically still valid. 
+////
+real induced_dirichlet_given_C_lpdf(    vector p_ord,
+                                        vector C,
+                                        vector alpha) {
+          
+        int n_cat = num_elements(p_ord);
+        int n_thr = n_cat - 1;
+        
+        real log_prob = 0.0;
+
+        for (k in 1:n_thr) {
+            log_prob += normal_lpdf(C[k] | 0.0, 1.0);
+        }
+        log_prob += dirichlet_lpdf(p_ord | alpha);
+        
+        return log_prob;
+  
+}
+////
+//// Row-vector overload for "induced_dirichlet_given_rho_lpdf":
+////
+real induced_dirichlet_given_C_lpdf(  row_vector p_ord,
+                                      row_vector C,
+                                      row_vector alpha) {
+          
+
+        int n_cat = num_elements(p_ord);
+        int n_thr = n_cat - 1;
+        vector[n_cat] p_ord_col_vec = to_vector(p_ord);
+        vector[n_thr] C_col_vec     = to_vector(C);
+        vector[n_cat] alpha_col_vec = to_vector(alpha);
+        
+        return induced_dirichlet_given_rho_lpdf(p_ord_col_vec | C_col_vec, alpha_col_vec);
+  
+}
+
+
+
+
+
+//// ---------------------------------------------------------------------------------------
+//// Induced-Dirichlet ("ind_dir") log-density function:
+//// NOTE: You can use this for both ind_dir PRIORS and ind_dir MODELS:
 //// NOTE: adapted from: Betancourt et al (see: https://betanalpha.github.io/assets/case_studies/ordinal_regression.html)
 ////
 real induced_dirichlet_given_rho_lpdf(  vector p_ord,
@@ -69,15 +114,19 @@ real induced_dirichlet_given_rho_lpdf(  vector p_ord,
           
         int n_cat = num_elements(p_ord);
         matrix[n_cat, n_cat] J = rep_matrix(0.0, n_cat, n_cat);
-        
-        //// Jacobian computation:
-        for (k in 1:n_cat) {
-                J[k, 1] = 1.0;
-        }
-        for (k in 2:n_cat) { // p_ord[k] = Phi(C_{k} - anchor) - Phi(C_{k - 1} - anchor)
-                // real rho =  normal_pdf(inv_Phi( p_cumul[k - 1])); //  p_cumul[k - 1] * (1.0 - p_cumul[k - 1]); // original
-                J[k, k] = +rho[k - 1];
-                J[k - 1, k] = -rho[k - 1];
+        // 
+        // //// Jacobian computation:
+        // for (k in 1:n_cat) {
+        //         J[k, 1] = 1.0;
+        // }
+        // for (k in 2:(n_cat - 1)) {
+        //    J[k, k] = +rho[k];
+        // }
+        for (k in 1:(n_cat - 1)) { // p_ord[k] = Phi(C_{k} - anchor) - Phi(C_{k - 1} - anchor)
+                // // real rho =  normal_pdf(inv_Phi( p_cumul[k - 1])); //  p_cumul[k - 1] * (1.0 - p_cumul[k - 1]); // original
+                // J[k, k - 1] = -rho[k - 1];
+                 J[k, k]     = + rho[k];
+                 J[k + 1, k] = - rho[k];
         }
         
         return dirichlet_lpdf(p_ord | alpha) + log_determinant(J);
@@ -100,6 +149,11 @@ real induced_dirichlet_given_rho_lpdf(  row_vector p_ord,
         return induced_dirichlet_given_rho_lpdf(p_ord_col_vec | rho_col_vec, alpha_col_vec);
   
 }
+
+
+
+
+
 
 
 
@@ -185,58 +239,28 @@ row_vector ord_probs_to_cumul_probs(row_vector ord_probs) {
        return to_row_vector(ord_probs_to_cumul_probs(to_vector(ord_probs)));
         
 }
-
-
-////
-//// Convert from cumul_probs -> C (if using probit-link)
-////
-vector cumul_probs_to_C_probit( vector cumul_probs,
-                         vector location, 
-                         vector scale) {
+vector ID_cumul_probs_to_C_probit( vector cumul_probs) {
   
         int n_thr = num_elements(cumul_probs);
         int n_cat = n_thr + 1;
         vector[n_thr] C;
         
         for (k in 1:n_thr) {
-              if (cumul_probs[k] < 1e-38) {
-                    C[k] = -15.0; ////  prob = 1e-38;
-              } else if (cumul_probs[k] > 0.9999999999999) {
-                    C[k] = +15.0; ////  prob = 0.9999999999999;
+              if (cumul_probs[k] < 1e-300) {
+                    C[k] = -37.5; ////  prob = 1e-38;
+              } else if (cumul_probs[k] > 0.99999999999999999) {
+                    C[k] = +8.20; ////  prob = 0.9999999999999;
               } else {
-                     C[k] = location[k] + scale[k]*inv_Phi(cumul_probs[k]);
+                    C[k] = inv_Phi(cumul_probs[k]);
               }
         }
         
         return C;
         
 }
-vector cumul_probs_to_C_probit( vector cumul_probs,
-                         real location, 
-                         real scale) {
+row_vector ID_cumul_probs_to_C_probit( row_vector cumul_probs) {
   
-        int n_thr = num_elements(cumul_probs);
-        int n_cat = n_thr + 1;
-        vector[n_thr] C;
-        
-        for (k in 1:n_thr) {
-              if (cumul_probs[k] < 1e-38) {
-                    C[k] = -15.0; ////  prob = 1e-38;
-              } else if (cumul_probs[k] > 0.9999999999999) {
-                    C[k] = +15.0; ////  prob = 0.9999999999999;
-              } else {
-                    C[k] = location + scale*inv_Phi(cumul_probs[k]);
-              }
-        }
-        
-        return C;
-        
-}
-row_vector cumul_probs_to_C_probit( row_vector cumul_probs,
-                             real location, 
-                             real scale) {
-  
-       return to_row_vector(cumul_probs_to_C_logit(to_vector(cumul_probs), location, scale));
+       return to_row_vector(ID_cumul_probs_to_C_probit(to_vector(cumul_probs)));
         
 }
 
@@ -246,53 +270,22 @@ row_vector cumul_probs_to_C_probit( row_vector cumul_probs,
 ////
 //// Convert from cumul_probs -> C (if using logit-link)
 ////
-vector cumul_probs_to_C_logit( vector cumul_probs,
-                         vector location, 
-                         vector scale) {
+vector ID_cumul_probs_to_C_logit( vector cumul_probs ) {
   
         int n_thr = num_elements(cumul_probs);
         int n_cat = n_thr + 1;
         vector[n_thr] C;
         
         for (k in 1:n_thr) {
-              if (cumul_probs[k] < 1e-38) {
-                    C[k] = -15.0; ////  prob = 1e-38;
-              } else if (cumul_probs[k] > 0.9999999999999) {
-                    C[k] = +15.0; ////  prob = 0.9999999999999;
-              } else {
-                     C[k] = location[k] + scale[k]*logit(cumul_probs[k]);
-              }
+            C[k] = logit(cumul_probs[k]);
         }
         
         return C;
         
 }
-vector cumul_probs_to_C_logit( vector cumul_probs,
-                         real location, 
-                         real scale) {
+row_vector ID_cumul_probs_to_C_logit( row_vector cumul_probs) {
   
-        int n_thr = num_elements(cumul_probs);
-        int n_cat = n_thr + 1;
-        vector[n_thr] C;
-        
-        for (k in 1:n_thr) {
-              if (cumul_probs[k] < 1e-38) {
-                    C[k] = -15.0; ////  prob = 1e-38;
-              } else if (cumul_probs[k] > 0.9999999999999) {
-                    C[k] = +15.0; ////  prob = 0.9999999999999;
-              } else {
-                    C[k] = location + scale*logit(cumul_probs[k]);
-              }
-        }
-        
-        return C;
-        
-}
-row_vector cumul_probs_to_C_logit( row_vector cumul_probs,
-                             real location, 
-                             real scale) {
-  
-       return to_row_vector(cumul_probs_to_C_logit(to_vector(cumul_probs), location, scale));
+       return to_row_vector(ID_cumul_probs_to_C_logit(to_vector(cumul_probs)));
         
 }
 
@@ -320,8 +313,259 @@ matrix convert_C_array_to_mat(array[] vector C_array) {
 
 
 
+
+
+
+
+
 ////
-////  Get the cutpoint index (k) to map "latent_cumul_prob[c][s, cut_i]" to correct cutpoint "C[k]":
+////  Get the cutpoint index (k) to map "latent_surv_prob[c][s, cut_i]" to correct cutpoint "C[k]":
+////
+array[] matrix map_latent_surv_prob_to_fixed_C( vector C, 
+                                  matrix locations, 
+                                  matrix scales, 
+                                  data int n_studies,
+                                  data array[] int n_obs_cutpoints,
+                                  data array[] matrix cutpoint_index) {
+          
+      int n_thr = num_elements(C); 
+      // int n_cat = n_thr + 1;
+      array[2] matrix[n_studies, n_thr] latent_surv  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
+      
+      for (c in 1:2) {
+          for (s in 1:n_studies) {
+                  // latent_surv[c][s, 1] = 1.0;
+                  for (cut_i in 1:n_obs_cutpoints[s]) {
+                            int k = to_int(cutpoint_index[1][s, cut_i]);
+                           //  if (k < n_thr + 1) {
+                                  latent_surv[c][s, cut_i] = - (C[k] - locations[s, c])/scales[s, c];
+                            // }
+                  }
+          }
+      }
+      
+      return latent_surv;
+                                    
+}
+array[] matrix map_latent_surv_prob_to_fixed_C( vector C, 
+                                  matrix locations, 
+                                  real scale, 
+                                  data int n_studies,
+                                  data array[] int n_obs_cutpoints,
+                                  data array[] matrix cutpoint_index) {
+          
+      int n_thr = num_elements(C); 
+      // int n_cat = n_thr + 1;
+      array[2] matrix[n_studies, n_thr] latent_surv  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
+      for (c in 1:2) {
+          for (s in 1:n_studies) {
+                  // latent_surv[c][s, 1] = 1.0;
+                  for (cut_i in 1:n_obs_cutpoints[s]) {
+                            int k = to_int(cutpoint_index[1][s, cut_i]);
+                           //  if (k < n_thr + 1) {
+                                  latent_surv[c][s, cut_i] = - (C[k] - locations[s, c])/scale;
+                            // }
+                  }
+          }
+      }
+      
+      return latent_surv;
+                                    
+}
+
+
+////
+////  Get the cutpoint index (k) to map "latent_surv[c][s, cut_i]" to correct cutpoint "C[k]":
+////
+array[] matrix map_latent_surv_prob_to_fixed_hetero_C( array[] vector C, 
+                                  matrix locations, 
+                                  matrix scales, 
+                                  data int n_studies,
+                                  data array[] int n_obs_cutpoints,
+                                  data array[] matrix cutpoint_index) {
+                                    
+      int n_thr = num_elements(C[1]); 
+      // int n_cat = n_thr + 1;
+      array[2] matrix[n_studies, n_thr] latent_surv  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
+      
+      for (c in 1:2) {
+          for (s in 1:n_studies) {
+                  // latent_surv[c][s, 1] = 1.0;
+                  for (cut_i in 1:n_obs_cutpoints[s]) {
+                            int k = to_int(cutpoint_index[1][s, cut_i]);
+                           //  if (k < n_thr + 1) {
+                                  latent_surv[c][s, cut_i] = - (C[c][k] - locations[s, c])/scales[s, c];
+                            // }
+                  }
+          }
+      }
+      
+      return latent_surv;
+                                    
+}
+array[] matrix map_latent_surv_prob_to_fixed_hetero_C( array[] vector C, 
+                                  matrix locations, 
+                                  real scale, 
+                                  data int n_studies,
+                                  data array[] int n_obs_cutpoints,
+                                  data array[] matrix cutpoint_index) {
+          
+      int n_thr = num_elements(C[1]); 
+      // int n_cat = n_thr + 1;
+      array[2] matrix[n_studies, n_thr] latent_surv  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
+      
+      for (c in 1:2) {
+          for (s in 1:n_studies) {
+                  // latent_surv[c][s, 1] = 1.0;
+                  for (cut_i in 1:n_obs_cutpoints[s]) {
+                            int k = to_int(cutpoint_index[1][s, cut_i]);
+                           //  if (k < n_thr + 1) {
+                                  latent_surv[c][s, cut_i] = - (C[c][k] - locations[s, c])/scale;
+                            // }
+                  }
+          }
+      }
+      
+      return latent_surv;
+                                    
+}
+
+
+////
+//// ---- Get the cutpoint index (k) to map "latent_surv[c][s, cut_i]" to correct cutpoint "C[k]":
+////
+array[] matrix map_latent_surv_prob_to_random_C( matrix C, 
+                                  data int n_thr,
+                                  matrix locations, 
+                                  matrix scales, 
+                                  data int n_studies,
+                                  data array[] int n_obs_cutpoints,
+                                  data array[] matrix cutpoint_index) {
+          
+      // int n_thr = num_elements(C); 
+      // int n_cat = n_thr + 1;
+      array[2] matrix[n_studies, n_thr] latent_surv  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
+      
+      for (c in 1:2) {
+          for (s in 1:n_studies) {
+                  // latent_surv[c][s, 1] = 1.0;
+                  for (cut_i in 1:n_obs_cutpoints[s]) {
+                            int k = to_int(cutpoint_index[1][s, cut_i]);
+                           //  if (k < n_thr + 1) {
+                                  latent_surv[c][s, cut_i] = - (C[s, k] - locations[s, c])/scales[s, c];
+                            // }
+                  }
+          }
+      }
+      
+      return latent_surv;
+                                    
+}
+array[] matrix map_latent_surv_prob_to_random_C( matrix C, 
+                                  data int n_thr,
+                                  matrix locations, 
+                                  real scale, 
+                                  data int n_studies,
+                                  data array[] int n_obs_cutpoints,
+                                  data array[] matrix cutpoint_index) {
+          
+      // int n_thr = num_elements(C); 
+      int n_cat = n_thr + 1;
+      array[2] matrix[n_studies, n_thr] latent_surv  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
+      
+      for (c in 1:2) {
+          for (s in 1:n_studies) {
+                  // latent_surv[c][s, 1] = 1.0;
+                  for (cut_i in 1:n_obs_cutpoints[s]) {
+                            int k = to_int(cutpoint_index[1][s, cut_i]);
+                           //  if (k < n_thr + 1) {
+                                  latent_surv[c][s, cut_i] = - (C[s, k] - locations[s, c])/scale;
+                            // }
+                  }
+          }
+      }
+      
+      return latent_surv;
+                                    
+}
+
+
+
+
+////
+//// ---- Get the cutpoint index (k) to map "latent_surv[c][s, cut_i]" to correct cutpoint "C[k]":
+////
+array[] matrix map_latent_surv_to_random_hetero_C( array[] matrix C, 
+                                  data int n_thr,
+                                  matrix locations, 
+                                  matrix scales, 
+                                  data int n_studies,
+                                  data array[] int n_obs_cutpoints,
+                                  data array[] matrix cutpoint_index) {
+          
+      // int n_thr = num_elements(C[1]); 
+      int n_cat = n_thr + 1;
+      array[2] matrix[n_studies, n_thr] latent_surv  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
+
+      for (c in 1:2) {
+          for (s in 1:n_studies) {
+                  // latent_surv[c][s, 1] = 1.0;
+                  for (cut_i in 1:n_obs_cutpoints[s]) {
+                            int k = to_int(cutpoint_index[1][s, cut_i]);
+                           //  if (k < n_thr + 1) {
+                                  latent_surv[c][s, cut_i] = - (C[c][s, k] - locations[s, c])/scales[s, c];
+                            // }
+                  }
+          }
+      }
+      
+      return latent_surv;
+                                    
+}
+array[] matrix map_latent_surv_to_random_hetero_C( array[] matrix C, 
+                                  data int n_thr,
+                                  matrix locations, 
+                                  real scale, 
+                                  data int n_studies,
+                                  data array[] int n_obs_cutpoints,
+                                  data array[] matrix cutpoint_index) {
+          
+      // int n_thr = num_elements(C[1]); 
+      int n_cat = n_thr + 1;
+      array[2] matrix[n_studies, n_thr] latent_surv  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
+      
+      for (c in 1:2) {
+          for (s in 1:n_studies) {
+                  // latent_surv[c][s, 1] = 1.0;
+                  for (cut_i in 1:n_obs_cutpoints[s]) {
+                            int k = to_int(cutpoint_index[1][s, cut_i]);
+                           //  if (k < n_thr + 1) {
+                                  latent_surv[c][s, cut_i] = - (C[c][s, k] - locations[s, c])/scale;
+                            // }
+                  }
+          }
+      }
+      
+      return latent_surv;
+                                    
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+////
+////  Get the cutpoint index (k) to map "latent_surv_prob[c][s, cut_i]" to correct cutpoint "C[k]":
 ////
 array[] matrix map_latent_cumul_prob_to_fixed_C( vector C, 
                                   matrix locations, 
@@ -330,18 +574,20 @@ array[] matrix map_latent_cumul_prob_to_fixed_C( vector C,
                                   data array[] int n_obs_cutpoints,
                                   data array[] matrix cutpoint_index) {
           
-      int n_thr = num_elements(C);  
-      array[2] matrix[n_studies, n_thr] latent_cumul  = init_array_of_matrices(n_studies, n_thr, 2, 8.00);
+      int n_thr = num_elements(C); 
+      // int n_cat = n_thr + 1;
+      array[2] matrix[n_studies, n_thr] latent_cumul  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
       
-      for (s in 1:n_studies) {
-              for (cut_i in 1:n_obs_cutpoints[s]) {
-                        int k = to_int(cutpoint_index[1][s, cut_i]);
-                       //  if (k < n_thr + 1) {
-                          for (c in 1:2) {
-                              latent_cumul[c][s, cut_i] = - (C[k] - locations[s, c])/scales[s, c];
-                          }
-                        // }
-              }
+      for (c in 1:2) {
+          for (s in 1:n_studies) {
+                  // latent_cumul[c][s, 1] = 1.0;
+                  for (cut_i in 1:n_obs_cutpoints[s]) {
+                            int k = to_int(cutpoint_index[1][s, cut_i]);
+                           //  if (k < n_thr + 1) {
+                                  latent_cumul[c][s, cut_i] =  (C[k] - locations[s, c])/scales[s, c];
+                            // }
+                  }
+          }
       }
       
       return latent_cumul;
@@ -353,19 +599,20 @@ array[] matrix map_latent_cumul_prob_to_fixed_C( vector C,
                                   data int n_studies,
                                   data array[] int n_obs_cutpoints,
                                   data array[] matrix cutpoint_index) {
-                                    
-      int n_thr = num_elements(C);  
-      array[2] matrix[n_studies, n_thr] latent_cumul = init_array_of_matrices(n_studies, n_thr, 2, 8.00);
-      
-      for (s in 1:n_studies) {
-              for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
-                        int k = to_int(cutpoint_index[1][s, cut_i]);
-                       //  if (k < n_thr + 1) {
-                          for (c in 1:2) {
-                              latent_cumul[c][s, cut_i] = - (C[k] - locations[s, c])/scale;
-                          }
-                        // }
-              }
+          
+      int n_thr = num_elements(C); 
+      // int n_cat = n_thr + 1;
+      array[2] matrix[n_studies, n_thr] latent_cumul  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
+      for (c in 1:2) {
+          for (s in 1:n_studies) {
+                  // latent_cumul[c][s, 1] = 1.0;
+                  for (cut_i in 1:n_obs_cutpoints[s]) {
+                            int k = to_int(cutpoint_index[1][s, cut_i]);
+                           //  if (k < n_thr + 1) {
+                                  latent_cumul[c][s, cut_i] =  (C[k] - locations[s, c])/scale;
+                            // }
+                  }
+          }
       }
       
       return latent_cumul;
@@ -382,19 +629,21 @@ array[] matrix map_latent_cumul_prob_to_fixed_hetero_C( array[] vector C,
                                   data int n_studies,
                                   data array[] int n_obs_cutpoints,
                                   data array[] matrix cutpoint_index) {
-          
-      int n_thr = num_elements(C[1]);  
-      array[2] matrix[n_studies, n_thr] latent_cumul = init_array_of_matrices(n_studies, n_thr, 2, 8.00);
+                                    
+      int n_thr = num_elements(C[1]); 
+      // int n_cat = n_thr + 1;
+      array[2] matrix[n_studies, n_thr] latent_cumul  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
       
-      for (s in 1:n_studies) {
-              for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
-                      int k = to_int(cutpoint_index[1][s, cut_i]);
-                     //  if (k < n_thr + 1) {
-                        for (c in 1:2) {
-                             latent_cumul[c][s, cut_i] = - (C[c][k] - locations[s, c])/scales[s, c];
-                        }
-                      // }
-              }
+      for (c in 1:2) {
+          for (s in 1:n_studies) {
+                  // latent_cumul[c][s, 1] = 1.0;
+                  for (cut_i in 1:n_obs_cutpoints[s]) {
+                            int k = to_int(cutpoint_index[1][s, cut_i]);
+                           //  if (k < n_thr + 1) {
+                                  latent_cumul[c][s, cut_i] =  (C[c][k] - locations[s, c])/scales[s, c];
+                            // }
+                  }
+          }
       }
       
       return latent_cumul;
@@ -407,18 +656,20 @@ array[] matrix map_latent_cumul_prob_to_fixed_hetero_C( array[] vector C,
                                   data array[] int n_obs_cutpoints,
                                   data array[] matrix cutpoint_index) {
           
-      int n_thr = num_elements(C[1]);  
-      array[2] matrix[n_studies, n_thr] latent_cumul = init_array_of_matrices(n_studies, n_thr, 2, 8.00);
+      int n_thr = num_elements(C[1]); 
+      // int n_cat = n_thr + 1;
+      array[2] matrix[n_studies, n_thr] latent_cumul  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
       
-      for (s in 1:n_studies) {
-              for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
-                      int k = to_int(cutpoint_index[1][s, cut_i]);
-                     //  if (k < n_thr + 1) {
-                        for (c in 1:2) {
-                             latent_cumul[c][s, cut_i] = - (C[c][k] - locations[s, c])/scale;
-                        }
-                      // }
-              }
+      for (c in 1:2) {
+          for (s in 1:n_studies) {
+                  // latent_cumul[c][s, 1] = 1.0;
+                  for (cut_i in 1:n_obs_cutpoints[s]) {
+                            int k = to_int(cutpoint_index[1][s, cut_i]);
+                           //  if (k < n_thr + 1) {
+                                  latent_cumul[c][s, cut_i] =  (C[c][k] - locations[s, c])/scale;
+                            // }
+                  }
+          }
       }
       
       return latent_cumul;
@@ -437,17 +688,20 @@ array[] matrix map_latent_cumul_prob_to_random_C( matrix C,
                                   data array[] int n_obs_cutpoints,
                                   data array[] matrix cutpoint_index) {
           
-       array[2] matrix[n_studies, n_thr] latent_cumul = init_array_of_matrices(n_studies, n_thr, 2, 8.00);
+      // int n_thr = num_elements(C); 
+      // int n_cat = n_thr + 1;
+      array[2] matrix[n_studies, n_thr] latent_cumul  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
       
-      for (s in 1:n_studies) {
-              for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
-                      int k = to_int(cutpoint_index[1][s, cut_i]);
-                     //  if (k < n_thr + 1) {
-                        for (c in 1:2) {
-                             latent_cumul[c][s, cut_i] = - (C[s, k] - locations[s, c])/scales[s, c];
-                        }
-                      // }
-              }
+      for (c in 1:2) {
+          for (s in 1:n_studies) {
+                  // latent_cumul[c][s, 1] = 1.0;
+                  for (cut_i in 1:n_obs_cutpoints[s]) {
+                            int k = to_int(cutpoint_index[1][s, cut_i]);
+                           //  if (k < n_thr + 1) {
+                                  latent_cumul[c][s, cut_i] =  (C[s, k] - locations[s, c])/scales[s, c];
+                            // }
+                  }
+          }
       }
       
       return latent_cumul;
@@ -461,17 +715,20 @@ array[] matrix map_latent_cumul_prob_to_random_C( matrix C,
                                   data array[] int n_obs_cutpoints,
                                   data array[] matrix cutpoint_index) {
           
-      array[2] matrix[n_studies, n_thr] latent_cumul = init_array_of_matrices(n_studies, n_thr, 2, 8.00);
+      // int n_thr = num_elements(C); 
+      int n_cat = n_thr + 1;
+      array[2] matrix[n_studies, n_thr] latent_cumul  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
       
-      for (s in 1:n_studies) {
-              for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
-                      int k = to_int(cutpoint_index[1][s, cut_i]);
-                     //  if (k < n_thr + 1) {
-                        for (c in 1:2) {
-                             latent_cumul[c][s, cut_i] = - (C[s, k] - locations[s, c])/scale;
-                        }
-                      // }
-              }
+      for (c in 1:2) {
+          for (s in 1:n_studies) {
+                  // latent_cumul[c][s, 1] = 1.0;
+                  for (cut_i in 1:n_obs_cutpoints[s]) {
+                            int k = to_int(cutpoint_index[1][s, cut_i]);
+                           //  if (k < n_thr + 1) {
+                                  latent_cumul[c][s, cut_i] =  (C[s, k] - locations[s, c])/scale;
+                            // }
+                  }
+          }
       }
       
       return latent_cumul;
@@ -492,17 +749,20 @@ array[] matrix map_latent_cumul_to_random_hetero_C( array[] matrix C,
                                   data array[] int n_obs_cutpoints,
                                   data array[] matrix cutpoint_index) {
           
-      array[2] matrix[n_studies, n_thr] latent_cumul = init_array_of_matrices(n_studies, n_thr, 2, 8.00);
-      
-      for (s in 1:n_studies) {
-              for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
-                      int k = to_int(cutpoint_index[1][s, cut_i]);
-                      ////  if (k < n_thr + 1) {
-                        for (c in 1:2) {
-                             latent_cumul[c][s, cut_i] = - (C[c][s, k] - locations[s, c])/scales[s, c];
-                        }
-                      // }
-              }
+      // int n_thr = num_elements(C[1]); 
+      int n_cat = n_thr + 1;
+      array[2] matrix[n_studies, n_thr] latent_cumul  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
+
+      for (c in 1:2) {
+          for (s in 1:n_studies) {
+                  // latent_cumul[c][s, 1] = 1.0;
+                  for (cut_i in 1:n_obs_cutpoints[s]) {
+                            int k = to_int(cutpoint_index[1][s, cut_i]);
+                           //  if (k < n_thr + 1) {
+                                  latent_cumul[c][s, cut_i] =  (C[c][s, k] - locations[s, c])/scales[s, c];
+                            // }
+                  }
+          }
       }
       
       return latent_cumul;
@@ -516,22 +776,30 @@ array[] matrix map_latent_cumul_to_random_hetero_C( array[] matrix C,
                                   data array[] int n_obs_cutpoints,
                                   data array[] matrix cutpoint_index) {
           
-      array[2] matrix[n_studies, n_thr] latent_cumul = init_array_of_matrices(n_studies, n_thr, 2, 8.00);
+      // int n_thr = num_elements(C[1]); 
+      int n_cat = n_thr + 1;
+      array[2] matrix[n_studies, n_thr] latent_cumul  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
       
-      for (s in 1:n_studies) {
-              for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
-                      int k = to_int(cutpoint_index[1][s, cut_i]);
-                     //  if (k < n_thr + 1) {
-                        for (c in 1:2) {
-                             latent_cumul[c][s, cut_i] = - (C[c][s, k] - locations[s, c])/scale;
-                        }
-                      // }
-              }
+      for (c in 1:2) {
+          for (s in 1:n_studies) {
+                  // latent_cumul[c][s, 1] = 1.0;
+                  for (cut_i in 1:n_obs_cutpoints[s]) {
+                            int k = to_int(cutpoint_index[1][s, cut_i]);
+                           //  if (k < n_thr + 1) {
+                                  latent_cumul[c][s, cut_i] =  (C[c][s, k] - locations[s, c])/scale;
+                            // }
+                  }
+          }
       }
       
       return latent_cumul;
                                     
 }
+
+
+
+
+
 
 
 
