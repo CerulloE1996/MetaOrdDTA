@@ -25,13 +25,13 @@ options(max.print = 100000)
 
 
 # Run simulated data - this simulates data from FIVE (5) diagnostic tests (1 BINARY reference test + 4 ORDINAL index tests)
-sim_results <- R_fn_sim_data_ordinal_MA(     n_studies = n_studies,
+sim_results <- MetaOrdDTA::R_fn_sim_data_ordinal_MA(     n_studies = n_studies,
                                                           N_per_study_mean = N_per_study_mean,
                                                           N_per_study_SD = N_per_study_SD,
                                                           assume_perfect_GS = assume_perfect_GS,
                                                           seed = 123,
                                                           threshsolds_latent_between_study_SD = 0.10)
-# index_test_chosen_index <- 1 + 2
+ index_test_chosen_index <- 1 + 2
 
 {
   
@@ -143,7 +143,7 @@ true_Sp_OVERALL
 
 # #### ------------------- Apply ** MISSING TESTS ** (hence "NMA" - optional): --------------------------------------------------------------------
 
-outs_NMA <- MetaOrdDTA:::create_test_in_study_for_NMA( seed = seed,
+outs_NMA <- create_test_in_study_for_NMA( seed = seed,
                                           n_studies = n_studies,
                                           n_tests_inc_ref = n_index_tests + 1,
                                           prob_present = 0.40,
@@ -242,34 +242,118 @@ x_PHQ9[[1]]
 ## (3) 4th quintile (e.g., studies 16-20 if 25 total studies) report ...
 ## (3) 5th quintile (e.g., studies 21-25 if 25 total studies) report ...
 
-case_4_thr_combos_list <- list()
+# n_groups <- 5
+# n_studies_div_frac <- ceiling(n_studies/n_groups)
+# n_groups * n_studies_div_frac
+# n_studies
+# last_group <- n_studies - frac*n_studies_div_frac
+# last_group
+
+
+study_thr_groups <- divide_studies(n_studies = n_studies, n_groups = 5)
+##
+set.seed(seed)
 ##
 {
-    case_4_thr_combos_list$thr_combo_1  <- c(8, 9, 10, 11, 12)
-    case_4_thr_combos_list$thr_combo_2  <- c(10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21)
-    case_4_thr_combos_list$thr_combo_3  <- c(9, 10, 11, 12, 13)
-    case_4_thr_combos_list$thr_combo_4  <- c(10, 11, 12, 13, 14)
-    case_4_thr_combos_list$thr_combo_5  <- c(9, 10, 11, 12, 13, 14, 15)
-    case_4_thr_combos_list$thr_combo_6  <- c(6, 7, 8)
-    case_4_thr_combos_list$thr_combo_7  <- c(6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
-    case_4_thr_combos_list$thr_combo_8  <- c(11, 12, 13)
-    case_4_thr_combos_list$thr_combo_9  <- c(5, 6, 7, 8, 9, 10, 11, 12)
-    case_4_thr_combos_list$thr_combo_10 <- c(4, 5, 6, 7, 8, 9, 10)
+    ## When a study ONLY reports at the single cut-off of 10
+    ## (i.e. the "standard" PHQ-9 screening cut-off):
+    case_1 <- list()
+    ##
+    case_1$studies <- study_thr_groups[[1]]
+    ##
+    case_1$thr_combo_vec_1 <- c(10)
+    ##
+    print(case_1)
+}
+{
+    ## This is based off of the thresholds reported in Levis et al, 2019 
+    ## (BMJ PHQ-9 paper):
+    case_2 <- list()
+    ##
+    case_2$studies <- study_thr_groups[[2]]
+    ##
+    case_2$thr_combo_vec_1 <- c(5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+    ##
+    print(case_2)
+}
+{
+    ## When a study reports at a SINGLE cut-off, cut NOT the standard cut-off of 10
+    ## (can be anything between 8 and 15):
+    case_3 <- list()
+    ##
+    case_3$studies <- study_thr_groups[[3]] 
+    ##
+    random_single_thr <- sample(8:15, 1)
+    case_3$thr_combo_vec_1 <- c(random_single_thr)
+    ##
+    print(case_3)
+}
+{
+    case_4 <- list()
+    ##
+    case_4$studies <- study_thr_groups[[4]]
+    ##
+    case_4$thr_combo_vec_1  <- c(8, 9, 10, 11, 12)
+    case_4$thr_combo_vec_2  <- c(10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21)
+    case_4$thr_combo_vec_3  <- c(9, 10, 11, 12, 13)
+    case_4$thr_combo_vec_4  <- c(10, 11, 12, 13, 14)
+    case_4$thr_combo_vec_5  <- c(9, 10, 11, 12, 13, 14, 15)
+    case_4$thr_combo_vec_6  <- c(6, 7, 8)
+    case_4$thr_combo_vec_7  <- c(6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+    case_4$thr_combo_vec_8  <- c(11, 12, 13)
+    case_4$thr_combo_vec_9  <- c(5, 6, 7, 8, 9, 10, 11, 12)
+    case_4$thr_combo_vec_10 <- c(4, 5, 6, 7, 8, 9, 10)
     ## e.g. a study did 10 for screening and 15 for DIAGNOSIS (not common w/ PHQ-9 
     ## but some studies do this or investigate it):
-    case_4_thr_combos_list$thr_combo_11 <- c(10, 15) 
+    case_4$thr_combo_vec_11 <- c(10, 15) 
     ## this is also based on the study that looked at PHQ-9 for both screening (i.e., using the
     ## standard/lower thresholds) AND DIAGNOSIS (higher thresholds):
-    case_4_thr_combos_list$thr_combo_12 <- c(9, 10, 11, 14, 15, 16) 
+    case_4$thr_combo_vec_12 <- c(9, 10, 11, 14, 15, 16) 
+    ##
+    print(case_4)
 }
-print(case_4_thr_combos_list)
+{
+    case_5 <- list()
+    ##
+    case_5$studies <- study_thr_groups[[5]]
+    ##
+    case_5$thr_combo_vec_1 <- c(1:27) ## i.e. these studies report at ALL thresholds
+    ##
+    print(case_5)
+}
+
+# Combine all cases into a single list
+all_cases <- list(
+  case_1 = case_1,
+  case_2 = case_2,
+  case_3 = case_3,
+  case_4 = case_4,
+  case_5 = case_5
+)
 
 
-R_fn_apply_thr_missingness( thr_combo_name  =  thr_combos_list$thr_combo_1,
-                            thr_combo_vec = thr_combo_1,
-                            apply_missings_to_these_rows = c(1,2,3),
-                            data_matrix = x_PHQ9)
+x_PHQ9
 
+x_PHQ9_w_missing_thr <- MetaOrdDTA:::R_fn_apply_missingness_pattern_PHQ_9( x_PHQ = x_PHQ9,
+                                                              case_list = all_cases)
+
+x_PHQ9_w_missing_thr
+ 
+# x_PHQ9_w_missing_thr_old <- x_PHQ9_w_missing_thr
+# x_PHQ9_w_missing_thr[[1]] - x_PHQ9_w_missing_thr_old[[1]]
+
+## Compute the % of missing thr data:
+100 * sum(x_PHQ9_w_missing_thr[[1]] == -1) / (n_studies * ncol(x_PHQ9_w_missing_thr[[1]]))
+
+save_list_obj <- list()
+x_NMA <- x
+save_list_obj$indicator_index_test_in_study <- indicator_index_test_in_study
+save_list_obj$n_index_tests_per_study <- n_index_tests_per_study
+save_list_obj$x_NMA <- x_NMA
+save_list_obj$x_PHQ9 <- x_PHQ9
+save_list_obj$x_PHQ9_w_missing_thr <- x_PHQ9_w_missing_thr
+saveRDS(object = save_list_obj,
+        file.path(getwd(), "inst", "examples", "data_example_1_NMA_list.RDS"))
 
 # {
 # 

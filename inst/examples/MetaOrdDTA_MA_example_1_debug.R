@@ -9,7 +9,6 @@ rm(list = ls())
 # # 
 
 
-
 {
   ## First remove any possible package fragments:
   ## Find user_pkg_install_dir:
@@ -25,8 +24,6 @@ rm(list = ls())
   unlink(pkg_install_path, recursive = TRUE, force = TRUE)
   unlink(pkg_temp_install_path, recursive = TRUE, force = TRUE)
 }
-
-
 
 
 os <- .Platform$OS.type
@@ -90,16 +87,25 @@ index_test_chosen_index <- 5
 source(file.path(getwd(), "inst", "examples", "NMA_missing_thr_prep_data.R"))
 data <- readRDS(file.path(getwd(), "inst", "examples", "data_example_1_NMA_list.RDS"))
 x_NMA <- data$x_NMA
-
+##
+x_PHQ9 <- data$x_PHQ9
+x_PHQ9_w_missing_thr <- data$x_PHQ9_w_missing_thr
+##
 x_MA <- list()
 for (c in 1:2) {
   x_MA[[c]] <- x_NMA[[c]][[index_test_chosen_index - 1]]
 }
-x <- x_MA
+
+
+## Select which data ("x") to use 
+x <- x_PHQ9_w_missing_thr
 n_thr <- ncol(x[[1]]) - 1
 ##
 x
 n_thr
+
+
+
 # x <- x_NMA
 # indicator_index_test_in_study <- data$indicator_index_test_in_study
 # ##
@@ -298,6 +304,8 @@ model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(
   stan_data_list <- model_prep_obj$internal_obj$outs_data$stan_data_list
     
   stan_data_list$cutpoint_index
+  stan_data_list$x_with_missings
+  stan_data_list$x
 
 }
 #  
