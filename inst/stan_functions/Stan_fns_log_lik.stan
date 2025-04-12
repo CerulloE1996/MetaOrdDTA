@@ -35,13 +35,17 @@ array[,] matrix compute_log_lik_binomial_probit_fact (  array[] matrix latent_su
               for (s in 1:n_studies) {
                       for (i in 1:n_obs_cutpoints[s]) {
                          
-                              //// ---- Current and PREVIOUS survative counts //// next
+                              //// ---- Current and PREVIOUS NON-MISSING counts //// next
                               int x_current = to_int(x[c][s, i + 1]);
                               int x_prev    = to_int(x[c][s, i + 0]); //// to_int(n[c][s, i]); // x_prev > x_next (counts are DECREASING)
                               int x_diff    = x_prev - x_current;
+                              
+                              int missing_indicator = 0;
+                              if (x_current == -1) missing_indicator = 1;
+                              if (x_prev    == -1) missing_indicator = 1;
                 
-                              //// ---- Skip if the current count is zero (no observations to classify)
-                              if (x_current != 0)  {
+                              //// ---- Skip if the current count is zero (no observations to classify) or missing (-1)
+                              if ((x_current != 0)  && (missing_indicator == 0)) {
                               
                                        //// ---- Conditional probability of being at or below the current cutpoint - given being at or below the next cutpoint
                                        if (i == 1) {
