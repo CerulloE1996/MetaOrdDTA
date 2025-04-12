@@ -1,15 +1,74 @@
 
 
 
-# Define function to apply missingness pattern
-R_fn_apply_thr_missingness <- function(
-                                       thr_combo_vec = NULL, 
-                                       data_matrix, 
-                                       apply_missings_to_these_rows) {
+#' divide_studies
+#' @export
+divide_studies <- function( n_studies, 
+                            n_groups) {
   
+        # Calculate base size for each group
+        base_size <- floor(n_studies / n_groups)
+        
+        # Calculate remainder
+        remainder <- n_studies %% n_groups
+        
+        # Create list to store group vectors
+        groups <- list()
+        
+        # Start index
+        start_idx <- 1
+        
+        # For each group
+        for (i in 1:n_groups) {
+            
+            # Determine group size (add 1 to base_size if there's still remainder)
+            group_size <- base_size + (if (i <= remainder) 1 else 0)
+            
+            # Calculate end index
+            end_idx <- start_idx + group_size - 1
+            
+            # Store group vector
+            groups[[i]] <- start_idx:end_idx
+            
+            # Update start index for next group
+            start_idx <- end_idx + 1
+          
+        }
+        
+        return(groups)
+        
+}
+
+
+
+#' R_fn_apply_thr_missingness
+#' @export
+R_fn_apply_thr_missingness_to_test <- function(  data_list_of_mat, 
+                                                 thr_combo_vec = NULL, 
+                                                 apply_missings_to_these_rows
+) {
+
+         data_list_of_mat_original <- data_list_of_mat
+          
+         for (c in 1:2) {
+              data_list_of_mat[[c]] <-  R_fn_apply_thr_missingness_to_mat( data_matrix = data_list_of_mat_original[[c]],
+                                                                           thr_combo_vec = thr_combo_vec,
+                                                                           apply_missings_to_these_rows = apply_missings_to_these_rows)
+         }
+          
+         return(data_list_of_mat)
+  
+}
+
+
+#' R_fn_apply_thr_missingness_to_mat
+#' @export
+R_fn_apply_thr_missingness_to_mat <- function(  data_matrix, 
+                                                thr_combo_vec = NULL, 
+                                                apply_missings_to_these_rows
+) {
  
           columns_to_make_missing <- thr_combo_vec
-        
           
           # Validate rows
           if (any(apply_missings_to_these_rows > nrow(data_matrix)) || 
@@ -32,6 +91,91 @@ R_fn_apply_thr_missingness <- function(
           }
           
           return(result_matrix)
+  
+}
+
+
+
+R_fn_apply_missingness_pattern_PHQ_9 <- function( x_PHQ9, 
+                                                  case_list, 
+                                                  seed = 123) {
+  
+          # set.seed(123)
+  
+          # Create a copy of the original data
+          x_PHQ_missing <- x_PHQ9
+          
+          # Loop through each case
+          for (case_name in names(case_list)) {
+            
+            case <- case_list[[case_name]]
+            studies <- case$studies
+            
+            # For case 3, we need to generate random thresholds for each study
+            if (case_name == "case_3") {
+              
+              for (study_idx in studies) {
+                # Select a random threshold between 8 and 15
+                random_thr <- sample(8:15, 1)
+                
+                # Create mask where everything is -1 except the random threshold
+                for (group in 1:2) { # Loop over diseased and non-diseased groups
+                  for (col in 2:ncol(x_PHQ9[[group]])) {
+                    if (col != random_thr) {
+                      x_PHQ_missing[[group]][study_idx, col] <- -1
+                    }
+                  }
+                }
+              }
+              
+            } else if (case_name == "case_4") { # For case 4, we randomly select one of the threshold combinations for each study
+              
+              # Extract all threshold combination vectors
+              thr_combo_vecs <- list()
+              for (i in 1:12) {
+                vec_name <- paste0("thr_combo_vec_", i)
+                if (vec_name %in% names(case)) {
+                  thr_combo_vecs[[i]] <- case[[vec_name]]
+                }
+              }
+              
+              # Apply a randomly selected threshold combination to each study
+              for (study_idx in studies) {
+                # Randomly select one of the threshold combinations
+                selected_combo_idx <- sample(1:length(thr_combo_vecs), 1)
+                selected_thresholds <- thr_combo_vecs[[selected_combo_idx]]
+                
+                # Create mask where everything is -1 except the selected thresholds
+                for (group in 1:2) {
+                  for (col in 2:ncol(x_PHQ9[[group]])) {
+                    if (!(col %in% selected_thresholds)) {
+                      x_PHQ_missing[[group]][study_idx, col] <- -1
+                    }
+                  }
+                }
+              }
+              
+            } else {  # For cases 1, 2, and 5, the threshold pattern is the same for all studies in the case
+              
+              # Extract the threshold vector (assume it's called thr_combo_vec_1 for these cases)
+              thresholds <- case$thr_combo_vec_1
+              
+              # Apply the missingness pattern to all studies in this case
+              for (study_idx in studies) {
+                for (group in 1:2) {
+                  for (col in 2:ncol(x_PHQ9[[group]])) {
+                    if (!(col %in% thresholds)) {
+                      x_PHQ_missing[[group]][study_idx, col] <- -1
+                    }
+                  }
+                }
+              }
+              
+            }
+            
+          }
+          
+          return(x_PHQ_missing)
   
 }
 
