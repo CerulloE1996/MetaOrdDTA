@@ -238,6 +238,53 @@ vector rowMedians(matrix x) {
 
 
 
+// 
+// // Function to compute quantile of a vector
+// real vector_quantile( vector v, 
+//                       real p) {
+//                         
+//     int n = num_elements(v);
+//     vector[n] v_sorted;
+//     real result;
+//     
+//     // Sort the vector
+//     v_sorted = sort_asc(v);
+//     
+//     // Calculate index h (with interpolation)
+//     real h = (n - 1) * p + 1;
+//     
+//     // Get the integer and fractional parts of h
+//     int h_floor = floor(h);
+//     real h_frac = h - h_floor;
+//     
+//     // Handle edge cases
+//     if (h_floor <= 0) return v_sorted[1];
+//     if (h_floor >= n) return v_sorted[n];
+//     
+//     // Interpolate between adjacent values
+//     result = (1 - h_frac) * v_sorted[h_floor] + h_frac * v_sorted[h_floor + 1];
+//     
+//     return result;
+//   
+// }
+// 
+// // Convenience function to compute quantiles for a matrix column
+// real matrix_column_quantile( matrix m, 
+//                              int c, 
+//                              real p) {
+//     n_rows = rows(m);                            
+//     vector[n_rows] v;
+//     
+//     for (i in 1:n_rows) {
+//       v[i] = m[i, c];
+//     }
+//     
+//     return vector_quantile(v, p);
+//   
+// }
+// 
+
+
  
 
  

@@ -1,86 +1,93 @@
 
 
- 
+real min_reals( real a, real b) { 
+  vector[2] vec;
+  vec[1] = a;
+  vec[2] = b;
+  return(min(vec));
+}
   
 
-array[,] matrix compute_log_lik_binomial_probit_fact (  array[] matrix latent_surv, 
-                                                        int use_probit_link,
-                                                        data array[] matrix x, 
-                                                        // data array[] matrix n,
-                                                        data array[] int n_obs_cutpoints
+real max_reals( real a, real b) { 
+  vector[2] vec;
+  vec[1] = a;
+  vec[2] = b;
+  return(max(vec));
+}
+
+
+
+real compute_log_lik_binomial_fact_lp(    array[] matrix latent_surv, 
+                                          data int use_probit_link,
+                                          data int n_thr,
+                                          data array[] matrix x_2, 
+                                          data array[] matrix n, 
+                                          data array[] vector N_total, 
+                                          data array[] int n_obs_cutpoints,
+                                          data array[] int indicator_index_test_t_in_study
 ) {
         
-          int n_studies = rows(x[1]);
-          int n_thr     = cols(x[1]) - 1;
+          int n_studies = rows(x_2[1]);
+          // int n_thr     = cols(x_2[1]);
+          ////
+          // vector[n_total_non_missing_obs] log_lik   = rep_vector(0.0, n_total_non_missing_obs);
           ////
           array[2] matrix[n_studies, n_thr] surv_prob;
           array[2] matrix[n_studies, n_thr] cond_prob;
-          array[2] matrix[n_studies, n_thr] log_lik;
           ////
-          for (c in 1:2) { 
-              surv_prob[c]  = rep_matrix(1.0, n_studies, n_thr);
-              cond_prob[c]  = rep_matrix(1.0, n_studies, n_thr);
-              log_lik[c]    = rep_matrix(0.0, n_studies, n_thr);
-          }
           //// ---- Calculate surv  probabilities:
+          ////
           for (c in 1:2) {
-              if (use_probit_link == 1) surv_prob[c] = Phi(latent_surv[c]); //// INCREASING sequence (as C_k > C_{k - 1})
-              else                      surv_prob[c] = inv_logit(latent_surv[c]); //// INCREASING sequence (as C_k > C_{k - 1})
+              if (use_probit_link == 1) surv_prob[c] = Phi(latent_surv[c]);
+              else                      surv_prob[c] = inv_logit(latent_surv[c]);
           }
-          //// ---- Multinomial (factorised Binomial) likelihood:
-          // matrix[n_studies, n_thr] probs;
-          // matrix[n_studies, n_thr] bin_n;
-          // matrix[n_studies, n_thr] bin_N_m_n;
+          ////
+          //// ---- Factorised binomial Likelihood:
+          ////
+          real log_lik = 0.0;
           for (c in 1:2) {
-              for (s in 1:n_studies) {
-                      for (i in 1:n_obs_cutpoints[s]) {
-                         
-                              //// ---- Current and PREVIOUS NON-MISSING counts //// next
-                              int x_current = to_int(x[c][s, i + 1]);
-                              int x_prev    = to_int(x[c][s, i + 0]); //// to_int(n[c][s, i]); // x_prev > x_next (counts are DECREASING)
-                              int x_diff    = x_prev - x_current;
-                              
-                              int missing_indicator = 0;
-                              if (x_current == -1) missing_indicator = 1;
-                              if (x_prev    == -1) missing_indicator = 1;
-                
-                              //// ---- Skip if the current count is zero (no observations to classify) or missing (-1)
-                              if ((x_current != 0)  && (missing_indicator == 0)) {
-                              
-                                       //// ---- Conditional probability of being at or below the current cutpoint - given being at or below the next cutpoint
-                                       if (i == 1) {
-                                              //// cond_prob[c][s, 1] = surv_prob[c][s, 1]; // / 1.0; = surv_prob[1] /  surv_prob[0], and surv_prob[0] = 1.0.
-                                              cond_prob[c][s, i] = surv_prob[c][s, i]; //// surv_idx - 2]; // Adjust back by 2
-                                       } else if (i > 1) { //// so i = {3, 4, .... K}
-                                              if (x_prev > 0) {
-                                                  // For thresholds > 1, maintain the ratio calculation but with corrected indices
-                                                  real curr_surv = surv_prob[c][s, i]; ////  (surv_idx <= n_thr) ? surv_prob[c][s, surv_idx - 2] : 0.0;
-                                                  real prev_surv = surv_prob[c][s, i - 1] ; //// (prev_surv_idx <= n_thr) ? surv_prob[c][s, prev_surv_idx - 2] : 1.0;
-                                                  cond_prob[c][s, i] = curr_surv / prev_surv;
-                                              } else {
-                                                  cond_prob[c][s, i] = 0.0;
-                                              }
+                    ////
+                    //// ---- First compute conditional probs:
+                    ////
+                    for (s in 1:n_studies) {
+                               cond_prob[c][s, 1] = surv_prob[c][s, 1];
+                               ////
+                               for (k in 2:n_obs_cutpoints[s]) {
+                                          cond_prob[c][s, k] = surv_prob[c][s, k] / surv_prob[c][s, k - 1];
+                               }
+                    }
+                    ////
+                    //// ---- Likelihood:
+                    ////
+                    for (s in 1:n_studies) {
+                               ////
+                               int dim = n_obs_cutpoints[s];
+                               array[dim] int x_2_int;
+                               array[dim] int n_int;
+                                if (indicator_index_test_t_in_study[s] == 1) {
+                                   for (k in 1:n_obs_cutpoints[s]) {
+                                           x_2_int[k] = to_int(x_2[c][s, k]);
+                                           n_int[k]   = to_int(n[c][s, k]); //// [k]);
+                                           // if ((x_2_int[k] != -1) && (n_int[k] != -1)) {
+                                           //     if ( (!(is_nan(x_2_int[k]))) && (!(is_nan(n_int[k]))) &&
+                                           //          (!(is_nan(cond_prob[c][s, k]))) &&
+                                           //          (cond_prob[c][s, k] > 0.0)) {
+                                           //              real log_lik_i = binomial_lpmf(x_2_int[k] | n_int[k], cond_prob[c][s, k]);
+                                           //           // if (!(is_inf(log_lik_i))) {
+                                           //              log_lik += log_lik_i;
+                                           //     }
+                                           // }
                                        }
-                                       // probs[s, i] = cond_prob[c][s, i];
-                                       // bin_n[s, i]     = x_current;
-                                       // bin_N_m_n[s, i] = x_diff;
-                                       ////
-                                       log_lik[c][s, i] = binomial_lpmf(x_current | x_prev, cond_prob[c][s, i]);
-                                       
-                              }
-                              
+                               }
+                               if (indicator_index_test_t_in_study[s] == 1) {
+                                   log_lik += binomial_lpmf(
+                                              x_2_int | n_int, to_vector(cond_prob[c][s, 1:n_obs_cutpoints[s]]));
+                               }
+      
                      }
-
-                  } // end of n_studies loop
-                   // log_lik[c] = bin_n .* log(probs) +  bin_N_m_n .* log1m(probs);
-       
           }
-        
-            array[2, 3] matrix[n_studies, n_thr] out;
-            out[, 1] = log_lik;
-            out[, 2] = cond_prob;
-            out[, 3] = surv_prob;
-            return(out);
+            
+          return(log_lik);
            
 }
     
@@ -89,10 +96,152 @@ array[,] matrix compute_log_lik_binomial_probit_fact (  array[] matrix latent_su
     
            
            
+array[,] matrix compute_log_lik_binomial_fact_data(   data array[] matrix latent_surv, 
+                                                      data int use_probit_link,
+                                                      data int n_thr,
+                                                      data array[] matrix x_2, 
+                                                      data array[] matrix n, 
+                                                      data array[] vector N_total, 
+                                                      data array[] int n_obs_cutpoints
+) {
+  
+  
+          int n_studies = rows(x_2[1]);
+          // int n_thr     = cols(x_2[1]);
+          ////
+          array[2] matrix[n_studies, n_thr] surv_prob;
+          array[2] matrix[n_studies, n_thr] cond_prob;
+          array[2] matrix[n_studies, n_thr] log_lik;
+          ////
+          for (c in 1:2) { 
+            surv_prob[c] = rep_matrix(1.0, n_studies, n_thr); 
+            cond_prob[c] = rep_matrix(1.0, n_studies, n_thr);
+            log_lik[c]   = rep_matrix(0.0, n_studies, n_thr);
+          }
+          ////
+          //// ---- Calculate surv  probabilities:
+          ////
+          for (c in 1:2) {
+              if (use_probit_link == 1) surv_prob[c] = Phi(latent_surv[c]);
+              else                      surv_prob[c] = inv_logit(latent_surv[c]);
+          }
+          ////
+          //// ---- Factorised binomial Likelihood:
+          ////
+          for (c in 1:2) {
+                    for (s in 1:n_studies) {
+                      
+                               cond_prob[c][s, 1] = surv_prob[c][s, 1];
+                               ////
+                               for (k in 2:n_obs_cutpoints[s]) {
+                                          cond_prob[c][s, k] = surv_prob[c][s, k] / surv_prob[c][s, k - 1];
+                               }
+                               ////
+                               int dim = n_obs_cutpoints[s];
+                               array[dim] int x_2_int;
+                               array[dim] int n_int;
+                               for (k in 1:n_obs_cutpoints[s]) {
+                                   x_2_int[k] = to_int(x_2[c][s, k]);
+                                   n_int[k]   = to_int(n[c][s, k]); //// [k]);
+                                   if ((x_2_int[k] != -1) && (n_int[k] != -1)) {
+                                       log_lik[c][s, k] += binomial_lpmf(x_2_int[k] | n_int[k], cond_prob[c][s, k]);
+                                   }
+                               }
+                               // ////
+                               // for (k in 1:n_obs_cutpoints[s]) {
+                               //     log_lik[c][s, k] = binomial_lpmf(x_2_int[k] | n_int[k], cond_prob[c][s, k]);
+                               // }
+                            
+      
+                     }
+          }
+          
+          array[3, 2] matrix[n_studies, n_thr] out;
+          out[1] = log_lik;
+          out[2] = cond_prob;
+          out[3] = surv_prob;
+          return(out);
+          
+}
+    
+    
+    
+    
+    
+    
            
            
-           
-
+//            
+// real compute_log_lik_binomial_fact_NMA_lp(    array[] matrix latent_surv, 
+//                                               data int use_probit_link,
+//                                               data array[] matrix x_2, 
+//                                               data array[] matrix n, 
+//                                               data array[] vector N_total, 
+//                                               data array[] int n_obs_cutpoints,
+//                                               ata array[] int indicator_index_test_t_in_study
+// ) {
+//         
+//           int n_studies = rows(x_2[1]);
+//           int n_thr     = cols(x_2[1]);
+//           ////
+//           // vector[n_total_non_missing_obs] log_lik   = rep_vector(0.0, n_total_non_missing_obs);
+//           ////
+//           array[2] matrix[n_studies, n_thr] surv_prob;
+//           array[2] matrix[n_studies, n_thr] cond_prob;
+//           ////
+//           //// ---- Calculate surv  probabilities:
+//           ////
+//           for (c in 1:2) {
+//               if (use_probit_link == 1) surv_prob[c] = Phi(latent_surv[c]);
+//               else                      surv_prob[c] = inv_logit(latent_surv[c]);
+//           }
+//           ////
+//           //// ---- Factorised binomial Likelihood:
+//           ////
+//           real log_lik = 0.0;
+//           for (c in 1:2) {
+//                     ////
+//                     //// ---- First compute conditional probs:
+//                     ////
+//                     for (s in 1:n_studies) {
+//                                cond_prob[c][s, 1] = surv_prob[c][s, 1];
+//                                ////
+//                                for (k in 2:n_obs_cutpoints[s]) {
+//                                           cond_prob[c][s, k] = surv_prob[c][s, k] / surv_prob[c][s, k - 1];
+//                                }
+//                     }
+//                     ////
+//                     //// ---- Likelihood:
+//                     ////
+//                     for (s in 1:n_studies) {
+//                                ////
+//                                int dim = n_obs_cutpoints[s];
+//                                array[dim] int x_2_int;
+//                                array[dim] int n_int;
+//                                for (k in 1:n_obs_cutpoints[s]) {
+//                                    x_2_int[k] = to_int(x_2[c][s, k]);
+//                                    n_int[k]   = to_int(n[c][s, k]); //// [k]);
+//                                }
+//                                for (k in 1:n_obs_cutpoints[s]) {
+//                                  if (indicator_index_test_t_in_study[s] == 1) {
+//                                      log_lik += binomial_lpmf(x_2_int | n_int, to_vector(cond_prob[c][s, 1:n_obs_cutpoints[s]]));
+//                                  }
+//                                }
+//                             
+//       
+//                      }
+//                          
+//           }
+//             
+//           return(log_lik);
+//            
+// }
+//     
+//     
+//     
+//     
+//     
+    
 
 
 
