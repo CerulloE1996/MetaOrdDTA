@@ -889,10 +889,7 @@ sum(abs(100*df_true$Sp_true  - 100*Sp_Cerullo)) - sum(abs(100*df_true$Sp_true  -
           summaries = NULL, ## new
           traces = NULL ## new
         )
-        
-        
-        
-      
+
       debugging <- FALSE
       ##
       n_iter = 500
@@ -930,10 +927,6 @@ sum(abs(100*df_true$Sp_true  - 100*Sp_Cerullo)) - sum(abs(100*df_true$Sp_true  -
       advanced_model_options$softplus <- softplus
       ##
       MCMC_params$n_chains <- n_chains
-      
-      
-
-
 
 }
 
@@ -984,6 +977,31 @@ outs_stan_sampling = list(
   time_total = NULL
 )
 
+X <- NULL
+
+x <- x_NMA
+
+MetaOrdDTA:::prep_data_and_model(  
+  debugging = self$debugging,
+  ##
+  x = self$x,
+  ##
+  X = self$X, ## covariates
+  ##
+  indicator_index_test_in_study = self$indicator_index_test_in_study,
+  ##
+  internal_obj = self$internal_obj,
+  ##
+  basic_model_options    = self$basic_model_options,
+  advanced_model_options = self$advanced_model_options,
+  MCMC_params            = self$MCMC_params,
+  other_advanced_options = self$other_advanced_options,
+  ##
+  priors = self$priors,
+  init_lists_per_chain = self$init_lists_per_chain,
+  ##
+  compute_sim_study_metrics = self$compute_sim_study_metrics,
+  vec_index_inner_thr       = self$vec_index_inner_thr)
 
 
 
