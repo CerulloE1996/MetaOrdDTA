@@ -119,15 +119,15 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                     ## ----  Core / internal objects (NOT user-inputted)
                     ##
                     outs_data = list(
-                      stan_data_list = NULL,
-                      n_tests = NULL,
-                      n_studies = NULL,
-                      n_thr = NULL,
-                      n_cat = NULL
+                        stan_data_list = NULL,
+                        n_tests = NULL,
+                        n_studies = NULL,
+                        n_thr = NULL,
+                        n_cat = NULL
                     ),
                     ##
                     outs_stan_model_name = list( 
-                      stan_model_file_name = NULL
+                        stan_model_file_name = NULL
                     ),
                     ##
                     outs_stan_compile = list( 
@@ -147,18 +147,18 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                     ),
                     ##
                     outs_stan_init = list( 
-                      inits_unconstrained_vec_per_chain = NULL,
-                      stan_param_names_list = NULL,
-                      stan_param_names_main = NULL,
-                      stan_init_pseudo_sampling_outs = NULL,
-                      stan_model_obj = NULL,
-                      json_file_path = NULL,
-                      stan_model_file_path = NULL
+                        inits_unconstrained_vec_per_chain = NULL,
+                        stan_param_names_list = NULL,
+                        stan_param_names_main = NULL,
+                        stan_init_pseudo_sampling_outs = NULL,
+                        stan_model_obj = NULL,
+                        json_file_path = NULL,
+                        stan_model_file_path = NULL
                     ),
                     ##
                     outs_stan_sampling = list( 
-                      stan_mod_samples = NULL,
-                      time_total = NULL
+                        stan_mod_samples = NULL,
+                        time_total = NULL
                     ),
                     ##
                     ## ---- Main "internal_obj" list:
@@ -181,14 +181,18 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                     ##
                     x = NULL,
                     ##
+                    ## ---- Data (user-inputted - MANDATORY argument)
+                    ##
+                    X = NULL,
+                    ##
                     indicator_index_test_in_study = NULL,
                     ##
                     ## ---- Basic modelling options (user-inputted element-by-element)
                     ##
                     basic_model_options = list(
-                      network = NULL,
-                      cts = NULL,
-                      prior_only = NULL
+                        network = NULL,
+                        cts = NULL,
+                        prior_only = NULL
                     ),
                     #' @field network Whether to perform meta-analysis (MA) or network-meta-analysis (NMA). The default will depend on the structure of the data (i.e. on \code{x}).
                     #' @field cts Whether to use continuous model (i.e., Jones et al-based) or ordinal. Default is ordinal. Type of test (and hence the type of model to fit) -
@@ -202,31 +206,32 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                     ## ---- "advanced" user-inputted modelling options  (OPTIONAL - user-inputted element-by-element)
                     ##
                     advanced_model_options = list(
-                      model_parameterisation = NULL,
-                      random_thresholds = NULL,
-                      Dirichlet_random_effects_type = NULL,
-                      box_cox = NULL,
-                      softplus = NULL
+                        model_parameterisation = NULL,
+                        random_thresholds = NULL,
+                        Dirichlet_random_effects_type = NULL,
+                        box_cox = NULL,
+                        softplus = NULL,
+                        custom_file_name = NULL
                     ),
                     ##
                     ## ---- other "advanced" user-inputted options (e.g. C++ compiler flags - OPTIONAL - user-inputted element-by-element)
                     ##
                     other_advanced_options = list(
-                      advanced_compile = NULL, ## default is false (aka a "basic" compile)
-                      ##
-                      force_recompile = NULL,
-                      quiet = NULL,
-                      compile = NULL,
-                      ##
-                      set_custom_CXX_CPP_flags = NULL,
-                      CCACHE_PATH = NULL,
-                      custom_cpp_user_header_file_path = NULL,
-                      CXX_COMPILER_PATH = NULL,
-                      CPP_COMPILER_PATH = NULL,
-                      MATH_FLAGS = NULL,
-                      FMA_FLAGS = NULL,
-                      AVX_FLAGS = NULL,
-                      THREAD_FLAGS = NULL
+                        advanced_compile = NULL, ## default is false (aka a "basic" compile)
+                        ##
+                        force_recompile = NULL,
+                        quiet = NULL,
+                        compile = NULL,
+                        ##
+                        set_custom_CXX_CPP_flags = NULL,
+                        CCACHE_PATH = NULL,
+                        custom_cpp_user_header_file_path = NULL,
+                        CXX_COMPILER_PATH = NULL,
+                        CPP_COMPILER_PATH = NULL,
+                        MATH_FLAGS = NULL,
+                        FMA_FLAGS = NULL,
+                        AVX_FLAGS = NULL,
+                        THREAD_FLAGS = NULL
                     ),
                     ##
                     ## ---- priors  (OPTIONAL - user-inputted element-by-element)
@@ -253,12 +258,20 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                       metric_shape = NULL
                     ),
                     ##
+                    ## ---- Internal use only (for sim study):
+                    ##
+                    compute_sim_study_metrics = NULL,
+                    vec_index_inner_thr = NULL,
+                    ##
                     ## ---- Other class members:
                     ##
                     ## ---------- constructor - initialize using the prep_data_and_model fn (this wraps the prep_data_and_model function with $new())
                     ## - store all important parameters:
                     #'@description Create a new "MetaOrd_model" object.
+                    ##
                     #'@param x The dataset. See class documentation for details.
+                    ##
+                    #'@param X Optional covariates. See class documentation for details.
                     ##
                     #'@param test_type Type of test. See class documentation for details.
                     #'@param network See class documentation for details.
@@ -283,6 +296,8 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                     initialize = function(  debugging = FALSE,
                                             ##
                                             x = self$x,
+                                            ##
+                                            X = self$X,
                                             ##
                                             indicator_index_test_in_study = self$indicator_index_test_in_study,
                                             ##
@@ -325,7 +340,12 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                             MATH_FLAGS = NULL,
                                             FMA_FLAGS = NULL,
                                             AVX_FLAGS = NULL,
-                                            THREAD_FLAGS = NULL
+                                            THREAD_FLAGS = NULL,
+                                            ##
+                                            compute_sim_study_metrics = NULL,
+                                            vec_index_inner_thr = NULL,
+                                            ##
+                                            custom_file_name = NULL
                                             ) {
                       
                               # message(("aaa_class_hello_1"))
@@ -337,6 +357,8 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                               ## ---- Data:
                               ##
                               self$x <- x
+                              ##
+                              self$X <- X ## covariates
                               ##
                               self$indicator_index_test_in_study <- indicator_index_test_in_study
                               ##
@@ -353,6 +375,7 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                               self$advanced_model_options$Dirichlet_random_effects_type <- Dirichlet_random_effects_type
                               self$advanced_model_options$box_cox  <- box_cox
                               self$advanced_model_options$softplus <- softplus
+                              self$advanced_model_options$custom_file_name <- custom_file_name
                               ##
                               ## ---- make INTERNAL "other_advanced_options" list:
                               ##
@@ -384,6 +407,11 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                               ##
                               self$MCMC_params$n_chains <- n_chains
                               ##
+                              ## ---- Internal use only (for sim study):
+                              ##
+                              self$compute_sim_study_metrics <- compute_sim_study_metrics
+                              self$vec_index_inner_thr       <- vec_index_inner_thr
+                              ##
                               # message(("aaa_class_hello_2"))
                               ##
                               ## -----------  call initialising fn's: ------------------------------------------------------------------------------------------------------------
@@ -392,17 +420,23 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                                                                     debugging = self$debugging,
                                                                                     ##
                                                                                     x = self$x,
+                                                                                    ##
+                                                                                    X = self$X, ## covariates
+                                                                                    ##
                                                                                     indicator_index_test_in_study = self$indicator_index_test_in_study,
                                                                                     ##
                                                                                     internal_obj = self$internal_obj,
                                                                                     ##
-                                                                                    basic_model_options = self$basic_model_options,
+                                                                                    basic_model_options    = self$basic_model_options,
                                                                                     advanced_model_options = self$advanced_model_options,
-                                                                                    MCMC_params = self$MCMC_params,
+                                                                                    MCMC_params            = self$MCMC_params,
                                                                                     other_advanced_options = self$other_advanced_options,
                                                                                     ##
                                                                                     priors = self$priors,
-                                                                                    init_lists_per_chain = self$init_lists_per_chain)
+                                                                                    init_lists_per_chain = self$init_lists_per_chain,
+                                                                                    ##
+                                                                                    compute_sim_study_metrics = self$compute_sim_study_metrics,
+                                                                                    vec_index_inner_thr       = self$vec_index_inner_thr)
                               
                               ##
                               ## ---- Update R grouped lists:
@@ -446,6 +480,9 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                     sample = function(  debugging = self$debugging,
                                         ##
                                         x = self$x, ## data is allowed to be updated without re-initialising (as long as "network" and "cts" are the same)
+                                        ##
+                                        X = self$X, ## data is allowed to be updated without re-initialising
+                                        ##
                                         indicator_index_test_in_study = self$indicator_index_test_in_study,
                                         ##
                                         cts = self$basic_model_options$cts,
@@ -457,6 +494,7 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                         Dirichlet_random_effects_type = self$advanced_model_options$Dirichlet_random_effects_type,
                                         box_cox  = self$advanced_model_options$box_cox,
                                         softplus = self$advanced_model_options$softplus,
+                                        custom_file_name = self$advanced_model_options$custom_file_name,
                                         ##
                                         priors = self$priors,
                                         ##
@@ -471,7 +509,10 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                         n_iter        = 1000,
                                         adapt_delta   = 0.80,
                                         max_treedepth = 10,
-                                        metric_shape  = "diag_e"
+                                        metric_shape  = "diag_e",
+                                        ##
+                                        compute_sim_study_metrics = self$compute_sim_study_metrics,
+                                        vec_index_inner_thr       = self$vec_index_inner_thr
                                         ) {
                       
                                 ##
@@ -510,6 +551,9 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                     ## Update class members ** only if ** new values provided:
                                     ##
                                     if (!identical(self$x, x))  { self$x <- x ; params_same <- 0 }
+                                    ##
+                                    if (!identical(self$X, X))  { self$X <- X ; params_same <- 0 }
+                                    ##
                                     if (!identical(self$indicator_index_test_in_study, indicator_index_test_in_study))  { self$indicator_index_test_in_study <- indicator_index_test_in_study ; params_same <- 0 }
                                     ##
                                     if (!identical(self$basic_model_options$network, network)) { self$basic_model_options$network <- network ; params_same <- 0 }
@@ -521,12 +565,16 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                     if (!identical(self$advanced_model_options$Dirichlet_random_effects_type, Dirichlet_random_effects_type)) { self$advanced_model_options$Dirichlet_random_effects_type <- Dirichlet_random_effects_type ; params_same <- 0 }
                                     if (!identical(self$advanced_model_options$box_cox, box_cox))   { self$advanced_model_options$box_cox  <- box_cox  ; params_same <- 0 }
                                     if (!identical(self$advanced_model_options$softplus, softplus)) { self$advanced_model_options$softplus <- softplus ; params_same <- 0 }
+                                    if (!identical(self$advanced_model_options$custom_file_name, custom_file_name)) { self$advanced_model_options$custom_file_name <- custom_file_name ; params_same <- 0 }
                                     ##
                                     if (!identical(self$priors, priors))         { self$priors     <- priors     ; params_same <- 0 }
                                     ##
                                     if (!identical(self$init_lists_per_chain, init_lists_per_chain))  { self$init_lists_per_chain <- init_lists_per_chain ; params_same <- 0 }
                                     ##
                                     if (!identical(self$MCMC_params$n_chains, n_chains)) { self$MCMC_params$n_chains <- n_chains ; params_same <- 0 }
+                                    ##
+                                    if (!identical(self$compute_sim_study_metrics, compute_sim_study_metrics)) { self$compute_sim_study_metrics <- compute_sim_study_metrics ; params_same <- 0 }
+                                    if (!identical(self$vec_index_inner_thr, vec_index_inner_thr)) { self$vec_index_inner_thr <- vec_index_inner_thr ; params_same <- 0 }
                                     
                                 }
                             
@@ -556,6 +604,9 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                                                                                debugging = self$debugging,
                                                                                                ##
                                                                                                x = self$x,
+                                                                                               ##
+                                                                                               X = self$X, ## covariates
+                                                                                               ##
                                                                                                indicator_index_test_in_study = self$indicator_index_test_in_study,
                                                                                                ##
                                                                                                internal_obj = self$internal_obj,
@@ -567,7 +618,10 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                                                                                ##
                                                                                                priors = self$priors,
                                                                                                ##
-                                                                                               init_lists_per_chain = self$init_lists_per_chain)
+                                                                                               init_lists_per_chain = self$init_lists_per_chain,
+                                                                                               ##
+                                                                                               compute_sim_study_metrics = self$compute_sim_study_metrics,
+                                                                                               vec_index_inner_thr = self$vec_index_inner_thr)
 
                                 self$internal_obj <- local_model_samples_obj$internal_obj
                                 ##

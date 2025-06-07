@@ -841,17 +841,21 @@ create_summary_and_traces <- function(    package,
                    trace_main_3 <- MetaOrdDTA:::format_named_array_for_bayesplot(trace_main)
                    trace_main   <- trace_main_3
                    ##
-                   trace_tp_3 <- MetaOrdDTA:::format_named_array_for_bayesplot(trace_tp)
-                   trace_tp   <- trace_tp_3
+                   try({ 
+                     trace_tp_3 <- MetaOrdDTA:::format_named_array_for_bayesplot(trace_tp)
+                     trace_tp   <- trace_tp_3
+                     ##
+                     trace_tp_wo_log_lik_3 <- MetaOrdDTA:::format_named_array_for_bayesplot(trace_tp_wo_log_lik)
+                     trace_tp_wo_log_lik   <- trace_tp_wo_log_lik_3
+                   })
                    ##
-                   trace_tp_wo_log_lik_3 <- MetaOrdDTA:::format_named_array_for_bayesplot(trace_tp_wo_log_lik)
-                   trace_tp_wo_log_lik   <- trace_tp_wo_log_lik_3
-                   ##
-                   trace_gq_3 <- MetaOrdDTA:::format_named_array_for_bayesplot(trace_gq)
-                   trace_gq   <- trace_gq_3
-                   ##
-                   trace_log_lik_3 <- MetaOrdDTA:::format_named_array_for_bayesplot(trace_log_lik)
-                   trace_log_lik   <- trace_log_lik_3
+                   try({ 
+                     trace_gq_3 <- MetaOrdDTA:::format_named_array_for_bayesplot(trace_gq)
+                     trace_gq   <- trace_gq_3
+                     ##
+                     trace_log_lik_3 <- MetaOrdDTA:::format_named_array_for_bayesplot(trace_log_lik)
+                     trace_log_lik   <- trace_log_lik_3
+                   })
                 
    }
    ##
@@ -862,7 +866,7 @@ create_summary_and_traces <- function(    package,
    # str(trace_log_lik)
    # ##
    ##
-   n_cores <- parallel::detectCores()
+   n_cores <- round(parallel::detectCores() / 2)
    ##
    message(paste("debug_print_1"))
    ##   
@@ -1324,7 +1328,9 @@ create_summary_and_traces <- function(    package,
       ##
       ##
       ##
-      trace_list <- list(trace_main,  trace_tp, trace_gq)
+      trace_list <- list(trace_main) ## , trace_tp, trace_gq)
+      if (compute_transformed_parameters == TRUE) trace_list$trace_tp <- trace_tp
+      if (compute_generated_quantities == TRUE)   trace_list$trace_gq <- trace_gq
       draws_array <-  convert_list_of_arrays_to_one_big_array(trace_list)
       ##
       traces_as_arrays <- list( 

@@ -117,7 +117,18 @@ basic_prior_pred_check <- function( parameter = "scale",
 # prior_dirichlet_cat_SDs_SD <- rep(0.10, n_cat)
 
 
-
+# other_args_list <- list()
+# other_args_list$use_log_kappa <- FALSE
+# other_args_list$prior_dirichlet_cat_means_alpha <- rep(1.0, 7)
+# other_args_list$prior_kappa_mean <- 0
+# other_args_list$prior_kappa_SD   <- 500
+# other_args_list$kappa_lb   <- 0.0
+# ##
+# outs <- induced_Dirichlet_ppc_plot(method = "kappa", 
+#                            N = 5000,
+#                            n_cat = 7,
+#                            other_args_list = other_args_list)
+# 
 
 
 
@@ -216,7 +227,7 @@ induced_Dirichlet_ppc_plot <- function(  method = "sigma",
               
                       ## Extract arguments from other_args_list:
                       prior_log_kappa_mean <- other_args_list$prior_log_kappa_mean
-                      prior_log_kappa_sd   <- other_args_list$prior_log_kappa_sd                             
+                      prior_log_kappa_SD   <- other_args_list$prior_log_kappa_SD                             
                       log_kappa_lb         <- other_args_list$log_kappa_lb
                       log_kappa_ub         <- other_args_list$log_kappa_ub
                       
@@ -229,7 +240,7 @@ induced_Dirichlet_ppc_plot <- function(  method = "sigma",
                       
                       log_kappa <- truncnorm::rtruncnorm(n = N, 
                                                          a = log_kappa_lb, b = log_kappa_ub,
-                                                         mean = prior_log_kappa_mean, sd = prior_log_kappa_sd)
+                                                         mean = prior_log_kappa_mean, sd = prior_log_kappa_SD)
                       
                       kappa <- exp(log_kappa)
               
@@ -237,7 +248,7 @@ induced_Dirichlet_ppc_plot <- function(  method = "sigma",
               
                       ## Extract arguments from other_args_list:
                       prior_kappa_mean <- other_args_list$prior_kappa_mean
-                      prior_kappa_sd   <- other_args_list$prior_kappa_sd                             
+                      prior_kappa_SD   <- other_args_list$prior_kappa_SD                             
                       kappa_lb         <- other_args_list$kappa_lb
                       kappa_ub         <- other_args_list$kappa_ub
                       
@@ -250,7 +261,7 @@ induced_Dirichlet_ppc_plot <- function(  method = "sigma",
                       
                       kappa <- truncnorm::rtruncnorm(N, 
                                                      a = kappa_lb, b = kappa_ub,
-                                                     mean = prior_kappa_mean, sd = prior_kappa_sd)
+                                                     mean = prior_kappa_mean, sd = prior_kappa_SD)
                       log_kappa <- log(kappa)
               
             }

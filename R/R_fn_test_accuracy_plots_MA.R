@@ -91,6 +91,9 @@ R_fn_sROC_plot_MA <- function(  stan_model_file_name,
   
             require(ggplot2)
             require(dplyr)
+            ##
+            require(Cairo)
+            options(bitmapType = "cairo")
      
             model_name <- stan_model_file_name
             # stan_mod_samples$summary(c("Se"), quantiles = ~ quantile(., probs = c(0.025, 0.50, 0.975))) %>% print(n = 100)
@@ -153,37 +156,37 @@ R_fn_sROC_plot_MA <- function(  stan_model_file_name,
                  plot_1 <-  ggplot(df_all, mapping = aes(x = Fp_median, y = Se_median, color = Model)) + 
                             geom_line(linewidth = 0.5) + 
                             geom_point(size = 3) + 
-                            theme_bw(base_size = 16) + 
-                   xlab("False positive rate (Fp)") + 
+                            theme_bw(base_size = 16)   + 
+                   xlab("False positive rate (Fp)") +
                    ylab("Sensitivity (Se)")
                  plot_1
-                 ##
-                 if (!(is.null(df_true))) { 
+                 # ##
+                 if (!(is.null(df_true))) {
                      plot_1 <- plot_1 + geom_point(color = "green", size = 3, data = df_all,
                                                    mapping = aes(x = Fp_true, y = Se_true))
-                     plot_1 <- plot_1 + geom_line(color = "green",  linewidth = 0.5, data = df_all, 
+                     plot_1 <- plot_1 + geom_line(color = "green",  linewidth = 0.5, data = df_all,
                                                   mapping = aes(x = Fp_true, y = Se_true))
                  }
-                 ##
-                 print(plot_1)
+                 # ##
+                 # print(plot_1)
                  plot_list[[1]] <- plot_1
-                 ##
-                 ## --------- Plot 2:
-                 ##
-                 plot_2 <-    ggplot(df_all, mapping = aes(x = Fp_median, y = Se_median, color = Model)) + 
-                              geom_line(linewidth = 1.0) + 
-                              geom_point(size = 3) + 
+                 # ##
+                 # ## --------- Plot 2:
+                 # ##
+                 plot_2 <-    ggplot(df_all, mapping = aes(x = Fp_median, y = Se_median, color = Model)) +
+                              geom_line(linewidth = 1.0) +
+                              geom_point(size = 3) +
                               theme_bw(base_size = 16) +
                               geom_polygon(data = polygon_Conf, aes(x = x, y = y), fill = conf_region_colour, alpha = 0.40) +
-                              geom_polygon(data = polygon_Pred, aes(x = x, y = y), fill = pred_region_colour, alpha = 0.20) + 
-                   xlab("False positive rate (Fp)") + 
+                              geom_polygon(data = polygon_Pred, aes(x = x, y = y), fill = pred_region_colour, alpha = 0.20) +
+                   xlab("False positive rate (Fp)") +
                    ylab("Sensitivity (Se)")
-                             
-                 
-                 if (!(is.null(df_true))) { 
+
+
+                 if (!(is.null(df_true))) {
                    plot_2 <- plot_2 + geom_point(color = "green", size = 3, data = df_all,
                                                  mapping = aes(x = Fp_true, y = Se_true))
-                   plot_2 <- plot_2 + geom_line(color = "green",  linewidth = 0.5, data = df_all, 
+                   plot_2 <- plot_2 + geom_line(color = "green",  linewidth = 0.5, data = df_all,
                                                 mapping = aes(x = Fp_true, y = Se_true))
                  }
                  print(plot_2)

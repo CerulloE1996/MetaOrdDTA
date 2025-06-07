@@ -13,6 +13,8 @@
 initialise_update_run_model <- function(      debugging = FALSE,
                                               ##
                                               x, 
+                                              ##
+                                              X,
                                               # n_index_tests_per_study = NULL,
                                               indicator_index_test_in_study = NULL,
                                               ##
@@ -25,7 +27,10 @@ initialise_update_run_model <- function(      debugging = FALSE,
                                               ##
                                               priors,
                                               ##
-                                              init_lists_per_chain
+                                              init_lists_per_chain,
+                                              ##
+                                              compute_sim_study_metrics,
+                                              vec_index_inner_thr
 ) {
             
           if (basic_model_options$network) {
@@ -45,6 +50,9 @@ initialise_update_run_model <- function(      debugging = FALSE,
           prep_data_and_model_outs <-  prep_data_and_model( debugging = debugging, 
                                                                          ##
                                                                          x = x,
+                                                                         ##
+                                                                         X = X,
+                                                                         ##
                                                                          # n_index_tests_per_study = n_index_tests_per_study,
                                                                          indicator_index_test_in_study = indicator_index_test_in_study,
                                                                          ##
@@ -57,7 +65,10 @@ initialise_update_run_model <- function(      debugging = FALSE,
                                                                          ##
                                                                          priors = priors,
                                                                          ##
-                                                                         init_lists_per_chain = init_lists_per_chain)
+                                                                         init_lists_per_chain = init_lists_per_chain,
+                                                                         ##
+                                                                         compute_sim_study_metrics = compute_sim_study_metrics,
+                                                                         vec_index_inner_thr = vec_index_inner_thr)
           ##
           internal_obj <- prep_data_and_model_outs$internal_obj
           ##
@@ -256,7 +267,9 @@ initialise_update_run_model <- function(      debugging = FALSE,
                         ##
                         priors = priors,
                         ##
-                        init_lists_per_chain = init_lists_per_chain))
+                        init_lists_per_chain = init_lists_per_chain,
+                        ##
+                        X = X))
         
 }
 

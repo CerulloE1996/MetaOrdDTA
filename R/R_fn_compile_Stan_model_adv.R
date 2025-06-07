@@ -7,20 +7,20 @@ R_fn_compile_stan_advanced_given_file_name <- function( stan_model_file_name,
                                                         network,
                                                         prior_only,
                                                         ##
-                                                        debugging = FALSE,
-                                                        force_recompile = FALSE,
-                                                        quiet = FALSE,
-                                                        compile = TRUE,
+                                                        debugging ,
+                                                        force_recompile,
+                                                        quiet,
+                                                        compile,
                                                         ##
-                                                        set_custom_CXX_CPP_flags = FALSE, 
-                                                        CCACHE_PATH = " ", 
-                                                        custom_cpp_user_header_file_path = NULL, ## if wish to include custom C++ files
-                                                        CXX_COMPILER_PATH = NULL,
-                                                        CPP_COMPILER_PATH = NULL,
-                                                        MATH_FLAGS = NULL,
-                                                        FMA_FLAGS = NULL,
-                                                        AVX_FLAGS = NULL,
-                                                        THREAD_FLAGS = NULL
+                                                        set_custom_CXX_CPP_flags, 
+                                                        CCACHE_PATH, 
+                                                        custom_cpp_user_header_file_path, ## if wish to include custom C++ files
+                                                        CXX_COMPILER_PATH,
+                                                        CPP_COMPILER_PATH,
+                                                        MATH_FLAGS,
+                                                        FMA_FLAGS,
+                                                        AVX_FLAGS,
+                                                        THREAD_FLAGS
 ) {
   
                     ##
@@ -35,7 +35,7 @@ R_fn_compile_stan_advanced_given_file_name <- function( stan_model_file_name,
                                                                               debugging = debugging,
                                                                               force_recompile = force_recompile,
                                                                               quiet = quiet,
-                                                                              compile = compile)
+                                                                              compile = FALSE)
                     
                     stan_model_file_name <- outs_stan_basic_wo_compiling$stan_model_file_name
                     stan_model_file_path <- outs_stan_basic_wo_compiling$stan_model_file_path
@@ -81,7 +81,7 @@ R_fn_compile_stan_advanced_given_file_name <- function( stan_model_file_name,
                     #     }
                     # }
                     ##
-                    CPU_BASE_FLAGS <- "-O3  -march=native  -mtune=native"
+                    CPU_BASE_FLAGS <- "-O3" ##  -march=native  -mtune=native"
                     ## Check for CPU features (i.e., FMA and/or AVX and/or AVX2 and/or AVX-512)
                     if (is.null(FMA_FLAGS)) {
                       FMA_FLAGS <- " "
@@ -147,15 +147,16 @@ R_fn_compile_stan_advanced_given_file_name <- function( stan_model_file_name,
                     }
                     ##
                     OTHER_FLAGS <- " "
-                    ## OTHER_FLAGS <- "-std=c++17"
-                    OTHER_FLAGS <- paste(OTHER_FLAGS, "-fPIC")  
-                    OTHER_FLAGS <- paste(OTHER_FLAGS, "-DNDEBUG -fpermissive ")  
-                    OTHER_FLAGS <- paste(OTHER_FLAGS, "-DBOOST_DISABLE_ASSERTS")
-                    OTHER_FLAGS <- paste(OTHER_FLAGS, "-Wno-deprecated-declarations") 
-                    OTHER_FLAGS <- paste(OTHER_FLAGS, "-Wno-sign-compare -Wno-ignored-attributes -Wno-class-memaccess -Wno-class-varargs") 
-                    # OTHER_FLAGS <- paste0(OTHER_FLAGHS, " -ftls-model=global-dynamic") # doesnt fix clang issue
-                    # OTHER_FLAGS <- paste(OTHER_FLAGS, "-fno-gnu-unique") # doesnt fix clang issue
-                    ##OTHER_FLAGS <- paste(OTHER_FLAGS, "-ftls-model=initial-exec")  # doesnt fix clang issue
+                    # ## OTHER_FLAGS <- "-std=c++17"
+                    # OTHER_FLAGS <- paste(OTHER_FLAGS, "-fPIC")  
+                    # # OTHER_FLAGS <- paste(OTHER_FLAGS, "-DNDEBUG")  
+                    # # OTHER_FLAGS <- paste(OTHER_FLAGS, "-fpermissive")  
+                    # OTHER_FLAGS <- paste(OTHER_FLAGS, "-DBOOST_DISABLE_ASSERTS")
+                    # OTHER_FLAGS <- paste(OTHER_FLAGS, "-Wno-deprecated-declarations") 
+                    # OTHER_FLAGS <- paste(OTHER_FLAGS, "-Wno-sign-compare -Wno-ignored-attributes -Wno-class-memaccess") 
+                    # # OTHER_FLAGS <- paste0(OTHER_FLAGHS, " -ftls-model=global-dynamic") # doesnt fix clang issue
+                    # # OTHER_FLAGS <- paste(OTHER_FLAGS, "-fno-gnu-unique") # doesnt fix clang issue
+                    # ##OTHER_FLAGS <- paste(OTHER_FLAGS, "-ftls-model=initial-exec")  # doesnt fix clang issue
                     # OTHER_FLAGS <-  " "
                     # ##
                     # OMP_LIB_PATH = "/opt/AMD/aocc-compiler-5.0.0/lib"
@@ -163,19 +164,19 @@ R_fn_compile_stan_advanced_given_file_name <- function( stan_model_file_name,
                     # OMP_LIB_FLAGS = "-L'OMP_LIB_PATH' -lomp 'OMP_LIB_PATH/libomp.so'"
                     # SHLIB_OPENMP_CFLAGS <- OMP_FLAGS
                     # SHLIB_OPENMP_CXXFLAGS <- SHLIB_OPENMP_CFLAGS
-                    # ##
-                    CMDSTAN_INCLUDE_PATHS <- "-I stan/lib/stan_math/lib/tbb_2020.3/include"
-                    CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I stan/lib/stan_math/lib/tbb")
-                    CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I src")
-                    CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I stan")
-                    CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I stan/src")
-                    CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I stan/lib/stan_math/")
-                    CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I stan/lib/rapidjson_1.1.0/")
-                    CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I lib/CLI11-1.9.1/")
-                    CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I stan/lib/stan_math/lib/eigen_3.4.0")
-                    CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I stan/lib/stan_math/lib/boost_1.84.0")
-                    CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I stan/lib/stan_math/lib/sundials_6.1.1/include")
-                    CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I stan/lib/stan_math/lib/sundials_6.1.1/src/sundials")
+                    # 
+                    CMDSTAN_INCLUDE_PATHS <- " "
+                    # CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I stan/lib/stan_math/lib/tbb_2020.3/include")
+                    # # CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I stan/lib/stan_math/lib/tbb")
+                    # CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I src")
+                    # CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I stan/src")
+                    # CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I stan/lib/rapidjson_1.1.0/")
+                    # CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I lib/CLI11-1.9.1/")
+                    # CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I stan/lib/stan_math/")
+                    # CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I stan/lib/stan_math/lib/eigen_3.4.0")
+                    # CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I stan/lib/stan_math/lib/boost_1.84.0")
+                    # CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I stan/lib/stan_math/lib/sundials_6.1.1/include")
+                    # CMDSTAN_INCLUDE_PATHS <- paste(CMDSTAN_INCLUDE_PATHS, "-I stan/lib/stan_math/lib/sundials_6.1.1/src/sundials")
                 
                     ##
                     ##
@@ -206,15 +207,15 @@ R_fn_compile_stan_advanced_given_file_name <- function( stan_model_file_name,
                     LDFLAGS <- LINKER_FLAGS
                     
                     
-                    cmdstan_cpp_flags <- list(  paste0("override CC = ", CC),
-                                                paste0("override CXX = ", CXX),
-                                                paste0("override PKG_CPPFLAGS = ", PKG_CPPFLAGS),
-                                                paste0("override PKG_CXXFLAGS = ", PKG_CXXFLAGS),
-                                                paste0("override CPPFLAGS = ", CPPFLAGS),
-                                                paste0("override CXXFLAGS = ", CXXFLAGS),
-                                                paste0("override CFLAGS = ", CFLAGS), 
-                                                paste0("override CXX_STD = ", CXX_STD), 
-                                                paste0("override LDFLAGS = ", LDFLAGS))
+                    cmdstan_cpp_flags <- list(  paste0("CC = ", CC),
+                                                paste0("CXX = ", CXX),
+                                                paste0("PKG_CPPFLAGS = ", PKG_CPPFLAGS),
+                                                paste0("PKG_CXXFLAGS = ", PKG_CXXFLAGS),
+                                                paste0("CPPFLAGS = ", CPPFLAGS),
+                                                paste0("CXXFLAGS = ", CXXFLAGS),
+                                                paste0("CFLAGS = ", CFLAGS), 
+                                                paste0("CXX_STD = ", CXX_STD), 
+                                                paste0("LDFLAGS = ", LDFLAGS))
                     
                     ## Print the C++ flags being used to compile the Stan model:
                     message(paste("BASE_FLAGS set to:"))
@@ -236,35 +237,46 @@ R_fn_compile_stan_advanced_given_file_name <- function( stan_model_file_name,
                         ##
                         if (set_custom_CXX_CPP_flags == TRUE) {
                           
+                              message((paste("aaaaaaaaaaaaaaaaaaaaaaaaa")))
+                          
                               if (is.null(custom_cpp_user_header_file_path)) {
-                                stan_model_obj <- cmdstanr::cmdstan_model(  stan_model_file_path,
-                                                                   force_recompile = force_recompile,
-                                                                   quiet = quiet,
-                                                                   cpp_options = cmdstan_cpp_flags,
-                                                                   include_paths = stan_functions_directory)
+                                    
+                                    message((paste("bbbbbbbbbbbbbbbbbbbb")))
+                                    stan_model_obj <- cmdstanr::cmdstan_model(  stan_model_file_path,
+                                                                       force_recompile = force_recompile,
+                                                                       quiet = quiet,
+                                                                       cpp_options = cmdstan_cpp_flags,
+                                                                       include_paths = stan_functions_directory)
+                                
                               } else { 
-                                stan_model_obj <- cmdstanr::cmdstan_model(  stan_model_file_path,
-                                                                   force_recompile = force_recompile,
-                                                                   quiet = quiet,
-                                                                   user_header = custom_cpp_user_header_file_path,
-                                                                   cpp_options = cmdstan_cpp_flags,
-                                                                   include_paths = stan_functions_directory)
+                                
+                                    stan_model_obj <- cmdstanr::cmdstan_model(  stan_model_file_path,
+                                                                       force_recompile = force_recompile,
+                                                                       quiet = quiet,
+                                                                       user_header = custom_cpp_user_header_file_path,
+                                                                       cpp_options = cmdstan_cpp_flags,
+                                                                       include_paths = stan_functions_directory)
+                                
                               }
                           
                         } else { 
                           
                               if (is.null(custom_cpp_user_header_file_path)) {
-                                stan_model_obj <- cmdstanr::cmdstan_model(  stan_model_file_path,
-                                                                 force_recompile = force_recompile,
-                                                                 quiet = quiet,
-                                                                 include_paths = stan_functions_directory)
+                                    
+                                    stan_model_obj <- cmdstanr::cmdstan_model(  stan_model_file_path,
+                                                                     force_recompile = force_recompile,
+                                                                     quiet = quiet,
+                                                                     include_paths = stan_functions_directory)
+                                
                                                                 
                               } else { 
-                                stan_model_obj <- cmdstanr::cmdstan_model(  stan_model_file_path,
-                                                                 force_recompile = force_recompile,
-                                                                 quiet = quiet,
-                                                                 user_header = custom_cpp_user_header_file_path,
-                                                                 include_paths = stan_functions_directory)
+                                    
+                                    stan_model_obj <- cmdstanr::cmdstan_model(  stan_model_file_path,
+                                                                     force_recompile = force_recompile,
+                                                                     quiet = quiet,
+                                                                     user_header = custom_cpp_user_header_file_path,
+                                                                     include_paths = stan_functions_directory)
+                                
                                                                
                               }
                           

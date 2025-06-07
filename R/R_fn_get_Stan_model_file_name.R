@@ -2,7 +2,9 @@
 #' R_fn_get_stan_model_file_name
 #' @keywords internal
 #' @export
-R_fn_get_stan_model_file_name <- function( cts,
+R_fn_get_stan_model_file_name <- function( custom_file_name,
+                                           ##
+                                           cts,
                                            network,
                                            prior_only,
                                            ##
@@ -87,6 +89,11 @@ R_fn_get_stan_model_file_name <- function( cts,
         ## Output:
         ##
          ### return(stan_model_file_name)
+        
+        if (!(is.null(custom_file_name))) { 
+          stan_model_file_name <- custom_file_name
+        }
+        
         return(list(stan_model_file_name = stan_model_file_name))
 
 }

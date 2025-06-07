@@ -6,22 +6,28 @@
 #' prep_data_and_model
 #' @keywords internal
 #' @export
-prep_data_and_model <- function(  debugging = FALSE,
+prep_data_and_model <- function(  debugging,
                                   ##
                                   x, 
+                                  ##
+                                  X,
+                                  ##
                                   # n_index_tests_per_study = NULL, ## only needed for NMA
-                                  indicator_index_test_in_study = NULL, ## only needed for NMA
+                                  indicator_index_test_in_study, ## only needed for NMA
                                   ##
                                   internal_obj,
                                   ##
                                   basic_model_options,
                                   advanced_model_options,
                                   MCMC_params,
-                                  other_advanced_options = NULL,
+                                  other_advanced_options,
                                   ##
                                   priors,
                                   ##
-                                  init_lists_per_chain
+                                  init_lists_per_chain,
+                                  ##
+                                  compute_sim_study_metrics,
+                                  vec_index_inner_thr
 ) {
           
           if (is.null(other_advanced_options$advanced_compile)) { 
@@ -116,7 +122,6 @@ prep_data_and_model <- function(  debugging = FALSE,
               n_index_tests_per_study <- NULL
           }
           
-          
           {
                  if (basic_model_options$network)  { 
                       data_fn <- MetaOrdDTA:::R_fn_prep_NMA_data
@@ -125,8 +130,16 @@ prep_data_and_model <- function(  debugging = FALSE,
                  }
               
                  outs_data <- data_fn( x = x,
+                                       ##
+                                       X = X,
+                                       model_parameterisation = model_parameterisation,
+                                       ##
                                        n_index_tests_per_study = n_index_tests_per_study,
-                                       indicator_index_test_in_study = indicator_index_test_in_study)
+                                       indicator_index_test_in_study = indicator_index_test_in_study
+                                       ##
+                                       # compute_sim_study_metrics = compute_sim_study_metrics,
+                                       # vec_index_inner_thr = vec_index_inner_thr
+                                       )
           }
            ##
           internal_obj$outs_data <- outs_data
@@ -142,6 +155,8 @@ prep_data_and_model <- function(  debugging = FALSE,
           ## ----- Get the Stan model file (.stan file) name: ----------------------------------------------------------
           ##
           internal_obj$outs_stan_model_name  <- MetaOrdDTA:::R_fn_get_stan_model_file_name(
+                                                                custom_file_name = advanced_model_options$custom_file_name,
+                                                                ##
                                                                 network    = basic_model_options$network, 
                                                                 cts        = basic_model_options$cts, 
                                                                 prior_only = basic_model_options$prior_only, 
@@ -157,6 +172,10 @@ prep_data_and_model <- function(  debugging = FALSE,
           ## 
           ## R_fn_compile_stan_advanced_given_file_name
           ## R_fn_compile_stan_model_basic_given_file_name
+          if (is.null(other_advanced_options$advanced_compile)) { 
+            other_advanced_options$advanced_compile <- FALSE
+          }
+          
           if (other_advanced_options$advanced_compile) {
                   
                   other_advanced_options$force_recompile <- MetaOrdDTA:::if_null_then_set_to(other_advanced_options$force_recompile, TRUE)
@@ -183,15 +202,15 @@ prep_data_and_model <- function(  debugging = FALSE,
                                                                                  force_recompile = other_advanced_options$force_recompile,
                                                                                  quiet = other_advanced_options$quiet,
                                                                                  ##
-                                                                                 set_custom_CXX_CPP_flags = FALSE, 
+                                                                                 set_custom_CXX_CPP_flags = set_custom_CXX_CPP_flags, 
                                                                                  CCACHE_PATH = " ", 
-                                                                                 custom_cpp_user_header_file_path = NULL, ## if wish to include custom C++ files
-                                                                                 CXX_COMPILER_PATH = NULL,
-                                                                                 CPP_COMPILER_PATH = NULL,
-                                                                                 MATH_FLAGS = NULL,
-                                                                                 FMA_FLAGS = NULL,
-                                                                                 AVX_FLAGS = NULL,
-                                                                                 THREAD_FLAGS = NULL)
+                                                                                 custom_cpp_user_header_file_path = custom_cpp_user_header_file_path, ## if wish to include custom C++ files
+                                                                                 CXX_COMPILER_PATH = CXX_COMPILER_PATH,
+                                                                                 CPP_COMPILER_PATH = CPP_COMPILER_PATH,
+                                                                                 MATH_FLAGS = MATH_FLAGS,
+                                                                                 FMA_FLAGS = FMA_FLAGS,
+                                                                                 AVX_FLAGS = AVX_FLAGS,
+                                                                                 THREAD_FLAGS = THREAD_FLAGS)
           } else { 
                   
                   internal_obj$outs_stan_compile <- MetaOrdDTA:::R_fn_compile_stan_model_basic_given_file_name( 
@@ -203,7 +222,9 @@ prep_data_and_model <- function(  debugging = FALSE,
                                                                                 ##
                                                                                 debugging = debugging,
                                                                                 force_recompile = FALSE,
-                                                                                quiet = FALSE)
+                                                                                quiet   = FALSE,
+                                                                                compile = TRUE)
+                                                                            
             
           }
           
@@ -227,6 +248,8 @@ prep_data_and_model <- function(  debugging = FALSE,
           ##
           priors <- prior_fn(  
                              priors = priors,
+                             ##
+                             X = X,
                              ##
                              n_index_tests = internal_obj$outs_data$n_index_tests,
                              n_studies = internal_obj$outs_data$n_studies,
@@ -290,14 +313,17 @@ prep_data_and_model <- function(  debugging = FALSE,
           try({ 
             for (i in 1:MCMC_params$n_chains) {
                  init_lists_per_chain[[i]] <- inits_fn( 
-                                                       inits = init_lists_per_chain[[i]],
+                                                       inits  = init_lists_per_chain[[i]],
+                                                       ##
                                                        priors = priors,
                                                        ##
-                                                       cts     = basic_model_options$cts,
+                                                       X = X,
                                                        ##
-                                                       n_index_tests   = internal_obj$outs_data$n_index_tests,
-                                                       n_studies = internal_obj$outs_data$n_studies,
-                                                       n_thr     = internal_obj$outs_data$n_thr,
+                                                       cts    = basic_model_options$cts,
+                                                       ##
+                                                       n_index_tests = internal_obj$outs_data$n_index_tests,
+                                                       n_studies     = internal_obj$outs_data$n_studies,
+                                                       n_thr         = internal_obj$outs_data$n_thr,
                                                        ##
                                                        model_parameterisation        = advanced_model_options$model_parameterisation,
                                                        random_thresholds             = advanced_model_options$random_thresholds,
@@ -325,7 +351,9 @@ prep_data_and_model <- function(  debugging = FALSE,
                       ##
                       init_lists_per_chain = init_lists_per_chain,
                       ##
-                      priors = priors))
+                      priors = priors,
+                      ##
+                      X = X))
           
 }
 

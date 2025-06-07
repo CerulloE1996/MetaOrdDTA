@@ -1,6 +1,245 @@
 
 
 
+#' SD_approx_probit_to_prob
+#' @export
+SD_approx_probit_to_prob <- function(SD_probit_scale) { 
+  
+  SD_prob_scale <- SD_probit_scale * dnorm(qnorm(SD_probit_scale))
+  ##
+  return(signif(SD_prob_scale, 3))
+  
+}
+
+
+
+
+
+#' SD_approx_ID_ord_prob_to_C_probit
+#' @export
+SD_approx_ID_ord_prob_to_C_probit <- function(mean_C_cutpoint_scale, SD_prob_scale) { 
+  
+  SD_probit_scale <- (1.0 / dnorm(mean_C_cutpoint_scale)) * SD_prob_scale
+  ##
+  return(signif(SD_probit_scale, 3))
+  
+}
+
+
+
+
+#' arrange_missing_values
+#' @export
+arrange_missing_values <- function(data_list) {
+        
+        # Create a copy of the input list to avoid modifying the original
+        result_list <- list(
+          non_diseased = data_list[[1]],
+          diseased = data_list[[2]]
+        )
+        
+        # Process each matrix in the list
+        for (i in 1:2) {
+          matrix_data <- result_list[[i]]
+          
+          # Process each row
+          for (row in 1:nrow(matrix_data)) {
+            # Get current row data
+            row_data <- matrix_data[row, ]
+            
+            # Split into regular values and missing values (-1)
+            regular_values <- row_data[row_data != -1]
+            missing_values <- row_data[row_data == -1]
+            
+            # Combine regular values first, then missing values
+            new_row <- c(regular_values, missing_values)
+            
+            # Replace the original row
+            matrix_data[row, ] <- new_row
+          }
+          
+          result_list[[i]] <- matrix_data
+        }
+        
+        return(result_list)
+  
+}
+
+
+
+#' apply_missingness_pattern
+#' @export
+apply_missingness_pattern <- function( x_complete, 
+                                       x_pattern, 
+                                       enforce_consecutive_missingness = FALSE) {
+  
+  
+  # Check if inputs are valid
+  if (!is.list(x_complete) || !is.list(x_pattern) || length(x_complete) != 2 || length(x_pattern) != 2) {
+    stop("Both inputs must be lists with exactly 2 elements (non-diseased and diseased matrices)")
+  }
+  
+  # Create copies of the complete data to modify
+  result <- list(
+    non_diseased = x_complete[[1]],
+    diseased = x_complete[[2]]
+  )
+  
+  # Get dimensions of the first complete matrix to use as reference
+  n_rows_complete <- nrow(x_complete[[1]])
+  n_cols_complete <- ncol(x_complete[[1]])
+  
+  # Calculate the missingness pattern based on the first pattern matrix
+  missingness_indices <- list()
+  pattern_matrix <- x_pattern[[1]]
+  n_rows_pattern <- nrow(pattern_matrix)
+  n_cols_pattern <- ncol(pattern_matrix)
+  
+  # Find missing indices for each column
+  for (col in 2:min(n_cols_complete, n_cols_pattern)) {
+    # Find rows with -1 in the pattern matrix
+    missing_rows_in_pattern <- which(pattern_matrix[, col] == -1)
+    
+    if (length(missing_rows_in_pattern) > 0) {
+      # Calculate proportion of missing values in this column of pattern
+      missing_proportion <- length(missing_rows_in_pattern) / n_rows_pattern
+      
+      # Calculate how many rows should be missing in the complete matrix
+      n_missing_in_complete <- round(n_rows_complete * missing_proportion)
+      
+      if (n_missing_in_complete > 0) {
+        # Randomly select rows to make missing
+        rows_to_make_missing <- sample(1:n_rows_complete, n_missing_in_complete)
+        
+        # Store these indices
+        missingness_indices[[col]] <- rows_to_make_missing
+      } else {
+        missingness_indices[[col]] <- integer(0)
+      }
+    } else {
+      missingness_indices[[col]] <- integer(0)
+    }
+  }
+  
+  # Apply the same missingness pattern to both populations
+  for (pop_idx in 1:2) {
+    # For each column in the complete matrix
+    for (col in 2:min(n_cols_complete, n_cols_pattern)) {
+      if (length(missingness_indices[[col]]) > 0) {
+        # Set values to -1 using the same indices
+        result[[pop_idx]][missingness_indices[[col]], col] <- -1
+      }
+    }
+    
+    # Optionally apply the consecutive missingness rule
+    if (enforce_consecutive_missingness) {
+      # If there's a -1 in column j, all columns to the right should also be -1
+      for (row in 1:nrow(result[[pop_idx]])) {
+        missing_found <- FALSE
+        for (col in 2:ncol(result[[pop_idx]])) {
+          if (missing_found || result[[pop_idx]][row, col] == -1) {
+            missing_found <- TRUE
+            result[[pop_idx]][row, col] <- -1
+          }
+        }
+      }
+    }
+  }
+  
+  return(result)
+  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#' generate_ordinal_dirichlet_prior
+#' @export
+generate_ordinal_dirichlet_prior <- function(n_cat, 
+                                             max_alpha = 5, 
+                                             min_alpha = 1,
+                                             left_skew_factor = 0.3) {
+        
+        # n_cat: Number of categories in the ordinal scale
+        # max_alpha: Maximum concentration parameter (for early categories)
+        # min_alpha: Minimum concentration parameter (for later categories)
+        # left_skew_factor: Controls how quickly values decrease (lower = more left-skewed)
+        
+        # Generate positions from 0 to 1
+        positions <- seq(0, 1, length.out = n_cat)
+        
+        # Apply a transformation to create the left skew
+        # Using a power function where lower values of left_skew_factor create more skew
+        transformed_positions <- positions^left_skew_factor
+        
+        # Normalize to [0,1] range
+        transformed_positions <- transformed_positions / max(transformed_positions)
+        
+        # Map to alpha parameter range
+        alpha_values <- max_alpha - (max_alpha - min_alpha) * transformed_positions
+        
+        # Round to create cleaner values (optional)
+        alpha_values <- round(alpha_values, 1)
+        
+        return(alpha_values)
+        
+}
+
+
+
+
+
+
+
+
+
+#' generate_dual_ordinal_dirichlet_priors
+#' @export
+generate_dual_ordinal_dirichlet_priors <- function(n_cat, 
+                                                   nd_peak = 0.15,          # Where non-diseased peaks (as fraction)
+                                                   d_peak = 0.30,           # Where diseased peaks (as fraction)
+                                                   nd_max_alpha = 5.0,      # Max alpha for non-diseased
+                                                   d_max_alpha = 5.0,       # Max alpha for diseased
+                                                   nd_min_alpha = 1.0,      # Min alpha for non-diseased
+                                                   d_min_alpha = 1.0,
+                                                   smoothness = 0.15) {     # Higher = smoother distribution
+  
+        # Create sequence for category positions
+        positions <- seq(0, 1, length.out = n_cat)
+        
+        # Generate smoother non-diseased alphas
+        nd_spread <- smoothness * 1.2  # Slightly wider for non-diseased
+        nd_alpha_values <- nd_min_alpha + (nd_max_alpha - nd_min_alpha) * 
+          exp(-((positions - nd_peak)^2) / (2 * nd_spread^2))
+        
+        # Generate smoother diseased alphas
+        d_spread <- smoothness * 1.5   # Even wider for diseased
+        d_alpha_values <- d_min_alpha + (d_max_alpha - d_min_alpha) * 
+          exp(-((positions - d_peak)^2) / (2 * d_spread^2))
+        
+        # Round for cleaner values
+        nd_alpha_values <- round(nd_alpha_values, 1)
+        d_alpha_values <- round(d_alpha_values, 1)
+        
+        return(list(
+          non_diseased = nd_alpha_values,
+          diseased = d_alpha_values
+        ))
+  
+}
+
+
+
 #' divide_studies
 #' @export
 divide_studies <- function( n_studies, 
@@ -41,6 +280,19 @@ divide_studies <- function( n_studies,
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 #' R_fn_apply_thr_missingness
 #' @export
 R_fn_apply_thr_missingness_to_test <- function(  data_list_of_mat, 
@@ -61,41 +313,14 @@ R_fn_apply_thr_missingness_to_test <- function(  data_list_of_mat,
 }
 
 
-#' R_fn_apply_thr_missingness_to_mat
-#' @export
-R_fn_apply_thr_missingness_to_mat <- function(  data_matrix, 
-                                                thr_combo_vec = NULL, 
-                                                apply_missings_to_these_rows
-) {
+
+
+
  
-          columns_to_make_missing <- thr_combo_vec
-          
-          # Validate rows
-          if (any(apply_missings_to_these_rows > nrow(data_matrix)) || 
-              any(apply_missings_to_these_rows < 1)) {
-            stop("Row indices out of bounds")
-          }
-          
-          # Make a copy of the data matrix to avoid modifying the original
-          result_matrix <- data_matrix
-          
-          # Replace values with -1 in the specified rows and columns
-          for (row in apply_missings_to_these_rows) {
-            for (col in columns_to_make_missing) {
-              if (col <= ncol(data_matrix)) {
-                result_matrix[row, col] <- -1
-              } else {
-                warning(paste("Column", col, "exceeds matrix dimensions. Skipping."))
-              }
-            }
-          }
-          
-          return(result_matrix)
-  
-}
 
 
-
+#' R_fn_apply_missingness_pattern_PHQ_9
+#' @export
 R_fn_apply_missingness_pattern_PHQ_9 <- function( x_PHQ9, 
                                                   case_list, 
                                                   seed = 123) {
@@ -107,77 +332,87 @@ R_fn_apply_missingness_pattern_PHQ_9 <- function( x_PHQ9,
           
           # Loop through each case
           for (case_name in names(case_list)) {
-            
-            case <- case_list[[case_name]]
-            studies <- case$studies
-            
-            # For case 3, we need to generate random thresholds for each study
-            if (case_name == "case_3") {
-              
-              for (study_idx in studies) {
-                # Select a random threshold between 8 and 15
-                random_thr <- sample(8:15, 1)
+                  
+                  case <- case_list[[case_name]]
+                  studies <- case$studies
                 
-                # Create mask where everything is -1 except the random threshold
-                for (group in 1:2) { # Loop over diseased and non-diseased groups
-                  for (col in 2:ncol(x_PHQ9[[group]])) {
-                    if (col != random_thr) {
-                      x_PHQ_missing[[group]][study_idx, col] <- -1
-                    }
+                  if (case_name == "case_3") {
+                    
+                          # For case 3, we need to generate random thresholds for each study:
+                          for (study_idx in studies) {
+                            # Select a random threshold between 8 and 15
+                            random_thr <- sample(8:15, 1)
+                            
+                            # Create mask where everything is -1 except the random threshold
+                            for (group in 1:2) { # Loop over diseased and non-diseased groups
+                              for (col in 1:ncol(x_PHQ9[[group]])) {
+                                if (col != random_thr) {
+                                  try({  
+                                    x_PHQ_missing[[group]][study_idx, col + 1] <- -1
+                                  })
+                                }
+                              }
+                            }
+                          }
+                    
+                  } else if (case_name == "case_4") {
+                    
+                          ## For case 4, we randomly select one of the threshold combinations for each study:
+                          # Extract all threshold combination vectors
+                          thr_combo_vecs <- list()
+                          for (i in 1:12) {
+                            vec_name <- paste0("thr_combo_vec_", i)
+                            if (vec_name %in% names(case)) {
+                              thr_combo_vecs[[i]] <- case[[vec_name]]
+                            }
+                          }
+                          
+                          # Apply a randomly selected threshold combination to each study
+                          for (study_idx in studies) {
+                            # Randomly select one of the threshold combinations
+                            selected_combo_idx <- sample(1:length(thr_combo_vecs), 1)
+                            selected_thresholds <- thr_combo_vecs[[selected_combo_idx]]
+                            
+                            # Create mask where everything is -1 except the selected thresholds
+                            for (group in 1:2) {
+                              for (col in 1:ncol(x_PHQ9[[group]])) {
+                                if (!(col %in% selected_thresholds)) {
+                                  try({  
+                                    x_PHQ_missing[[group]][study_idx, col + 1] <- -1
+                                  })
+                                }
+                              }
+                            }
+                          }
+                    
+                  } else if (case_name %in% c("case_1", "case_2", "case_5")) {
+                    
+                          ## For cases 1, 2, and 5, the threshold pattern is the same for all studies in the case:
+                          ## Extract the threshold vector (it's called thr_combo_vec_1 for these cases):
+                          thresholds <- case$thr_combo_vec_1
+                          
+                          ## Apply the missingness pattern to all studies in this case:
+                          for (study_idx in studies) {
+                            for (group in 1:2) {
+                              for (col in 1:ncol(x_PHQ9[[group]])) {
+                                if (!(col %in% thresholds)) {
+                                  try({  
+                                    x_PHQ_missing[[group]][study_idx, col + 1] <- -1
+                                  })
+                                }
+                              }
+                            }
+                          }
+                    
                   }
-                }
-              }
-              
-            } else if (case_name == "case_4") { # For case 4, we randomly select one of the threshold combinations for each study
-              
-              # Extract all threshold combination vectors
-              thr_combo_vecs <- list()
-              for (i in 1:12) {
-                vec_name <- paste0("thr_combo_vec_", i)
-                if (vec_name %in% names(case)) {
-                  thr_combo_vecs[[i]] <- case[[vec_name]]
-                }
-              }
-              
-              # Apply a randomly selected threshold combination to each study
-              for (study_idx in studies) {
-                # Randomly select one of the threshold combinations
-                selected_combo_idx <- sample(1:length(thr_combo_vecs), 1)
-                selected_thresholds <- thr_combo_vecs[[selected_combo_idx]]
-                
-                # Create mask where everything is -1 except the selected thresholds
-                for (group in 1:2) {
-                  for (col in 2:ncol(x_PHQ9[[group]])) {
-                    if (!(col %in% selected_thresholds)) {
-                      x_PHQ_missing[[group]][study_idx, col] <- -1
-                    }
-                  }
-                }
-              }
-              
-            } else {  # For cases 1, 2, and 5, the threshold pattern is the same for all studies in the case
-              
-              # Extract the threshold vector (assume it's called thr_combo_vec_1 for these cases)
-              thresholds <- case$thr_combo_vec_1
-              
-              # Apply the missingness pattern to all studies in this case
-              for (study_idx in studies) {
-                for (group in 1:2) {
-                  for (col in 2:ncol(x_PHQ9[[group]])) {
-                    if (!(col %in% thresholds)) {
-                      x_PHQ_missing[[group]][study_idx, col] <- -1
-                    }
-                  }
-                }
-              }
-              
-            }
             
           }
           
           return(x_PHQ_missing)
   
 }
+
+
 
 
 
@@ -198,7 +433,6 @@ convert_to_aggregate_counts <- function(y_list,
 
           n_total_nd <- n_total_d <- numeric(n_studies)
           x_nd_list <- x_d_list <- list()
-          # n_nd_list <- n_d_list <- list()
           Se_per_study_list <- Sp_per_study_list <- list()
           
           ## Initialise lists:
@@ -211,18 +445,15 @@ convert_to_aggregate_counts <- function(y_list,
             x_nd_list[[t - 1]] <- matrix(NA, n_studies, n_cat_t)
             x_d_list[[t - 1]]  <- matrix(NA, n_studies, n_cat_t)
             ##
-            # n_nd_list[[t - 1]] <- matrix(NA, n_studies, n_cat_t)
-            # n_d_list[[t - 1]]  <- matrix(NA, n_studies, n_cat_t)
-            ##
-            Se_per_study_list[[t - 1]] <-  matrix(NA, n_studies, n_thr_t)
-            Sp_per_study_list[[t - 1]] <-  matrix(NA, n_studies, n_thr_t)
+            Se_per_study_list[[t - 1]] <-  matrix(NA, n_studies, n_thr_t + 1)
+            Sp_per_study_list[[t - 1]] <-  matrix(NA, n_studies, n_thr_t + 1)
             
           }
           
           for (s in 1:n_studies) {
             
                     study_data <- y_list[[s]]
-                    disease_status <- study_data[,1] # Col 1 is disease status / reference test
+                    disease_status <- study_data[, 1] # Col 1 is disease status / reference test
                     
                     ## Get n_total_d and n_total_nd:
                     n_total_d[s]  <- sum(disease_status == 1)
@@ -232,35 +463,33 @@ convert_to_aggregate_counts <- function(y_list,
               
                     n_thr_t <- n_thr[t]
                     n_cat_t <- n_thr_t + 1
-                    test_results   <- study_data[, t]
+                    index_test_results   <- study_data[, t] ## - 1 ## minus one so {0, .., 27} for e.g. PHQ-9.
+                     
+                    print(paste("min = ", min(index_test_results)))
+                    print(paste("max = ", max(index_test_results)))
                     
-                    x_d_list[[t - 1]][s, 1]  <- n_total_d[s]
-                    x_nd_list[[t - 1]][s, 1] <- n_total_nd[s]
+                    # x_d_list[[t - 1]][s, 1]  <- n_total_d[s]
+                    # x_nd_list[[t - 1]][s, 1] <- n_total_nd[s]
                     # Get counts for each threshold
-                    for (k in 1:n_thr_t) {
+                    for (k in 1:(n_thr_t + 1)) {
                           ##
                           ## True-positives (TP's):
                           ##
-                          x_d_list[[t - 1]][s, k + 1]  <- sum(test_results[disease_status == 1] > k) # Pr(testing POSITIVE at threshold k) ##  Pr(TEST SCORE IS LESS THAN OR EQUAL TO THR k (i.e., )
+                          x_d_list[[t - 1]][s, k]  <- sum(index_test_results[disease_status == 1] >= k - 1) # Pr(testing POSITIVE at threshold k)
+                          Se_per_study_list[[t - 1]][s, k] <-   x_d_list[[t - 1]][s, k]  / n_total_d[s]
                           ##
                           ## False-positives (FP's):
                           ##
-                          x_nd_list[[t - 1]][s, k + 1] <- sum(test_results[disease_status == 0] > k) # Pr(testing POSITIVE at threshold k)
+                          x_nd_list[[t - 1]][s, k] <- sum(index_test_results[disease_status == 0] >= k - 1) # Pr(testing POSITIVE at threshold k)
+                          Sp_per_study_list[[t - 1]][s, k] <-   x_nd_list[[t - 1]][s, k]  / n_total_d[s]
                           
                     }
-                    for (k in 1:n_thr_t) {
-                    
-                        Se_per_study_list[[t - 1]][s, k] <-        (sum(test_results[disease_status == 1] > k)  / n_total_d[s])
-                        Sp_per_study_list[[t - 1]][s, k] <- 1.0 - ((sum(test_results[disease_status == 0] > k)) / n_total_nd[s])
-                      
-                    }
-                    
-                    # # n_d_list[[t - 1]][s,  n_thr_t + 1] <- n_total_d[s]
-                    # # n_nd_list[[t - 1]][s, n_thr_t + 1] <- n_total_nd[s]s
-                    # x_d_list[[t  - 1]][s, 1] <- n_total_d[s]
-                    # x_nd_list[[t - 1]][s, 1] <- n_total_nd[s]
-                    
-              
+                    # for (k in 1:(n_thr_t + 1)) {
+                    # 
+                    #     Se_per_study_list[[t - 1]][s, k] <-        ( sum(index_test_results[disease_status == 1] >= k - 1) / n_total_d[s])
+                    #     Sp_per_study_list[[t - 1]][s, k] <- 1.0 -  ( sum(index_test_results[disease_status == 0] >= k - 1)/ n_total_nd[s])
+                    #   
+                    # }
             }
             
           }
@@ -601,18 +830,18 @@ box_cox_density <- function(x,
 
 
 
-
-{
-  
+ 
   ## 
   ## lambda <- -0.5:
   ##
   box_cox_neg05 <- function(x) {
     return((x^(-0.5) - 1.0)/(-0.5))
   }
+  
   bc_neg05_jacobian <- function(x) { 
     return(x^(-1.5))
   }
+  
   bc_neg05_density <- function(x) {
     
     unajusted_dens <- dnorm(box_cox_neg05(x), 
@@ -622,6 +851,7 @@ box_cox_density <- function(x,
     return(unajusted_dens * bc_05_jacobian(x))
     
   }
+  
   ## 
   ## lambda <- +0.5:
   ##
@@ -668,8 +898,7 @@ box_cox_density <- function(x,
     
   }
   
-}
-
+ 
 
 
 #' box_cox_transform
@@ -708,6 +937,10 @@ bc_density <- function(x,
         sd = transformed_sd) * jacobian
   
 }
+
+
+
+
 
 
 # study_indexes <- c(1:n_studies)
