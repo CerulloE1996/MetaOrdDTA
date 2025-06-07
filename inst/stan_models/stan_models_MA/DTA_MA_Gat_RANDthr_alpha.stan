@@ -24,7 +24,7 @@ data {
         array[n_studies] int n_obs_cutpoints;
         ////
         array[2] matrix[n_studies, n_thr + 1] x;
-        array[2] matrix[n_studies, n_thr] cutpoint_index;
+        array[2] matrix[n_studies, n_thr + 1] cutpoint_index;
         ////
         //// ---- Priors for location ("beta"):
         ////
@@ -43,8 +43,6 @@ data {
         //// ---- Induced-Dirichlet priors:
         ////
         // vector[n_thr + 1] prior_dirichlet_cat_means_alpha;
-        // real<lower=0.0> prior_kappa_mean;
-        // real<lower=0.0> prior_kappa_SD;
         vector<lower=0.0>[n_thr + 1] prior_alpha_mean;
         vector<lower=0.0>[n_thr + 1] prior_alpha_SD;
         ////
@@ -54,12 +52,38 @@ data {
         int<lower=0, upper=1> softplus;
 }
 
-transformed data {
+
+transformed data {  
+        real mult_nd = -1.0;
+        real mult_d  = +1.0; //// hence: mult_d > mult_nd
+        ////
         int n_cat = n_thr + 1; //// Number of ordinal categories for index test
-        //// matrix[n_studies, n_thr] Ind_Dir_anchor = rep_matrix(0.0, n_studies, n_thr);
+        ////
+        int use_probit_link = 1;
+        ////
+        array[2] matrix[n_studies, n_thr] x_2;
+        array[2] vector[n_studies] N_total;
+        array[2] matrix[n_studies, n_thr] n;
+        ////
+        for (s in 1:n_studies) {
+          
+                  for (c in 1:2) {
+                      N_total[c][s] = x[c][s, 1];
+                      for (k in 1:n_thr) {
+                         x_2[c][s, k] = x[c][s, k + 1];
+                      }
+                  }
+            
+                  for (c in 1:2) {
+                       n[c][s, 1] = N_total[c][s];
+                       for (k in 2:n_obs_cutpoints[s]) {
+                                  n[c][s, k] = x_2[c][s, k - 1];
+                       }
+                  }
+                    
+       }
 }
   
-
 
 parameters {
         real beta_mu;    
@@ -72,14 +96,11 @@ parameters {
         ////
         matrix[n_studies, n_thr] C_raw;
         ////
-        // vector[n_cat - 1] phi_raw;
         vector<lower=alpha_lb>[n_cat] alpha;
 }
 
 
 transformed parameters { 
-        real mult_nd = -1.0;
-        real mult_d  = +1.0; //// hence: mult_d > mult_nd
         ////
         //// ---- Construct study-specific cutpoints:
         ////
@@ -87,16 +108,10 @@ transformed parameters {
         for (s in 1:n_studies) {
                      C[s, ] =  construct_C(C_raw[s, 1:n_thr], softplus);
         }
-        ////
-        //// ---- Likelihood stuff:
-        ////
-        array[2] matrix[n_studies, n_thr] surv_prob = init_array_of_matrices(n_studies, n_thr, 2, 1.0); // global
-        array[2] matrix[n_studies, n_thr] cond_prob  = init_array_of_matrices(n_studies, n_thr, 2, 0.0); // global
-        array[2] matrix[n_studies, n_thr] log_lik    = init_array_of_matrices(n_studies, n_thr, 2, 0.0); // global
                     ////
                     //// ---- Between-study model for location and scale:
                     ////
-                    {
+                    // {
                         matrix[n_studies, 2] locations = rep_matrix(0.0, n_studies, 2); // local
                         matrix[n_studies, 2] scales    = rep_matrix(1.0, n_studies, 2); // local
                         for (s in 1:n_studies) {
@@ -110,19 +125,6 @@ transformed parameters {
                             scales[s, 2] =  ((softplus == 1) ? softplus_scaled( mult_d*raw_scale_baseline)  : exp( mult_d*raw_scale_baseline));
                             ////
                         }
-                        //// 
-                        //// ---- Get the cutpoint index (k) to map "latent_surv[c][s, cut_i]" to correct cutpoint "C[k]":
-                        ////
-                        array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_prob_to_random_C(C, n_thr, locations, scales, n_studies, n_obs_cutpoints, cutpoint_index);
-                        ////
-                        //// ---- Multinomial (factorised binomial likelihood):
-                        ////
-                        int use_probit_link = 1;
-                        array[2, 3] matrix[n_studies, n_thr] log_lik_outs = compute_log_lik_binomial_probit_fact(latent_surv, use_probit_link, x, n_obs_cutpoints);
-                        log_lik    = log_lik_outs[, 1];
-                        cond_prob  = log_lik_outs[, 2];
-                        surv_prob = log_lik_outs[, 3];
-                    }
 }
 
 
@@ -137,17 +139,13 @@ model {
         //// ---- Induced-dirichlet between study ** model ** (NOT a prior model here but part of the actual likelihood since random-effect cutpoints!):
         ////
         {
-                // matrix[n_studies, n_thr] Ind_Dir_cumul = C[c]; ////- Ind_Dir_anchor;
-                matrix[n_studies, n_thr] Ind_Dir_cumul_prob = Phi(C);
-                matrix[n_studies, n_cat] Ind_Dir_ord_prob = cumul_probs_to_ord_probs(Ind_Dir_cumul_prob);
-                ////
-                // //// can put a "flat" prior on the simplex dirichlet_cat_means_phi.
-                alpha ~ normal(prior_alpha_mean, prior_alpha_SD);
-                ////
-                for (s in 1:n_studies) {
-                    row_vector[n_thr] rho =  std_normal_pdf(C[s, ]); //// , Ind_Dir_cumul_prob[s, 1:n_thr]);
-                    target += induced_dirichlet_given_rho_lpdf(Ind_Dir_ord_prob[s, 1:n_cat] | rho, to_row_vector(alpha[1:n_cat]));
-                }
+             for (s in 1:n_studies) {
+                 vector[n_cat] Ind_Dir_ord_prob;
+                 if (use_probit_link == 1) Ind_Dir_ord_prob = to_vector(cumul_probs_to_ord_probs(Phi(C[s, ])));
+                 else                      Ind_Dir_ord_prob = to_vector(cumul_probs_to_ord_probs(inv_logit(C[s, ])));
+                 ////
+                 Ind_Dir_ord_prob ~ induced_dirichlet_given_C(to_vector(C[s, ]), alpha, use_probit_link);
+             }
         }
         ////
         //// ---- Likelihood / Model:
@@ -159,10 +157,17 @@ model {
         //// ---- Increment the log-likelihood:
         ////
         target += raw_C_to_C_log_det_J_lp(C_raw, softplus);
-        for (c in 1:2) {
-          target +=  sum(log_lik[c]);
+        ////
+        ////
+        //// ---- Log-likelihood:
+        ////
+        {
+            ////
+            //// ---- Get the cutpoint index (k) to map "latent_surv[c][s, cut_i]" to correct cutpoint "C[k]":
+            ////
+            array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_prob_to_random_C(C, n_thr, locations, scales, n_studies, n_obs_cutpoints, cutpoint_index);
+            target += compute_log_lik_binomial_fact_lp(latent_surv, use_probit_link, x_2, n, N_total, n_obs_cutpoints);
         }
-
 }
 
 
@@ -190,20 +195,23 @@ generated quantities {
           {
             vector[n_cat] prob_ord_mu   = alpha / sum(alpha);  //// dirichlet_cat_means_phi[c];
             vector[n_thr] prob_cumul_mu = ord_probs_to_cumul_probs(prob_ord_mu);
-            C_mu = cumul_probs_to_C_probit(prob_cumul_mu, 0.0, 1.0);
+            // C_mu = ID_cumul_probs_to_C(prob_cumul_mu, use_probit_link);
+            for (k in 1:n_thr) {
+                C_mu[k] = mean(C[1:n_studies, k]); // ID_cumul_probs_to_C(prob_cumul_mu, 0.0, 1.0);
+            }
           }
           ////
-          vector[n_thr] Fp = Phi(-(C_mu - location_nd_mu)/scale_nd_mu);
+          vector[n_thr] Fp = (use_probit_link == 1) ? Phi(-(C_mu - location_nd_mu)/scale_nd_mu) : inv_logit(-(C_mu - location_nd_mu)/scale_nd_mu);
           vector[n_thr] Sp = 1.0 - Fp;
-          vector[n_thr] Se = Phi(-(C_mu - location_d_mu)/scale_d_mu);
-          ////
+          vector[n_thr] Se = (use_probit_link == 1) ? Phi(-(C_mu - location_d_mu)/scale_d_mu)   : inv_logit(-(C_mu - location_d_mu)/scale_d_mu);
+          //// 
           //// ---- Calculate predictive accuracy:
           ////
           vector[n_thr] C_pred;
           {
             vector[n_cat] prob_ord_pred   = dirichlet_rng(alpha); //// Simulate from Dirichlet by using the summary "alpha" parameters.
             vector[n_thr] prob_cumul_pred = ord_probs_to_cumul_probs(prob_ord_pred);  //// Compute PREDICTED cumulative probabilities.
-            C_pred = cumul_probs_to_C_probit(prob_cumul_pred, 0.0, 1.0);  //// Compute PREDICTED cutpoints.
+            C_pred = ID_cumul_probs_to_C(prob_cumul_pred, use_probit_link);  //// Compute PREDICTED cutpoints.
           }
           ////
           real beta_pred        = normal_rng(beta_mu, beta_SD);
@@ -214,51 +222,54 @@ generated quantities {
           real scale_nd_pred  = ((softplus == 1) ? softplus_scaled( mult_nd*beta_pred) : exp( mult_nd*beta_pred));
           real scale_d_pred   = ((softplus == 1) ? softplus_scaled( mult_d*beta_pred)  : exp( mult_d*beta_pred));
           ////
-          vector[n_thr] Fp_pred =   Phi(-(C_pred - location_nd_pred)/scale_nd_pred);
-          vector[n_thr] Sp_pred =   1.0 - Fp_pred;
-          vector[n_thr] Se_pred =   Phi(-(C_pred - location_d_pred)/scale_d_pred);
+          // vector[n_thr] Fp_pred =   Phi(-(C_pred - location_nd_pred)/scale_nd_pred);
+          // vector[n_thr] Sp_pred =   1.0 - Fp_pred;
+          // vector[n_thr] Se_pred =   Phi(-(C_pred - location_d_pred)/scale_d_pred);
+          vector[n_thr] Fp_pred = (use_probit_link == 1) ? Phi(-(C_pred - location_nd_pred)/scale_nd_pred) : inv_logit(-(C_pred - location_nd_pred)/scale_nd_pred);
+          vector[n_thr] Sp_pred = 1.0 - Fp_pred;
+          vector[n_thr] Se_pred = (use_probit_link == 1) ? Phi(-(C_pred - location_d_pred)/scale_d_pred)   : inv_logit(-(C_pred - location_d_pred)/scale_d_pred);
           ////
-          //// ---- Calculate study-specific accuracy:
+          //// ---- Log-lik + study-specific accuracy computation (using "data" / double-precision fn for efficiency):
           ////
-          matrix[n_studies, n_thr] fp = surv_prob[1];
-          matrix[n_studies, n_thr] sp = 1.0 - fp;
-          matrix[n_studies, n_thr] se = surv_prob[2];
+          array[2] matrix[n_studies, n_thr] log_lik; // global (for e.g. LOO)
           ////
-          matrix[n_studies, n_thr] x_hat_nd = rep_matrix(-1, n_studies, n_thr);
-          matrix[n_studies, n_thr] x_hat_d  = rep_matrix(-1, n_studies, n_thr);
-          matrix[n_studies, n_thr] dev_nd   = rep_matrix(-1, n_studies, n_thr);
-          matrix[n_studies, n_thr] dev_d    = rep_matrix(-1, n_studies, n_thr);
+          // matrix[n_studies, n_thr] fp; // global
+          // matrix[n_studies, n_thr] sp; // global
+          // matrix[n_studies, n_thr] se; // global
+          ////
+          vector[n_studies] deviance_nd; // global
+          vector[n_studies] deviance_d;  // global
+          vector[n_studies] deviance;    // global
           {
-                array[2] matrix[n_studies, n_thr] x_hat = init_array_of_matrices(n_studies, n_thr, 2, -1);
-                array[2] matrix[n_studies, n_thr] dev   = init_array_of_matrices(n_studies, n_thr, 2, -1);
-                ////
-                //// ---- Model-predicted ("re-constructed") data:
-                ////
-                for (s in 1:n_studies) {
-                    for (c in 1:2) {
-                       for (cut_i in 1:to_int(n_obs_cutpoints[s])) {
-
-                            //// Model-estimated data:
-                            x_hat[c][s, cut_i] = cond_prob[c][s, cut_i] * x[c][s, cut_i];  	 // Fitted values
-
-                            //// Compute residual deviance contribution:
-                            real n_i =  (x[c][s, cut_i]);
-                            real x_i =  (x[c][s, cut_i + 1]);
-                            real x_hat_i =  (x_hat[c][s, cut_i]);
-                            real log_x_minus_log_x_hat = log(x_i) - log(x_hat_i);
-                            real log_diff_n_minus_x = log(n_i - x_i);
-                            real log_diff_n_minus_x_hat = log(abs(n_i - x_hat_i));
-
-                            dev[c][s, cut_i] = 2.0 * ( x_i * log_x_minus_log_x_hat + (n_i - x_i) * (log_diff_n_minus_x - log_diff_n_minus_x_hat) );
-
-                       }
-                    }
-                }
-
-                x_hat_nd = x_hat[1];
-                dev_nd = dev[1];
-                x_hat_d = x_hat[2];
-                dev_d = dev[2];
+              real scale = 1.0; // since using "Xu-like"" param.
+              array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_prob_to_random_C(C, n_thr, locations, scales, n_studies, n_obs_cutpoints, cutpoint_index);
+              ////
+              array[3, 2] matrix[n_studies, n_thr] outs = compute_log_lik_binomial_fact_data(latent_surv, use_probit_link, x_2, n, N_total, n_obs_cutpoints);
+              ////
+              log_lik   = outs[1];
+              array[2] matrix[n_studies, n_thr] cond_prob = outs[2];
+              array[2] matrix[n_studies, n_thr] surv_prob = outs[3];
+              ////
+              // fp = surv_prob[1];
+              // sp = 1.0 - fp;
+              // se = surv_prob[2];
+              ////
+              //// ---- Model fit (deviance):
+              ////
+              array[4] matrix[n_studies, n_thr] outs_model_fit = compute_deviance(cond_prob, x_2, n, n_obs_cutpoints);
+              ////
+              matrix[n_studies, n_thr] x_hat_nd = outs_model_fit[1];
+              matrix[n_studies, n_thr] dev_nd   = outs_model_fit[2];
+              matrix[n_studies, n_thr] x_hat_d  = outs_model_fit[3];
+              matrix[n_studies, n_thr] dev_d    = outs_model_fit[4];
+              ////
+              for (s in 1:n_studies) {
+                  for (k in 1:to_int(n_obs_cutpoints[s])) {
+                     deviance_nd[s] += dev_nd[s, k];
+                     deviance_d[s]  += dev_d[s, k];
+                  }
+                  deviance[s] = deviance_nd[s] + deviance_d[s];
+              }
           }
 
 }
