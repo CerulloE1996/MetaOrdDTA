@@ -9,10 +9,10 @@ R_fn_compile_stan_model_basic_given_file_name(
   cts,
   network,
   prior_only,
-  debugging = FALSE,
-  force_recompile = FALSE,
-  quiet = FALSE,
-  compile = TRUE
+  debugging,
+  force_recompile,
+  quiet,
+  compile
 )
 }
 \description{

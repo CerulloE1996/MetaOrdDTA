@@ -5,9 +5,11 @@
 \title{R_fn_prep_NMA_data}
 \usage{
 R_fn_prep_NMA_data(
-  x = NULL,
-  n_index_tests_per_study = NULL,
-  indicator_index_test_in_study = NULL
+  x,
+  X,
+  model_parameterisation,
+  n_index_tests_per_study,
+  indicator_index_test_in_study
 )
 }
 \description{

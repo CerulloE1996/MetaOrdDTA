@@ -6,12 +6,14 @@
 \usage{
 R_fn_set_priors_NMA(
   priors,
+  X,
+  n_studies,
+  n_index_tests,
   cts,
   model_parameterisation,
   random_thresholds,
   Dirichlet_random_effects_type,
   softplus,
-  n_index_tests,
   n_thr,
   n_cat
 )

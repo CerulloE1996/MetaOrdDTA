@@ -7,8 +7,10 @@
 R_fn_set_inits_MA(
   inits,
   priors,
+  X = X,
   n_studies,
-  n_tests,
+  n_tests = NULL,
+  n_index_tests = NULL,
   n_thr,
   cts,
   model_parameterisation,

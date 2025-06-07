@@ -5,15 +5,19 @@
 \title{prep_data_and_model}
 \usage{
 prep_data_and_model(
-  debugging = FALSE,
+  debugging,
   x,
-  indicator_index_test_in_study = NULL,
+  X,
+  indicator_index_test_in_study,
   internal_obj,
   basic_model_options,
   advanced_model_options,
   MCMC_params,
+  other_advanced_options,
   priors,
-  init_lists_per_chain
+  init_lists_per_chain,
+  compute_sim_study_metrics,
+  vec_index_inner_thr
 )
 }
 \description{

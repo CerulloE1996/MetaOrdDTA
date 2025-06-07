@@ -183,7 +183,9 @@ The default is "ordinal".}
 Create a new "MetaOrd_model" object.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{MetaOrd_model$new(
+  debugging = FALSE,
   x = self$x,
+  X = self$X,
   indicator_index_test_in_study = self$indicator_index_test_in_study,
   network = NULL,
   cts = NULL,
@@ -195,7 +197,23 @@ Create a new "MetaOrd_model" object.
   softplus = NULL,
   priors = NULL,
   n_chains = NULL,
-  init_lists_per_chain = self$init_lists_per_chain
+  init_lists_per_chain = self$init_lists_per_chain,
+  advanced_compile = FALSE,
+  force_recompile = FALSE,
+  quiet = FALSE,
+  compile = TRUE,
+  set_custom_CXX_CPP_flags = FALSE,
+  CCACHE_PATH = " ",
+  custom_cpp_user_header_file_path = NULL,
+  CXX_COMPILER_PATH = NULL,
+  CPP_COMPILER_PATH = NULL,
+  MATH_FLAGS = NULL,
+  FMA_FLAGS = NULL,
+  AVX_FLAGS = NULL,
+  THREAD_FLAGS = NULL,
+  compute_sim_study_metrics = NULL,
+  vec_index_inner_thr = NULL,
+  custom_file_name = NULL
 )}\if{html}{\out{</div>}}
 }
 
@@ -203,6 +221,8 @@ Create a new "MetaOrd_model" object.
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{x}}{The dataset. See class documentation for details.}
+
+\item{\code{X}}{Optional covariates. See class documentation for details.}
 
 \item{\code{network}}{See class documentation for details.}
 
@@ -241,7 +261,9 @@ Returns self$model_initial_obj, an object generated from the "MetaOrdDTA::prep_d
 Sample from the model
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{MetaOrd_model$sample(
+  debugging = self$debugging,
   x = self$x,
+  X = self$X,
   indicator_index_test_in_study = self$indicator_index_test_in_study,
   cts = self$basic_model_options$cts,
   network = self$basic_model_options$network,
@@ -252,6 +274,7 @@ Sample from the model
     self$advanced_model_options$Dirichlet_random_effects_type,
   box_cox = self$advanced_model_options$box_cox,
   softplus = self$advanced_model_options$softplus,
+  custom_file_name = self$advanced_model_options$custom_file_name,
   priors = self$priors,
   init_lists_per_chain = self$init_lists_per_chain,
   seed = NULL,
@@ -261,7 +284,9 @@ Sample from the model
   n_iter = 1000,
   adapt_delta = 0.8,
   max_treedepth = 10,
-  metric_shape = "diag_e"
+  metric_shape = "diag_e",
+  compute_sim_study_metrics = self$compute_sim_study_metrics,
+  vec_index_inner_thr = self$vec_index_inner_thr
 )}\if{html}{\out{</div>}}
 }
 
@@ -307,6 +332,7 @@ Returns self invisibly, allowing for method chaining of this classes (MetaOrd_mo
 Create and compute summary statistics, traces and model diagnostics.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{MetaOrd_model$summary(
+  debugging = self$debugging,
   compute_main_params = TRUE,
   compute_transformed_parameters = TRUE,
   compute_generated_quantities = TRUE,

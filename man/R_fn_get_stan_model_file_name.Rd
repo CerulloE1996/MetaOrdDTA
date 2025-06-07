@@ -5,6 +5,7 @@
 \title{R_fn_get_stan_model_file_name}
 \usage{
 R_fn_get_stan_model_file_name(
+  custom_file_name,
   cts,
   network,
   prior_only,

@@ -6,6 +6,9 @@
 \usage{
 R_fn_set_priors_MA(
   priors,
+  X,
+  n_studies = NULL,
+  n_index_tests = NULL,
   cts,
   model_parameterisation,
   random_thresholds,
