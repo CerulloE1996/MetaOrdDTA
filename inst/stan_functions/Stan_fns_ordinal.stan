@@ -114,7 +114,7 @@ real induced_dirichlet_given_C_lpdf(    vector p_ord,
 
         for (k in 1:n_thr) {
           if (use_probit_link == 1)  log_prob += normal_lpdf(C[k] | 0.0, 1.0);
-          else                       log_prob += logistic_lpdf(C[k] | 0.0, 1.0);
+          else                       log_prob += log_inv_logit(C[k]) + log1m_inv_logit(C[k]);
         }
         log_prob += dirichlet_lpdf(p_ord | alpha);
         
@@ -401,7 +401,7 @@ array[] matrix map_latent_surv_prob_to_fixed_C( vector C,
                                   matrix scales, 
                                   data int n_studies,
                                   data array[] int n_obs_cutpoints,
-                                  data array[] matrix cutpoint_index) {
+                                  data array[,,] int cutpoint_index) {
           
       int n_thr = num_elements(C); 
       array[2] matrix[n_studies, n_thr] latent_surv  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
@@ -409,7 +409,7 @@ array[] matrix map_latent_surv_prob_to_fixed_C( vector C,
       for (c in 1:2) {
           for (s in 1:n_studies) {
                   for (cut_i in 1:n_obs_cutpoints[s]) {
-                            int k = to_int(cutpoint_index[c][s, cut_i + 1]);
+                            int k = cutpoint_index[c, s, cut_i + 1];
                             if ((k != 0) && (k != -1)) latent_surv[c][s, cut_i] = - (C[k] - locations[s, c])/scales[s, c];
                   }
           }
@@ -423,7 +423,7 @@ array[] matrix map_latent_surv_prob_to_fixed_C( vector C,
                                   real scale, 
                                   data int n_studies,
                                   data array[] int n_obs_cutpoints,
-                                  data array[] matrix cutpoint_index) {
+                                  data array[,,] int cutpoint_index) {
           
       int n_thr = num_elements(C); 
       array[2] matrix[n_studies, n_thr] latent_surv  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
@@ -431,7 +431,7 @@ array[] matrix map_latent_surv_prob_to_fixed_C( vector C,
       for (c in 1:2) {
           for (s in 1:n_studies) {
                   for (cut_i in 1:n_obs_cutpoints[s]) {
-                            int k = to_int(cutpoint_index[c][s, cut_i + 1]);
+                            int k = cutpoint_index[c, s, cut_i + 1];
                             if ((k != 0) && (k != -1)) latent_surv[c][s, cut_i] = - (C[k] - locations[s, c])/scale;
                   }
           }
@@ -450,7 +450,7 @@ array[] matrix map_latent_surv_prob_to_fixed_hetero_C(  array[] vector C,
                                                 matrix scales, 
                                                 data int n_studies,
                                                 data array[] int n_obs_cutpoints,
-                                                data array[] matrix cutpoint_index) {
+                                                data array[,,] int cutpoint_index) {
                                     
       int n_thr = num_elements(C[1]); 
       array[2] matrix[n_studies, n_thr] latent_surv  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
@@ -458,7 +458,7 @@ array[] matrix map_latent_surv_prob_to_fixed_hetero_C(  array[] vector C,
       for (c in 1:2) {
           for (s in 1:n_studies) {
                       for (cut_i in 1:n_obs_cutpoints[s]) {
-                               int k = to_int(cutpoint_index[c][s, cut_i + 1]);
+                               int k = cutpoint_index[c, s, cut_i + 1];
                                if (k != -1) { 
                                    latent_surv[c][s, cut_i] = - (C[c][k] - locations[s, c])/scales[s, c];
                               }
@@ -474,7 +474,7 @@ array[] matrix map_latent_surv_prob_to_fixed_hetero_C(  array[] vector C,
                                                 real scale, 
                                                 data int n_studies,
                                                 data array[] int n_obs_cutpoints,
-                                                data array[] matrix cutpoint_index) {
+                                                data array[,,] int cutpoint_index) {
           
       int n_thr = num_elements(C[1]); 
       array[2] matrix[n_studies, n_thr] latent_surv  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
@@ -482,7 +482,7 @@ array[] matrix map_latent_surv_prob_to_fixed_hetero_C(  array[] vector C,
       for (c in 1:2) {
           for (s in 1:n_studies) {
                       for (cut_i in 1:n_obs_cutpoints[s]) {
-                              int k = to_int(cutpoint_index[c][s, cut_i + 1]);
+                              int k = cutpoint_index[c, s, cut_i + 1];
                               if (k != -1) { 
                                    latent_surv[c][s, cut_i] = - (C[c][k] - locations[s, c])/scale;
                               }
@@ -504,14 +504,14 @@ array[] matrix map_latent_surv_prob_to_random_C( matrix C,
                                   matrix scales, 
                                   data int n_studies,
                                   data array[] int n_obs_cutpoints,
-                                  data array[] matrix cutpoint_index) {
+                                  data array[,,] int cutpoint_index) {
           
       array[2] matrix[n_studies, n_thr] latent_surv  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
       
       for (c in 1:2) {
           for (s in 1:n_studies) {
                   for (cut_i in 1:n_obs_cutpoints[s]) {
-                                  int k = to_int(cutpoint_index[c][s, cut_i + 1]);
+                                  int k = cutpoint_index[c, s, cut_i + 1];
                                   if ((k != 0) && (k != -1)) latent_surv[c][s, cut_i] = - (C[s, k] - locations[s, c])/scales[s, c];
                      
                   }
@@ -527,7 +527,7 @@ array[] matrix map_latent_surv_prob_to_random_C( matrix C,
                                   real scale, 
                                   data int n_studies,
                                   data array[] int n_obs_cutpoints,
-                                  data array[] matrix cutpoint_index) {
+                                  data array[,,] int cutpoint_index) {
           
       int n_cat = n_thr + 1;
       array[2] matrix[n_studies, n_thr] latent_surv  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
@@ -535,7 +535,7 @@ array[] matrix map_latent_surv_prob_to_random_C( matrix C,
       for (c in 1:2) {
           for (s in 1:n_studies) {
                   for (cut_i in 1:n_obs_cutpoints[s]) {
-                                  int k = to_int(cutpoint_index[c][s, cut_i + 1]);
+                                  int k = cutpoint_index[c, s, cut_i + 1];
                                   if ((k != 0) && (k != -1)) latent_surv[c][s, cut_i] = - (C[s, k] - locations[s, c])/scale;
                   }
           }
@@ -557,7 +557,7 @@ array[] matrix map_latent_surv_to_random_hetero_C( array[] matrix C,
                                   matrix scales, 
                                   data int n_studies,
                                   data array[] int n_obs_cutpoints,
-                                  data array[] matrix cutpoint_index) {
+                                  data array[,,] int cutpoint_index) {
           
       int n_cat = n_thr + 1;
       array[2] matrix[n_studies, n_thr] latent_surv  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
@@ -565,7 +565,7 @@ array[] matrix map_latent_surv_to_random_hetero_C( array[] matrix C,
       for (c in 1:2) {
           for (s in 1:n_studies) {
                   for (cut_i in 1:n_obs_cutpoints[s]) {
-                                 int k = to_int(cutpoint_index[c][s, cut_i + 1]);
+                                 int k = cutpoint_index[c, s, cut_i + 1];
                                  if ((k != 0) && (k != -1)) latent_surv[c][s, cut_i] = - (C[c][s, k] - locations[s, c])/scales[s, c];
                   }
           }
@@ -580,7 +580,7 @@ array[] matrix map_latent_surv_to_random_hetero_C( array[] matrix C,
                                   real scale, 
                                   data int n_studies,
                                   data array[] int n_obs_cutpoints,
-                                  data array[] matrix cutpoint_index) {
+                                  data array[,,] int cutpoint_index) {
           
       int n_cat = n_thr + 1;
       array[2] matrix[n_studies, n_thr] latent_surv  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
@@ -588,7 +588,7 @@ array[] matrix map_latent_surv_to_random_hetero_C( array[] matrix C,
       for (c in 1:2) {
           for (s in 1:n_studies) {
                   for (cut_i in 1:n_obs_cutpoints[s]) {
-                               int k = to_int(cutpoint_index[c][s, cut_i + 1]);
+                               int k = cutpoint_index[c, s, cut_i + 1];
                                if ((k != 0) && (k != -1)) latent_surv[c][s, cut_i] = - (C[c][s, k] - locations[s, c])/scale;
                         
                   }
