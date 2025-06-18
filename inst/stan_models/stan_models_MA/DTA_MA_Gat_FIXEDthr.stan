@@ -28,8 +28,8 @@ data {
         matrix[n_studies, n_covariates] X;
         vector[n_covariates] baseline_case; // must be user-inputted - e.g. could be {0, 1, 45.3} for 2 binary covariates and 1 cts one (e.g. age)
         ////
-        array[2] matrix[n_studies, n_thr + 1] x;
-        array[2] matrix[n_studies, n_thr + 1] cutpoint_index; 
+        array[2, n_studies, n_thr + 1] int x;
+        array[2, n_studies, n_thr + 1] int cutpoint_index;
         ////
         //// ---- Priors for location ("beta"):
         ////
@@ -52,39 +52,34 @@ data {
         //// ---- Other:
         ////
         int<lower=0, upper=1> softplus;
+        ////
+        int use_probit_link;
 }
 
 
 transformed data { 
         int n_cat = n_thr + 1; //// Number of ordinal categories for index test
-        int use_probit_link = 1;
         ////
         real mult_nd = -1.0;
         real mult_d  = +1.0; //// hence: mult_d > mult_nd
         ////
-        array[2] matrix[n_studies, n_thr] x_2;
-        array[2] vector[n_studies] N_total;
-        array[2] matrix[n_studies, n_thr] n;
+        array[2, n_studies, n_thr] int x_2;
+        array[2, n_studies] int N_total;
+        array[2, n_studies, n_thr] int n;
         ////
         for (s in 1:n_studies) {
-                  for (c in 1:2) {
-                      N_total[c][s] = x[c][s, 1];
-                      for (k in 1:n_thr) {
-                         x_2[c][s, k] = x[c][s, k + 1];
-                      }
+              for (c in 1:2) {
+                  N_total[c, s] = x[c, s, 1];
+                  for (k in 1:n_thr) { 
+                     x_2[c, s, k] = x[c, s, k + 1];
                   }
-                  for (c in 1:2) {
-                       n[c][s, 1] = N_total[c][s];
-                       ////
-                       for (k in 2:n_obs_cutpoints[s]) {
-                                  n[c][s, k] = x_2[c][s, k - 1];
-                       }
-                  }
-       }
-       ////
-       array[n_studies] int dummy_ind_test_in_study;
-       for (s in 1:n_studies) {
-          dummy_ind_test_in_study[s] = 1;
+              }
+              for (c in 1:2) {
+                   n[c, s, 1] = N_total[c, s];
+                   for (k in 2:n_obs_cutpoints[s]) {
+                              n[c, s, k] = x_2[c, s, k - 1];
+                   }
+              }
        }
 }
 
@@ -98,7 +93,7 @@ parameters {
         real<lower=0.0> raw_scale_SD;
         vector[n_studies] raw_scale_z;
         ////
-        vector[n_thr] C_raw_vec;
+        vector<lower=-7.5, upper=2.5>[n_thr] C_raw_vec;
 }
  
 
@@ -110,29 +105,20 @@ transformed parameters {
         ////
         //// ---- Between-study model for location and scale:
         ////
-        vector[n_studies] beta_random;
-        vector[n_studies] raw_scale_random;
-        for (s in 1:n_studies) {
-            beta_random[s]      = beta_SD      * beta_z[s];
-            raw_scale_random[s] = raw_scale_SD * raw_scale_z[s];
-        }
+        vector[n_studies] beta_random = beta_SD * beta_z;
+        vector[n_studies] raw_scale_random = raw_scale_SD * raw_scale_z;
         ////
         matrix[n_studies, 2] Xlocations; // NOT local
-        matrix[n_studies, 2] Xraw_scale; // NOT local
-        matrix[n_studies, 2] Xscale; // NOT local
+        matrix[n_studies, 2] Xscale;     // NOT local
         ////
-        // real Xbeta_baseline = dot_product(baseline_case, beta_mu);
-        // real location_nd_baseline = mult_nd * Xbeta_baseline;
-        // real location_d_baseline = mult_d * Xbeta_baseline;
-        ////
-        for (s in 1:n_studies) {
-            real Xbeta_baseline  = sum(to_vector(X[s, 1:n_covariates]) .* beta_mu[1:n_covariates]) + beta_random[s];
-            Xlocations[s, 1] = mult_nd*Xbeta_baseline; 
-            Xlocations[s, 2] = mult_d*Xbeta_baseline; 
-            ////
-            real Xraw_scale_baseline = sum(to_vector(X[s, 1:n_covariates]) .* raw_scale_mu[1:n_covariates]) + raw_scale_random[s]; // "Xgamma"
-            Xscale[s, 1] =  ((softplus == 1) ? softplus_scaled( mult_nd*Xraw_scale_baseline) : exp( mult_nd*Xraw_scale_baseline)); 
-            Xscale[s, 2] =  ((softplus == 1) ? softplus_scaled( mult_d*Xraw_scale_baseline)  : exp( mult_d*Xraw_scale_baseline));
+        {
+            vector[n_studies] Xbeta_baseline = X[, 1:n_covariates] * to_vector(beta_mu[1:n_covariates]) + beta_random;
+            Xlocations[, 1] = mult_nd*Xbeta_baseline; 
+            Xlocations[, 2] = mult_d*Xbeta_baseline; 
+            
+            vector[n_studies] Xraw_scale_baseline = X[, 1:n_covariates] * to_vector(raw_scale_mu[1:n_covariates]) + raw_scale_random;
+            Xscale[, 1] =  ((softplus == 1) ? softplus_scaled( mult_nd*Xraw_scale_baseline) : exp( mult_nd*Xraw_scale_baseline)); 
+            Xscale[, 2] =  ((softplus == 1) ? softplus_scaled( mult_d*Xraw_scale_baseline)  : exp( mult_d*Xraw_scale_baseline));
         }
 }
 
@@ -141,11 +127,19 @@ model {
         ////
         //// ---- Priors for locations:
         ////
-        beta_mu[1:n_covariates] ~ normal(prior_beta_mu_mean[1:n_covariates], prior_beta_mu_SD[1:n_covariates]);  
-        beta_SD ~ normal(prior_beta_SD_mean, prior_beta_SD_SD);
+        beta_mu[1:n_covariates] ~ normal(
+                                  prior_beta_mu_mean[1:n_covariates], 
+                                  prior_beta_mu_SD[1:n_covariates]);  
+        beta_SD ~ normal(
+                  prior_beta_SD_mean, 
+                  prior_beta_SD_SD);
         ////
-        raw_scale_mu[1:n_covariates] ~ normal(prior_raw_scale_mu_mean[1:n_covariates], prior_raw_scale_mu_SD[1:n_covariates]); 
-        raw_scale_SD ~ normal(prior_raw_scale_SD_mean, prior_raw_scale_SD_SD);
+        raw_scale_mu[1:n_covariates] ~ normal(
+                                       prior_raw_scale_mu_mean[1:n_covariates], 
+                                       prior_raw_scale_mu_SD[1:n_covariates]); 
+        raw_scale_SD ~ normal(
+                       prior_raw_scale_SD_mean, 
+                       prior_raw_scale_SD_SD);
         ////
         //// ---- Induced-dirichlet ** Prior ** model:
         ////
@@ -154,7 +148,8 @@ model {
            if (use_probit_link == 1) Ind_Dir_ord_prob = cumul_probs_to_ord_probs(Phi(C));
            else                      Ind_Dir_ord_prob = cumul_probs_to_ord_probs(inv_logit(C));
            ////
-           Ind_Dir_ord_prob ~ induced_dirichlet_given_C(C, prior_dirichlet_alpha, use_probit_link);
+           Ind_Dir_ord_prob ~ induced_dirichlet_given_C(
+                              C, prior_dirichlet_alpha, use_probit_link);
         }
         ////
         //// ---- Likelihood / Model:
@@ -170,11 +165,12 @@ model {
             ////
             //// ---- Get the cutpoint index (k) to map "latent_surv[c][s, cut_i]" to correct cutpoint "C[k]":
             ////
-            real scale = 1.0; // since using "Xu-like"" param.
             array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_prob_to_fixed_C(
-                                                            C, Xlocations, Xscale, n_studies, n_obs_cutpoints, cutpoint_index);
+                                                            C, Xlocations, Xscale, n_studies, 
+                                                            n_obs_cutpoints, cutpoint_index);
             target += compute_log_lik_binomial_fact_lp(
-                      latent_surv, use_probit_link, n_thr, x_2, n, N_total, n_obs_cutpoints, dummy_ind_test_in_study);
+                      latent_surv, use_probit_link, n_thr, n_studies, 
+                      x_2, n, N_total, n_obs_cutpoints);
         }
 }
  
@@ -236,9 +232,9 @@ generated quantities {
       ////
       array[2] matrix[n_studies, n_thr] log_lik; // global (for e.g. LOO)
       ////
-      matrix[n_studies, n_thr] fp; // global
-      matrix[n_studies, n_thr] sp; // global
-      matrix[n_studies, n_thr] se; // global
+      // matrix[n_studies, n_thr] fp; // global
+      // matrix[n_studies, n_thr] sp; // global
+      // matrix[n_studies, n_thr] se; // global
       ////
       vector[n_studies] deviance_nd; // global
       vector[n_studies] deviance_d;  // global
@@ -246,22 +242,26 @@ generated quantities {
       {
           real scale = 1.0; // since using "Xu-like"" param.
           array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_prob_to_fixed_C(
-                                                          C, Xlocations, Xscale, n_studies, n_obs_cutpoints, cutpoint_index);
+                                                          C, Xlocations, Xscale, n_studies, 
+                                                          n_obs_cutpoints, cutpoint_index);
           ////
           array[3, 2] matrix[n_studies, n_thr] outs = compute_log_lik_binomial_fact_data(
-                                                      latent_surv, use_probit_link, n_thr, x_2, n, N_total, n_obs_cutpoints);
+                                                      latent_surv, use_probit_link, n_thr, n_studies,
+                                                      x_2, n, N_total, n_obs_cutpoints);
           ////
           log_lik   = outs[1];
           array[2] matrix[n_studies, n_thr] cond_prob = outs[2];
           array[2] matrix[n_studies, n_thr] surv_prob = outs[3];
           ////
-          fp = surv_prob[1];
-          sp = 1.0 - fp;
-          se = surv_prob[2];
+          // fp = surv_prob[1];
+          // sp = 1.0 - fp;
+          // se = surv_prob[2];
           ////
           //// ---- Model fit (deviance):
           ////
-          array[4] matrix[n_studies, n_thr] outs_model_fit = compute_deviance(cond_prob, n_thr, x_2, n, n_obs_cutpoints);
+          array[4] matrix[n_studies, n_thr] outs_model_fit = compute_deviance(
+                                                             cond_prob, n_thr, n_studies, 
+                                                             x_2, n, n_obs_cutpoints);
           ////
           matrix[n_studies, n_thr] x_hat_nd = outs_model_fit[1];
           matrix[n_studies, n_thr] dev_nd   = outs_model_fit[2];

@@ -218,8 +218,12 @@ generated quantities {
           ////
           real Xraw_scale_baseline_nd = dot_product(baseline_case_nd, raw_scale_mu[1, 1:n_covariates_nd]);
           real Xraw_scale_baseline_d  = dot_product(baseline_case_d,  raw_scale_mu[2, 1:n_covariates_d]);
-          real scale_nd_baseline = ((softplus == 1) ? softplus_scaled(Xraw_scale_baseline_nd) : exp(Xraw_scale_baseline_nd));
-          real scale_d_baseline  = ((softplus == 1) ? softplus_scaled(Xraw_scale_baseline_d)  : exp(Xraw_scale_baseline_d));
+          real scale_nd_baseline = ((softplus == 1) ? 
+                                   softplus_scaled(Xraw_scale_baseline_nd) : 
+                                   exp(Xraw_scale_baseline_nd - 0.5*square(beta_SD[1])));
+          real scale_d_baseline  = ((softplus == 1) ? 
+                                   softplus_scaled(Xraw_scale_baseline_d)  : 
+                                   exp(Xraw_scale_baseline_d  - 0.5*square(beta_SD[2])));
           ////
           //// ---- Calculate baseline Se/Sp:
           ////
