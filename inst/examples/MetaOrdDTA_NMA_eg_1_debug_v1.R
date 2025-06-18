@@ -1,70 +1,12 @@
 
 
 
-# 
-# # # 
-# # # # # # # # # # # # #
-# # # # # # # ##
-# rm(list = ls())
-# 
-# 
-# os <- .Platform$OS.type
-# 
-# 
-# if (os == "unix") {
-#   user_root_dir <- Sys.getenv("PWD")
-# } else if (os == "windows") {
-#   user_root_dir <- Sys.getenv("USERPROFILE")
-# }
-# local_pkg_dir <- file.path(user_root_dir, "Documents/Work/PhD_work/R_packages/MetaOrdDTA")
-# #
-# 
-# 
-#  {
-#   ## First remove any possible package fragments:
-#   ## Find user_pkg_install_dir:
-#   user_pkg_install_dir <- Sys.getenv("R_LIBS_USER")
-#   print(paste("user_pkg_install_dir = ", user_pkg_install_dir))
-#   ##
-#   ## Find pkg_install_path + pkg_temp_install_path:
-#   pkg_install_path <- file.path(user_pkg_install_dir, "MetaOrdDTA")
-#   pkg_temp_install_path <- file.path(user_pkg_install_dir, "00LOCK-MetaOrdDTA")
-#   ##
-#   ## Remove any (possible) MetaOrdDTA package fragments:
-#   remove.packages("MetaOrdDTA")
-#   unlink(pkg_install_path, recursive = TRUE, force = TRUE)
-#   unlink(pkg_temp_install_path, recursive = TRUE, force = TRUE)
-# }
-# 
-# #
-# 
-# 
-# #
-# #### -------- ACTUAL (LOCAL) INSTALL:
-# ## Document:
-# devtools::clean_dll(local_pkg_dir)
-# roxygen2::roxygenize(local_pkg_dir)
-# ##
-# ## Install (outer pkg):
-# ##
-# devtools::clean_dll(local_pkg_dir)
-# devtools::install(local_pkg_dir,
-#                   upgrade = "never",
-#                   quick = TRUE)
-# ##
-# ## May need to restart R:
-# ##
-# .rs.restartR()  # In RStudio
-# 
-# # ?devtools::install
-# # # #
-# # # # #
-# # # # # #
-# 
-# 
 
 
 
+
+
+{
 
 os <- .Platform$OS.type
 
@@ -89,11 +31,7 @@ setwd(local_pkg_dir)
 source(file.path(getwd(), "inst", "examples", "thr_sim_study_helper_fns.R"))
        
  
-
-
-
-
-
+}
 
 
 
@@ -147,23 +85,21 @@ for (sim_index in 1:n_sims) {
           ##
           ## ---- Select x to use:
           ##
-          if (index_test_MA == "PHQ_9") {
-              if (missing_thr == TRUE) x <- x_PHQ9_w_missing_thr
-              else                     x <- x_PHQ9
-          } else if (index_test_MA == "GAD_2") { 
-              if (missing_thr == TRUE) x <- x_GAD2_w_missing_thr
-              else                     x <- x_GAD2
+          if (missing_thr == TRUE) { 
+            x <- x_NMA_w_missing_thr
+          } else { 
+            x <- x_NMA
           }
           ##
-          n_thr <- ncol(x[[1]]) - 1
+          # n_thr <- ncol(x[[1]]) - 1
           ##
-          n_studies <- nrow(x[[1]])
+          n_studies <- nrow(x[[1]][[1]])
           n_studies
           ##
           # x <- arrange_missing_values(x)
   }
   
-  true_DGM_Fp
+  # true_DGM_Fp
 
 ##
 ## ----  Initialise / select model: --------------------------------------------------------------------------- NMA:
@@ -197,7 +133,7 @@ init_lists_per_chain <- NULL
 model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(  
                   debugging = TRUE,
                   ##
-                  x = x_NMA,
+                  x = x,
                   indicator_index_test_in_study = indicator_index_test_in_study,
                   # n_index_tests_per_study = NULL,
                   ##
@@ -242,241 +178,11 @@ model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(
                   )
 
 
-{
-    # model_prep_obj$internal_obj$outs_data$stan_data_list
-    init_lists_per_chain <- model_prep_obj$init_lists_per_chain
-    priors <- model_prep_obj$priors
-    ##
-    n_studies <- nrow(x[[1]])
-    ##  n_index_tests <- 1# length(x[[1]])
-    
-    stan_data_list <- model_prep_obj$internal_obj$outs_data$stan_data_list
-}
+
+init_lists_per_chain <- model_prep_obj$init_lists_per_chain
+init_lists_per_chain[[1]]
 
 
-# stan_data_list$x_with_missings
-# stan_data_list$x
-# stan_data_list$n_obs_cutpoints
-# stan_data_list$cutpoint_index
-
-
-# Klaus_data_list$x
- 
-init_lists_per_chain <- vector(length = n_chains, "list")
-priors <- NULL
-
-
-# for (kk in 1:n_chains) {
-#   init_lists_per_chain[[kk]]$C_raw_vec <- list( rep(-3.0, n_thr), rep(-3.0, n_thr))
-#  # init_lists_per_chain[[kk]]$C <- list( seq(from = -2.0, to = 2.0, length = n_thr), 
-#   #                                      seq(from = -2.0, to = 2.0, length = n_thr))
-# }
-# 
-# 
-# beta_SD_prior <- 1.0
-# raw_scale_SD_prior <- 0.5
-
-# if (model_parameterisation == "Xu") {
-#       
-#           for (kk in 1:n_chains) {
-#                 
-#                 mat <- matrix(-2.0, nrow = n_studies, ncol = n_thr)
-#                 init_lists_per_chain[[kk]]$C_raw <-  list(mat, mat)
-#                 ##
-#                 init_lists_per_chain[[kk]]$alpha <-  list( rep(5.0, n_thr + 1), rep(5.0, n_thr + 1))
-#                 ##
-#                 init_lists_per_chain[[kk]]$beta_mu <- matrix(nrow = 2, c(-1.01, +1.01))
-#                 init_lists_per_chain[[kk]]$beta_z <- array(0.001, dim = c(n_studies, 2))
-#                 init_lists_per_chain[[kk]]$beta_SD <- rep(0.001, 2)
-#                 init_lists_per_chain[[kk]]$beta_corr <- -0.001
-#                 ##
-#                 p_vec <- rep(1.0/(n_thr + 1), n_thr + 1)
-#                 init_lists_per_chain[[kk]]$p_vec <- list(p_vec, p_vec)
-#                 ##
-#                 dirichlet_phi <- rep(1/(n_thr +  1), n_thr + 1)
-#                 init_lists_per_chain[[kk]]$dirichlet_phi <- list(dirichlet_phi, dirichlet_phi)
-#                 ##
-#                 kappa <- 25
-#                 init_lists_per_chain[[kk]]$kappa <- c(kappa, kappa) 
-#                 ##
-#                 dirichlet_phi_raw <- MetaOrdDTA:::generate_inits_for_raw_simplex_vec(n_thr = n_thr, seed = 123)
-#                 init_lists_per_chain[[kk]]$dirichlet_phi_raw <- list(dirichlet_phi_raw, dirichlet_phi_raw)
-#                 ##
-#                 target_sds <- rep(0.001, n_thr + 1)
-#                 init_lists_per_chain[[kk]]$target_sds <- list(target_sds, target_sds)
-#             
-#           }
-#             
-#             # init_lists_per_chain = NULL
-#             # 
-#             # priors$prior_raw_scale_mu_SD <- 0.25
-#             # priors$prior_raw_scale_SD_SD <- 0.125
-#             # 
-#             # priors$prior_beta_mu_SD <- 1
-#   
-#             if (Dirichlet_random_effects_type == "kappa") { 
-#                     
-#                     priors$prior_kappa_mean <- 0
-#                     priors$prior_kappa_SD <- 100
-#                     priors$kappa_lb <- 0.01
-#                     ##
-#                     prior_dirichlet_phi <- rep(1.0, n_thr + 1)
-#                     prior_dirichlet_phi[] <- 1.0
-#                     priors$prior_dirichlet_phi <- list(prior_dirichlet_phi, prior_dirichlet_phi)
-#               
-#             } else if (Dirichlet_random_effects_type == "alpha") { 
-#               
-#                     priors$prior_alpha_SD
-#                     
-#                     prior_alpha_mean <- 5
-#                     prior_alpha_SD   <- 10
-#                     ##
-#                     priors$prior_alpha_mean <- list( rep(prior_alpha_mean, n_thr + 1),  rep(prior_alpha_mean, n_thr + 1))
-#                     priors$prior_alpha_SD   <- list( rep(prior_alpha_SD, n_thr + 1), rep(prior_alpha_SD, n_thr + 1))
-#                     priors$alpha_lb <- 0
-#             }
-#             ##
-#             priors$prior_beta_mu_mean <- rep(list( matrix(0.0, nrow = 2, ncol = n_covariates) ), n_index_tests)
-#             priors$prior_beta_mu_SD   <- rep(list( matrix(1.0, nrow = 2, ncol = n_covariates) ), n_index_tests)
-#             # priors$prior_beta_mu_SD   <- matrix(1.0, nrow = 2, ncol = n_covariates)
-#             priors$prior_beta_SD_mean <- rep(0.0, 2)
-#             priors$prior_beta_SD_SD   <- rep(beta_SD_prior, 2)
-#             ##
-#             
-#             if (alpha_pi == "flat") { 
-#               
-#                     prior_dirichlet_alpha <- rep(2.0, n_thr + 1)
-#                     priors$prior_dirichlet_alpha <- list( prior_dirichlet_alpha, prior_dirichlet_alpha)
-#                   
-#             } else { 
-#                   
-#                   alpha_priors_outs <- generate_dual_ordinal_dirichlet_priors(n_cat = n_thr + 1,
-#                                                                nd_peak = 0.15,
-#                                                                d_peak = 0.30,
-#                                                                nd_max_alpha = 5,
-#                                                                d_max_alpha = 5,
-#                                                                nd_min_alpha = 1,
-#                                                                d_min_alpha = 1,
-#                                                                smoothness = 0.15)
-#                    priors$prior_dirichlet_alpha <- list( alpha_priors_outs$non_diseased, alpha_priors_outs$diseased)
-#                 
-#             }
-#             
-#       
-# } else if (model_parameterisation == "R&G") { 
-#       
-#           for (kk in 1:n_chains) {
-#                 mat <- matrix(-3.0, nrow = n_studies, ncol = n_thr)
-#                 init_lists_per_chain[[kk]]$C_raw <- mat
-#                 init_lists_per_chain[[kk]]$alpha <- rep(10.0, n_thr + 1)
-#             
-#           }
-#          ##  mat <- matrix(-3.0, nrow = n_studies, ncol = n_thr)
-#           for (kk in 1:n_chains) {
-#              init_lists_per_chain[[kk]]$C_raw_vec <-  rep(-3.0, n_thr)
-#           }
-#         
-#           ##
-#           priors$prior_alpha_mean <- rep(1.0, n_thr + 1)
-#           priors$prior_alpha_SD   <- rep(5, n_thr + 1)
-#           priors$alpha_lb <- 0
-#           ##
-#           priors$prior_beta_mu_mean <- 0.0
-#           priors$prior_beta_mu_SD   <- 1.0
-#           priors$prior_beta_SD_mean <- 0.0
-#           priors$prior_beta_SD_SD   <- beta_SD_prior
-#           ##
-#           priors$prior_raw_scale_mu_mean <- 0.0
-#           priors$prior_raw_scale_mu_SD   <- 1.0
-#           priors$prior_raw_scale_SD_mean <- 0.0
-#           priors$prior_raw_scale_SD_SD   <- raw_scale_SD_prior ## 0.25 ## on log-normal scale so should be small !!
-#           
-#           ##
-#           if (alpha_pi == "flat") { 
-#             
-#                priors$prior_dirichlet_alpha <-  rep(2.0, n_thr + 1)
-#                
-#           } else { 
-#             
-#                priors$prior_dirichlet_alpha <- generate_ordinal_dirichlet_prior( n_cat = n_thr + 1,
-#                                                                                  max_alpha = 5,
-#                                                                                  min_alpha = 1,
-#                                                                                  left_skew_factor = 0.5)
-#                
-#           }
-#   
-# } else if (model_parameterisation == "Jones") { 
-#   
-#         priors$prior_beta_mu_mean <- rep(list( matrix(0.0, nrow = 2, ncol = n_covariates) ), n_index_tests)
-#         priors$prior_beta_mu_SD   <- rep(list( matrix(5.0, nrow = 2, ncol = n_covariates) ), n_index_tests)
-#         # priors$prior_beta_SD_mean <- rep(0.0, 2)
-#         # priors$prior_beta_SD_SD   <- rep(beta_SD_prior, 2)
-#         ##
-#         priors$prior_raw_scale_mu_mean <-  rep(list( matrix(0.0, nrow = 2, ncol = n_covariates)  ), n_index_tests)
-#         priors$prior_raw_scale_mu_SD   <-  rep(list( matrix(1.0, nrow = 2, ncol = n_covariates)  ), n_index_tests)
-#         # priors$prior_raw_scale_SD_mean <- rep(0.0, 2)
-#         # priors$prior_raw_scale_SD_SD   <- rep(raw_scale_SD_prior, 2)
-#         ##
-#         priors$prior_boxcox_lambda_mean <- rep(0.00, n_index_tests)
-#         priors$prior_boxcox_lambda_SD   <- rep(1.00, n_index_tests)
-#         ##
-#         for (kk in 1:n_chains) {
-#           
-#           # mat <- matrix(-3.0, nrow = n_studies, ncol = n_thr)
-#           # init_lists_per_chain[[kk]]$C_raw <-  list(mat, mat)
-#           # init_lists_per_chain[[kk]]$alpha <-  list( rep(10.0, n_thr + 1), rep(10.0, n_thr + 1))
-#           ##
-#           init_lists_per_chain[[kk]]$beta_mu <- rep(list( matrix(nrow = 2, c(-1.01, +1.01))) , n_index_tests)
-#           init_lists_per_chain[[kk]]$beta_SD <- rep(0.001, 2)
-#           init_lists_per_chain[[kk]]$beta_z <- array(0.001, dim = c(n_studies, 2))
-#           init_lists_per_chain[[kk]]$beta_corr <- 0.001
-#           ##
-#           init_lists_per_chain[[kk]]$raw_scale_mu <- rep(list( matrix(nrow = 2, c(-1.01, +1.01))) , n_index_tests)
-#           init_lists_per_chain[[kk]]$raw_scale_SD <- rep(0.001, 2)
-#           init_lists_per_chain[[kk]]$raw_scale_z <- array(0.001, dim = c(n_studies, 2))
-#           init_lists_per_chain[[kk]]$raw_scale_corr <- 0.001
-#           ##
-#           init_lists_per_chain[[kk]]$lambda <- rep( list(rep(0.001, n_index_tests)), 2)
-# 
-#           
-#         }
-#         
-#   
-# }
-# 
-#
-# {
-# 
-#         priors$beta_corr_lb <- -1.0
-#         priors$beta_corr_ub <- +1.0 ## 0.0
-#         
-#         priors$prior_dirichlet_phi
-#         
-#         priors$kappa_lb <- 0.001
-#         ##
-#         priors$prior_kappa_mean <- 50
-#         ##
-#         priors$prior_kappa_SD <-  0.05  ## 25
-#        # priors$prior_kappa_SD <-  0.025 ## 25
-#       #   priors$prior_kappa_SD <-  0.01  ## 25
-#         ##
-#         if (model_parameterisation == "Xu") {
-#             prior_dirichlet_phi <- rep(1.0, n_thr + 1)
-#             priors$prior_dirichlet_phi <- list(prior_dirichlet_phi, prior_dirichlet_phi)
-#         } else if (model_parameterisation == "R&G") { 
-#           priors$prior_dirichlet_phi <- rep(1.0, n_thr + 1)
-#         }
-#         
-#         priors$prior_dirichlet_alpha
-#         #### init_lists_per_chain  = NULL
-# 
-# }
-# 
-# 
-# 
-# priors
-# 
-# model_prep_obj$outs_stan_model_name
 
 ##
 ## ----  Sample model: ----------------------------------------------------------------
@@ -514,13 +220,13 @@ tibble_gq   <- model_summary_and_trace_obj$get_summary_generated_quantities() %>
 tibble_all <- rbind(tibble_main, tibble_gq)
  # tibble_all <- rbind(tibble_main, tibble_tp, tibble_gq)
 ##
-dplyr::filter(tibble_all, (stringr::str_detect(parameter, "Se"))) %>% print(n = 1000)
+dplyr::filter(tibble_all, (stringr::str_detect(parameter, "Se_baseline"))) %>% print(n = 1000)
 true_DGM_Se
-mean(dplyr::filter(tibble_all, (stringr::str_detect(parameter, "Se\\[")))$mean*100 - true_DGM_Se)
+mean(dplyr::filter(tibble_all, (stringr::str_detect(parameter, "Se_baseline\\[")))$mean*100 - true_DGM_Se)
 ##
-dplyr::filter(tibble_all, (stringr::str_detect(parameter, "Sp"))) %>% print(n = 1000)
+dplyr::filter(tibble_all, (stringr::str_detect(parameter, "Sp_baseline"))) %>% print(n = 1000)
 true_DGM_Sp
-mean(dplyr::filter(tibble_all, (stringr::str_detect(parameter, "Sp\\[")))$mean*100 - true_DGM_Sp)
+mean(dplyr::filter(tibble_all, (stringr::str_detect(parameter, "Sp_baseline\\[")))$mean*100 - true_DGM_Sp)
 ##
 try({ 
     dplyr::filter(tibble_all, (stringr::str_detect(parameter, "kappa"))) %>% print(n = 1000)
@@ -537,6 +243,13 @@ try({
 
 
 # dplyr::filter(tibble_all, (stringr::str_detect(parameter, "beta_SD"))) %>% print(n = 1000)
+
+try({ 
+  dplyr::filter(tibble_all,
+                (stringr::str_detect(parameter, "kappa"))) %>% print(n = 1000)
+  dplyr::filter(tibble_all,
+                (stringr::str_detect(parameter, "raw_dirichlet_phi_vec"))) %>% print(n = 1000)
+})
 
 
 # kappa <- 5

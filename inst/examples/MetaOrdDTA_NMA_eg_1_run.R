@@ -6,6 +6,9 @@
 rm(list = ls())
 
 
+{
+
+
 os <- .Platform$OS.type
 
 
@@ -55,6 +58,9 @@ devtools::install(local_pkg_dir,
 .rs.restartR()  # In RStudio
 
 # ?devtools::install
+
+
+}
 
 
 
@@ -130,13 +136,7 @@ devtools::install(local_pkg_dir,
 
 
 
-
-
-
-
-
-
-
+{
 
 
 
@@ -175,10 +175,11 @@ source(file.path(getwd(), "inst", "examples", "thr_sim_study_helper_fns.R"))
     ##
     n_burnin <- 500
     ##
-    max_treedepth <- 9
-    # 2^max_treedepth
-     ##  adapt_delta <- 0.80
-    adapt_delta <- 0.65
+   #   max_treedepth <- 9
+    max_treedepth <- 10
+    ##
+    ## adapt_delta <- 0.65
+    adapt_delta <- 0.80
 
 }
 
@@ -194,21 +195,18 @@ source(file.path(getwd(), "inst", "examples", "thr_sim_study_helper_fns.R"))
 ######## N_per_study_mean <- 5000
 ######## N_per_study_mean <- 10000
 ##
-# N_per_study_mean <- 500  ; n_studies <- 10
-N_per_study_mean <- 500  ; n_studies <- 50
+## N_per_study_mean <- 500  ; n_studies <- 10
+# N_per_study_mean <- 500  ; n_studies <- 50
 ## N_per_study_mean <- 2500 ; n_studies <- 10
-# N_per_study_mean <- 2500 ; n_studies <- 50
+N_per_study_mean <- 2500 ; n_studies <- 50
 ##
 N_per_study_SD <- N_per_study_mean
 ## N_per_study_SD <- 1 ## N_per_study_mean
 
 
 
-
-# index_test_MA <- "PHQ_9" ;  missing_thr <- TRUE  ## SIM STUDY #1 
-######## index_test_MA <- "PHQ_9" ;  missing_thr <- FALSE  ## FOR TESTING
-index_test_MA <- "GAD_2" ;  missing_thr <- TRUE  ## SIM STUDY #2
-######## index_test_MA <- "GAD_2" ;  missing_thr <- FALSE   ## FOR TESTING
+missing_thr <- TRUE
+# missing_thr <- FALSE
 
 
 
@@ -235,60 +233,62 @@ alpha_pi <- "weak_info"
 
 
 
-if (index_test_MA == "GAD_2") { 
-        
-        index_test_chosen_index <- 1 + 1
-        n_thr <- 6
-        ##
-        vec_index_inner <- 1:n_thr ## NULL
-        compute_sim_study_metrics <- NULL
-        
-        if (bs_het_C_nd_prob_scale < 0.02) {
-         
-            if ((n_studies == 10) && (N_per_study_mean == 500))  n_sims <- 400  ## based on MCSE(Bias) of 0.25% and 30 sims.
-            if ((n_studies == 50) && (N_per_study_mean == 500))  n_sims <- 150  ## based on MCSE(Bias) of 0.25% and 30 sims.
-            ##
-            if ((n_studies == 10) && (N_per_study_mean == 2500)) n_sims <- 600 ## based on MCSE(Bias) of 0.25% and 30 sims.
-            if ((n_studies == 50) && (N_per_study_mean == 2500)) n_sims <- 150  ## based on MCSE(Bias) of 0.25% and 30 sims.
-         
-        } else { 
-          
-            if ((n_studies == 10) && (N_per_study_mean == 500))  n_sims <- 1000 ## based on MCSE(Bias) of 0.25% and 30 sims.
-            if ((n_studies == 50) && (N_per_study_mean == 500))  n_sims <- 150  ## based on MCSE(Bias) of 0.25% and 30 sims.
-            ##
-            if ((n_studies == 10) && (N_per_study_mean == 2500)) n_sims <- 1000 ## based on MCSE(Bias) of 0.25% and 30 sims.
-            if ((n_studies == 50) && (N_per_study_mean == 2500)) n_sims <- 150  ## based on MCSE(Bias) of 0.25% and 30 sims.
-            
-        }
-  
-} else if (index_test_MA == "PHQ_9") { 
-  
-          index_test_chosen_index <- 4 + 1
-          n_thr <- 27
-          ##
-          vec_index_inner <- 5:18
-          n_inner_thr <- length(vec_index_inner)
-          vec_index_outer_thr <- setdiff(1:n_thr, vec_index_inner)
-          n_outer_thr <- length(vec_index_outer_thr)
-          # compute_sim_study_metrics <- 1
-          ##
-          if (bs_het_C_nd_prob_scale < 0.02) {
-            {
-              if ((n_studies == 10) && (N_per_study_mean == 500))  n_sims <- 1000 ## based on MCSE(Bias) of 0.25% and 10 sims.
-              if ((n_studies == 50) && (N_per_study_mean == 500))  n_sims <- 100  ## based on MCSE(Bias) of 0.25% and 10 sims.
-              ##
-              if ((n_studies == 10) && (N_per_study_mean == 2500)) n_sims <- 250 ## based on MCSE(Bias) of 0.25% and 10 sims.
-              if ((n_studies == 50) && (N_per_study_mean == 2500)) n_sims <- 30  ## based on MCSE(Bias) of 0.25% and 10 sims.
-            }
-          } else { 
-            if ((n_studies == 10) && (N_per_study_mean == 500))  n_sims <- 2000 ## based on MCSE(Bias) of 0.25% and 10 sims.
-            if ((n_studies == 50) && (N_per_study_mean == 500))  n_sims <- 200  ## based on MCSE(Bias) of 0.25% and 10 sims.
-            ##
-            if ((n_studies == 10) && (N_per_study_mean == 2500)) n_sims <- 500 ## based on MCSE(Bias) of 0.25% and 10 sims.
-            if ((n_studies == 50) && (N_per_study_mean == 2500)) n_sims <- 100  ## based on MCSE(Bias) of 0.25% and 10 sims.
-          }
-          
-}
+index_test_chosen_index <- 1 + 1
+
+# if (index_test_MA == "GAD_2") { 
+#         
+#         index_test_chosen_index <- 1 + 1
+#         n_thr <- 6
+#         ##
+#         vec_index_inner <- 1:n_thr ## NULL
+#         compute_sim_study_metrics <- NULL
+#         
+#         if (bs_het_C_nd_prob_scale < 0.02) {
+#          
+#             if ((n_studies == 10) && (N_per_study_mean == 500))  n_sims <- 400  ## based on MCSE(Bias) of 0.25% and 30 sims.
+#             if ((n_studies == 50) && (N_per_study_mean == 500))  n_sims <- 150  ## based on MCSE(Bias) of 0.25% and 30 sims.
+#             ##
+#             if ((n_studies == 10) && (N_per_study_mean == 2500)) n_sims <- 600 ## based on MCSE(Bias) of 0.25% and 30 sims.
+#             if ((n_studies == 50) && (N_per_study_mean == 2500)) n_sims <- 150  ## based on MCSE(Bias) of 0.25% and 30 sims.
+#          
+#         } else { 
+#           
+#             if ((n_studies == 10) && (N_per_study_mean == 500))  n_sims <- 1000 ## based on MCSE(Bias) of 0.25% and 30 sims.
+#             if ((n_studies == 50) && (N_per_study_mean == 500))  n_sims <- 150  ## based on MCSE(Bias) of 0.25% and 30 sims.
+#             ##
+#             if ((n_studies == 10) && (N_per_study_mean == 2500)) n_sims <- 1000 ## based on MCSE(Bias) of 0.25% and 30 sims.
+#             if ((n_studies == 50) && (N_per_study_mean == 2500)) n_sims <- 150  ## based on MCSE(Bias) of 0.25% and 30 sims.
+#             
+#         }
+#   
+# } else if (index_test_MA == "PHQ_9") { 
+#   
+#           index_test_chosen_index <- 4 + 1
+#           n_thr <- 27
+#           ##
+#           vec_index_inner <- 5:18
+#           n_inner_thr <- length(vec_index_inner)
+#           vec_index_outer_thr <- setdiff(1:n_thr, vec_index_inner)
+#           n_outer_thr <- length(vec_index_outer_thr)
+#           # compute_sim_study_metrics <- 1
+#           ##
+#           if (bs_het_C_nd_prob_scale < 0.02) {
+#             {
+#               if ((n_studies == 10) && (N_per_study_mean == 500))  n_sims <- 1000 ## based on MCSE(Bias) of 0.25% and 10 sims.
+#               if ((n_studies == 50) && (N_per_study_mean == 500))  n_sims <- 100  ## based on MCSE(Bias) of 0.25% and 10 sims.
+#               ##
+#               if ((n_studies == 10) && (N_per_study_mean == 2500)) n_sims <- 250 ## based on MCSE(Bias) of 0.25% and 10 sims.
+#               if ((n_studies == 50) && (N_per_study_mean == 2500)) n_sims <- 30  ## based on MCSE(Bias) of 0.25% and 10 sims.
+#             }
+#           } else { 
+#             if ((n_studies == 10) && (N_per_study_mean == 500))  n_sims <- 2000 ## based on MCSE(Bias) of 0.25% and 10 sims.
+#             if ((n_studies == 50) && (N_per_study_mean == 500))  n_sims <- 200  ## based on MCSE(Bias) of 0.25% and 10 sims.
+#             ##
+#             if ((n_studies == 10) && (N_per_study_mean == 2500)) n_sims <- 500 ## based on MCSE(Bias) of 0.25% and 10 sims.
+#             if ((n_studies == 50) && (N_per_study_mean == 2500)) n_sims <- 100  ## based on MCSE(Bias) of 0.25% and 10 sims.
+#           }
+#           
+# }
 
 
  
@@ -333,26 +333,23 @@ if (n_studies < 50) {
 
 
 {
-  
-  output_dir = "simulation_results"
-  
-  # Create output directory if it doesn't exist
-  if (!dir.exists(output_dir)) {
-    dir.create(output_dir, recursive = TRUE)
-  }
-  
-  # Initialize storage for results
-  # Set up summary storage
-  summary_df <- create_summary_df(n_sims = n_sims,
-                                  min_k = vec_index_inner[1],
-                                  max_k = tail(vec_index_inner, 1))
-  
-  network <- TRUE
-  ##
-  softplus <- FALSE
-  # softplus <- TRUE
-  
-  
+    output_dir = "simulation_results"
+    
+    # Create output directory if it doesn't exist
+    if (!dir.exists(output_dir)) {
+      dir.create(output_dir, recursive = TRUE)
+    }
+    
+    # # Initialize storage for results
+    # # Set up summary storage
+    # summary_df <- create_summary_df(n_sims = n_sims,
+    #                                 min_k = vec_index_inner[1],
+    #                                 max_k = tail(vec_index_inner, 1))
+    
+    network <- TRUE
+    ##
+    softplus <- FALSE
+    # softplus <- TRUE
 }
 
 
@@ -363,6 +360,9 @@ if (n_studies < 50) {
 use_custom_file <- FALSE
 
 
+
+
+}
 
 
 
