@@ -9,7 +9,8 @@
 #' @export
 R_fn_get_covariate_info_NMA <- function(X, 
                                         model_parameterisation,
-                                        n_index_tests
+                                        n_index_tests,
+                                        n_studies
 ) {
   
   
@@ -112,10 +113,18 @@ R_fn_set_priors_NMA <- function(  priors,
   
     cov_info_list <- R_fn_get_covariate_info_NMA( X = X, 
                                                   model_parameterisation = model_parameterisation, 
-                                                  n_index_tests = n_index_tests)
+                                                  n_index_tests = n_index_tests,
+                                                  n_studies = n_studies)
     ##
     n_covariates_max <- cov_info_list$n_covariates_max
     print(paste("n_covariates_max = ", cov_info_list$n_covariates_max))
+    ##
+    priors$use_probit_link <- if_null_then_set_to(priors$use_probit_link, 1)
+    if (priors$use_probit_link == 1) { 
+      mult <- 1.0
+    } else { 
+      mult <- 1.702
+    }
     ##
     # ##
     # ## Update priors (if necessary):
@@ -130,11 +139,13 @@ R_fn_set_priors_NMA <- function(  priors,
                     priors$prior_beta_mu_mean <- if_null_then_set_to( priors$prior_beta_mu_mean, 
                                                                       rep(list( matrix(0.0, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
                     priors$prior_beta_mu_SD   <- if_null_then_set_to( priors$prior_beta_mu_SD, 
-                                                                      rep(list( matrix(5.0, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
+                                                                      rep(list( matrix(5.0*mult, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
                     ##
-                    priors$prior_beta_tau_SD <- if_null_then_set_to(priors$prior_beta_tau_SD, array(1.0, dim = c(n_index_tests, 2)))
+                    priors$prior_beta_tau_SD <- if_null_then_set_to(priors$prior_beta_tau_SD, 
+                                                                    array(1.0*mult, dim = c(n_index_tests, 2)))
                     ##
-                    priors$prior_beta_sigma_SD <- if_null_then_set_to(priors$prior_beta_sigma_SD, rep(1.0, 2))
+                    priors$prior_beta_sigma_SD <- if_null_then_set_to(priors$prior_beta_sigma_SD, 
+                                                                      rep(1.0*mult, 2))
                     ##
                     ## ---- Set priors for raw scales ("gamma"):
                     ##
@@ -142,24 +153,24 @@ R_fn_set_priors_NMA <- function(  priors,
                           priors$prior_raw_scale_mu_mean <- if_null_then_set_to( priors$prior_raw_scale_mu_mean, 
                                                                                  rep(list( matrix(0.0, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
                           priors$prior_raw_scale_mu_SD   <- if_null_then_set_to( priors$prior_raw_scale_mu_SD,
-                                                                                 rep(list( matrix(1.0, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
+                                                                                 rep(list( matrix(1.0*mult, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
                           ##
                           priors$prior_raw_scale_tau_SD <-  if_null_then_set_to( priors$prior_raw_scale_tau_SD, 
-                                                                                 array(1.0, dim = c(n_index_tests, 2)))
+                                                                                 array(1.0*mult, dim = c(n_index_tests, 2)))
                           ##alpha_lb
                           priors$prior_raw_scale_sigma_SD <- if_null_then_set_to( priors$prior_raw_scale_sigma_SD, 
-                                                                                  rep(1.0, 2))
+                                                                                  rep(1.0*mult, 2))
                     } else if (softplus == FALSE) {
                           priors$prior_raw_scale_mu_mean <-  if_null_then_set_to( priors$prior_raw_scale_mu_mean, 
                                                                                   rep(list( matrix(0.0, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
                           priors$prior_raw_scale_mu_SD   <-  if_null_then_set_to( priors$prior_raw_scale_mu_SD,
-                                                                                  rep(list( matrix(1.0, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
+                                                                                  rep(list( matrix(1.0*mult, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
                           ##
                           priors$prior_raw_scale_tau_SD <- if_null_then_set_to( priors$prior_raw_scale_tau_SD, 
-                                                                                array(1.0, dim = c(n_index_tests, 2)))
+                                                                                array(1.0*mult, dim = c(n_index_tests, 2)))
                           ##
                           priors$prior_raw_scale_sigma_SD <- if_null_then_set_to( priors$prior_raw_scale_sigma_SD,
-                                                                                  rep(1.0, 2))
+                                                                                  rep(1.0*mult, 2))
                     }
                     ##
                     ## ---- Set priors for box-cox:
@@ -191,35 +202,47 @@ R_fn_set_priors_NMA <- function(  priors,
                                 priors$prior_beta_mu_mean <- if_null_then_set_to(priors$prior_beta_mu_mean, 
                                                                                  rep(list( matrix(0.0, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
                                 priors$prior_beta_mu_SD   <- if_null_then_set_to(priors$prior_beta_mu_SD, 
-                                                                                 rep(list( matrix(1.0, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
+                                                                                 rep(list( matrix(1.0*mult, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
                                 ##
                                 priors$prior_beta_tau_SD <- if_null_then_set_to(priors$prior_beta_tau_SD, 
-                                                                                array(dim = c(n_index_tests, 2), 1.0))
+                                                                                array(dim = c(n_index_tests, 2), 1.0*mult))
                                 ##
                                 priors$prior_beta_sigma_SD <- if_null_then_set_to(priors$prior_beta_sigma_SD, 
-                                                                                  rep(1.0, 2))
+                                                                                  rep(1.0*mult, 2))
                                 ##
                                 ## ---- Set default priors for the between-study corr matricex for beta ("beta_L_Omega") and "raw_scale_L_Omega"):
                                 ##
                                 priors$beta_corr_lb <- if_null_then_set_to(priors$beta_corr_lb, -1.0)
                                 priors$beta_corr_ub <- if_null_then_set_to(priors$beta_corr_ub, +1.0)
-                                ##
-                                priors$prior_beta_corr_LKJ      <- if_null_then_set_to(priors$prior_beta_corr_LKJ, 2.0)
+                                priors$prior_beta_corr_LKJ <- if_null_then_set_to(priors$prior_beta_corr_LKJ, 2.0)
                                 ##
                                 ## ---- Induced-Dirichlet priors:
                                 ##
-                                priors$prior_dirichlet_alpha <- if_null_then_set_to(priors$prior_dirichlet_alpha, array(1.0, dim = c(n_index_tests, max(n_thr) + 1)))
-                                ##
-                                n_total_pooled_cat  <- sum(n_cat)
-                                n_thr_random = n_thr * n_studies
-                                n_total_C_if_random <- sum(n_thr_random)
-                                ##
-                                priors$n_total_C_if_random <- n_total_C_if_random
-                                priors$n_total_pooled_cat  <- n_total_pooled_cat
-                                ##
-                                priors$alpha_lb         <- if_null_then_set_to(priors$alpha_lb, 1.0)
-                                priors$prior_alpha_mean <- if_null_then_set_to(priors$prior_alpha_mean, array(0.0, dim = c(n_index_tests, max(n_thr) + 1)))
-                                priors$prior_alpha_SD   <- if_null_then_set_to(priors$prior_alpha_SD,   array(10.0, dim = c(n_index_tests, max(n_thr) + 1)))
+                                if (random_thresholds == TRUE) { 
+                                        # n_total_pooled_cat  <- sum(n_thr_max + 1)
+                                        n_thr_random = sum(n_thr_vec*n_studies)
+                                        priors$n_total_C_if_random <- sum(n_thr_random)
+                                        ##
+                                        ## array[n_index_tests, 2] vector[n_cat_max] prior_dirichlet_phi;
+                                        mat <- array(1.0, dim = c(n_index_tests, n_thr_max + 1))
+                                        priors$prior_dirichlet_phi <- if_null_then_set_to( priors$prior_dirichlet_phi, 
+                                                                                           list(mat, mat))
+                                        ##
+                                        ##
+                                        prior_kappa_mean <- rep(log(50), n_index_tests)
+                                        priors$prior_kappa_mean   <- if_null_then_set_to(  priors$prior_kappa_mean, 
+                                                                                           list(prior_kappa_mean, prior_kappa_mean))
+                                        ##
+                                        prior_kappa_SD <- rep(1.5, n_index_tests)
+                                        priors$prior_kappa_SD   <- if_null_then_set_to(  priors$prior_kappa_SD, 
+                                                                                         list(prior_kappa_SD, prior_kappa_SD))
+                                        ##
+                                        priors$kappa_lb <- if_null_then_set_to( priors$kappa_lb, 
+                                                                                0.001)
+                                } else { 
+                                        priors$prior_dirichlet_alpha <- if_null_then_set_to(priors$prior_dirichlet_alpha, 
+                                                                                            array(1.0, dim = c(n_index_tests, max(n_thr) + 1)))
+                                }
                                 
                     } else if (model_parameterisation %in% c("R&G", "HSROC", "Gatsonis")) { 
                                 ##
@@ -229,15 +252,15 @@ R_fn_set_priors_NMA <- function(  priors,
                                 priors$prior_beta_mu_mean <- if_null_then_set_to(priors$prior_beta_mu_mean, 
                                                                                  rep(list(vec), n_index_tests))
                                 ##
-                                vec <- rep(1.0, n_covariates_max)
+                                vec <- rep(1.0*mult, n_covariates_max)
                                 priors$prior_beta_mu_SD <- if_null_then_set_to(priors$prior_beta_mu_SD, 
                                                                                rep(list(vec), n_index_tests))
                                 ##
                                 priors$prior_beta_tau_SD   <- c(if_null_then_set_to(priors$prior_beta_tau_SD, 
-                                                                                    array(dim = c(n_index_tests, 1), 1.0)))
+                                                                                    array(dim = c(n_index_tests, 1), 1.0*mult)))
                                 ##
                                 priors$prior_beta_sigma_SD <- c(if_null_then_set_to(priors$prior_beta_sigma_SD, 
-                                                                                    rep(1.0, 1)))
+                                                                                    rep(1.0*mult, 1)))
                                 ##
                                 ## ---- Priors for raw_scale ("gamma"):
                                 ##
@@ -246,15 +269,15 @@ R_fn_set_priors_NMA <- function(  priors,
                                       priors$prior_raw_scale_mu_mean <- if_null_then_set_to(priors$prior_raw_scale_mu_mean, 
                                                                                             rep(list(vec), n_index_tests))
                                       ##
-                                      vec <- rep(1.0, n_covariates_max)
+                                      vec <- rep(1.0*mult, n_covariates_max)
                                       priors$prior_raw_scale_mu_SD <- if_null_then_set_to(priors$prior_raw_scale_mu_SD, 
                                                                                           rep(list(vec), n_index_tests))
                                       ##
                                       priors$prior_raw_scale_tau_SD   <-  if_null_then_set_to(priors$prior_raw_scale_tau_SD,  
-                                                                                               rep(1.0, n_index_tests))
+                                                                                               rep(1.0*mult, n_index_tests))
                                       ##
                                       priors$prior_raw_scale_sigma_SD <-  if_null_then_set_to(priors$prior_raw_scale_sigma_SD, 
-                                                                                               1.0)
+                                                                                               1.0*mult)
                                 } else { 
                                       vec <- rep(0.0, n_covariates_max)
                                       priors$prior_raw_scale_mu_mean <- if_null_then_set_to(priors$prior_raw_scale_mu_mean, 
@@ -265,33 +288,39 @@ R_fn_set_priors_NMA <- function(  priors,
                                                                                           rep(list(vec), n_index_tests))
                                       ##
                                       priors$prior_raw_scale_tau_SD   <- if_null_then_set_to(priors$prior_raw_scale_tau_SD,  
-                                                                                             rep(0.5, n_index_tests))
+                                                                                             rep(0.5*mult, n_index_tests))
                                       ##
                                       priors$prior_raw_scale_sigma_SD <- if_null_then_set_to(priors$prior_raw_scale_sigma_SD, 
-                                                                                             0.5)
+                                                                                             0.5*mult)
                                 }
                                 ##
                                 ## ---- Set default priors for the between-study corr matricex for beta ("beta_L_Omega") and "raw_scale_L_Omega"):
                                 ##
                                 priors$beta_corr_lb <- if_null_then_set_to(priors$beta_corr_lb, -1.0)
                                 priors$beta_corr_ub <- if_null_then_set_to(priors$beta_corr_ub, +1.0)
-                                ##
-                                priors$prior_beta_corr_LKJ      <- if_null_then_set_to(priors$prior_beta_corr_LKJ, 2.0)
-                                ##
-                                ## ---- Induced-Dirichlet priors:
-                                ##
-                                priors$prior_dirichlet_alpha <- if_null_then_set_to(priors$prior_dirichlet_alpha, array(1.0, dim = c(n_index_tests, max(n_thr) + 1)))
-                                ##
-                                n_total_pooled_cat  <- sum(n_cat)
-                                n_thr_random = n_thr * n_studies
-                                n_total_C_if_random <- sum(n_thr_random)
-                                ##
-                                priors$n_total_C_if_random <- n_total_C_if_random
-                                priors$n_total_pooled_cat  <- n_total_pooled_cat
-                                ##
-                                priors$alpha_lb         <- if_null_then_set_to(priors$alpha_lb, 1.0)
-                                priors$prior_alpha_mean <- if_null_then_set_to(priors$prior_alpha_mean, array(0.0, dim = c(n_index_tests, max(n_thr) + 1)))
-                                priors$prior_alpha_SD   <- if_null_then_set_to(priors$prior_alpha_SD,   array(10.0, dim = c(n_index_tests, max(n_thr) + 1)))
+                                priors$prior_beta_corr_LKJ  <- if_null_then_set_to(priors$prior_beta_corr_LKJ, 2.0)
+                                
+                                if (random_thresholds == TRUE) { 
+                                        # n_total_pooled_cat  <- sum(n_thr_max + 1)
+                                        n_thr_random = sum(n_thr_vec*n_studies)
+                                        priors$n_total_C_if_random <- sum(n_thr_random)
+                                        ##
+                                        ##
+                                        prior_dirichlet_phi <- array(1.0, dim = c(n_index_tests, n_thr_max + 1))
+                                        priors$prior_dirichlet_phi <- if_null_then_set_to( priors$prior_dirichlet_phi, 
+                                                                                           prior_dirichlet_phi)
+                                        ##
+                                        prior_kappa_mean <- rep(log(50), n_index_tests)
+                                        priors$prior_kappa_mean   <- if_null_then_set_to(  priors$prior_kappa_mean, 
+                                                                                           prior_kappa_mean)
+                                        ##
+                                        prior_kappa_SD <- rep(1.5, n_index_tests)
+                                        priors$prior_kappa_SD   <- if_null_then_set_to(  priors$prior_kappa_SD, 
+                                                                                         prior_kappa_SD)
+                                        ##
+                                        priors$kappa_lb <- if_null_then_set_to( priors$kappa_lb, 
+                                                                                0.001)
+                                }
                       
                     }
       

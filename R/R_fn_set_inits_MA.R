@@ -11,7 +11,7 @@ R_fn_set_inits_MA <- function(    inits,
                                   ##
                                   priors,
                                   ##
-                                  X = X,
+                                  X,
                                   ##
                                   n_studies,
                                   n_tests = NULL, ##  may be dummy argument (needed for pkg)
@@ -28,8 +28,9 @@ R_fn_set_inits_MA <- function(    inits,
 )  {
   
         
-        cov_info_list <- R_fn_get_covariate_info_MA(X = X, 
-                                                    model_parameterisation = model_parameterisation)
+        cov_info_list <- R_fn_get_covariate_info_MA(  X = X, 
+                                                      model_parameterisation = model_parameterisation,
+                                                      n_studies = n_studies)
         ##
         n_covariates_max <- cov_info_list$n_covariates_max
         print(paste("n_covariates_max = ", cov_info_list$n_covariates_max))
@@ -113,10 +114,11 @@ R_fn_set_inits_MA <- function(    inits,
                                                 mat <- matrix(-2.0, nrow = n_studies, ncol = n_thr)
                                                 inits$C_raw <-  if_null_then_set_to(inits$C_raw, mat)
                                                 ##
-                                                target_sds <- rep(0.001, n_thr + 1)
-                                                inits$target_sds <- if_null_then_set_to( inits$target_sds, target_sds)
+                                                inits$dirichlet_phi <- if_null_then_set_to( inits$dirichlet_phi, 
+                                                                                            rep(1/n_cat, n_cat))
                                                 ##
-                                                inits$dirichlet_phi <- if_null_then_set_to( inits$dirichlet_phi, rep(1/n_cat, n_cat))
+                                                inits$kappa <- if_null_then_set_to( inits$kappa, 
+                                                                                    50)
                                                 
                                         }
                                      
@@ -150,18 +152,16 @@ R_fn_set_inits_MA <- function(    inits,
                                                 ##
                                                 ## Default inits for the cutpoints:
                                                 ##
-                                                # cutpoint_vec <- seq(from = -2.0, to = 2.0, length = n_thr)
-                                                # inits$C_array <- if_null_then_set_to(inits$C_array, list(cutpoint_vec, cutpoint_vec))
-                                                ##
                                                 mat <- matrix(-2.0, nrow = n_studies, ncol = n_thr)
-                                                inits$C_raw <-  if_null_then_set_to(inits$C_raw, list(mat, mat))
-                                                ##
-                                                target_sds <- rep(0.001, n_thr + 1)
-                                                inits$target_sds <- if_null_then_set_to(inits$target_sds, list(target_sds, target_sds))
+                                                inits$C_raw <-  if_null_then_set_to(inits$C_raw, 
+                                                                                    list(mat, mat))
                                                 ##
                                                 dirichlet_phi <- rep(1/n_cat, n_cat)
-                                                inits$dirichlet_phi <- if_null_then_set_to( inits$dirichlet_phi, list(dirichlet_phi, dirichlet_phi))
-                                                
+                                                inits$dirichlet_phi <- if_null_then_set_to( inits$dirichlet_phi, 
+                                                                                            list(dirichlet_phi, dirichlet_phi))
+                                                ##
+                                                inits$kappa <-  if_null_then_set_to( inits$kappa, 
+                                                                                     c(50, 50))
                                         }
                                      
                              }

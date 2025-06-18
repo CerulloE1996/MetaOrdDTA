@@ -49,7 +49,7 @@ R_fn_prep_NMA_data <- function( x,
     { 
       n_thr <- c()
       for (t in 1:n_index_tests) {
-         n_thr[t] <- ncol(x_non_diseased[[t]])
+         n_thr[t] <- ncol(x_non_diseased[[t]]) - 1
       }
       # ## Add a "1" to the start since BINARY ref test:
       # n_thr <- c(1, n_thr)
@@ -61,16 +61,6 @@ R_fn_prep_NMA_data <- function( x,
     ## ---- Get "n_studies":
     ##
     n_studies <- nrow(x_non_diseased[[1]])
-    ##
-    ## ---- Get totals (use last col from first INDEX test):
-    ##
-    # {
-    #     t <- 1
-    #     n_total_nd <-  x_non_diseased[[t]][, n_thr[t]]
-    #     n_total_d  <-  x_diseased[[t]][, n_thr[t]]
-    #     (cat("n_total_nd = ", n_total_nd))
-    #     (cat("n_total_d = ", n_total_d))
-    # }
     ##
     ##
     ##
@@ -89,18 +79,12 @@ R_fn_prep_NMA_data <- function( x,
         stan_data_list$n_cat <- n_cat 
         stan_data_list$n_cat_max <- max(n_cat)
         ##
-        # stan_data_list$n_non_diseased <- n_total_nd
-        # stan_data_list$n_diseased <-     n_total_d
-        ##
-        stan_data_list$n_total_non_diseased <- 
-        ##
         stan_data_list$n_index_tests_per_study <- n_index_tests_per_study
         ##
         ## Index tests only:
         ##
         stan_data_list$indicator_index_test_in_study <- indicator_index_test_in_study
         ##
-        # stan_data_list$n <- list()
         stan_data_list$x <- list()
         stan_data_list$x_with_missings <- list()
         ##
@@ -110,40 +94,13 @@ R_fn_prep_NMA_data <- function( x,
     }
 ##
     for (c in 1:2) {
-          
-          stan_data_list$x_with_missings[[c]] <- list()
           stan_data_list$x[[c]] <- list()
-          # stan_data_list$n[[c]] <- list()
           stan_data_list$cutpoint_index[[c]] <- list()
           ##
           for (t in 1:n_index_tests) {
-              stan_data_list$x_with_missings[[c]][[t]] <- array(-1, dim = c(n_studies, stan_data_list$n_thr_max + 1)) ## "staggered" array.
               stan_data_list$x[[c]][[t]] <- array(-1, dim = c(n_studies, stan_data_list$n_thr_max + 1)) ## "staggered" array.
-              # stan_data_list$n[[c]][[t]] <- array(-1, dim = c(n_studies, stan_data_list$n_thr_max + 1)) ## "staggered" array.
               stan_data_list$cutpoint_index[[c]][[t]] <- array(-1, dim = c(n_studies, stan_data_list$n_thr_max + 1)) ## "staggered" array.
           }
-      
-    }
-    ##
-    ## Do "x_with_missings" first:
-    ##
-    for (t in 1:n_index_tests) {
-      
-          n_thr_t <- stan_data_list$n_thr[t]
-          ##
-          for (s in 1:n_studies) {
-            ##
-            for (k in 1:n_thr_t) {
-              ##
-              for (c in 1:2) {
-                if (c == 1) stan_data_list$x_with_missings[[c]][[t]][s, k] <- x_non_diseased[[t]][s, k]
-                if (c == 2) stan_data_list$x_with_missings[[c]][[t]][s, k] <- x_diseased[[t]][s, k]
-              }
-              
-            }
-            
-          }
-          
     }
     # array[n_index_tests] int n_covariates_nd;
     # array[n_index_tests] int n_covariates_d;
@@ -157,114 +114,65 @@ R_fn_prep_NMA_data <- function( x,
     ##
     cov_info_list <- MetaOrdDTA:::R_fn_get_covariate_info_NMA(  X = X, 
                                                                 model_parameterisation = model_parameterisation,
-                                                                n_index_tests = n_index_tests)
+                                                                n_index_tests = n_index_tests,
+                                                                n_studies = n_studies)
     stan_data_list <- c(stan_data_list, cov_info_list)
     ##
+    stan_data_list$x_with_missings <- x
     ##
     for (t in 1:n_index_tests) {
       
-              n_thr_t <-  stan_data_list$n_thr[t]
-              
-              for (s in 1:n_studies) {
-                
-                for (c in 1:2) {
-                        
-                        cutpoint_counter <- 0;
-                        stan_data_list$x[[c]][[t]][s, 1] <- stan_data_list$x_with_missings[[c]][[t]][s, 1]
-                        prev_non_missing_count <- x[[c]][[t]][s, 1]
-                        stan_data_list$cutpoint_index[[c]][[t]][s, 1] <- 0 ## because 1st col is total counts so no cutpoint to map
-                        
-                        for (k in 1:(n_thr + 1)) {
-                          
-                                  not_missing <- FALSE
-                                  if  (stan_data_list$x_with_missings[[c]][[t]][s, k] != -1) { 
-                                    not_missing <- TRUE
-                                  }
-                                  if (k == 1) { ## skip first col. of x as this is just the total counts
-                                    not_missing <- FALSE
-                                    stan_data_list$cutpoint_index[[c]][[t]][s, 2] = 1
-                                  } else {
-                                          
-                                          if (not_missing == TRUE)   {
-                                            
-                                            cutpoint_counter = cutpoint_counter + 1;
-                                            
-                                            # if (k != (n_thr + 1)) {
-                                            # if (k <= n_thr) {
-                                            stan_data_list$cutpoint_index[[c]][[t]][s, cutpoint_counter + 1] = k - 1  ## - 1;
-                                            # }
-                                            # }
-                                            
-                                            stan_data_list$x[[c]][[t]][s, cutpoint_counter + 1] <- stan_data_list$x_with_missings[[c]][[t]][s, k]
-                                            
-                                            ##  previous_non_missing_index <- k
-                                            prev_non_missing_count <- stan_data_list$x[[c]][[t]][s, cutpoint_counter + 1]
-                                            
-                                          } else { 
-                                            ## stan_data_list$x[[c]][s, cutpoint_counter] <- prev_non_missing_count
-                                          }
-                                    
-                                  }
-                          
-                        }
-                        
-                        stan_data_list$n_obs_cutpoints[t, s] <- cutpoint_counter## - 1
+        n_thr_t <-  stan_data_list$n_thr[t]
+        
+        for (s in 1:n_studies) {
+          
+          for (c in 1:2) {
                   
-                }
-                
-              }
-              
-              
-      
-              
-              # n_thr_t <-  stan_data_list$n_thr[t]
-              # ##
-              # for (s in 1:n_studies) {
-              #   
-              #       for (c in 1:2) {
-              #               
-              #           cutpoint_counter = 0;
-              #           previous_non_missing_index = 1;
-              #           
-              #           stan_data_list$cutpoint_index[[c]][[t]][s, 1] <- 1
-              #           
-              #           for (k in 2:(n_thr_t + 1)) {
-              #             
-              #                 if (k == (n_thr_t + 1)) {
-              #                   cond <- TRUE
-              #                 } else {
-              #                   cond <- (stan_data_list$x_with_missings[[c]][[t]][s, k] != -1)
-              #                 }
-              #                 
-              #                 if (cond == TRUE)   {
-              #                           
-              #                           cutpoint_counter = cutpoint_counter + 1;
-              #                           
-              #                           if (k != (n_thr_t + 1)) {
-              #                             stan_data_list$cutpoint_index[[c]][[t]][s, cutpoint_counter + 1] = k;
-              #                           }
-              #                           ##
-              #                           stan_data_list$x[[c]][[t]][s, cutpoint_counter] <- stan_data_list$x_with_missings[[c]][[t]][s, previous_non_missing_index]
-              #                           ##
-              #                           if (cutpoint_counter > 1) {
-              #                             # stan_data_list$n[[c]][[t]][s, cutpoint_counter - 1] <-   stan_data_list$x[[c]][[t]][s, cutpoint_counter]
-              #                           }
-              #                           ##
-              #                           if (k == (n_thr_t )) {
-              #                             # stan_data_list$n[[1]][[t]][s, n_thr_t] <- stan_data_list$n_non_diseased[s]
-              #                             # stan_data_list$n[[2]][[t]][s, n_thr_t] <- stan_data_list$n_diseased[s]
-              #                           }
-              #                           
-              #                           previous_non_missing_index <- k
-              #                   
-              #                 }
-              #                 ## print(paste("k = ", k))
-              #           }
-              #           stan_data_list$n_obs_cutpoints[t, s] <- cutpoint_counter
-              #           ## print(paste("c = ", c))
-              #       }
-              #       ## print(paste("s = ", s))
-              # }
+                  cutpoint_counter <- 0;
+                  stan_data_list$x[[c]][[t]][s, 1] <- stan_data_list$x_with_missings[[c]][[t]][s, 1]
+                  prev_non_missing_count <- x[[c]][[t]][s, 1]
+                  stan_data_list$cutpoint_index[[c]][[t]][s, 1] <- 0 ## because 1st col is total counts so no cutpoint to map
+                  
+                  for (k in 1:(n_thr_t + 1)) {
+                    
+                            not_missing <- FALSE
+                            if  (stan_data_list$x_with_missings[[c]][[t]][s, k] != -1) { 
+                              not_missing <- TRUE
+                            }
+                            if (k == 1) { ## skip first col. of x as this is just the total counts
+                              not_missing <- FALSE
+                              stan_data_list$cutpoint_index[[c]][[t]][s, 2] = 1
+                            } else {
+                                    
+                                    if (not_missing == TRUE)   {
+                                      
+                                      cutpoint_counter = cutpoint_counter + 1;
+                                      
+                                      # if (k != (n_thr + 1)) {
+                                      # if (k <= n_thr) {
+                                      stan_data_list$cutpoint_index[[c]][[t]][s, cutpoint_counter + 1] = k - 1  ## - 1;
+                                      # }
+                                      # }
+                                      
+                                      stan_data_list$x[[c]][[t]][s, cutpoint_counter + 1] <- stan_data_list$x_with_missings[[c]][[t]][s, k]
+                                      
+                                      ##  previous_non_missing_index <- k
+                                      prev_non_missing_count <- stan_data_list$x[[c]][[t]][s, cutpoint_counter + 1]
+                                      
+                                    } else { 
+                                      ## stan_data_list$x[[c]][s, cutpoint_counter] <- prev_non_missing_count
+                                    }
+                              
+                            }
+                    
+                  }
+                  
+                  stan_data_list$n_obs_cutpoints[t, s] <- cutpoint_counter## - 1
+            
+          }
+          
+        }
+        
               
     }
     ##
@@ -328,48 +236,37 @@ R_fn_prep_NMA_data <- function( x,
     ####
     #### ---- Convert double-nested lists to 4D arrays:
     ####
-    {
-
-            if (!(is.array(stan_data_list$x_with_missings))) {
-
-              ## Initialize 4D arrays:
-              x_with_missings_array <- array(NA_real_, dim = c(n_index_tests, 2, n_studies, stan_data_list$n_thr_max + 1))
-              # n_array <- array(NA_real_, dim = c(n_index_tests, 2, n_studies, stan_data_list$n_thr_max))
-              x_array <- array(NA_real_, dim = c(n_index_tests, 2, n_studies, stan_data_list$n_thr_max + 1))
-              cutpoint_index_array <- array(NA_real_, dim = c(n_index_tests, 2, n_studies, stan_data_list$n_thr_max + 1))
-
-
-              ## Fill 4D arrays w/ list elements:
-              for (t in 1:n_index_tests) {
-                for (c in 1:2) {
-                  # Make sure to check if the data exists
-                  if (!is.null(stan_data_list$x_with_missings[[c]][[t]])) {
-                    x_with_missings_array[t, c, , ] <- as.matrix(stan_data_list$x_with_missings[[c]][[t]])
-                  }
-
-                  # if (!is.null(stan_data_list$n[[c]][[t]])) {
-                  #   n_array[t, c, , ] <- as.matrix(stan_data_list$n[[c]][[t]])
-                  # }
-
-                  if (!is.null(stan_data_list$x[[c]][[t]])) {
-                    x_array[t, c, , ] <- as.matrix(stan_data_list$x[[c]][[t]])
-                  }
-
-                  if (!is.null(stan_data_list$cutpoint_index[[c]][[t]])) {
-                    cutpoint_index_array[t, c, , ] <- as.matrix(stan_data_list$cutpoint_index[[c]][[t]])
-                  }
-                }
-              }
-
-              ## Replace list structures with arrays in "stan_data_list":
-              stan_data_list$x_with_missings <- x_with_missings_array
-              # stan_data_list$n <- n_array
-              stan_data_list$x <- x_array
-              stan_data_list$cutpoint_index <- cutpoint_index_array
-
-            }
-
-    }
+      ## Initialize 4D arrays:
+      x_with_missings_array <- array(-1, dim = c(n_index_tests, 2, n_studies, stan_data_list$n_thr_max + 1))
+      x_array <- array(-1, dim = c(n_index_tests, 2, n_studies, stan_data_list$n_thr_max + 1))
+      cutpoint_index_array <- array(-1, dim = c(n_index_tests, 2, n_studies, stan_data_list$n_thr_max + 1))
+      ##
+      ## Fill 4D arrays w/ list elements:
+      ##
+      for (t in 1:n_index_tests) {
+        for (c in 1:2) {
+          # Make sure to check if the data exists
+          if (!is.null(stan_data_list$x_with_missings[[c]][[t]])) {
+            # Get the actual dimensions of this test's data
+            n_cols_t <- ncol(stan_data_list$x_with_missings[[c]][[t]])
+            # Only fill the columns that exist for this test
+            x_with_missings_array[t, c, , 1:n_cols_t] <- as.matrix(stan_data_list$x_with_missings[[c]][[t]])
+          }
+          if (!is.null(stan_data_list$x[[c]][[t]])) {
+            n_cols_t <- ncol(stan_data_list$x[[c]][[t]])
+            x_array[t, c, , 1:n_cols_t] <- as.matrix(stan_data_list$x[[c]][[t]])
+          }
+          if (!is.null(stan_data_list$cutpoint_index[[c]][[t]])) {
+            n_cols_t <- ncol(stan_data_list$cutpoint_index[[c]][[t]])
+            cutpoint_index_array[t, c, , 1:n_cols_t] <- as.matrix(stan_data_list$cutpoint_index[[c]][[t]])
+          }
+        }
+      }
+      ## Replace list structures with arrays in "stan_data_list":
+      stan_data_list$x_with_missings <- x_with_missings_array
+      # stan_data_list$n <- n_array
+      stan_data_list$x <- x_array
+      stan_data_list$cutpoint_index <- cutpoint_index_array
   
   return( list( stan_data_list = stan_data_list,
                 n_tests = n_tests,

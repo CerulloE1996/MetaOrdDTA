@@ -1,75 +1,195 @@
 
  
+
+#' SD_approx_probit_to_prob
+#' @export
+SD_approx_probit_to_prob <- function(SD_probit_scale) { 
+  
+  SD_prob_scale <- SD_probit_scale * dnorm(qnorm(SD_probit_scale))
+  ##
+  return(signif(SD_prob_scale, 3))
+  
+}
+
+
+
  
 
 
-
-generate_ordered_thresholds <- function(mean_thresholds, 
-                                        sd_thresholds) {
+#' SD_approx_ID_ord_prob_to_C_probit
+#' @export
+SD_approx_ID_ord_prob_to_C_probit <- function(mean_C_cutpoint_scale, 
+                                              SD_prob_scale) {
   
-          n_thr <- length(mean_thresholds)
+          SD_probit_scale <- (1.0 / dnorm(mean_C_cutpoint_scale)) * SD_prob_scale
+          return(SD_probit_scale)
           
-          if (n_thr <= 0) {
-            return(numeric(0))
+}
+
+# Use this in your simulation
+generate_ordered_thresholds_delta_method <- function(mean_cutpoints, 
+                                                     SD_prob_scale_vec,
+                                                     use_probit_link = TRUE) {
+          n_thr <- length(mean_cutpoints)
+          
+          if (n_thr <= 0) return(numeric(0))
+          
+          # Transform SDs from probability to cutpoint scale
+          sigma_C <- SD_approx_ID_ord_prob_to_C_probit(mean_cutpoints, SD_prob_scale_vec)
+          
+          # Generate cutpoints
+          cutpoints <- numeric(n_thr)
+          for (k in 1:n_thr) {
+            cutpoints[k] <- rnorm(1, mean = mean_cutpoints[k], sd = sigma_C[k])
           }
           
-          # Create thresholds that maintain the same pattern as the means
-          ordered_thresholds <- numeric(n_thr)
+          # Ensure ordering (this is the key addition for simulation)
+          cutpoints <- sort(cutpoints)
           
-          # Generate correlated noise
-          # Start with initial random offset
-          offset <- rnorm(1, 0, sd_thresholds[1] * 0.5)
+          return(cutpoints)
+  
+}
+
+
+#' generate_ordered_thresholds_delta_method_correlated
+#' @export
+generate_ordered_thresholds_delta_method_correlated <- function(mean_cutpoints, 
+                                                                SD_prob_scale_vec,
+                                                                use_probit_link = TRUE,
+                                                                base_correlation = 0.5) {
+  
+          n_thr <- length(mean_cutpoints)
+          if (n_thr <= 0) return(numeric(0))
           
-          # Apply offset to first threshold
-          ordered_thresholds[1] <- mean_thresholds[1] + offset
+          # Transform SDs from probability to cutpoint scale
+          sigma_C <- SD_approx_ID_ord_prob_to_C_probit(mean_cutpoints, SD_prob_scale_vec)
           
-          # For each subsequent threshold
-          if (n_thr > 1) {
-            
-            for (i in 2:n_thr) {
-              # Calculate the original spacing between consecutive thresholds
-              orig_diff <- mean_thresholds[i] - mean_thresholds[i-1]
-              
-              # Add some noise to the spacing, but ensure it stays positive
-              noise_sd <- min(sd_thresholds[i], sd_thresholds[i-1]) * 0.5
-              diff_noise <- max(0.01, rnorm(1, orig_diff, noise_sd))
-              
-              # Set the threshold based on previous threshold plus noisy difference
-              ordered_thresholds[i] <- ordered_thresholds[i-1] + diff_noise
+          if (n_thr == 1) {
+            return(rnorm(1, mean = mean_cutpoints[1], sd = sigma_C[1]))
+          }
+          
+          # Create correlation matrix - higher correlation for adjacent cutpoints
+          # This mimics the induced-Dirichlet structure
+          cor_mat <- matrix(0, n_thr, n_thr)
+          for (i in 1:n_thr) {
+            for (j in 1:n_thr) {
+              # Correlation decays with distance
+              cor_mat[i,j] <- base_correlation^abs(i-j)
             }
-            
           }
           
-          ordered_thresholds
+          # Covariance matrix
+          cov_mat <- diag(sigma_C) %*% cor_mat %*% diag(sigma_C)
           
-          return(ordered_thresholds)
+          # Generate correlated cutpoints
+          cutpoints <- MASS::mvrnorm(1, mu = mean_cutpoints, Sigma = cov_mat)
+          
+          # Ensure ordering
+          cutpoints <- sort(cutpoints)
+          
+          return(cutpoints)
   
 }
 
 
 
 
+#' generate_ordered_thresholds_induced_dirichlet
+#' @export
+generate_ordered_thresholds_induced_dirichlet <- function(alpha_vec, 
+                                                          use_probit_link = TRUE) {
+  
+          n_cat <- length(alpha_vec)
+          n_thr <- n_cat - 1
+          
+          if (n_thr <= 0) {
+            return(numeric(0))
+          }
+          
+          # Step 1: Generate ordinal probabilities from Dirichlet
+          ord_probs <- as.vector(MCMCpack::rdirichlet(1, alpha_vec))
+          
+          # Step 2: Convert to cumulative probabilities
+          cumul_probs <- cumsum(ord_probs)[1:n_thr]
+          
+          # Step 3: Convert to cutpoints
+          if (use_probit_link) {
+            cutpoints <- qnorm(cumul_probs)
+          } else {
+            cutpoints <- qlogis(cumul_probs)  # logit link
+          }
+          
+          return(cutpoints)
+          
+}
+
+
+
+
+
+
+#' generate_ordered_thresholds_induced_dirichlet_sample
+#' @export
+generate_ordered_thresholds_induced_dirichlet_sample <- function(n_samples = 10000000,
+                                                                 alpha_vec, 
+                                                                 use_probit_link = TRUE) { 
+  
+        
+          n_cat <- length(alpha_vec)
+          n_thr <- n_cat - 1
+          
+          samples <- array(NA, dim = c(n_samples, ncol = n_thr))
+          
+          for (i in 1:n_samples) { 
+              samples[i, ] <- generate_ordered_thresholds_induced_dirichlet(alpha_vec = alpha_vec,
+                                                            use_probit_link = use_probit_link)
+          }
+          
+          return(apply(samples, FUN = median, c(2)))
+    
+  
+}
+
+
+
+
+# Function to compute Dirichlet SDs from alpha
+compute_dirichlet_SDs <- function(alpha_vec) {
+  
+  alpha_0 <- sum(alpha_vec)
+  n_cat <- length(alpha_vec)
+  
+  # SD for each category probability
+  sds <- sqrt((alpha_vec * (alpha_0 - alpha_vec)) / (alpha_0^2 * (alpha_0 + 1)))
+  
+  return(sds)
+  
+}
+
+
  
  
 
 ## -| ------------------ R function to simulate a meta-analysis dataset for (binary + ordinal) LC_MVP  --------------------------------------------
- 
- 
-# seed = 123
-# n_studies = 50
-# N_per_study_mean = 2500
-# N_per_study_SD = 500
-# assume_perfect_GS = 1
-# true_Mean_prev = 0.2
-# true_SD_probit_prev = 0.25
-# HSROC_locations_bs_het_SD = 0.5
-# HSROC_raw_scales_bs_het_SD = 0.25
-# bivariate_locations_nd_bs_het_SD = 0.25
-# bivariate_locations_d_bs_het_SD = 0.5
-# bs_het_C_nd_prob_scale
-# bs_het_C_d_prob_scale
-# scale_ALL_bs_SDs_by = 0.75
-
+#  
+#  
+# n_studies = n_studies
+# N_per_study_mean = N_per_study_mean
+# N_per_study_SD = N_per_study_SD
+# assume_perfect_GS = assume_perfect_GS
+# ##
+# seed = seed
+# ##
+# true_Mean_prev = true_Mean_prev
+# true_SD_probit_prev = true_SD_probit_prev
+# ##
+# bivariate_locations_d_bs_het_SD  = bivariate_locations_d_bs_het_SD
+# bivariate_locations_nd_bs_het_SD = bivariate_locations_nd_bs_het_SD
+# ##
+# bs_het_C_nd_prob_scale = bs_het_C_nd_prob_scale
+# bs_het_C_d_prob_scale = bs_het_C_d_prob_scale
+# ##
+# scale_ALL_bs_SDs_by = scale_ALL_bs_SDs_by
 
 #' R_fn_sim_data_ord_MA
 #' @keywords internal
@@ -81,18 +201,18 @@ R_fn_sim_data_ord_MA <- function(  seed = 123,
                                    assume_perfect_GS = 1, 
                                    true_Mean_prev = 0.2, 
                                    true_SD_probit_prev = 0.25, 
-                                   # HSROC_locations_bs_het_SD = 0.5, 
-                                   # HSROC_raw_scales_bs_het_SD = 0.25, 
-                                   bivariate_locations_nd_bs_het_SD = 0.25, 
-                                   bivariate_locations_d_bs_het_SD = 0.5, 
+                                   # # HSROC_locations_bs_het_SD = 0.5, 
+                                   # # HSROC_raw_scales_bs_het_SD = 0.25, 
+                                   # bivariate_locations_nd_bs_het_SD = 0.25, 
+                                   # bivariate_locations_d_bs_het_SD = 0.5, 
                                    bs_het_C_nd_prob_scale, 
-                                   bs_het_C_d_prob_scale,
-                                   scale_ALL_bs_SDs_by = 1
+                                   bs_het_C_d_prob_scale
+                                   # scale_ALL_bs_SDs_by = 1
 ) {
   
   
-          bivariate_locations_nd_bs_het_SD <- scale_ALL_bs_SDs_by*bivariate_locations_nd_bs_het_SD
-          bivariate_locations_d_bs_het_SD  <- scale_ALL_bs_SDs_by*bivariate_locations_d_bs_het_SD
+          # bivariate_locations_nd_bs_het_SD <- scale_ALL_bs_SDs_by*bivariate_locations_nd_bs_het_SD
+          # bivariate_locations_d_bs_het_SD  <- scale_ALL_bs_SDs_by*bivariate_locations_d_bs_het_SD
           
           # Setup parameters
           n_binary_tests <- 1
@@ -127,52 +247,100 @@ R_fn_sim_data_ord_MA <- function(  seed = 123,
           
           # Set up test parameters
           {
+
             ##
-            ## ---- PHQ-9 parameters (from single-study REAL PHQ-9 dataset from Baron et al).
-            ##
-            true_mean_PHQ_9_Cerullo_Gat_params_list <- list()
-            ##
-            true_mean_PHQ_9_Cerullo_Gat_params_list$Ord_bivariate$beta_mu <- c(-1.17, -0.118)
-            ##
-            true_mean_PHQ_9_Cerullo_Gat_params_list$Ord_bivariate$C_nd <- c(-2.2994594075, -1.85076751625, -1.4823266075, -1.191850410875, 
-                                                                            -0.9185224348125, -0.6824948028125, -0.465187581006875, -0.28524418401225, 
-                                                                            -0.123824854394419, 0.0714019907404125, 0.244086194109869, 0.408806356951388, 
-                                                                            0.5236473534, 0.61907566584375, 0.880868595, 0.93506378875, 1.13891996525, 
-                                                                            1.362710241125, 1.5555927000625, 1.71732335, 1.73495572625, 1.753785303125, 
-                                                                            1.7730980725, 2.15678496, 2.221392155, 2.293717775, 2.38682278375)
-            true_mean_PHQ_9_Cerullo_Gat_params_list$Ord_bivariate$C_nd_SD_prob_scale <- bs_het_C_nd_prob_scale
-            true_mean_PHQ_9_Cerullo_Gat_params_list$Ord_bivariate$C_nd_SDs <- SD_approx_ID_ord_prob_to_C_probit(
-                                                                                         mean_C_cutpoint_scale = true_mean_PHQ_9_Cerullo_Gat_params_list$Ord_bivariate$C_nd,
-                                                                                         SD_prob_scale =  true_mean_PHQ_9_Cerullo_Gat_params_list$Ord_bivariate$C_nd_SD_prob_scale)
-            ##
-            true_mean_PHQ_9_Cerullo_Gat_params_list$Ord_bivariate$C_d <- c(-2.917814866875, -2.309792485, -2.073766918125, -1.915478330625, 
-                                                                           -1.70158212875, -1.364530803125, -1.089750625625, -0.8431635128125, 
-                                                                           -0.63443191095, -0.471749624497031, -0.195740285686575, -0.047765369834075, 
-                                                                           0.07715920840186, 0.104641682855775, 0.285555863388069, 0.396088297391706, 
-                                                                           0.572971156206875, 0.6713609324625, 1.022715328875, 1.126140787875, 
-                                                                           1.2449444535, 1.5585936949375, 1.6775888, 1.83199706625, 2.053982441875, 
-                                                                           2.078204196875, 2.10569573375)
-            true_mean_PHQ_9_Cerullo_Gat_params_list$Ord_bivariate$C_d_SD_prob_scale <- bs_het_C_d_prob_scale
-            true_mean_PHQ_9_Cerullo_Gat_params_list$Ord_bivariate$C_d_SDs <- SD_approx_ID_ord_prob_to_C_probit(
-                                                                                          mean_C_cutpoint_scale = true_mean_PHQ_9_Cerullo_Gat_params_list$Ord_bivariate$C_d,
-                                                                                          SD_prob_scale =  true_mean_PHQ_9_Cerullo_Gat_params_list$Ord_bivariate$C_d_SD_prob_scale)
-            ##
-            ## ---- GAD-2 parameters:
+            ## ---- GAD-2 parameters: ----------------------------------------------------------------------------------------------------------------------
             ## (from fitting Xu-Rand-Kappa model to REAL GAD-2 MA Klaus data (w/o imputing missing threhsolds - "-1"'s).)
+            ##
             ##
             true_mean_GAD_2_params_list <- list()
             ##
-            true_mean_GAD_2_params_list$Ord_bivariate$beta_mu <- c(-0.550, 0.184)
+            true_mean_GAD_2_params_list$Ord_bivariate$beta_mu <- c(-0.735, 0.197)
+            true_mean_GAD_2_params_list$Ord_bivariate$beta_SD <- c(0.341, 0.559)
+            true_mean_GAD_2_params_list$Ord_bivariate$beta_corr <- 0.172
             ##
-            true_mean_GAD_2_params_list$Ord_bivariate$C_nd <- c(-0.8394009, -0.0902575, 0.5646964, 0.9078822, 1.3215716, 1.6462413)
-            true_mean_GAD_2_params_list$Ord_bivariate$C_nd_SD_prob_scale <- bs_het_C_nd_prob_scale
-            true_mean_GAD_2_params_list$Ord_bivariate$C_nd_SDs <- SD_approx_ID_ord_prob_to_C_probit(mean_C_cutpoint_scale =  true_mean_GAD_2_params_list$Ord_bivariate$C_nd,
-                                                                                                   SD_prob_scale = true_mean_GAD_2_params_list$Ord_bivariate$C_nd_SD_prob_scale)
+            true_mean_GAD_2_params_list$Ord_bivariate$C_nd <- c(-0.9755975, -0.292786, 0.358953, 0.689446, 1.106, 1.46094)
+            true_mean_GAD_2_params_list$Ord_bivariate$C_nd_SD_prob_scale <-  c(0.0378236, 0.041786, 0.043734, 0.0322398, 0.0317818, 0.0241089)
+            true_mean_GAD_2_params_list$Ord_bivariate$alpha_nd           <-  c(15.3304, 20.5346, 23.54825, 10.74365, 10.2649, 5.50998, 6.860215)
             ##
-            true_mean_GAD_2_params_list$Ord_bivariate$C_d <- c(-1.3322775, -0.7746882, -0.0929791, 0.3271562, 0.8693018, 1.3237361)
-            true_mean_GAD_2_params_list$Ord_bivariate$C_d_SD_prob_scale <- bs_het_C_d_prob_scale
-            true_mean_GAD_2_params_list$Ord_bivariate$C_d_SDs <- SD_approx_ID_ord_prob_to_C_probit(mean_C_cutpoint_scale =  true_mean_GAD_2_params_list$Ord_bivariate$C_d,
-                                                                                                   SD_prob_scale = true_mean_GAD_2_params_list$Ord_bivariate$C_d_SD_prob_scale)
+            true_mean_GAD_2_params_list$Ord_bivariate$C_d <-   c(-1.48302, -0.88127, -0.134779, 0.273662, 0.785527, 1.23541)
+            true_mean_GAD_2_params_list$Ord_bivariate$C_d_SD_prob_scale <-    c(0.0561697, 0.063388, 0.0852722, 0.0722046, 0.0756352, 0.0602498)
+            true_mean_GAD_2_params_list$Ord_bivariate$alpha_d           <-    c(1.97502, 2.659315, 5.66787, 3.665955, 4.08459, 2.35475, 2.787845)
+            ##
+            true_mean_GAD_2_params_list$Ord_bivariate
+            ##
+            ## ---- GAD-7 parameters. -----------------------------------------------------------------------------------------------------------------------
+            ##
+            true_mean_GAD_7_params_list <- list()
+            ##
+            true_mean_GAD_7_params_list$Ord_bivariate$beta_mu <- c(-1.41, -0.283)
+            true_mean_GAD_7_params_list$Ord_bivariate$beta_SD <- c(0.488, 0.674)
+            true_mean_GAD_7_params_list$Ord_bivariate$beta_corr <- 0.307
+            ##
+            true_mean_GAD_7_params_list$Ord_bivariate$C_nd <- c(-2.231685, -1.79927, -1.482965, -1.220955, -0.98261, -0.780394, 
+                                                                -0.5859865, -0.360594, -0.217805, -0.070975, 0.0544958, 0.176212, 
+                                                                0.283997, 0.407415, 0.5439385, 0.6842815, 0.8175955, 0.913633, 
+                                                                1.067695, 1.22144, 1.35017)
+            true_mean_GAD_7_params_list$Ord_bivariate$C_nd_SD_prob_scale <-   c(0.0084992, 0.0102436, 0.012722, 0.014581, 0.0155888, 0.0165293, 
+                                                                                0.0171685, 0.0193348, 0.0161019, 0.0165393, 0.0154, 0.0152028, 
+                                                                                0.0142087, 0.01495, 0.0151354, 0.0148238, 0.0136074, 0.0112217, 
+                                                                                0.0134593, 0.0115781, 0.0109631)
+            true_mean_GAD_7_params_list$Ord_bivariate$alpha_nd          <-  c(2.79575, 4.099455, 6.4108, 8.50915, 9.799435, 11.0924, 12.0361, 
+                                                                              15.5634, 10.525, 11.1519, 9.61439, 9.385075, 8.130495, 9.049675, 
+                                                                              9.303845, 8.918155, 7.438585, 5.00854, 7.273505, 5.341545, 4.76307, 
+                                                                              17.65125)
+            ##
+            true_mean_GAD_7_params_list$Ord_bivariate$C_d <-  c(-2.209915, -2.02756, -1.88334, -1.705805, -1.51828, -1.286595, 
+                                                                -1.09908, -0.8463045, -0.6829905, -0.516839, -0.3368345, -0.150944, 
+                                                                0.0289825, 0.1866205, 0.3744105, 0.5237585, 0.667981, 0.8760615, 
+                                                                1.09799, 1.36988, 1.631645)
+            true_mean_GAD_7_params_list$Ord_bivariate$C_d_SD_prob_scale <-     c(0.013356, 0.0087849, 0.0094477, 0.0116721, 0.013411, 0.0183166, 
+                                                                                 0.0185152, 0.0237383, 0.0212544, 0.0226872, 0.0244091, 0.0257238, 
+                                                                                 0.025128, 0.0240619, 0.0253914, 0.0219318, 0.0213946, 0.0227724, 
+                                                                                 0.0224695, 0.021033, 0.018146)
+            true_mean_GAD_7_params_list$Ord_bivariate$alpha_d           <-      c(1.799325, 0.767976, 0.887956, 1.371725, 1.82478, 3.448515, 
+                                                                                  3.540835, 5.93037, 4.7235, 5.419735, 6.327325, 7.101355, 6.7747, 
+                                                                                  6.191155, 6.943915, 5.119395, 4.84974, 5.52035, 5.36885, 4.6842, 
+                                                                                  3.43053, 5.521015)
+            ##
+            true_mean_GAD_7_params_list$Ord_bivariate
+            ##
+            ## ---- HADS parameters: ----------------------------------------------------------------------------------------------------------------------
+            ## (from fitting Xu-Rand-Kappa model to REAL HADS MA Klaus data (w/o imputing missing threhsolds - "-1"'s).)
+            ##
+            true_mean_HADS_params_list <- list()
+            ##
+            true_mean_HADS_params_list$Ord_bivariate$beta_mu <- c(-0.640, 0.128)
+            true_mean_HADS_params_list$Ord_bivariate$beta_SD <- c(0.235,  0.392)
+            true_mean_HADS_params_list$Ord_bivariate$beta_corr <- 0.302
+            ##
+            true_mean_HADS_params_list$Ord_bivariate$C_nd <-    c(-2.104755, -1.669755, -1.32896, -1.03661, -0.768047, -0.525203, 
+                                                                  -0.276447, -0.0324133, 0.2037715, 0.4196795, 0.599935, 0.794462, 
+                                                                  0.974998, 1.159995, 1.372315, 1.545365, 1.75456, 1.94278, 2.09185, 
+                                                                  2.315215, 2.537795)
+            true_mean_HADS_params_list$Ord_bivariate$C_nd_SD_prob_scale <-      c(0.0071724, 0.0089856, 0.0107984, 0.0122948, 0.0134223, 0.0139609, 
+                                                                                  0.0150858, 0.0153606, 0.015128, 0.0142778, 0.0125449, 0.0124485, 
+                                                                                  0.0111248, 0.0104644, 0.0099706, 0.0078793, 0.0074393, 0.0058618, 
+                                                                                  0.0045857, 0.0041258, 0.0032296)
+            true_mean_HADS_params_list$Ord_bivariate$alpha_nd         <-       c(6.80893, 10.8174, 15.9235, 21.05695, 25.51105, 27.81725, 33.0955, 
+                                                                                 34.55905, 33.4195, 29.4049, 22.24045, 21.9021, 17.2082, 15.12155, 
+                                                                                 13.60915, 8.403455, 7.452145, 4.61551, 2.79908, 2.250785, 1.35282, 
+                                                                                 3.59519)
+            ##
+            true_mean_HADS_params_list$Ord_bivariate$C_d <-     c(-1.969345, -1.892385, -1.674995, -1.539365, -1.38404, -1.189135, 
+                                                                  -0.94256, -0.736189, -0.501034, -0.2186955, 0.021306, 0.2022715, 
+                                                                  0.430632, 0.6941875, 0.9345995, 1.16245, 1.328875, 1.470575, 
+                                                                  1.610625, 1.826915, 1.944015)
+            true_mean_HADS_params_list$Ord_bivariate$C_d_SD_prob_scale <-     c(0.0093823, 0.0041046, 0.0076414, 0.0069644, 0.0083598, 0.0105113, 
+                                                                                0.013535, 0.0137341, 0.0158818, 0.0182312, 0.0174599, 0.0153124, 
+                                                                                0.0166366, 0.0168667, 0.0148842, 0.0130484, 0.0099909, 0.008245, 
+                                                                                0.0074475, 0.0075942, 0.0047928)
+            true_mean_HADS_params_list$Ord_bivariate$alpha_d           <-       c(7.05851, 1.270245, 4.69393, 3.93293, 5.774175, 8.96514, 15.0838, 
+                                                                                  15.38695, 20.98205, 28.36065, 25.7017, 19.4406, 23.16915, 24.05625, 
+                                                                                  18.4379, 14.0733, 8.107345, 5.52107, 4.50281, 4.663425, 1.740885, 
+                                                                                  8.888425)
+            ##
+            true_mean_HADS_params_list$Ord_bivariate
           }
           
           # Set model type and parameters
@@ -180,110 +348,51 @@ R_fn_sim_data_ord_MA <- function(  seed = 123,
           if (bs_model == "ord_HSROC") {
             # HSROC model code would go here
           } else {
-            # Get parameters for bivariate model
-            true_beta_PHQ_9 <- true_mean_PHQ_9_Cerullo_Gat_params_list$Ord_bivariate$beta_mu
-            print(paste("true_beta_PHQ_9 = "))
-            print(true_beta_PHQ_9)
-            true_C_nd_PHQ_9 <- true_mean_PHQ_9_Cerullo_Gat_params_list$Ord_bivariate$C_nd
-            print(paste("true_C_nd_PHQ_9 = "))
-            print(true_C_nd_PHQ_9)
-            true_C_d_PHQ_9 <- true_mean_PHQ_9_Cerullo_Gat_params_list$Ord_bivariate$C_d
-            print(paste("true_C_d_PHQ_9 = "))
-            print(true_C_d_PHQ_9)
-            true_beta_GAD_2 <- true_mean_GAD_2_params_list$Ord_bivariate$beta_mu
-            print(paste("true_beta_GAD_2 = "))
-            print(true_beta_GAD_2)
-            true_C_nd_GAD_2 <- true_mean_GAD_2_params_list$Ord_bivariate$C_nd
-            print(paste("true_C_nd_GAD_2 = "))
-            print(true_C_nd_GAD_2)
-            true_C_d_GAD_2 <- true_mean_GAD_2_params_list$Ord_bivariate$C_d
-            print(paste("true_C_d_GAD_2 = "))
-            print(true_C_d_GAD_2)
-            
             # Set bivariate locations
-            bivariate_locations_nd <- c(-1, true_beta_GAD_2[1], -1, -1, true_beta_PHQ_9[1])
-            bivariate_locations_d <- c(+1, true_beta_GAD_2[2], +1, +1, true_beta_PHQ_9[2])
+            bivariate_locations_nd <- c(-1, -1, -1, -1, -1)
+            bivariate_locations_d  <- c(1, 1, 1, 1, 1)
+            ##
+            bivariate_SD_nd <- rep(0.25, 5)
+            bivariate_SD_d  <- rep(0.5, 5)
+            ##
+            bivariate_corr <- rep(0.0, 5)
           }
-          
-          # Override PHQ-9 location parameters
-          bivariate_locations_nd[5] <- true_beta_PHQ_9[1]
-          bivariate_locations_d[5] <- true_beta_PHQ_9[2]
-          
-          # Set up threshold parameters
-          n_thr_per_test <- c(1, 6, 10, 25, 27)
+          ##
+          ## GAD-2 location parameters
+          ##
+          bivariate_locations_nd[2] <- true_mean_GAD_2_params_list$Ord_bivariate$beta_mu[1]
+          bivariate_SD_nd[2]        <- true_mean_GAD_2_params_list$Ord_bivariate$beta_SD[1]
+          bivariate_locations_d[2]  <- true_mean_GAD_2_params_list$Ord_bivariate$beta_mu[2]
+          bivariate_SD_d[2]         <- true_mean_GAD_2_params_list$Ord_bivariate$beta_SD[2]
+          bivariate_corr[2]         <- true_mean_GAD_2_params_list$Ord_bivariate$beta_corr
+          ##
+          ## HADS location parameters
+          ##
+          bivariate_locations_nd[4] <- true_mean_HADS_params_list$Ord_bivariate$beta_mu[1]
+          bivariate_SD_nd[4]        <- true_mean_HADS_params_list$Ord_bivariate$beta_SD[1]
+          bivariate_locations_d[4]  <- true_mean_HADS_params_list$Ord_bivariate$beta_mu[2]
+          bivariate_SD_d[4]         <- true_mean_HADS_params_list$Ord_bivariate$beta_SD[2]
+          bivariate_corr[4]         <- true_mean_HADS_params_list$Ord_bivariate$beta_corr
+          ##
+          ## GAD-7 location parameters
+          ##
+          bivariate_locations_nd[5] <- true_mean_GAD_7_params_list$Ord_bivariate$beta_mu[1]
+          bivariate_SD_nd[5]        <- true_mean_GAD_7_params_list$Ord_bivariate$beta_SD[1]
+          bivariate_locations_d[5]  <- true_mean_GAD_7_params_list$Ord_bivariate$beta_mu[2]
+          bivariate_SD_d[5]         <- true_mean_GAD_7_params_list$Ord_bivariate$beta_SD[2]
+          bivariate_corr[5]         <- true_mean_GAD_7_params_list$Ord_bivariate$beta_corr
+          ##
+          ## Set up threshold parameters
+          ##
+          n_thr_per_test <- c(1, 6, 10, 21, 21)
+          ##
           max_threshold_across_all_tests <- max(n_thr_per_test)
-          threshold_per_study_array <- array(NA, dim = c(n_studies, max_threshold_across_all_tests))
+          Mean_of_thr_for_all_tests_array_per_study_nd <- array(NA, dim = c(n_studies, n_tests, max_threshold_across_all_tests))
+          Mean_of_thr_for_all_tests_array_per_study_d  <- array(NA, dim = c(n_studies, n_tests, max_threshold_across_all_tests))
           Mean_of_thr_for_all_tests_array_nd <- array(NA, dim = c(n_tests, max_threshold_across_all_tests))
-          Mean_of_thr_for_all_tests_array_d <- array(NA, dim = c(n_tests, max_threshold_across_all_tests))
-          SD_of_thr_for_all_tests_array_nd <- array( 0.001, dim = c(n_tests, max_threshold_across_all_tests))
-          SD_of_thr_for_all_tests_array_d <- array( 0.001, dim = c(n_tests, max_threshold_across_all_tests))
-          ##
-          ## ---- Set thresholds for test 1 (binary reference test):
-          ##
-          test <- 1
-          Mean_thresholds_for_test_1 <- rep(NA, n_thr_per_test[1])
-          Mean_thresholds_for_test_1 <- c(0)
-          Mean_of_thr_for_all_tests_array_nd[test, 1:n_thr_per_test[test]] <- Mean_thresholds_for_test_1
-          Mean_of_thr_for_all_tests_array_d[test, 1:n_thr_per_test[test]] <- Mean_of_thr_for_all_tests_array_nd[test, 1:n_thr_per_test[test]]
-          ##
-          ## ---- Set thresholds for test 2 (GAD-2):
-          ##
-          test <- 2
-          Mean_of_thr_for_all_tests_array_nd[test, 1:n_thr_per_test[test]] <- true_mean_GAD_2_params_list$Ord_bivariate$C_nd
-          SD_of_thr_for_all_tests_array_nd[test, 1:n_thr_per_test[test]]   <- true_mean_GAD_2_params_list$Ord_bivariate$C_nd_SDs
-          ##
-          Mean_of_thr_for_all_tests_array_d[test, 1:n_thr_per_test[test]]  <- true_mean_GAD_2_params_list$Ord_bivariate$C_d
-          SD_of_thr_for_all_tests_array_d[test, 1:n_thr_per_test[test]]    <- true_mean_GAD_2_params_list$Ord_bivariate$C_d_SDs
-          ##
-          ## ---- Set thresholds for test 3:
-          ##
-          test <- 3
-          Mean_thresholds_for_test_3 <- rep(NA, n_thr_per_test[3])
-          Mean_thresholds_for_test_3 <- c(-1.75, -1.5, -1, -0.8, -0.5, 0.25, 1, 1.5, 1.8, 2.2)
-          length(Mean_thresholds_for_test_3)
-          Mean_of_thr_for_all_tests_array_nd[test, 1:n_thr_per_test[test]] <- Mean_thresholds_for_test_3
-          SD_of_thr_for_all_tests_array_nd[test, 1:n_thr_per_test[test]]   <- SD_approx_ID_ord_prob_to_C_probit(mean_C_cutpoint_scale = Mean_thresholds_for_test_3,
-                                                                                                                SD_prob_scale = bs_het_C_d_prob_scale)
-          ##
-          Mean_of_thr_for_all_tests_array_d[test, 1:n_thr_per_test[test]]  <- Mean_of_thr_for_all_tests_array_nd[test, 1:n_thr_per_test[test]]
-          SD_of_thr_for_all_tests_array_d[test, 1:n_thr_per_test[test]]   <- SD_of_thr_for_all_tests_array_nd[test, 1:n_thr_per_test[test]]
-          ##
-          ## ---- Set thresholds for test 4:
-          ##
-          test <- 4
-          Mean_thresholds_for_test_4 <- rep(NA, n_thr_per_test[4])
-          Mean_thresholds_for_test_4 <- c(
-            -2.5, -2.2, -2, -1.9, -1.75, -1.5, -1.35, -1, -0.8, -0.5, -0.25, -0.1, 
-            +0, +0.1, +0.25, +0.4, +0.8, +1, +1.5, +1.8, +2.2, +2.4, +2.5, +2.6, +2.7
-          )
-          length(Mean_thresholds_for_test_4)
-          Mean_of_thr_for_all_tests_array_nd[test, 1:n_thr_per_test[test]] <- Mean_thresholds_for_test_4
-          SD_of_thr_for_all_tests_array_nd[test, 1:n_thr_per_test[test]]   <- SD_approx_ID_ord_prob_to_C_probit(mean_C_cutpoint_scale = Mean_thresholds_for_test_4,
-                                                                                                                SD_prob_scale = bs_het_C_d_prob_scale)
-          ##
-          Mean_of_thr_for_all_tests_array_d[test, 1:n_thr_per_test[test]]  <- Mean_of_thr_for_all_tests_array_nd[test, 1:n_thr_per_test[test]]
-          SD_of_thr_for_all_tests_array_d[test, 1:n_thr_per_test[test]]   <- SD_of_thr_for_all_tests_array_nd[test, 1:n_thr_per_test[test]]
-          ##
-          ## ---- Set thresholds for test 5 (PHQ-9):
-          ##
-          test <- 5
-          Mean_of_thr_for_all_tests_array_nd[test, 1:n_thr_per_test[test]] <- true_C_nd_PHQ_9
-          SD_of_thr_for_all_tests_array_nd[test, 1:n_thr_per_test[test]]   <- true_mean_PHQ_9_Cerullo_Gat_params_list$Ord_bivariate$C_nd_SDs
-          ##
-          Mean_of_thr_for_all_tests_array_d[test, 1:n_thr_per_test[test]]  <- true_C_d_PHQ_9
-          SD_of_thr_for_all_tests_array_d[test, 1:n_thr_per_test[test]]    <- true_mean_PHQ_9_Cerullo_Gat_params_list$Ord_bivariate$C_d_SDs
-          ##
-          ## -----------------------------------------------
-          ##
-          if (bs_het_C_nd_prob_scale < 0.02) {
-            SD_of_thr_for_all_tests_array_nd[,] <- 0.001
-          }
-          if (bs_het_C_d_prob_scale < 0.02) {
-            SD_of_thr_for_all_tests_array_d[,] <- 0.001
-          }
-          ##
-          SD_of_thr_for_all_tests_array_nd[,] <- scale_ALL_bs_SDs_by * SD_of_thr_for_all_tests_array_nd[,] 
-          SD_of_thr_for_all_tests_array_d[,]  <- scale_ALL_bs_SDs_by * SD_of_thr_for_all_tests_array_d[,] 
+          Mean_of_thr_for_all_tests_array_d  <- array(NA, dim = c(n_tests, max_threshold_across_all_tests))
+          # SD_of_thr_for_all_tests_array_nd <- array( 0.001, dim = c(n_tests, max_threshold_across_all_tests))
+          # SD_of_thr_for_all_tests_array_d <- array( 0.001, dim = c(n_tests, max_threshold_across_all_tests))
           ##
           # Initialize more lists and arrays
           Se_for_current_study_at_threshold_0_list <- Sp_for_current_study_at_threshold_0_list <- Fp_for_current_study_at_threshold_0_list <- list()
@@ -309,35 +418,28 @@ R_fn_sim_data_ord_MA <- function(  seed = 123,
           n_total_OVERALL <- 0
           Se_OVERALL_all_tests_all_thresholds <- array(0, dim = c(n_tests, max_threshold_across_all_tests + 1))
           Sp_OVERALL_all_tests_all_thresholds <- array(0, dim = c(n_tests, max_threshold_across_all_tests + 1))
-          
-          # Initialize study counter
+ 
           s <- 1
-          
-          # Calculate true DGM values
-          true_DGM_Se <- true_DGM_Fp <- true_DGM_Sp <- list()
-          for (t in 2:n_tests) {
-            true_DGM_Se[[t - 1]] <- 1 - pnorm(Mean_of_thr_for_all_tests_array_d[t, 1:n_thr_per_test[t]] - bivariate_locations_d[t])
-            true_DGM_Fp[[t - 1]] <- 1 - pnorm(Mean_of_thr_for_all_tests_array_nd[t, 1:n_thr_per_test[t]] - bivariate_locations_nd[t])
-            true_DGM_Sp[[t - 1]] <- 1 - true_DGM_Fp[[t - 1]]
-          }
-          
           ##
           ## ---- Between-study correlation (and var-cov) matrix (using same one for each test)
           ##
-          if (bs_model == "ord_bivariate") {
-              ##
-              Omega_bs <- matrix(1.0, nrow = 2, ncol = 2)
-              Sigma_bs <- matrix(NA, nrow = 2, ncol = 2)
-              ##
-              bs_corr <- 0.122 ## this bs-corr value was obtained from GAD-2 (Klaus et al) data fitting the Xu-Rand model to it.
-              Omega_bs[1, 2] <- bs_corr
-              Omega_bs[2, 1] <- bs_corr
-              ##
-              Sigma_bs[1, 1] <- bivariate_locations_nd_bs_het_SD^2
-              Sigma_bs[2, 2] <- bivariate_locations_d_bs_het_SD^2
-              Sigma_bs[1, 2] <- bs_corr * bivariate_locations_nd_bs_het_SD * bivariate_locations_d_bs_het_SD
-              Sigma_bs[2, 1] <- Sigma_bs[1, 2]
-              ##
+          Sigma_bs_list <- list()
+          for (t in 1:n_tests) {
+            if (bs_model == "ord_bivariate") {
+                ##
+                Omega_bs <- matrix(1.0, nrow = 2, ncol = 2)
+                Sigma_bs <- matrix(NA, nrow = 2, ncol = 2)
+                ##
+                Omega_bs[1, 2] <- bivariate_corr[t]
+                Omega_bs[2, 1] <- bivariate_corr[t]
+                ##
+                Sigma_bs[1, 1] <- bivariate_SD_nd[t]^2
+                Sigma_bs[2, 2] <- bivariate_SD_d[t]^2
+                Sigma_bs[1, 2] <- bivariate_corr[t] * bivariate_SD_nd[t] * bivariate_SD_d[t]
+                Sigma_bs[2, 1] <- Sigma_bs[1, 2]
+                Sigma_bs_list[[t]] <- Sigma_bs
+                ##
+            }
           }
           # Loop through studies
           for (s in 1:n_studies) {
@@ -361,33 +463,111 @@ R_fn_sim_data_ord_MA <- function(  seed = 123,
                     thr_for_all_tests_for_current_study_nd <- array(NA, dim = c(n_tests, max_threshold_across_all_tests))
                     thr_for_all_tests_for_current_study_d <- array(NA, dim = c(n_tests, max_threshold_across_all_tests))
                     thr_for_all_tests_for_current_study_per_n <- array(NA, dim = c(N, n_tests, max_threshold_across_all_tests))
-                    
+                    ##
                     # Generate thresholds for all tests
+                    # for (t in 2:n_tests) {
+                    #         n_thr <- n_thr_per_test[t]
+                    #         if (n_thr > 0) {
+                    #           thr_for_all_tests_for_current_study_nd[t, 1:n_thr] <- generate_ordered_thresholds(
+                    #             mean_thresholds = Mean_of_thr_for_all_tests_array_nd[t, 1:n_thr],
+                    #             sd_thresholds = SD_of_thr_for_all_tests_array_nd[t, 1:n_thr]
+                    #           )
+                    #           thr_for_all_tests_for_current_study_d[t, 1:n_thr] <- generate_ordered_thresholds(
+                    #             mean_thresholds = Mean_of_thr_for_all_tests_array_d[t, 1:n_thr], 
+                    #             sd_thresholds = SD_of_thr_for_all_tests_array_d[t, 1:n_thr]
+                    #           )
+                    #         }
+                    # }
+                    ##
+                    ## ---- GAD-2 (test #2):
+                    ##
+                    t <- 2
+                    # thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_delta_method_correlated(
+                    #                                                         mean_cutpoints =  true_mean_GAD_2_params_list$Ord_bivariate$C_nd,
+                    #                                                         SD_prob_scale_vec =  true_mean_GAD_2_params_list$Ord_bivariate$C_nd_SD_prob_scale,
+                    #                                                         use_probit_link =  TRUE,
+                    #                                                         base_correlation =  0.50)
+                    # thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_delta_method_correlated(
+                    #                                                       mean_cutpoints =  true_mean_GAD_2_params_list$Ord_bivariate$C_d,
+                    #                                                       SD_prob_scale_vec =  true_mean_GAD_2_params_list$Ord_bivariate$C_d_SD_prob_scale,
+                    #                                                       use_probit_link =  TRUE,
+                    #                                                       base_correlation =  0.50)
+                    ##
+                    thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
+                      alpha_vec =  true_mean_GAD_2_params_list$Ord_bivariate$alpha_nd,
+                      use_probit_link =  TRUE)
+                    thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
+                      alpha_vec =  true_mean_GAD_2_params_list$Ord_bivariate$alpha_d,
+                      use_probit_link =  TRUE)
+                    ##
+                    ##
+                    ## ---- PLACEHOLDER (test #3):
+                    ##
+                    t <- 3
+                    thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
+                      alpha_vec =  rep(10, 11))
+                    thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
+                      alpha_vec =  rep(10, 11))
+                    ##
+                    ## ---- HADS (test #4):
+                    ##
+                    t <- 4
+                    # thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_delta_method_correlated(
+                    #                                                                     mean_cutpoints =  true_mean_HADS_params_list$Ord_bivariate$C_nd,
+                    #                                                                     SD_prob_scale_vec =  true_mean_HADS_params_list$Ord_bivariate$C_nd_SD_prob_scale,
+                    #                                                                     use_probit_link =  TRUE,
+                    #                                                                     base_correlation =  0.50)
+                    # thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_delta_method_correlated(
+                    #                                                                   mean_cutpoints =  true_mean_HADS_params_list$Ord_bivariate$C_d,
+                    #                                                                   SD_prob_scale_vec =  true_mean_HADS_params_list$Ord_bivariate$C_d_SD_prob_scale,
+                    #                                                                   use_probit_link =  TRUE,
+                    #                                                                   base_correlation =  0.50)
+                    ##
+                    thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
+                      alpha_vec =  true_mean_HADS_params_list$Ord_bivariate$alpha_nd,
+                      use_probit_link =  TRUE)
+                    thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
+                      alpha_vec =  true_mean_HADS_params_list$Ord_bivariate$alpha_d,
+                      use_probit_link =  TRUE)
+                    ##
+                    ## ---- GAD-7 (test #5):
+                    ##
+                    t <- 5
+                    # thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_delta_method_correlated(
+                    #                                                                     mean_cutpoints =  true_mean_GAD_7_params_list$Ord_bivariate$C_nd,
+                    #                                                                     SD_prob_scale_vec =  true_mean_GAD_7_params_list$Ord_bivariate$C_nd_SD_prob_scale,
+                    #                                                                     use_probit_link =  TRUE,
+                    #                                                                     base_correlation =  0.50)
+                    # thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_delta_method_correlated(
+                    #                                                                   mean_cutpoints =  true_mean_GAD_7_params_list$Ord_bivariate$C_d,
+                    #                                                                   SD_prob_scale_vec =  true_mean_GAD_7_params_list$Ord_bivariate$C_d_SD_prob_scale,
+                    #                                                                   use_probit_link =  TRUE,
+                    #                                                                   base_correlation =  0.50)
+                    ##
+                    thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
+                      alpha_vec =  true_mean_GAD_7_params_list$Ord_bivariate$alpha_nd,
+                      use_probit_link =  TRUE)
+                    thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
+                      alpha_vec =  true_mean_GAD_7_params_list$Ord_bivariate$alpha_d,
+                      use_probit_link =  TRUE)
+                    ##
                     for (t in 2:n_tests) {
-                      n_thr <- n_thr_per_test[t]
-                      if (n_thr > 0) {
-                        thr_for_all_tests_for_current_study_nd[t, 1:n_thr] <- generate_ordered_thresholds(
-                          mean_thresholds = Mean_of_thr_for_all_tests_array_nd[t, 1:n_thr], 
-                          sd_thresholds = SD_of_thr_for_all_tests_array_nd[t, 1:n_thr]
-                        )
-                        thr_for_all_tests_for_current_study_d[t, 1:n_thr] <- generate_ordered_thresholds(
-                          mean_thresholds = Mean_of_thr_for_all_tests_array_d[t, 1:n_thr], 
-                          sd_thresholds = SD_of_thr_for_all_tests_array_d[t, 1:n_thr]
-                        )
-                      }
-                      
-                      # Assign thresholds to diseased and non-diseased subjects
-                      diseased_indices <- which(d_ind == 1)
-                      nondiseased_indices <- which(d_ind == 0)
-                      
-                      for (i in diseased_indices) {
-                        thr_for_all_tests_for_current_study_per_n[i, t, 1:n_thr] <- thr_for_all_tests_for_current_study_d[t, 1:n_thr]
-                      }
-                      for (i in nondiseased_indices) {
-                        thr_for_all_tests_for_current_study_per_n[i, t, 1:n_thr] <- thr_for_all_tests_for_current_study_nd[t, 1:n_thr]
-                      }
+                            ##
+                            Mean_of_thr_for_all_tests_array_per_study_nd[s, t, 1:n_thr_per_test[t]] <- thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]]
+                            Mean_of_thr_for_all_tests_array_per_study_d[s, t, 1:n_thr_per_test[t]]  <- thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]]
+                            ##
+                            # Assign thresholds to diseased and non-diseased subjects
+                            diseased_indices    <- which(d_ind == 1)
+                            nondiseased_indices <- which(d_ind == 0)
+                            ##
+                            for (n in diseased_indices) {
+                              thr_for_all_tests_for_current_study_per_n[n, t, 1:n_thr_per_test[t]] <- thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]]
+                            }
+                            for (n in nondiseased_indices) {
+                              thr_for_all_tests_for_current_study_per_n[n, t, 1:n_thr_per_test[t]] <- thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]]
+                            }
                     }
-                    
+                    ##
                     # Generate study-specific parameters
                     if (bs_model == "ord_bivariate") {
                       ##
@@ -399,7 +579,7 @@ R_fn_sim_data_ord_MA <- function(  seed = 123,
                       location_d_study_s <- c()
                       ##
                       for (t in 1:n_tests) {
-                        locations <- LaplacesDemon::rmvn(n = 1, mu = c(bivariate_locations_nd[t], bivariate_locations_d[t]), Sigma = Sigma_bs)
+                        locations <- LaplacesDemon::rmvn(n = 1, mu = c(bivariate_locations_nd[t], bivariate_locations_d[t]), Sigma = Sigma_bs_list[[t]])
                         location_nd_study_s[t] <- locations[1]
                         location_d_study_s[t]  <- locations[2]
                       }
@@ -423,22 +603,30 @@ R_fn_sim_data_ord_MA <- function(  seed = 123,
                       rho1 <- 0.2
                     }
                     ##
+                    # ## Set up correlation matrices:
+                    # Omega_highly_varied <- matrix(c(1,     rho1,  rho1,     rho1,     rho1,
+                    #                                 rho1,  1.00,  0.50,     0.20,     0.10,
+                    #                                 rho1,  0.50,  1.00,     0.40,     0.40,
+                    #                                 rho1,  0.20,  0.40,     1.00,     0.70,
+                    #                                 rho1,  0.10,  0.40,     0.70,     1.00),
+                    #                               nrow = n_tests,
+                    #                               ncol = n_tests)
                     ## Set up correlation matrices:
                     Omega_highly_varied <- matrix(c(1,     rho1,  rho1,     rho1,     rho1,
-                                                    rho1,  1.00,  0.50,     0.20,     0.10,
-                                                    rho1,  0.50,  1.00,     0.40,     0.40,
-                                                    rho1,  0.20,  0.40,     1.00,     0.70,
-                                                    rho1,  0.10,  0.40,     0.70,     1.00),
+                                                    rho1,  1.00,  0,     0,     0,
+                                                    rho1,  0,     1.00,  0,     0,
+                                                    rho1,  0,     0,     1.00,  0,
+                                                    rho1,  0,     0,     0,     1.00),
                                                   nrow = n_tests,
                                                   ncol = n_tests)
-                    
+                    ##
                     {
                       Omega_d <- Omega_highly_varied
                       diag(Omega_d) <- rep(1, n_tests)
                       Omega_nd <- 0.5 * Omega_highly_varied
                       diag(Omega_nd) <- rep(1, n_tests)
                     }
-                    
+                    ##
                     # Ensure correlation matrices are proper
                     Omega_nd <- as.matrix(Matrix::nearPD(Omega_nd, keepDiag = TRUE)$mat)
                     Omega_d <- as.matrix(Matrix::nearPD(Omega_d, keepDiag = TRUE)$mat)
@@ -552,6 +740,102 @@ R_fn_sim_data_ord_MA <- function(  seed = 123,
                     y_df_list[[s]] <- data.frame(y)
             
           }
+          
+          
+          ##
+          ## ----------------- Calculate true DGM values:
+          ##
+          true_DGM_Se <- true_DGM_Fp <- true_DGM_Sp <- list()
+          ##
+          ## ---- GAD-2 (test #2):
+          ##
+          t <- 2
+          Mean_of_thr_for_all_tests_array_nd[t, 1:n_thr_per_test[t]] <-  true_mean_GAD_2_params_list$Ord_bivariate$C_nd
+          Mean_of_thr_for_all_tests_array_d[t, 1:n_thr_per_test[t]]  <-  true_mean_GAD_2_params_list$Ord_bivariate$C_d
+          # ##
+          # Mean_of_thr_for_all_tests_array_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet_sample( n_samples = 10000000,
+          #   alpha_vec =  true_mean_GAD_2_params_list$Ord_bivariate$alpha_nd)
+          # Mean_of_thr_for_all_tests_array_d[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet_sample(
+          #   alpha_vec =  true_mean_GAD_2_params_list$Ord_bivariate$alpha_d)
+          # ##
+          ##
+          ## ---- PLACEHOLDER (test #3):
+          ##
+          t <- 3
+          Mean_of_thr_for_all_tests_array_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet_sample(n_samples = 100,
+            alpha_vec =  rep(10, 11))
+          Mean_of_thr_for_all_tests_array_d[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet_sample(n_samples = 100,
+            alpha_vec =  rep(10, 11))
+          ##
+          ## ---- HADS (test #4):
+          ##
+          t <- 4
+          Mean_of_thr_for_all_tests_array_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet_sample(n_samples = 100,
+            alpha_vec =  true_mean_HADS_params_list$Ord_bivariate$alpha_nd)
+          Mean_of_thr_for_all_tests_array_d[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet_sample(n_samples = 100,
+            alpha_vec =  true_mean_HADS_params_list$Ord_bivariate$alpha_d)
+          # Mean_of_thr_for_all_tests_array_nd[t, 1:n_thr_per_test[t]] <-  true_mean_HADS_params_list$Ord_bivariate$C_nd
+          # Mean_of_thr_for_all_tests_array_d[t, 1:n_thr_per_test[t]]  <-  true_mean_HADS_params_list$Ord_bivariate$C_d
+          ##
+          ## ---- GAD-7 (test #5):
+          ##
+          t <- 5
+          # Mean_of_thr_for_all_tests_array_nd[t, 1:n_thr_per_test[t]] <-  true_mean_GAD_7_params_list$Ord_bivariate$C_nd
+          # Mean_of_thr_for_all_tests_array_d[t, 1:n_thr_per_test[t]]  <-  true_mean_GAD_7_params_list$Ord_bivariate$C_d
+          Mean_of_thr_for_all_tests_array_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet_sample(n_samples = 100,
+            alpha_vec =  true_mean_GAD_7_params_list$Ord_bivariate$alpha_nd)
+          Mean_of_thr_for_all_tests_array_d[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet_sample(n_samples = 100,
+            alpha_vec =  true_mean_GAD_7_params_list$Ord_bivariate$alpha_d)
+          ##
+          ## ---- Compute summary Se and Sp:
+          ##
+          # Mean_of_thr_for_all_tests_array_nd <- apply(Mean_of_thr_for_all_tests_array_per_study_nd, FUN = median, c(2, 3))
+          # Mean_of_thr_for_all_tests_array_d <- apply(Mean_of_thr_for_all_tests_array_per_study_d, FUN = median, c(2, 3))
+          ##
+          for (t in 2:n_tests) {
+            true_DGM_Se[[t - 1]] <- 1 - pnorm(Mean_of_thr_for_all_tests_array_d[t, 1:n_thr_per_test[t]] - bivariate_locations_d[t])
+            true_DGM_Fp[[t - 1]] <- 1 - pnorm(Mean_of_thr_for_all_tests_array_nd[t, 1:n_thr_per_test[t]] - bivariate_locations_nd[t])
+            true_DGM_Sp[[t - 1]] <- 1 - true_DGM_Fp[[t - 1]]
+          }
+          ##
+          ## GAD-2
+          ##
+          t <- 2
+          true_DGM_Se[[t - 1]] <- c(95.563, 85.862, 63.12, 47.106, 27.594, 15.446)/100
+          true_DGM_Fp[[t - 1]] <- c(59.611, 32.915, 13.738, 7.671, 3.31, 1.423)/100
+          true_DGM_Sp[[t - 1]] <- c(40.389, 67.085, 86.262, 92.329, 96.69, 98.577)/100
+          ##
+          ## HADS
+          ##
+          t <- 4
+          true_DGM_Se[[t - 1]] <-         c(98.2, 97.834, 96.429, 95.211, 93.447, 90.584, 85.738, 80.568, 
+                                            73.458, 63.496, 54.196, 46.979, 38.097, 28.518, 20.962, 14.992, 
+                                            11.453, 8.952, 6.883, 4.428, 3.444)/100
+          ##
+          true_DGM_Fp[[t - 1]] <-   c(92.855, 84.843, 75.437, 65.381, 55.052, 45.399, 35.804, 27.157, 
+                                      19.931, 14.467, 10.752, 7.575, 5.316, 3.598, 2.212, 1.44, 0.83, 
+                                      0.491, 0.313, 0.155, 0.073)/100
+          ##
+          true_DGM_Sp[[t - 1]] <- c(7.145, 15.157, 24.563, 34.619, 44.948, 54.601, 64.196, 72.843, 
+                                    80.069, 85.533, 89.248, 92.425, 94.684, 96.402, 97.788, 98.56, 
+                                    99.17, 99.509, 99.687, 99.845, 99.927)/100
+          ##
+          ## GAD-7
+          ##
+          t <- 5
+          true_DGM_Se[[t - 1]] <-            c(97.301, 95.945, 94.527, 92.268, 89.168, 84.232, 79.27, 71.388, 
+                                               65.608, 59.321, 52.195, 44.815, 37.824, 31.994, 25.598, 21.024, 
+                                               17.119, 12.366, 8.378, 4.91, 2.771)/100
+          ##
+          true_DGM_Fp[[t - 1]] <-  c(79.396, 65.052, 52.811, 42.426, 33.381, 26.387, 20.438, 14.645, 
+                                     11.63, 9.01, 7.124, 5.612, 4.498, 3.445, 2.525, 1.805, 1.29, 
+                                     1.003, 0.659, 0.422, 0.287)/100
+          ##
+          true_DGM_Sp[[t - 1]] <-    c(20.604, 34.948, 47.189, 57.574, 66.619, 73.613, 79.562, 85.355, 
+                                       88.37, 90.99, 92.876, 94.388, 95.502, 96.555, 97.475, 98.195, 
+                                       98.71, 98.997, 99.341, 99.578, 99.713)/100
+          
+          
           
           # Combine results into a tibble
           y_tibble <- NULL

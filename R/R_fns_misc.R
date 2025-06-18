@@ -1,31 +1,6 @@
 
 
 
-#' SD_approx_probit_to_prob
-#' @export
-SD_approx_probit_to_prob <- function(SD_probit_scale) { 
-  
-  SD_prob_scale <- SD_probit_scale * dnorm(qnorm(SD_probit_scale))
-  ##
-  return(signif(SD_prob_scale, 3))
-  
-}
-
-
-
-
-
-#' SD_approx_ID_ord_prob_to_C_probit
-#' @export
-SD_approx_ID_ord_prob_to_C_probit <- function(mean_C_cutpoint_scale, SD_prob_scale) { 
-  
-  SD_probit_scale <- (1.0 / dnorm(mean_C_cutpoint_scale)) * SD_prob_scale
-  ##
-  return(signif(SD_probit_scale, 3))
-  
-}
-
-
 
 
 #' arrange_missing_values
