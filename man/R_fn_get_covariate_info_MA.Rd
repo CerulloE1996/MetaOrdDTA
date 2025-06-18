@@ -4,7 +4,7 @@
 \alias{R_fn_get_covariate_info_MA}
 \title{R_fn_get_covariate_info_MA}
 \usage{
-R_fn_get_covariate_info_MA(X, model_parameterisation)
+R_fn_get_covariate_info_MA(X, model_parameterisation, n_studies)
 }
 \description{
 R_fn_get_covariate_info_MA

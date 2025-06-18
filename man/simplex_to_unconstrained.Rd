@@ -4,7 +4,7 @@
 \alias{simplex_to_unconstrained}
 \title{simplex_to_unconstrained}
 \usage{
-simplex_to_unconstrained(x)
+simplex_to_unconstrained(x, seed = 123)
 }
 \description{
 simplex_to_unconstrained

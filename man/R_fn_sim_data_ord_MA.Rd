@@ -12,11 +12,8 @@ R_fn_sim_data_ord_MA(
   assume_perfect_GS = 1,
   true_Mean_prev = 0.2,
   true_SD_probit_prev = 0.25,
-  bivariate_locations_nd_bs_het_SD = 0.25,
-  bivariate_locations_d_bs_het_SD = 0.5,
   bs_het_C_nd_prob_scale,
-  bs_het_C_d_prob_scale,
-  scale_ALL_bs_SDs_by = 1
+  bs_het_C_d_prob_scale
 )
 }
 \description{

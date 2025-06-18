@@ -4,7 +4,12 @@
 \alias{R_fn_get_covariate_info_NMA}
 \title{R_fn_get_covariate_info_NMA}
 \usage{
-R_fn_get_covariate_info_NMA(X, model_parameterisation, n_index_tests)
+R_fn_get_covariate_info_NMA(
+  X,
+  model_parameterisation,
+  n_index_tests,
+  n_studies
+)
 }
 \description{
 R_fn_get_covariate_info_NMA

@@ -7,7 +7,7 @@
 R_fn_set_inits_MA(
   inits,
   priors,
-  X = X,
+  X,
   n_studies,
   n_tests = NULL,
   n_index_tests = NULL,
