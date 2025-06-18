@@ -12,6 +12,7 @@ functions {
         #include "Stan_fns_NMA.stan"
         #include "Stan_fns_model_fit.stan"
         #include "Stan_fns_NMA_bivariate.stan"
+        #include "Stan_fns_Jacobian.stan"  
 }
 
  
@@ -75,8 +76,8 @@ transformed data {
           //// ---- Initialize with -1 (missing indicator):
           for (t in 1:n_index_tests) {
               for (c in 1:2) {
-                  x_2[t, c] = rep_matrix(-1, n_studies, n_thr_max);
-                  n[t, c] = rep_matrix(-1, n_studies, n_thr_max);
+                  x_2[t, c]     = rep_matrix(-1, n_studies, n_thr_max);
+                  n[t, c]       = rep_matrix(-1, n_studies, n_thr_max);
                   N_total[t, c] = rep_vector(-1, n_studies);
               }
           }
@@ -111,17 +112,16 @@ transformed data {
 parameters {
           array[n_index_tests] matrix[2, n_covariates_max] beta_mu; 
           ////
-          array[2] vector[n_total_C_per_class_if_fixed] C_raw_vec;  //// RAW LOG-DIFFERENCES - Global cutpoints for each test (staggered array/matrix using "n_thr[t]" to index correctly)
+          array[2] vector<lower=-15.0, upper=15.0>[n_total_C_per_class_if_fixed] C_raw_vec;  //// RAW LOG-DIFFS - Global cutpoints for each test (staggered array/matrix using "n_thr[t]" to index correctly)
           ////
           //// ---- "NMA" params:
           ////
           vector<lower=0.0>[2] beta_sigma;              //// Variance component - Between-study SD (Nyaga's σ)
           matrix<lower=0.0>[n_index_tests, 2] beta_tau; //// Variance component - Test-specific SD (Nyaga's τ) - delta_{s, c, t} ~ normal(0, tau_{c, t}).
-          ////
           matrix[n_studies, 2] beta_eta_z;              //// Standard normal RVs for study-level effects - eta[s, 1:2] ~ multi_normal({0, 0}, Sigma).
           array[n_index_tests] matrix[n_studies, 2] beta_delta_z; //// Standard normal RVs for test-specific effects
           ////
-          real<lower=-1.0, upper=1.0> beta_corr;  //// between-study corr (possibly restricted)
+          real<lower=beta_corr_lb, upper=beta_corr_ub> beta_corr;  //// between-study corr (possibly restricted) 
 }
 
  
@@ -129,7 +129,7 @@ transformed parameters {
           ////
           //// ---- Construct simple 2x2 (bivariate) between-study corr matrices:
           ////
-          cholesky_factor_corr[2] beta_L_Omega = make_restricted_bivariate_L_Omega_jacobian(beta_corr, beta_corr_lb, beta_corr_ub);
+          cholesky_factor_corr[2] beta_L_Omega = make_bivariate_L_Omega(beta_corr);
           cholesky_factor_cov[2]  beta_L_Sigma = diag_pre_multiply(beta_sigma, beta_L_Omega);
           ////
           //// ---- Construct (global) cutpoints:
@@ -219,7 +219,12 @@ model {
         target += std_normal_lpdf(to_vector(beta_eta_z)); 
         //// (part of between-test / between-study model, NOT prior)  -   delta_{s, i, t} ~ normal(0, tau_{i, t}):
         for (t in 1:n_index_tests) {
-           target += std_normal_lpdf(to_vector(beta_delta_z[t])); 
+          target += std_normal_lpdf(to_vector(beta_delta_z[t])); 
+          for (c in 1:2) {
+               int n_thr_t = n_thr[t];
+               vector[n_thr_t] C_raw_vec_test_t = get_test_values(C_raw_vec[c], start_index, end_index, t);
+               target += raw_C_to_C_log_det_J_lp(C_raw_vec_test_t, softplus);
+          }
         }
         ////
         //// ---- Log-likelihood:
@@ -237,20 +242,9 @@ model {
                     array[2] matrix[n_studies, n_thr[t]] latent_surv_t = map_latent_surv_prob_to_fixed_hetero_C(
                                                                          C_vec_t, Xbeta[t], 1.0, n_studies, n_obs_cutpoints[t, ], 
                                                                          cutpoint_index[t, ]);
-                    array[2] matrix[n_studies, n_thr[t]] x_2_t;
-                    array[2] matrix[n_studies, n_thr[t]] n_t;
-                    ////
-                    for (c in 1:2) {
-                        for (s in 1:n_studies) {
-                            for (k in 1:n_thr[t]) {
-                                x_2_t[c][s, k] = x_2[t, c][s, k];
-                                n_t[c][s, k] = n[t, c][s, k];
-                            }
-                        }
-                    }
                     ////
                     target += compute_log_lik_binomial_fact_lp(
-                              latent_surv_t, use_probit_link, n_thr[t], x_2_t, n_t, 
+                              latent_surv_t, use_probit_link, n_thr[t], x_2[t, ], n[t, ], 
                               N_total[t, ], n_obs_cutpoints[t, ], indicator_index_test_in_study[, t]); 
               }
         }

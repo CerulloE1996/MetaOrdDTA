@@ -11,6 +11,7 @@ functions {
         #include "Stan_fns_ragged.stan"
         #include "Stan_fns_NMA.stan"
         #include "Stan_fns_model_fit.stan"
+        #include "Stan_fns_Jacobian.stan"
 }
 
 
@@ -96,8 +97,8 @@ transformed data {
           ////
           //// ---- HSROC stuff:
           ////
-          real mult_nd = (1)*(-0.5);
-          real mult_d  = (1)*(+0.5); //// hence: mult_d > mult_nd
+          real mult_nd = (1)*(-1.0);
+          real mult_d  = (1)*(+1.0); //// hence: mult_d > mult_nd
 }
 
 
@@ -140,7 +141,7 @@ transformed parameters {
           ////
           //// ---- "NMA" params:
           ////
-          vector[n_studies] beta_eta = rep_vector(0.0, n_studies);
+          vector[n_studies] beta_eta      = rep_vector(0.0, n_studies);
           vector[n_studies] raw_scale_eta = rep_vector(0.0, n_studies);
           array[n_index_tests] vector[n_studies] beta_delta;
           array[n_index_tests] vector[n_studies] raw_scale_delta;
@@ -195,14 +196,18 @@ model {
           //// ---- Priors:
           ////
           for (t in 1:n_index_tests) {
-              beta_mu[t][1:n_covariates[t]] ~ normal(prior_beta_mu_mean[t][1:n_covariates[t]], prior_beta_mu_SD[t][1:n_covariates[t]]);
+              beta_mu[t][1:n_covariates[t]] ~ normal(
+                                              prior_beta_mu_mean[t][1:n_covariates[t]], 
+                                              prior_beta_mu_SD[t][1:n_covariates[t]]);
           }
           ////
           to_vector(beta_tau) ~ normal(0.0, to_vector(prior_beta_tau_SD));  //// delta_{s, i, t} ~ normal(0, tau_{i, t}):
           beta_sigma ~ normal(0.0, prior_beta_sigma_SD);      //// eta[s, i] ~ normal(0, sigma[i]):
           ////
           for (t in 1:n_index_tests) {
-              raw_scale_mu[t][1:n_covariates[t]] ~ normal(prior_raw_scale_mu_mean[t][1:n_covariates[t]], prior_raw_scale_mu_SD[t][1:n_covariates[t]]);
+              raw_scale_mu[t][1:n_covariates[t]] ~ normal(
+                                                   prior_raw_scale_mu_mean[t][1:n_covariates[t]], 
+                                                   prior_raw_scale_mu_SD[t][1:n_covariates[t]]);
           }
           to_vector(raw_scale_tau) ~ normal(0.0, to_vector(prior_raw_scale_tau_SD));  //// delta_{s, i, t} ~ normal(0, tau_{i, t}):
           raw_scale_sigma ~ normal(0.0, prior_raw_scale_sigma_SD);      //// eta[s, i] ~ normal(0, sigma[i]):
@@ -233,8 +238,12 @@ model {
           ////
           //// (part of between-test / between-study model, NOT prior)  -   delta_{s, i, t} ~ normal(0, tau_{i, t}):
           for (t in 1:n_index_tests) {
-             target += std_normal_lpdf(to_vector(beta_delta_z[t])); 
-             target += std_normal_lpdf(to_vector(raw_scale_delta_z[t])); 
+              target += std_normal_lpdf(to_vector(beta_delta_z[t]));
+              target += std_normal_lpdf(to_vector(raw_scale_delta_z[t])); 
+              ////
+              int n_thr_t = n_thr[t];
+              vector[n_thr_t] C_raw_vec_test_t = get_test_values(C_raw_vec, start_index, end_index, t);
+              target += raw_C_to_C_log_det_J_lp(C_raw_vec_test_t, softplus);
           }
           ////
           //// ---- Log-likelihood:
@@ -275,11 +284,15 @@ generated quantities {
       array[n_index_tests] vector[n_covariates_max] scale_d_mu;
       ////
       for (t in 1:n_index_tests) {
-          location_nd_mu[t] = mult_nd * beta_mu[t];
-          location_d_mu[t]  = mult_d * beta_mu[t];
+          location_nd_mu[t][1:n_covariates[t]] = mult_nd * beta_mu[t][1:n_covariates[t]];
+          location_d_mu[t][1:n_covariates[t]]  = mult_d * beta_mu[t][1:n_covariates[t]];
           ////
-          scale_nd_mu[t] = ((softplus == 1) ? softplus_scaled(mult_nd * raw_scale_mu[t]) : exp(mult_nd * raw_scale_mu[t]));
-          scale_d_mu[t]  = ((softplus == 1) ? softplus_scaled(mult_d * raw_scale_mu[t])  : exp(mult_d * raw_scale_mu[t]));
+          scale_nd_mu[t][1:n_covariates[t]] = ((softplus == 1) ? 
+                                              softplus_scaled(mult_nd * raw_scale_mu[t][1:n_covariates[t]]) : 
+                                              exp(mult_nd * raw_scale_mu[t][1:n_covariates[t]]));
+          scale_d_mu[t][1:n_covariates[t]]  = ((softplus == 1) ? 
+                                              softplus_scaled(mult_d * raw_scale_mu[t][1:n_covariates[t]])  : 
+                                              exp(mult_d * raw_scale_mu[t][1:n_covariates[t]]));
       }
       ////
       //// ---- Calculate summary accuracy for each test - "baseline" covariate values:
