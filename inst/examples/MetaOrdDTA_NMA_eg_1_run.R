@@ -178,8 +178,8 @@ source(file.path(getwd(), "inst", "examples", "thr_sim_study_helper_fns.R"))
    #   max_treedepth <- 9
     max_treedepth <- 10
     ##
-    ## adapt_delta <- 0.65
-    adapt_delta <- 0.80
+    adapt_delta <- 0.65
+    ##  adapt_delta <- 0.80
 
 }
 
@@ -195,10 +195,9 @@ source(file.path(getwd(), "inst", "examples", "thr_sim_study_helper_fns.R"))
 ######## N_per_study_mean <- 5000
 ######## N_per_study_mean <- 10000
 ##
-## N_per_study_mean <- 500  ; n_studies <- 10
+ N_per_study_mean <- 500  ; n_studies <- 10
 # N_per_study_mean <- 500  ; n_studies <- 50
-## N_per_study_mean <- 2500 ; n_studies <- 10
-N_per_study_mean <- 2500 ; n_studies <- 50
+ 
 ##
 N_per_study_SD <- N_per_study_mean
 ## N_per_study_SD <- 1 ## N_per_study_mean

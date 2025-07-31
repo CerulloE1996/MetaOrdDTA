@@ -59,42 +59,148 @@ for (i in 1:100) {
 
 
 
-n_studies = n_studies
-N_per_study_mean = N_per_study_mean
-N_per_study_SD = N_per_study_SD
-assume_perfect_GS = assume_perfect_GS
-##
-seed = seed
-##
-true_Mean_prev = true_Mean_prev
-true_SD_probit_prev = true_SD_probit_prev
+# n_studies = n_studies
+# N_per_study_mean = N_per_study_mean
+# N_per_study_SD = N_per_study_SD
+# assume_perfect_GS = assume_perfect_GS
+# ##
+# seed = seed
+# ##
+# true_Mean_prev = true_Mean_prev
+# true_SD_probit_prev = true_SD_probit_prev
  
 
 ## mean(dirichlet_cat_SDs_sigma_nd) =  0.04387889 -> SD on probit scale ~ 0.17 (O-biv-RC model fitted to GAD-7 data)
 ## mean(dirichlet_cat_SDs_sigma_nd) =  0.06703344 -> SD on probit scale ~ 0.225 (O-biv-RC model fitted to GAD-7 data)
 
 
-##
-# Run simulated data - this simulates data from FIVE (5) diagnostic tests (1 BINARY reference test + 4 ORDINAL index tests)
-sim_results <- R_fn_sim_data_ord_MA(          n_studies = n_studies,
-                                              N_per_study_mean = N_per_study_mean,
-                                              N_per_study_SD = N_per_study_SD,
-                                              assume_perfect_GS = assume_perfect_GS,
-                                              ##
-                                              seed = seed,
-                                              ##
-                                              true_Mean_prev = true_Mean_prev,
-                                              true_SD_probit_prev = true_SD_probit_prev)
+if (covariates == FALSE) {
+        ##
+        # Run simulated data - this simulates data from FIVE (5) diagnostic tests (1 BINARY reference test + 4 ORDINAL index tests)
+        sim_results <- R_fn_sim_data_ord_MA(          n_studies = n_studies,
+                                                      N_per_study_mean = N_per_study_mean,
+                                                      N_per_study_SD = N_per_study_SD,
+                                                      assume_perfect_GS = assume_perfect_GS,
+                                                      ##
+                                                      seed = seed,
+                                                      ##
+                                                      true_Mean_prev = true_Mean_prev,
+                                                      true_SD_probit_prev = true_SD_probit_prev)
+
+} else { ## This is: NMA + covariates.
+
+        # n_studies = n_studies
+        # N_per_study_mean = N_per_study_mean
+        # N_per_study_SD = N_per_study_SD
+        # assume_perfect_GS = assume_perfect_GS
+        # ##
+        # seed = seed
+        # ##
+        # true_Mean_prev = true_Mean_prev
+        # true_SD_probit_prev = true_SD_probit_prev
+        ##
+        ##
+        covariate_settings = list(
+            continuous_vars = c("logit_prev_GAD"),
+            ##
+            binary_vars = c("low_RoB_QUADAS_clean"),  # Match actual column name
+            ##
+            categorical_vars = c("Ref_test_clean", "study_setting"),  # Match actual pattern
+            ##
+            covariate_names = c("intercept", 
+                                ##
+                                "logit_prev_GAD", 
+                                ##
+                                "low_RoB_QUADAS_clean", 
+                                ##
+                                "study_setting_2",  
+                                "study_setting_3", 
+                                ##
+                                "Ref_test_clean_SCID",
+                                "Ref_test_clean_Structured"),
+            n_covariates = 7
+        )
+        ##
+        X_nd <- outs_covs_subset$X_nd
+        X_d  <- outs_covs_subset$X_d
+        X <- list(X_nd, X_d)
+        original_cov_data <- list(X = X)
+        ##
+        # n_studies = n_studies
+        # N_per_study_mean = N_per_study_mean
+        # N_per_study_SD = N_per_study_SD
+        # assume_perfect_GS = assume_perfect_GS
+        # ##
+        # seed = seed
+        # ##
+        # true_Mean_prev = true_Mean_prev
+        # true_SD_probit_prev = true_SD_probit_prev
+        # ##
+        # covariate_settings = covariate_settings
+        # ##
+        # simulate_covariates <- TRUE
+        ##
+        ## test_names <- c("GAD_2", "BAI", "HADS", "GAD_7")
+        n_studies_per_test <- c(50, 
+                                40, 10, 25, 25)
+        sim_results <- R_fn_sim_NMA_data_with_covariates_varying( 
+                                           # n_studies = n_studies,
+                                           n_studies_per_test = n_studies_per_test,
+                                           N_per_study_mean = N_per_study_mean,
+                                           N_per_study_SD = N_per_study_SD,
+                                           assume_perfect_GS = assume_perfect_GS,
+                                           ##
+                                           seed = seed,
+                                           ##
+                                           true_Mean_prev = true_Mean_prev,
+                                           true_SD_probit_prev = true_SD_probit_prev,
+                                           ##
+                                           covariate_settings = covariate_settings,
+                                           original_cov_data = original_cov_data)
+        
+        ##
+        ## ---- Extract covariate data (SAME for each test):
+        ##
+        cov_data_list <- list()
+        ##
+        X <- sim_results$X_mat
+        X_list <- rep(list(X), n_index_tests)
+        cov_data_list$X_nd <- cov_data_list$X_d <- X_list
+        ##
+        cov_data_list$n_covariates_max <- ncol(X)
+        cov_data_list$n_covariates_nd <- rep(cov_data_list$n_covariates_max, n_index_tests)
+        cov_data_list$n_covariates_d <- cov_data_list$n_covariates_nd 
+        ##
+        X[1:10,]
+        baseline_case <- c(1,              ## intercept
+                           ##
+                           0.0,   ## prev_GAD
+                           # mean(X[, 3]),   ## prev_AAD
+                           ##
+                           0, ## low_RoB_QUADAS
+                           # 0, ## low_RoB_liberal
+                           ##
+                           0, ## Ref_test_SCID
+                           0, ## Ref_test_Structured
+                           ##
+                           0, ## study_setting_2
+                           0) ## study_setting_3
+        ##
+        cov_data_list$baseline_case_nd <- baseline_case
+        cov_data_list$baseline_case_d  <- baseline_case
+        ##
+
+}
 
 
+# sim_results$thr_for_all_tests_for_all_studies_nd[1, 2, 1:6]
+# sim_results$thr_for_all_tests_for_all_studies_nd[2, 2, 1:6]
+# sim_results$thr_for_all_tests_for_all_studies_nd[3, 2, 1:6]
+# sim_results$thr_for_all_tests_for_all_studies_nd[4, 2, 1:6]
+# sim_results$thr_for_all_tests_for_all_studies_nd[5, 2, 1:6]
 
-sim_results$thr_for_all_tests_for_all_studies_nd[1, 2, 1:6]
-sim_results$thr_for_all_tests_for_all_studies_nd[2, 2, 1:6]
-sim_results$thr_for_all_tests_for_all_studies_nd[3, 2, 1:6]
-sim_results$thr_for_all_tests_for_all_studies_nd[4, 2, 1:6]
-sim_results$thr_for_all_tests_for_all_studies_nd[5, 2, 1:6]
-
-                                                         
+             
+sim_results$true_DGM_Se                                            
  # index_test_chosen_index <- 1 + 1
  # #index_test_chosen_index <- 4 + 1
 
@@ -130,32 +236,32 @@ sim_results$thr_for_all_tests_for_all_studies_nd[5, 2, 1:6]
   true_DGM_Se <- 100 * sim_results$true_DGM_Se[[index_test_chosen_index - 1]]
 }
  
- round(true_DGM_Sp, 3)
- round(true_DGM_Se, 3)
- 
- sim_results$n_TP_at_current_threshold_OVERALL
- sim_results$n_FP_at_current_threshold_OVERALL
- 
- sim_results$n_TP_at_each_threshold[, 1 + 1, 1:7]
- sim_results$n_FP_at_each_threshold[, 1 + 1, 1:7]
- 
- 
- sim_results$Se_all_tests_all_thresholds[, 1 + 1, 1:7]
- sim_results$Sp_all_tests_all_thresholds[, 1 + 1, 1:7]
- 
- 
- 
- 
- apply(sim_results$n_TP_at_each_threshold[, 1 + 1, 1:7], c(1, 2), mean)
- apply(sim_results$n_FP_at_each_threshold[, 1 + 1, 1:7], c(1, 2), mean)
- 
- 
- apply(sim_results$Se_all_tests_all_thresholds[, 1 + 1, 1:7], c(1, 2), mean)
- 
- apply(sim_results$Sp_all_tests_all_thresholds[, 1 + 1, 1:7], c(1, 2), mean)
- 
- 
- 
+ # round(true_DGM_Sp, 3)
+ # round(true_DGM_Se, 3)
+ # 
+ # sim_results$n_TP_at_current_threshold_OVERALL
+ # sim_results$n_FP_at_current_threshold_OVERALL
+ # 
+ # sim_results$n_TP_at_each_threshold[, 1 + 1, 1:7]
+ # sim_results$n_FP_at_each_threshold[, 1 + 1, 1:7]
+ # 
+ # 
+ # sim_results$Se_all_tests_all_thresholds[, 1 + 1, 1:7]
+ # sim_results$Sp_all_tests_all_thresholds[, 1 + 1, 1:7]
+ # 
+ # 
+ # 
+ # 
+ # apply(sim_results$n_TP_at_each_threshold[, 1 + 1, 1:7], c(1, 2), mean)
+ # apply(sim_results$n_FP_at_each_threshold[, 1 + 1, 1:7], c(1, 2), mean)
+ # 
+ # 
+ # apply(sim_results$Se_all_tests_all_thresholds[, 1 + 1, 1:7], c(1, 2), mean)
+ # 
+ # apply(sim_results$Sp_all_tests_all_thresholds[, 1 + 1, 1:7], c(1, 2), mean)
+ # 
+ # 
+ # 
  
  
  
@@ -175,7 +281,7 @@ sim_results$thr_for_all_tests_for_all_studies_nd[5, 2, 1:6]
 
   # plot(y = true_Se_OVERALL, x = 1 - true_Sp_OVERALL)
 
-sim_results$Se_per_study_all_tests_all_thresholds_list
+# sim_results$Se_per_study_all_tests_all_thresholds_list
 
 ## Now for the first example we will only take one index test, as initially we are evaluating just a "simple" model
 ## where there's only a single index test with 12 thresholds (so 13 categories:
@@ -279,6 +385,19 @@ sim_results$Se_per_study_all_tests_all_thresholds_list
 # 
 # true_Se_OVERALL_weighted[[1]]
 # true_Se_OVERALL[[1]]
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
 
 # #### ------------------- Apply ** MISSING TESTS ** (hence "NMA" - optional): ---------------------------------------------------------
 
@@ -289,7 +408,7 @@ outs_NMA <- MetaOrdDTA:::create_test_in_study_for_NMA( seed = seed,
                                           min_index_tests_per_study = 1)
 
 indicator_index_test_in_study <- outs_NMA$indicator_index_test_in_study ; indicator_index_test_in_study
-n_index_tests_per_study      <- outs_NMA$n_index_tests_per_study ; n_index_tests_per_study
+n_index_tests_per_study       <- outs_NMA$n_index_tests_per_study ; n_index_tests_per_study
 
 # 
 # ## Then update the "true values" list:
@@ -368,20 +487,23 @@ try({
   
   
   
-x_GAD2 <- x_HADS <- x_GAD7 <- list()
+x_GAD2 <- x_HADS <- x_BAI <- x_GAD7 <- list()
 ##
 GAD2_index <- 1
+BAI_index  <- 2
 HADS_index <- 3
 GAD7_index <- 4
 ##
 for (c in 1:2) {
   x_GAD2[[c]] <- x[[c]][[GAD2_index]]
   x_HADS[[c]] <- x[[c]][[HADS_index]]
+  x_BAI[[c]]  <- x[[c]][[BAI_index]]
   x_GAD7[[c]] <- x[[c]][[GAD7_index]]
 }
 x_GAD7
 x_GAD2
 x_HADS
+BAI_index
 
 x_GAD7[[1]]
 
@@ -543,7 +665,7 @@ x_GAD7[[1]]
 
 
 
-source(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "Klaus_et_al_collab_R_fns.R"))
+source(file.path(local_pkg_dir, "Klaus_et_al_collab_R_fns.R"))
 # source(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "make_Klaus_et_al_data.R")) ## to get "x_gad2" dataset
 ##
 x_GAD2_REAL <- readRDS(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "real_x_GAD2.RDS"))
@@ -561,55 +683,13 @@ x_GAD2_REAL
 100 * sum(x_GAD2_w_missing_thr[[1]] == -1) / (n_studies * (ncol(x_GAD2_w_missing_thr[[1]]) - 1))
 100 * sum(x_GAD2_REAL[[1]] == -1) / (n_studies * (-1 + ncol(x_GAD2_REAL[[1]])))
 
-# {
-# 
-#     ## First 2 studies only report data for the "middle 8" thresholds (starting from threshold 3, so thr = {3, 4, 5, 6, 7, 8, 9, 10})
-#     studies_subset_vec <- c(1, 2)
-#     missing_thr_subset_vec <- c(1:2, 11:12)
-#     agg_data_cumulative_with_missing_thresholds <-  apply_thr_missingness(  agg_data_cumulative = agg_data_cumulative_with_missing_thresholds,
-#                                                                             studies_subset_vec = studies_subset_vec,
-#                                                                             missing_thr_subset_vec = missing_thr_subset_vec,
-#                                                                             missing_indicator = missing_indicator)
-#     ## The next 2 studies only report at the "middle 4" thresholds (starting at threshold 5): so thr = {5, 6, 7, 8}:
-#     studies_subset_vec <- c(3, 4)
-#     missing_thr_subset_vec <- c(1:4, 9:12)
-#     agg_data_cumulative_with_missing_thresholds <-  apply_thr_missingness(  agg_data_cumulative = agg_data_cumulative_with_missing_thresholds,
-#                                                                             studies_subset_vec = studies_subset_vec,
-#                                                                             missing_thr_subset_vec = missing_thr_subset_vec,
-#                                                                             missing_indicator = missing_indicator)
-#     ## The next two studies only report data at only a single threshold - threshold #7:
-#     studies_subset_vec <- c(5, 6)
-#     missing_thr_subset_vec <- c(1:6, 8:12)
-#     agg_data_cumulative_with_missing_thresholds <-  apply_thr_missingness(  agg_data_cumulative = agg_data_cumulative_with_missing_thresholds,
-#                                                                             studies_subset_vec = studies_subset_vec,
-#                                                                             missing_thr_subset_vec = missing_thr_subset_vec,
-#                                                                             missing_indicator = missing_indicator)
-#     ## The next two studies only report data at 4 non-adjacent thresholds - so thr = {3, 5, 7, 9}:
-#     studies_subset_vec <- c(7, 8)
-#     missing_thr_subset_vec <- c(1, 2, 4, 6, 8, 10, 11, 12)
-#     agg_data_cumulative_with_missing_thresholds <-  apply_thr_missingness(  agg_data_cumulative = agg_data_cumulative_with_missing_thresholds,
-#                                                                             studies_subset_vec = studies_subset_vec,
-#                                                                             missing_thr_subset_vec = missing_thr_subset_vec,
-#                                                                             missing_indicator = missing_indicator)
-#     ## And finally, the last 2 studies report data at ALL thresholds:
-#     #  -----  Do nothing here - as no missing thresholds for study #10!
-# 
-# }
-# 
-# ## Now let's look at the overall % of missing thresholds:
-# total_missing_thr <- sum(agg_data_cumulative_with_missing_thresholds$x_diseased == 0.999) ; total_missing_thr
-# prop_missing_thr <- total_missing_thr / (n_studies * n_thr) ; prop_missing_thr
-# ## Just under half the threshold data is missing (46.67%).
-# 
-# #  
-#  
-
+ 
 
 #### ------------------- Apply ** MISSING THRESHOLDS ** to HADS data/test: -----------------------------------------------------------------------------
 
 
 
-source(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "Klaus_et_al_collab_R_fns.R"))
+source(file.path(local_pkg_dir, "Klaus_et_al_collab_R_fns.R"))
 # source(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "make_Klaus_et_al_data.R")) ## to get "x_gad2" dataset
 ##
 x_HADS_REAL <- readRDS(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "real_x_HADS.RDS"))
@@ -625,13 +705,36 @@ x_HADS_REAL
 
 ## Compute the % of missing thr data:
 100 * sum(x_HADS_w_missing_thr[[1]] == -1) / (n_studies * (ncol(x_HADS_w_missing_thr[[1]]) - 1))
+100 * sum(x_HADS_REAL[[1]] == -1) / (n_studies * (ncol(x_HADS_REAL[[1]]) - 1))
+
+#### ------------------- Apply ** MISSING THRESHOLDS ** to BAI data/test: -----------------------------------------------------------------------------
+
+
+
+source(file.path(local_pkg_dir, "Klaus_et_al_collab_R_fns.R"))
+# source(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "make_Klaus_et_al_data.R")) ## to get "x_gad2" dataset
+##
+x_BAI_REAL <- readRDS(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "real_x_BAI.RDS"))
+##
+x_BAI_w_missing_thr <- apply_missingness_pattern(  x_complete = x_BAI,
+                                                   x_pattern = x_BAI_REAL,
+                                                   enforce_consecutive_missingness = FALSE)
+##
+x_BAI_w_missing_thr
+x_BAI
+x_BAI_REAL
+
+
+## Compute the % of missing thr data:
+100 * sum(x_BAI_w_missing_thr[[1]] == -1) / (n_studies * (ncol(x_BAI_w_missing_thr[[1]]) - 1))
+100 * sum(x_BAI_REAL[[1]] == -1) / (n_studies * (ncol(x_BAI_REAL[[1]]) - 1))
 
 
 #### ------------------- Apply ** MISSING THRESHOLDS ** to GAD-7 data/test: -----------------------------------------------------------------------------
 
 
 
-source(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "Klaus_et_al_collab_R_fns.R"))
+source(file.path(local_pkg_dir, "Klaus_et_al_collab_R_fns.R"))
 # source(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "make_Klaus_et_al_data.R")) ## to get "x_gad2" dataset
 ##
 x_GAD7_REAL <- readRDS(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "real_x_GAD7.RDS"))
@@ -652,7 +755,7 @@ x_GAD7_REAL
 
 
 
-#### ------------------- Make NMA dataset w/ missing thresholds for some tests -----------------------------------------------------------------------------
+#### ------------------- Make NMA dataset w/ missing thresholds for some tests --------------------------------------------------------------------------
 
 
 
@@ -668,18 +771,23 @@ for (c in 1:2) {
   x_NMA_w_missing_thr[[c]][[1]] <- x_GAD2_w_missing_thr[[c]]
 }
 ##
+## Fpr BAI (index test #2)
+##
+for (c in 1:2) { 
+  x_NMA_w_missing_thr[[c]][[2]] <- x_BAI_w_missing_thr[[c]]
+}
+##
 ## Fpr HADS (index test #3)
 ##
 for (c in 1:2) { 
   x_NMA_w_missing_thr[[c]][[3]] <- x_HADS_w_missing_thr[[c]]
 }
 ##
-## Fpr GAD-7 (index test #4)
+## For GAD-7 (index test #4)
 ##
 for (c in 1:2) { 
   x_NMA_w_missing_thr[[c]][[4]] <- x_GAD7_w_missing_thr[[c]]
 }
-
 
 data_example_1_NMA_list <- list()
 data_example_1_NMA_list$x_NMA <- x_NMA
