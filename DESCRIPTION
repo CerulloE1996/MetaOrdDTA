@@ -7,8 +7,8 @@ Author: Enzo Cerullo
 Maintainer: Enzo Cerullo <enzo.cerullo@bath.edu>
 Description: An R package for the meta-analysis and network-meta-analysis of diagnostic and screening tests, optimised for ordinal tests such as questionnaires (with possibly missing threshold data is some or all studies). However, it can also be used for binary and continuous tests (e.g. using the Jones et al model). 
 License: GPL-3
-Imports: cmdstanr, bayesplot, posterior, dplyr, ggplot2, tibble, tictoc
-LinkingTo:
+Imports: Rcpp (>= 1.0.0), cmdstanr, bayesplot, posterior, dplyr, ggplot2, tibble, tictoc
+LinkingTo: Rcpp, RcppEigen
 Suggests: roxygen2
 Roxygen: list(markdown = TRUE, roclets = c("namespace", "rd"))
 SystemRequirements: GNU make, C++17
