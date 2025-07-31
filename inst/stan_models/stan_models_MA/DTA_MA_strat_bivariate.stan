@@ -147,7 +147,7 @@ model {
         mu[k, 1] ~ normal(0, 1);
         mu[k, 2] ~ normal(0, 1);
         
-        sigma[k, 1] ~ normal(0, 1);
+        sigma[k, 1] ~ normal(0, 1); 
         sigma[k, 2] ~ normal(0, 1);
         
         L_Omega[k] ~ lkj_corr_cholesky(2);
@@ -199,8 +199,8 @@ generated quantities {
         for (k in 1:n_thr) {
             // Summary accuracy
             if (use_probit_link == 1) {
-                Se_baseline[k] = Phi(mu[k, 1]);
-                Sp_baseline[k] = Phi(mu[k, 2]);
+                Se_baseline[k] = safe_Phi(mu[k, 1]);
+                Sp_baseline[k] = safe_Phi(mu[k, 2]);
             } else {
                 Se_baseline[k] = inv_logit(mu[k, 1]);
                 Sp_baseline[k] = inv_logit(mu[k, 2]);
@@ -214,8 +214,8 @@ generated quantities {
             // Predictive accuracy
             vector[2] pred = multi_normal_rng(mu[k], Sigma[k]);
             if (use_probit_link == 1) {
-                Se_baseline_pred[k] = Phi(pred[1]);
-                Sp_baseline_pred[k] = Phi(pred[2]);
+                Se_baseline_pred[k] = safe_Phi(pred[1]);
+                Sp_baseline_pred[k] = safe_Phi(pred[2]);
             } else {
                 Se_baseline_pred[k] = inv_logit(pred[1]);
                 Sp_baseline_pred[k] = inv_logit(pred[2]);

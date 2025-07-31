@@ -55,12 +55,14 @@ data {
         vector[2] prior_kappa_mean;
         vector<lower=0.0>[2] prior_kappa_SD;
         ////
-        //// ---- Other:
+        //// ---- Other: 
         ////
         real<lower=0.0> kappa_lb;
         int<lower=0, upper=1> softplus;
         ////
         int use_probit_link;
+        ////
+        array[n_studies] int<lower=0, upper=1> K_fold_CV_indicator;
 }
 
 
@@ -97,11 +99,17 @@ parameters {
         ////
         array[2] matrix<lower=-7.5, upper=2.5>[n_studies, n_thr] C_raw; //// restricting solves divs/numerical stab. issues w/ lots of sparse categories!
         vector<lower=1.0>[2] kappa;
-        array[2] simplex[n_cat] dirichlet_phi; // props/probs
+        // array[2] simplex[n_cat] dirichlet_phi;
+        array[2] simplex[n_thr] raw_dirichlet_phi;
 }
 
  
 transformed parameters { 
+        array[2] simplex[n_cat] dirichlet_phi;
+        for (c in 1:2) {
+          dirichlet_phi[c] = stickbreaking_logistic_simplex_constrain(raw_dirichlet_phi[c]);
+        }
+        ////
         vector[2] log_kappa = log(kappa);
         ////
         array[2] vector<lower=0.0>[n_cat] alpha;
@@ -145,7 +153,10 @@ transformed parameters {
 }
 
 
-model {
+model { 
+        for (c in 1:2) {
+          target += stickbreaking_logistic_simplex_constrain_lp(raw_dirichlet_phi[c]);
+        }
         ////
         //// ---- Priors: 
         ////
@@ -193,17 +204,17 @@ model {
             ////
             //// ---- Get the cutpoint index (k) to map "latent_surv[c][s, cut_i]" to correct cutpoint "C[k]":
             ////
-            real scale = 1.0; // since using "Xu-like"" param.
+            // real scale = 1.0; // since using "Xu-like"" param.
             array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_to_random_hetero_C(
-                                                            C, n_thr, Xbeta, scale, n_studies, 
+                                                            C, n_thr, Xbeta, n_studies, 
                                                             n_obs_cutpoints, cutpoint_index);
             target += compute_log_lik_binomial_fact_lp(
                       latent_surv, use_probit_link, n_thr, n_studies,
-                      x_2, n, N_total, n_obs_cutpoints);
+                      x_2, n, N_total, n_obs_cutpoints,
+                      K_fold_CV_indicator);
         }
 
 }
-
 
 generated quantities {
       ////
@@ -229,7 +240,7 @@ generated quantities {
           for (k in 1:n_thr) {
               vector[n_studies] observed_cutpoints;
               int n_obs = 0;
-              
+              ////
               for (s in 1:n_studies) {
                   // Search through the cutpoint_index for this study to see if cutpoint k was observed
                   for (j in 2:(n_obs_cutpoints[s] + 1)) {  // Start at 2 because index 1 is 0
@@ -240,7 +251,6 @@ generated quantities {
                       }
                   }
               }
-              
               if (n_obs > 0) {
                   C_mu[c][k] = median(observed_cutpoints[1:n_obs]);
               }
@@ -255,11 +265,11 @@ generated quantities {
       //// ---- Calculate baseline Se/Sp:
       ////
       vector[n_thr] Fp_baseline = (use_probit_link == 1) ? 
-                                  Phi(-(C_mu[1] - Xbeta_baseline_nd))  : 
+                                  safe_Phi(-(C_mu[1] - Xbeta_baseline_nd))  : 
                                   inv_logit(-(C_mu[1] - Xbeta_baseline_nd));
       vector[n_thr] Sp_baseline = 1.0 - Fp_baseline;
       vector[n_thr] Se_baseline = (use_probit_link == 1) ? 
-                                  Phi(-(C_mu[2] - Xbeta_baseline_d))   : 
+                                  safe_Phi(-(C_mu[2] - Xbeta_baseline_d))   : 
                                   inv_logit(-(C_mu[2] - Xbeta_baseline_d));
       ////
       //// ---- Calculate predictive accuracy:
@@ -277,7 +287,9 @@ generated quantities {
                 real mean_prob_scale = dirichlet_phi[c][k];
                 sigma_C_k = SD_approx_ID_ord_prob_to_C_probit(mean_prob_scale, SD_prob_scale);
             }
-            C_pred[c][k] = C_mu[c][k] + normal_rng(0.0, sigma_C_k);
+            if (!is_nan(sigma_C_k)) {
+              C_pred[c][k] = C_mu[c][k] + normal_rng(0.0, sigma_C_k);
+            }
         }
       }
       ////
@@ -289,20 +301,20 @@ generated quantities {
       real Xbeta_baseline_pred_d  = dot_product(baseline_case_d,  beta_mu[2, 1:n_covariates_d])  + beta_random_pred[2];
       ////
       vector[n_thr] Fp_baseline_pred = (use_probit_link == 1) ?
-                                       Phi(-(C_pred[1] - Xbeta_baseline_pred_nd)) :
+                                       safe_Phi(-(C_pred[1] - Xbeta_baseline_pred_nd)) :
                                        inv_logit(-(C_pred[1] - Xbeta_baseline_pred_nd));
       vector[n_thr] Sp_baseline_pred = 1.0 - Fp_baseline_pred;
       vector[n_thr] Se_baseline_pred = (use_probit_link == 1) ?
-                                       Phi(-(C_pred[2] - Xbeta_baseline_pred_d))  :
+                                       safe_Phi(-(C_pred[2] - Xbeta_baseline_pred_d))  :
                                        inv_logit(-(C_pred[2] - Xbeta_baseline_pred_d));
       ////
       //// ---- Log-lik + study-specific accuracy computation (using "data" / double-precision fn for efficiency):
       ////
-      array[2] matrix[n_studies, n_thr] log_lik; // global (for e.g. LOO)
+      vector[n_studies] log_lik_study = rep_vector(0.0, n_studies);
       ////
-      // matrix[n_studies, n_thr] fp; // global
-      // matrix[n_studies, n_thr] sp; // global
-      // matrix[n_studies, n_thr] se; // global
+      matrix[n_studies, n_thr] fp; // global
+      matrix[n_studies, n_thr] sp; // global
+      matrix[n_studies, n_thr] se; // global
       ////
       vector[n_studies] deviance_nd; // global
       vector[n_studies] deviance_d;  // global
@@ -310,20 +322,34 @@ generated quantities {
       {
           real scale = 1.0; // since using "Xu-like"" param.
           array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_to_random_hetero_C(
-                                                          C, n_thr, Xbeta, scale, n_studies, 
+                                                          C, n_thr, Xbeta, n_studies, 
                                                           n_obs_cutpoints, cutpoint_index);
           ////
+          array[n_studies] int dummy_CV_indicator;
+          for (s in 1:n_studies) {
+              dummy_CV_indicator[s] = 1;
+          }
           array[3, 2] matrix[n_studies, n_thr] outs = compute_log_lik_binomial_fact_data(
                                                       latent_surv, use_probit_link, n_thr, n_studies, 
-                                                      x_2, n, N_total, n_obs_cutpoints);
+                                                      x_2, n, N_total, n_obs_cutpoints,
+                                                      dummy_CV_indicator);
           ////
-          log_lik   = outs[1];
+          ////
+          //// ---- Sum log-lik across thresholds and disease status within each study
+          ////
+          for (s in 1:n_studies) {
+              for (k in 1:n_obs_cutpoints[s]) {
+                log_lik_study[s] += outs[1][1][s, k];  // Non-diseased
+                log_lik_study[s] += outs[1][2][s, k];  // Diseased
+              }
+          }
+          ////
           array[2] matrix[n_studies, n_thr] cond_prob = outs[2];
           array[2] matrix[n_studies, n_thr] surv_prob = outs[3];
           // ////
-          // fp = surv_prob[1];
-          // sp = 1.0 - fp;
-          // se = surv_prob[2];
+          fp = surv_prob[1];
+          sp = 1.0 - fp;
+          se = surv_prob[2];
           ////
           //// ---- Model fit (deviance):
           ////
