@@ -1,3 +1,13 @@
+# MetaOrdDTA [v0.1 - Under Active Development]
+
+**🚧 Early release - Breaking changes expected until v1.0**
+
+### Current Status: Alpha
+- Core functionality should be mostly working.
+- Successfully used in research (large simulation study conducted using the NMA-DTA models).
+- API still evolving.
+- Limited error handling.
+- Actively improving.
 
 
 **MetaOrdDTA** is an R package for the meta-analysis (MA) and
