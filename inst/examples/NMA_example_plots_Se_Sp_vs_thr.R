@@ -160,7 +160,7 @@ require(ggplot2)
 ## ---- Extract results + plots for FINAL INTERCEPT-ONLY chosen model (i.e. FIXED-cutpoints + CS) -----------------------------------
 ##
 Baseline_Model_best <- readRDS(
-  file.path("application_results_dummy_data", 
+  file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
             "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
 ##
 # model_summary_and_trace_obj_DUMMY <- Model_dummy$model_summary_and_trace_obj
@@ -288,7 +288,7 @@ ggsave("DUMMY_Application_baseline_Se_Sp_vs_thr_panel_w_CrI_PrI.png",
 ## ---- Meta-reg regression Accuracy vs. thr plots:  ---------------------------------------------------------------------------
 ##
 MR_Model_dummy <- readRDS(
-  file.path("application_results_dummy_data", 
+  file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
             "seed_1_dummy_data_1intercept_only_0N_covs_4param_Xurand_thr_FALSECS_TRUEhet_sigma_0_MR_model_6_applied_results.RDS"))
 ##
 model_summary_and_trace_obj  <- MR_Model_dummy$model_summary_and_trace_obj
@@ -867,7 +867,7 @@ summarise
 ## ----------- Plot sROC curve(s) (NMA - for best model WITH covariates): ---------------------------------------------
 ##
 MR_Model_dummy <- readRDS(
-  file.path("application_results_dummy_data", 
+  file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
             "seed_1_dummy_data_1intercept_only_0N_covs_4param_Xurand_thr_FALSECS_1het_sigma_0_MR_model_6_applied_results.RDS"))
 
 model_summary_and_trace_obj_META_REG_DUMMY <- MR_Model_dummy$model_summary_and_trace_obj
@@ -1384,7 +1384,7 @@ cat(outs_latex)
 ## ---- Load chosen intercept-only model (i.e. the MAIN model):
 ##
 Model_dummy <- readRDS(
-  file.path("application_results_dummy_data", 
+  file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
             "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
 
 model_summary_and_trace_obj_DUMMY <- Model_dummy$model_summary_and_trace_obj

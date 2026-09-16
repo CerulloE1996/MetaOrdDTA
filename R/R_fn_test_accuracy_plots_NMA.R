@@ -701,7 +701,7 @@ R_fn_compute_MR_multiple_scenarios <- function(
                                                 test_names = NULL,
                                                 compute_comparisons = TRUE,
                                                 save_results = TRUE,
-                                                output_dir = "MR_results",
+                                                output_dir = metaorddta_output_path("MR_results"),
                                                 n_cores = NULL,  # NULL = use all available cores - 1
                                                 parallel = TRUE  # Option to run sequentially if needed
 ) {
@@ -886,7 +886,7 @@ R_fn_plot_MR_scenarios_sROC <- function(
                                         point_size = 2,
                                         line_size = 0.8,
                                         save_plots = TRUE,
-                                        output_dir = "MR_plots",
+                                        output_dir = metaorddta_output_path("MR_plots"),
                                         plot_width = 12,
                                         plot_height = 10
 ) {
@@ -1130,7 +1130,7 @@ R_fn_plot_MR_scenarios_sROC <- function(
 #                                             n_comparisons = 20,
 #                                             base_size = 14,
 #                                             save_plot = TRUE,
-#                                             output_dir = "MR_plots",
+#                                             output_dir = metaorddta_output_path("MR_plots"),
 #                                             plot_width = 12,
 #                                             plot_height = 10
 # ) {
@@ -4780,8 +4780,6 @@ create_threshold_plot_base <- function(
 
 
  
-
-
 
 
 

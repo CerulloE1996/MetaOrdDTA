@@ -372,7 +372,7 @@ if (n_studies < 50) {
 
 {
   
-  output_dir = "simulation_results"
+  output_dir = MetaOrdDTA::metaorddta_output_path("simulation_results")
   
   # Create output directory if it doesn't exist
   if (!dir.exists(output_dir)) {
@@ -1764,7 +1764,7 @@ source(file.path("inst", "examples", "MetaOrdDTA_MA_eg_1_debug_v4.R"))
             
             
             # Define output_dir in global environment
-            output_dir <- normalizePath("simulation_results", mustWork = FALSE)
+            output_dir <- normalizePath(MetaOrdDTA::metaorddta_output_path("simulation_results"), mustWork = FALSE)
             
             # Create it if it doesn't exist
             if (!dir.exists(output_dir)) {
@@ -2133,7 +2133,7 @@ file_name <- paste0(file_name_base, "_complete_results_list.RDS")
                                          file_name_base,
                                          "_results_list.RDS")
         ##
-        results_list <- readRDS(file.path("simulation_results", file_name_specific_run))
+        results_list <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name_specific_run))
         counter <- counter + 1
 
         # file_name_base <- paste0(    "test_", index_test_MA,
@@ -2149,9 +2149,9 @@ file_name <- paste0(file_name_base, "_complete_results_list.RDS")
         #                                  file_name_base,
         #                                  "_results_list.RDS")
         # ##
-        # # results_list <- readRDS(file.path("simulation_results", file_name_specific_run))
+        # # results_list <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name_specific_run))
         #
-        # saveRDS(object = results_list, file = file.path(getwd(), "simulation_results", file_name_specific_run))
+        # saveRDS(object = results_list, file = file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name_specific_run))
 
 
 
@@ -2164,7 +2164,7 @@ file_name <- paste0(file_name_base, "_complete_results_list.RDS")
 # 
 
 
-complete_results_list <- readRDS(file.path(getwd(), "simulation_results", file_name))
+complete_results_list <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 # complete_results_list
 length(complete_results_list)
 
@@ -2241,7 +2241,7 @@ compute_equivalent_ESS(N = 50,
 
 # complete_results_list[[15]]
 
-# csv_file <- read.csv(file.path("simulation_results", csv_name))
+# csv_file <- read.csv(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), csv_name))
 # csv_file
 
 
@@ -2582,64 +2582,64 @@ complete_results_list[[1]][[7]] %>% print(n = 100)
 # ## ---- Bivariate:
 ##
 file_name <- "test_GAD_2N_500n_studies_50param_Bivariatesoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_GAD_2_50studies_500N_Bivariate <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_50studies_500N_Bivariate <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Jones:
 ##
 file_name <- "test_GAD_2N_500n_studies_50param_Jonessoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_GAD_2_50studies_500N_Jones <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_50studies_500N_Jones <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Xu, Fixed:
 ##
 file_name <- "test_GAD_2N_500n_studies_50param_Xusoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_GAD_2_50studies_500N_Xu_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_50studies_500N_Xu_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Fixed:
 ##
 file_name <- "test_GAD_2N_500n_studies_50param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_GAD_2_50studies_500N_RG_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_50studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
 # ---- Xu, Random C:
 #
 file_name <- "test_GAD_2N_500n_studies_50param_Xusoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_GAD_2_50studies_500N_Xu_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_50studies_500N_Xu_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
 # ---- R&G, Random C:
 #
 file_name <- "test_GAD_2N_500n_studies_50param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_GAD_2_50studies_500N_RG_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_50studies_500N_RG_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 # ##
 ## ----------- For HADS ---------------------------------------------------------------------------------------------- :
 ##
 ## ---- Bivariate:
 #
 file_name <- "test_HADSN_500n_studies_50param_Bivariatesoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_HADS_50studies_500N_Bivariate <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_50studies_500N_Bivariate <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Jones:
 ##
 file_name <- "test_HADSN_500n_studies_50param_Jonessoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_HADS_50studies_500N_Jones <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_50studies_500N_Jones <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Xu, Fixed:
 ##
 file_name <- "test_HADSN_500n_studies_50param_Xusoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_HADS_50studies_500N_Xu_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_50studies_500N_Xu_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Fixed:
 ##
 file_name <- "test_HADSN_500n_studies_50param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_HADS_50studies_500N_RG_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_50studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Xu, Random C:
 ##
 file_name <- "test_HADSN_500n_studies_50param_Xusoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_HADS_50studies_500N_Xu_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_50studies_500N_Xu_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
 ## ---- R&G, Random C:
 ##
 file_name <- "test_HADSN_500n_studies_50param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_HADS_50studies_500N_RG_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_50studies_500N_RG_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ----------- For BAI ---------------------------------------------------------------------------------------------- :
 ##
@@ -2647,32 +2647,32 @@ complete_results_list_HADS_50studies_500N_RG_random_alpha2 <- readRDS(file.path(
 ## ---- Bivariate:
 ##
 file_name <- "test_BAIN_500n_studies_50param_Bivariatesoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_BAI_50studies_500N_Bivariate <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_50studies_500N_Bivariate <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Jones:
 ##
 file_name <- "test_BAIN_500n_studies_50param_Jonessoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_BAI_50studies_500N_Jones <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_50studies_500N_Jones <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Xu, Fixed:
 ##
 file_name <- "test_BAIN_500n_studies_50param_Xusoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_BAI_50studies_500N_Xu_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_50studies_500N_Xu_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Fixed:
 ##
 file_name <- "test_BAIN_500n_studies_50param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_BAI_50studies_500N_RG_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_50studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Xu, Random C:
 ##
 file_name <- "test_BAIN_500n_studies_50param_Xusoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_BAI_50studies_500N_Xu_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_50studies_500N_Xu_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Random C:
 ##
 file_name <- "test_BAIN_500n_studies_50param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_BAI_50studies_500N_RG_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_50studies_500N_RG_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ##
 ## ------------------------------ n_studies == 10:-------------------------------------------------------------------------------------
@@ -2684,64 +2684,64 @@ complete_results_list_BAI_50studies_500N_RG_random_alpha2 <- readRDS(file.path("
 ## ---- Bivariate:
 ##
 file_name <- "test_GAD_2N_500n_studies_10param_Bivariatesoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_GAD_2_10studies_500N_Bivariate <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_10studies_500N_Bivariate <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Jones:
 ##
 file_name <- "test_GAD_2N_500n_studies_10param_Jonessoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_GAD_2_10studies_500N_Jones <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_10studies_500N_Jones <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Xu, Fixed:
 ##
 file_name <- "test_GAD_2N_500n_studies_10param_Xusoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_GAD_2_10studies_500N_Xu_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_10studies_500N_Xu_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Fixed:
 ##
 file_name <- "test_GAD_2N_500n_studies_10param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_GAD_2_10studies_500N_RG_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_10studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
 # ---- Xu, Random C:
 #
 file_name <- "test_GAD_2N_500n_studies_10param_Xusoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_GAD_2_10studies_500N_Xu_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_10studies_500N_Xu_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
 # ---- R&G, Random C:
 #
 file_name <- "test_GAD_2N_500n_studies_10param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_GAD_2_10studies_500N_RG_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_10studies_500N_RG_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 # ##
 ## ----------- For HADS ---------------------------------------------------------------------------------------------- :
 ##
 ## ---- Bivariate:
 #
 file_name <- "test_HADSN_500n_studies_10param_Bivariatesoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_HADS_10studies_500N_Bivariate <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_10studies_500N_Bivariate <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Jones:
 ##
 file_name <- "test_HADSN_500n_studies_10param_Jonessoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_HADS_10studies_500N_Jones <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_10studies_500N_Jones <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Xu, Fixed:
 ##
 file_name <- "test_HADSN_500n_studies_10param_Xusoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_HADS_10studies_500N_Xu_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_10studies_500N_Xu_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Fixed:
 ##
 file_name <- "test_HADSN_500n_studies_10param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_HADS_10studies_500N_RG_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_10studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Xu, Random C:
 ##
 file_name <- "test_HADSN_500n_studies_10param_Xusoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_HADS_10studies_500N_Xu_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_10studies_500N_Xu_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
 ## ---- R&G, Random C:
 ##
 file_name <- "test_HADSN_500n_studies_10param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_HADS_10studies_500N_RG_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_10studies_500N_RG_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ----------- For BAI ---------------------------------------------------------------------------------------------- :
 ##
@@ -2749,32 +2749,32 @@ complete_results_list_HADS_10studies_500N_RG_random_alpha2 <- readRDS(file.path(
 ## ---- Bivariate:
 ##
 file_name <- "test_BAIN_500n_studies_10param_Bivariatesoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_BAI_10studies_500N_Bivariate <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_10studies_500N_Bivariate <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Jones:
 ##
 file_name <- "test_BAIN_500n_studies_10param_Jonessoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_BAI_10studies_500N_Jones <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_10studies_500N_Jones <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Xu, Fixed:
 ##
 file_name <- "test_BAIN_500n_studies_10param_Xusoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_BAI_10studies_500N_Xu_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_10studies_500N_Xu_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Fixed:
 ##
 file_name <- "test_BAIN_500n_studies_10param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_BAI_10studies_500N_RG_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_10studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Xu, Random C:
 ##
 file_name <- "test_BAIN_500n_studies_10param_Xusoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_BAI_10studies_500N_Xu_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_10studies_500N_Xu_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Random C:
 ##
 file_name <- "test_BAIN_500n_studies_10param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_BAI_10studies_500N_RG_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_10studies_500N_RG_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 
 }
 

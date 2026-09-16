@@ -2,13 +2,13 @@
 
 ## This model below is NOT fine! need to re-sample - use less chains
 Model_D_real_data <- readRDS(file.path(
-                            "application_results_real_data",
+                            MetaOrdDTA::metaorddta_output_path("application_results_real_data"),
                             "seed_1_dummy_data_0intercept_only_1N_covs_1param_Xurand_thr_TRUECS_0het_sigma_0_applied_results.RDS"))
 
 ## This model below is fine (all main r-hat's < 1.01 w/ high 400+ min_ESS!)
 ## This is the model used for the data simulation / DGM for the dummy data!
 Model_FULL_ALL_4_COVARIATES_UN_RAND_CUTPOINTS_real_data <- readRDS(file.path(
-  "application_results_real_data",
+  MetaOrdDTA::metaorddta_output_path("application_results_real_data"),
   "seed_1_dummy_data_0intercept_only_0N_covs_7param_Xurand_thr_TRUECS_0het_sigma_0_MR_model_5_applied_results.RDS"))
 
 

@@ -114,7 +114,7 @@ n_sims <- 5
   
 
     
-    output_dir = "simulation_results"
+    output_dir = MetaOrdDTA::metaorddta_output_path("simulation_results")
     
     # Create output directory if it doesn't exist
     if (!dir.exists(output_dir)) {

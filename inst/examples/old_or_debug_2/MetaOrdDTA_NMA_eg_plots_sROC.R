@@ -83,7 +83,7 @@ require(ggplot2)
 
 
 # Model_RAND <- readRDS(
-#   file.path("application_results_dummy_data", 
+#   file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
 #             "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_TRUECS_0het_sigma_0_applied_results.RDS"))
 # 
 # model_summary_and_trace_obj <- Model_RAND$model_summary_and_trace_obj
@@ -93,7 +93,7 @@ require(ggplot2)
 ## ---- Extract results + plots for FINAL INTERCEPT-ONLY chosen model (i.e. FIXED-cutpoints + CS) -------------------------------------------------------------------------
 ##
 Baseline_Model_best <- readRDS(
-  file.path("application_results_dummy_data", 
+  file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
             "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
 
 # model_summary_and_trace_obj_DUMMY <- Model_dummy$model_summary_and_trace_obj
@@ -115,7 +115,7 @@ n_thr <- c(6, 21, 21, 63)
 
 
 # Model_real <- readRDS(
-#   file.path("application_results_real_data", 
+#   file.path(MetaOrdDTA::metaorddta_output_path("application_results_real_data"),
 #             "seed_1_dummy_data_0intercept_only_1N_covs_1param_Xurand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
 # 
 # model_summary_and_trace_obj_REAL <- Model_real$model_summary_and_trace_obj
@@ -547,7 +547,7 @@ str(baseline_case_d_list)
 ## ----------- Plot sROC curve(s) (NMA - for best model WITH covariates): ---------------------------------------------
 ##
 MR_Model_best <- readRDS(
-  file.path("application_results_dummy_data", 
+  file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
             "seed_1_dummy_data_1intercept_only_0N_covs_4param_Xurand_thr_FALSECS_1het_sigma_0_MR_model_6_applied_results.RDS"))
 
 # model_summary_and_trace_obj_META_REG_DUMMY <- MR_Model_best$model_summary_and_trace_obj
@@ -572,7 +572,7 @@ MR_Model_best <- readRDS(
 #   test_names = test_names,
 #   compute_comparisons = TRUE,
 #   save_results = TRUE,
-#   output_dir = "MR_results",
+#   output_dir = MetaOrdDTA::metaorddta_output_path("MR_results"),
 #   parallel = FALSE
 # )
 # 
@@ -745,7 +745,7 @@ MR_Model_best <- readRDS(
 ## ---- Extract results + plots for FINAL INTERCEPT-ONLY chosen model (i.e. FIXED-cutpoints + CS) -----------------------------------
 ##
 Baseline_Model_best <- readRDS(
-  file.path("application_results_dummy_data", 
+  file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
             "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
 ##
 # model_summary_and_trace_obj_DUMMY <- Model_dummy$model_summary_and_trace_obj
@@ -1637,7 +1637,7 @@ summarise
 ## ----------- Plot sROC curve(s) (NMA - for best model WITH covariates): ---------------------------------------------
 ##
 MR_Model_dummy <- readRDS(
-  file.path("application_results_dummy_data", 
+  file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
             "seed_1_dummy_data_1intercept_only_0N_covs_4param_Xurand_thr_FALSECS_1het_sigma_0_MR_model_6_applied_results.RDS"))
 
 model_summary_and_trace_obj_META_REG_DUMMY <- MR_Model_dummy$model_summary_and_trace_obj
@@ -2156,7 +2156,7 @@ cat(outs_latex)
 ## ---- Load chosen intercept-only model (i.e. the MAIN model):
 ##
 Model_dummy <- readRDS(
-  file.path("application_results_dummy_data", 
+  file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
             "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
 
 model_summary_and_trace_obj_DUMMY <- Model_dummy$model_summary_and_trace_obj

@@ -121,10 +121,10 @@ options(scipen = 999999)
 options(max.print = 1000)
 
 # Set paths
-output_dir <- file.path(local_pkg_dir, "simulation_results")
-
 sim_study_dir <- file.path(local_pkg_dir, "sim_study")
-output_dir <- file.path(sim_study_dir, "simulation_results")
+output_dir <- MetaOrdDTA::metaorddta_output_path(
+  "sim_study", "simulation_results", create = TRUE
+)
 
 
 # # Main execution
@@ -690,7 +690,6 @@ final_mcse_status$MCSE_val
 
  
  
-
 
 
 

@@ -267,7 +267,7 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
                                          max_treedepth,
                                          ##
                                          n_workers = NULL,
-                                         output_dir = "cv_results",
+                                         output_dir = metaorddta_output_path("cv_results"),
                                          ##
                                          use_BayesMVP_for_faster_summaries
 ) {
@@ -722,7 +722,7 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
 #                                                  max_treedepth,
 #                                                  ##
 #                                                  n_workers = NULL,
-#                                                  output_dir = "cv_results",
+#                                                  output_dir = metaorddta_output_path("cv_results"),
 #                                                  ##
 #                                                  use_BayesMVP_for_faster_summaries,
 #                                                  stanc_args
@@ -1667,5 +1667,3 @@ make_latex_table_k_fold_CV <- function(comparison_results,
           invisible(latex_output)
   
 }
-
-
