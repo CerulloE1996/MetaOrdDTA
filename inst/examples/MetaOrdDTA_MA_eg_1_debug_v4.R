@@ -32,7 +32,7 @@ run_single_simulation <- function(start_sim_index,
         # }
         
         # Create output directory with absolute path
-        output_dir <- file.path(local_pkg_dir, "simulation_results")
+        output_dir <- MetaOrdDTA::metaorddta_output_path("simulation_results")
         if (!dir.exists(output_dir)) {
           dir.create(output_dir, recursive = TRUE)
         }

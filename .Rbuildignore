@@ -1,0 +1,53 @@
+^\.git$
+^\.gitignore$
+^\.RData(?:Tmp)?$
+^\.Rhistory$
+^\.Rproj\.user$
+^.*\.Rproj$
+^\.~lock.*#$
+
+# Generated analysis and simulation output
+^application_results_dummy_data$
+^application_results_real_data$
+^cv_results$
+^MR_plots$
+^MR_results$
+^simulation_results$
+^simulation_results_backup_old$
+^sim_study$
+^Untitled Folder(?: 2)?$
+^temp_old$
+^.*_results_list\.RDS$
+^.*_applied_results\.RDS$
+^simulation_environment\.RData(?:Tmp)?$
+^[^/]+\.png$
+^Rplots\.pdf$
+
+# Project-level analyses, references, and scratch files (not package contents)
+^papers$
+^Klaus.*\.R$
+^make_Klaus.*\.R$
+^Jones_BUGS_code\.R$
+^R_fn_prep_Stan_data_.*\.R$
+^(MetaOrdDTA_)?admin_install_MetaOrdDTA\.R$
+^MetaOrdDTA_example_1\.R$
+^tibble_Baron_et_al.*\.R$
+^temp_v[0-9]+\.R$
+^sdgerstgdb\.R$
+^my_tables\.tex$
+^old_wells_stan_file\.stan$
+^partially_centered_example_Sean_Pinkney\.stan$
+^Data file - .*\.docx$
+^sim_8301-supp-0001-appendix b\.docx$
+^README_backup\.md$
+^README\.html$
+^stan_data.*\.json$
+^[^/]+\.(?:RDS|rds)$
+
+# Generated CmdStan files; retain the corresponding .stan sources
+^inst/stan_data$
+^inst/stan_models/.*DTA_[^.]+$
+
+# Local package build/check output
+^MetaOrdDTA_[^/]+\.tar\.gz$
+^MetaOrdDTA\.Rcheck$

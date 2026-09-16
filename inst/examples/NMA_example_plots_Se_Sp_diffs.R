@@ -5,7 +5,7 @@ require(ggplot2)
 ## ---- Extract results + plots for FINAL INTERCEPT-ONLY chosen model (i.e. FIXED-cutpoints + CS) -----------------------------------
 ##
 Baseline_Model_best <- readRDS(
-  file.path("application_results_dummy_data", 
+  file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
             "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
 ##
 # model_summary_and_trace_obj_DUMMY <- Model_dummy$model_summary_and_trace_obj
@@ -169,7 +169,7 @@ ggsave( "DUMMY_Application_Se_and_Sp_pairwise_diffs_screening_all.png",
 ##
 ##
 MR_Model_dummy <- readRDS(
-  file.path("application_results_dummy_data", 
+  file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
             "seed_1_dummy_data_1intercept_only_0N_covs_4param_Xurand_thr_FALSECS_TRUEhet_sigma_0_MR_model_6_applied_results.RDS"))
 ##
 

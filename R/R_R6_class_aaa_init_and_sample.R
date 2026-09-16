@@ -1230,7 +1230,7 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                               ##
                                               parallel = NULL,
                                               n_workers = NULL,
-                                              output_dir = "cv_results",
+                                              output_dir = metaorddta_output_path("cv_results"),
                                               ##
                                               use_BayesMVP_for_faster_summaries = NULL
                    ) {
@@ -2198,7 +2198,6 @@ MetaOrd_model <- R6Class("MetaOrd_model",
 
 )
 )
-
 
 
 

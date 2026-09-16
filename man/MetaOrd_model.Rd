@@ -755,7 +755,7 @@ Extract params
   max_treedepth = 10,
   parallel = NULL,
   n_workers = NULL,
-  output_dir = "cv_results",
+  output_dir = metaorddta_output_path("cv_results"),
   use_BayesMVP_for_faster_summaries = NULL
 )}\if{html}{\out{</div>}}
 }

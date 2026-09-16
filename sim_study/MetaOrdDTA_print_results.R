@@ -128,11 +128,10 @@ options(scipen = 999999)
 options(max.print = 1000)
 
 # Set paths
-output_dir <- file.path(local_pkg_dir, "simulation_results")
-
-
 sim_study_dir <- file.path(local_pkg_dir, "sim_study")
-output_dir <- file.path(sim_study_dir, "simulation_results")
+output_dir <- MetaOrdDTA::metaorddta_output_path(
+  "sim_study", "simulation_results"
+)
 
 
 # # Main execution
@@ -366,7 +365,9 @@ scenario_df <- scenario_df %>% filter(model_parameterisation == "Xu") ## -------
 reduction_factor   <- 1.0
 # reduction_factor <- 0.5
 ##
-output_dir <- "/home/enzocerullo/Documents/Work/PhD_work/R_packages/MetaOrdDTA/sim_study/simulation_results"
+output_dir <- MetaOrdDTA::metaorddta_output_path(
+  "sim_study", "simulation_results"
+)
 ##
 ## ---- GAD-2; n_studies = 10: -----------------------------------------------------
 ##
@@ -923,7 +924,7 @@ nrow(mat$diseased)
 
 
 
-# rename_files_add_red_fact(directory = file.path(sim_study_dir, "simulation_results"),
+# rename_files_add_red_fact(directory = MetaOrdDTA::metaorddta_output_path("sim_study", "simulation_results"),
 #                           reduction_factor = 1.00,
 #                           dry_run = F)
 
@@ -1331,7 +1332,6 @@ library(patchwork)
 # ggsave("simulation_results_combined.png", combined_plot, 
 #        width = 12, height = 14, dpi = 300)
 # 
-
 
 
 

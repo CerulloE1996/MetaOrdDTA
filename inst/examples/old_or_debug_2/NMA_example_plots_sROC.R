@@ -635,7 +635,7 @@ all_scenario_results <- R_fn_compute_MR_multiple_scenarios(
   test_names = test_names,
   compute_comparisons = TRUE,
   save_results = TRUE,
-  output_dir = "MR_results",
+  output_dir = MetaOrdDTA::metaorddta_output_path("MR_results"),
   parallel = FALSE
 )
 

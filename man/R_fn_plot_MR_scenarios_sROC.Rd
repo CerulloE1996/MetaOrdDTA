@@ -14,7 +14,7 @@ R_fn_plot_MR_scenarios_sROC(
   point_size = 2,
   line_size = 0.8,
   save_plots = TRUE,
-  output_dir = "MR_plots",
+  output_dir = metaorddta_output_path("MR_plots"),
   plot_width = 12,
   plot_height = 10
 )

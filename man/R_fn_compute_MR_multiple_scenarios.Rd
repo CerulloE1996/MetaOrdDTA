@@ -14,7 +14,7 @@ R_fn_compute_MR_multiple_scenarios(
   test_names = NULL,
   compute_comparisons = TRUE,
   save_results = TRUE,
-  output_dir = "MR_results",
+  output_dir = metaorddta_output_path("MR_results"),
   n_cores = NULL,
   parallel = TRUE
 )
