@@ -1,0 +1,64 @@
+# R and RStudio session state
+.Rhistory
+.RData
+.RDataTmp
+.Ruserdata
+.Rproj.user/
+*.Rproj
+
+# Editor and operating-system clutter
+*~
+.~lock.*#
+.DS_Store
+.vscode/
+
+# R package build/check artefacts
+/*.Rcheck/
+/*.tar.gz
+/..Rcheck/
+/MetaOrdDTA.Rcheck/
+/MetaOrdDTA_*.tar.gz
+src/*.o
+src/*.so
+src/*.dll
+src/*.dylib
+
+# CmdStan executables and generated data/diagnostic files
+inst/stan_models/**/DTA_*
+inst/stan_models/**/PO_DTA_*
+!inst/stan_models/**/*.stan
+inst/stan_data/
+/stan_data*.json
+*.csv
+*.csv.lock
+*.diagnostic.csv
+
+# Generated analyses and simulation output (many are multi-GB)
+/application_results_dummy_data/
+/application_results_real_data/
+/cv_results/
+/MR_results/
+/MR_plots/
+/simulation_results/
+/simulation_results_backup_old/
+/sim_study/simulation_results/
+/sim_study/Rplots.pdf
+/Untitled Folder/
+/Untitled Folder 2/
+/temp_old/
+*_results_list.RDS
+*_applied_results.RDS
+fold_*_results.rds
+
+# Saved workspaces and generated figures at the package root
+/simulation_environment.RData
+/simulation_environment.RDataTmp
+/*.png
+/Rplots.pdf
+/README.html
+
+# Scratch/duplicate analysis scripts retained locally
+/temp_v3.R
+/temp_v4.R
+/make_Klaus_data_NMA_Stan_v3_temp.R
+/sdgerstgdb.R
