@@ -127,7 +127,7 @@ filter_param_draws_string <- function(  named_draws_array,
                                                                             debugging = debugging)
                       
                       ## Then filter/subset "named_draws_array_2":
-                      draws_array_filtered <- named_draws_array_2[,,param_names_filtered]
+                      draws_array_filtered <- named_draws_array_2[, , param_names_filtered, drop = FALSE]
                   })
               }
               
@@ -153,7 +153,9 @@ filter_param_draws_string <- function(  named_draws_array,
                           warning(paste("All parameters containing", param_string, "contain only NAs"))
                           return(list())  # Return empty list if no valid parameters
                         }
-                        draws_array_filtered_wo_NAs <- draws_array_filtered[,,param_names_filtered_wo_NAs]
+                        draws_array_filtered_wo_NAs <- draws_array_filtered[
+                          , , param_names_filtered_wo_NAs, drop = FALSE
+                        ]
                         
                         if (debugging) { 
                           print(draws_array_filtered_wo_NAs)
@@ -268,8 +270,11 @@ extract_params_from_tibble_batch <- function(  debugging = FALSE,
                                                condition = "exact_match",
                                                combine = TRUE) {
             
-            # Extract all parameter names from the tibble
-            all_param_names_vec <- unique(tibble$parameter)
+            name_column <- intersect(c("parameter", "variable"), names(tibble))[1L]
+            if (is.na(name_column)) {
+              stop("Summary tibble must contain a 'parameter' or 'variable' column")
+            }
+            all_param_names_vec <- unique(tibble[[name_column]])
             
             # Use your existing batch function to filter parameter names
             filtered_params_list <- filter_param_names_string_batched(
@@ -282,10 +287,8 @@ extract_params_from_tibble_batch <- function(  debugging = FALSE,
             results_list <- list()
             for (param_string in names(filtered_params_list)) {
               if (length(filtered_params_list[[param_string]]) > 0) {
-                results_list[[param_string]] <- dplyr::filter(
-                  tibble, 
-                  parameter %in% filtered_params_list[[param_string]]
-                )
+                keep <- tibble[[name_column]] %in% filtered_params_list[[param_string]]
+                results_list[[param_string]] <- tibble[keep, , drop = FALSE]
               }
             }
             
@@ -395,8 +398,6 @@ extract_params_from_array_batch <- function(debugging,
         }
   
 }
-
-
 
 
 

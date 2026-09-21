@@ -77,19 +77,14 @@ R_fn_compile_stan_model_basic_given_file_name <- function( stan_model_file_name,
           ##
           ## Compile model:
           ##
-          try({ 
-                if (compile) {
-                    
-                    try({  
-                      
-                        stan_model_obj <- cmdstanr::cmdstan_model( stan_model_file_path,
-                                                                   force_recompile = force_recompile,
-                                                                   quiet = quiet, 
-                                                                   include_paths = stan_functions_directory)
-                      
-                    })
-                }
-          })
+          if (isTRUE(compile)) {
+            stan_model_obj <- cmdstanr::cmdstan_model(
+              stan_model_file_path,
+              force_recompile = force_recompile,
+              quiet = quiet,
+              include_paths = stan_functions_directory
+            )
+          }
           
           ##
           ## output list:
@@ -109,7 +104,6 @@ R_fn_compile_stan_model_basic_given_file_name <- function( stan_model_file_name,
                        stan_NMA_prior_directory = stan_NMA_prior_directory))
   
 }
-
 
 
 

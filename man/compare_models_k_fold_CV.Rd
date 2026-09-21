@@ -8,6 +8,9 @@ compare_models_k_fold_CV(
   kfold_results_list,
   model_names = NULL,
   min_ess_threshold = 100,
+  exclude_low_ess = FALSE,
+  allow_incomplete = FALSE,
+  reference_model = "best",
   verbose = TRUE
 )
 }

@@ -9,8 +9,10 @@ convert_stan_data_list_to_JSON <- function(stan_data_list,
                                            pkg_data_dir = NULL) {
             
             if (is.null(pkg_data_dir)) { 
-              pkg_root_dir <- system.file(package = "MetaOrdDTA")
-              pkg_data_dir <- file.path(pkg_root_dir, "stan_data")  # directory to store data inc. JSON data files
+              ## Installed package libraries may be read-only. These JSON files are
+              ## runtime artefacts, not package data, so keep them in the session's
+              ## temporary directory.
+              pkg_data_dir <- file.path(tempdir(), "MetaOrdDTA", "stan_data")
             }
             ##
             ## Create data directory if it doesn't exist:
@@ -167,7 +169,6 @@ convert_JSON_string_to_ordered_R_vector <- function(json_string,
             return(result)
   
 }
-
 
 
 

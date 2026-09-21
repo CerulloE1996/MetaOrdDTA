@@ -9,7 +9,7 @@ cmdstanr_path <- function() {
       
                 # First attempt just using the built-in cmdstanr fn
                 try({
-                  cmdstan_dir_using_cmdstanr <- cmdstanr:::cmdstan_path()
+                  cmdstan_dir_using_cmdstanr <- cmdstanr::cmdstan_path()
                     if (!(cmdstan_dir_using_cmdstanr %in% c("", " ", "  "))) {
                       message("Using CMDSTAN path: ", cmdstan_env)
                       return(cmdstan_dir_using_cmdstanr) # Use the value from the environment variable
@@ -42,7 +42,6 @@ cmdstanr_path <- function() {
       })
 
 }
-
 
 
 

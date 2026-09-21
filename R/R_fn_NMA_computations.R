@@ -338,10 +338,9 @@ R_fn_GQ_covariates_NMA <- function(baseline_case_nd,
                                    chains = min(8, parallel::detectCores())
 ) {
           
-          require(cmdstanr)
-          
           ##
           stan_data_list <- model_prep_obj$internal_obj$outs_data$stan_data_list
+          n_index_tests <- stan_data_list$n_index_tests
           ##
           stan_model_file_path     <- model_summary_and_trace_obj$internal_obj$outs_stan_compile$stan_model_file_path
           stan_functions_directory <- model_summary_and_trace_obj$internal_obj$outs_stan_compile$stan_functions_directory
@@ -1837,6 +1836,5 @@ create_MR_AUC_latex_table_2vars <- function(baseline_outs_list,
         return(paste(latex_lines, collapse = "\n"))
   
 }
-
 
 

@@ -1,6 +1,4 @@
 
-require(R6)
-
 #' @title MetaOrdDTA Model Class
 #' @description R6 Class for MetaOrdDTA model initialization and sampling.
 #'
@@ -108,7 +106,7 @@ require(R6)
 #' 
 #'
 #' @export
-MetaOrd_model <- R6Class("MetaOrd_model",
+MetaOrd_model <- R6::R6Class("MetaOrd_model",
                     
               public = list(
                     ##
@@ -736,7 +734,7 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                 ##
                                 self$init_lists_per_chain <- local_model_samples_obj$init_lists_per_chain
                                                                                      
-                                return(self)
+                                return(invisible(self))
                           
                                         
                       
@@ -781,9 +779,10 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                               stop("Model was not properly initialize")
                             }
                             ##
-                            print(paste("internal_obj = "))
-                            print(str(self$internal_obj))
-                            print(self$internal_obj)
+                            if (debugging) {
+                              message("Summarising fitted MetaOrdDTA model")
+                              str(self$internal_obj, max.level = 1L)
+                            }
                             ##
                             use_BayesMVP_for_faster_summaries <- if_null_then_set_to( use_BayesMVP_for_faster_summaries, 
                                                                                       MetaOrdDTA:::check_if_BayesMVP_R_pkg_installed(TRUE, FALSE))
@@ -1245,11 +1244,6 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                model_prep_obj <- self
                                stan_data_list <- self$internal_obj$outs_data$stan_data_list
                                ##
-                               if (is.null(init_lists_per_chain)) { 
-                                 init_lists_per_chain <- resize_init_list(init_lists_per_chain = init_lists_per_chain,
-                                                                          n_chains_new = n_chains)
-                               }
-                               ##
                                if (is.null(fold_assignments)) { 
                                  stop("Please run the '$make_folds_k_fold_CV()' R6 class method to make folds before running K-fold CV")
                                }
@@ -1259,6 +1253,13 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                if (is.null(n_chains)) { 
                                  n_chains <- 2
                                }
+                               if (is.null(init_lists_per_chain)) {
+                                 init_lists_per_chain <- self$init_lists_per_chain
+                               }
+                               init_lists_per_chain <- resize_init_list(
+                                 init_lists_per_chain = init_lists_per_chain,
+                                 n_chains_new = n_chains
+                               )
                                ##
                                ## ---- Decide whether to use parallel version:
                                ##
@@ -1730,22 +1731,11 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                      baseline_case_nd <- rep(list(baseline_vec), length(test_names))
                                      baseline_case_d <- rep(list(baseline_vec), length(test_names))
                                      
-                                     new_cov_data <- list(
-                                       baseline_case_nd = baseline_case_nd,
-                                       baseline_case_d = baseline_case_d
-                                     )
-                                     
-                                     stan_functions_directory <- self$internal_obj$outs_stan_compile$stan_functions_directory
-                                     stan_model_file_path     <- self$internal_obj$outs_stan_compile$stan_model_file_path
-                                     stan_data_list           <- self$internal_obj$outs_data$stan_data_list
-                                     stan_mod_samples         <- self$internal_obj$outs_stan_sampling$stan_mod_samples
-                                     
                                      stan_mod_samples_to_use <- R_fn_GQ_covariates_NMA(
-                                       new_cov_data = new_cov_data,
-                                       stan_mod_samples = stan_mod_samples,
-                                       stan_data_list = stan_data_list,
-                                       stan_model_file_path = stan_model_file_path,
-                                       stan_functions_directory = stan_functions_directory
+                                       baseline_case_nd = baseline_case_nd,
+                                       baseline_case_d = baseline_case_d,
+                                       model_summary_and_trace_obj = self,
+                                       model_prep_obj = self
                                      )
                                      
                                      trace_gq <- stan_mod_samples_to_use$draws()
@@ -1822,17 +1812,12 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                                         'baseline_case_d' for Xu/bivariate model or Jones model, or an R list 
                                                         containing 'baseline_case' for R&G model")
                                  }
-                                 stan_functions_directory <- self$internal_obj$outs_stan_compile$stan_functions_directory
-                                 stan_model_file_path     <- self$internal_obj$outs_stan_compile$stan_model_file_pat
-                                 stan_data_list           <- self$internal_obj$outs_data$stan_data_list
-                                 ##
-                                 stan_mod_samples <- self$internal_obj$outs_stan_sampling$stan_mod_samples
-                                 ##
-                                 stan_mod_samples_to_use <- R_fn_GQ_covariates_NMA(  new_cov_data = new_cov_data,
-                                                                                     stan_mod_samples = stan_mod_samples,
-                                                                                     stan_data_list = stan_data_list,
-                                                                                     stan_model_file_path = stan_model_file_path,
-                                                                                     stan_functions_directory = stan_functions_directory)
+                                 stan_mod_samples_to_use <- R_fn_GQ_covariates_NMA(
+                                   baseline_case_nd = new_cov_data$baseline_case_nd,
+                                   baseline_case_d = new_cov_data$baseline_case_d,
+                                   model_summary_and_trace_obj = self,
+                                   model_prep_obj = self
+                                 )
                                  ##
                                  trace_gq <- stan_mod_samples_to_use$draws()
                                } else { 
@@ -2198,11 +2183,6 @@ MetaOrd_model <- R6Class("MetaOrd_model",
 
 )
 )
-
-
-
-
-
 
 
 

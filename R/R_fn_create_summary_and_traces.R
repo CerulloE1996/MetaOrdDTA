@@ -853,7 +853,7 @@ create_summary_and_traces <- function(    package,
                  if (save_log_lik_trace == TRUE) {
                         outs <- MetaOrdDTA:::filter_param_draws_string_batched(    named_draws_array = stan_draws_array,
                                                                       param_strings_vec = "log_lik",
-                                                                                   condition = "exact_match",
+                                                                                   condition = "containing",
                                                                                    exclude_NA = exclude_NA,
                                                                                    debugging = FALSE)
                        ##
@@ -1645,7 +1645,6 @@ create_summary_and_traces <- function(    package,
   
   
 }
-
 
 
 

@@ -1,15 +1,16 @@
 Package: MetaOrdDTA
 Type: Package
-Title: MetaOrdDTA: An R package for the meta-analysis and network-meta-analysis of ordinal (and other) diagnostic and screening tests at multiple thresholds. 
+Title: Meta-Analysis of Ordinal Diagnostic Tests at Multiple Thresholds
 Version: 0.1
 Date: 2025-02-15
 Author: Enzo Cerullo
 Maintainer: Enzo Cerullo <enzo.cerullo@bath.edu>
 Description: An R package for the meta-analysis and network-meta-analysis of diagnostic and screening tests, optimised for ordinal tests such as questionnaires (with possibly missing threshold data is some or all studies). However, it can also be used for binary and continuous tests (e.g. using the Jones et al model). 
-License: GPL-3
-Imports: Rcpp (>= 1.0.0), RcppEigen, cmdstanr, bayesplot, posterior, dplyr, ggplot2, tibble, tictoc
+License: GPL-3 + file LICENSE
+Imports: Rcpp (>= 1.0.0), R6, cmdstanr, bayesplot, posterior, dplyr, ggplot2, tibble, tictoc, doParallel, foreach, stringr, jsonlite, tidyr, purrr, patchwork, forcats, data.table, digest, gtools, LaplacesDemon, MASS, Matrix, MCMCpack, scales, TruncatedNormal, truncnorm, bridgestan
 LinkingTo: Rcpp, RcppEigen
-Suggests: roxygen2
+Suggests: roxygen2, testthat (>= 3.0.0), BayesMVP, BayesMVPsim, BayesMVPtest, RcppParallel
+Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE, roclets = c("namespace", "rd"))
 SystemRequirements: GNU make, C++17
 RoxygenNote: 7.3.2
