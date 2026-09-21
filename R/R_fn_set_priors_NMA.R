@@ -149,10 +149,12 @@ R_fn_set_priors_NMA <- function(  priors,
                                                                                   rep(list( matrix(0.0, nrow = 2, ncol = n_covariates_max)), n_index_tests))
                                 priors$prior_beta_mu_SD   <- if_null_then_set_to( priors$prior_beta_mu_SD, 
                                                                                   rep(list( matrix(1.0*mult, nrow = 2, ncol = n_covariates_max)), n_index_tests))
-                                for (t in 1:n_index_tests) {
-                                  try({ 
-                                    priors$prior_beta_mu_SD[[t]][1:2, 2:n_covariates_max] <- 1.0*mult ## 0.5*mult
-                                  })
+                                if (n_covariates_max > 1L) {
+                                  for (t in seq_len(n_index_tests)) {
+                                    priors$prior_beta_mu_SD[[t]][
+                                      1:2, 2:n_covariates_max
+                                    ] <- 1.0 * mult
+                                  }
                                 }
                                 ##
                                 priors$prior_beta_tau_SD <- if_null_then_set_to(priors$prior_beta_tau_SD, 
@@ -204,8 +206,17 @@ R_fn_set_priors_NMA <- function(  priors,
                                                                                             rep(prior_kappa_dof_d,  n_index_tests)))
                                         priors$prior_kappa_df <- priors$prior_kappa_dof
                                 } else { 
-                                        priors$prior_dirichlet_alpha <- if_null_then_set_to(priors$prior_dirichlet_alpha, 
-                                                                                            array(1.0, dim = c(n_index_tests, max(n_thr) + 1)))
+                                        alpha <- matrix(
+                                          1.0,
+                                          nrow = n_index_tests,
+                                          ncol = max(n_thr) + 1L
+                                        )
+                                        ## Stan declares one matrix per disease class.
+                                        ## The old default omitted that leading dimension.
+                                        priors$prior_dirichlet_alpha <- if_null_then_set_to(
+                                          priors$prior_dirichlet_alpha,
+                                          list(alpha, alpha)
+                                        )
                                 }
                                 
                     } else if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
@@ -329,4 +340,3 @@ R_fn_set_priors_NMA <- function(  priors,
   
   
   
-

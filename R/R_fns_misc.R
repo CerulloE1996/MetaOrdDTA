@@ -97,6 +97,15 @@ validate_and_extrapolate_ESS <- function(N1,
 #' @export
 resize_init_list <- function(init_lists_per_chain, 
                              n_chains_new) {
+
+        if (is.null(init_lists_per_chain)) {
+          return(NULL)
+        }
+
+        if (length(n_chains_new) != 1L || is.na(n_chains_new) || n_chains_new < 1L) {
+          stop("n_chains_new must be a single positive integer")
+        }
+        n_chains_new <- as.integer(n_chains_new)
   
         n_chains_old <- length(init_lists_per_chain)
         
@@ -3356,7 +3365,6 @@ create_heterogeneity_comparison_table <- function(MR_model_summary_and_trace_obj
           return(paste(lines, collapse = "\n"))
   
 }
-
 
 
 

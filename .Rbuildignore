@@ -17,6 +17,9 @@
 ^sim_study$
 ^Untitled Folder(?: 2)?$
 ^temp_old$
+^inst/examples/old_or_debug(?:_2)?$
+^inst/examples/.*[Dd][Ee][Bb][Uu][Gg].*\.R$
+^inst/cpp_funtions/.*/debug_old_backup$
 ^.*_results_list\.RDS$
 ^.*_applied_results\.RDS$
 ^simulation_environment\.RData(?:Tmp)?$

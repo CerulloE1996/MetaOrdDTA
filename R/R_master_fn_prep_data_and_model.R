@@ -189,7 +189,18 @@ prep_data_and_model <- function(  debugging,
             other_advanced_options$advanced_compile <- FALSE
           }
           
-          if (other_advanced_options$advanced_compile) {
+          if (!isTRUE(other_advanced_options$compile)) {
+                  internal_obj$outs_stan_compile <- MetaOrdDTA:::R_fn_compile_stan_model_basic_given_file_name(
+                    stan_model_file_name = internal_obj$outs_stan_model_name$stan_model_file_name,
+                    cts = basic_model_options$cts,
+                    network = basic_model_options$network,
+                    prior_only = basic_model_options$prior_only,
+                    debugging = debugging,
+                    force_recompile = FALSE,
+                    quiet = isTRUE(other_advanced_options$quiet),
+                    compile = FALSE
+                  )
+          } else if (other_advanced_options$advanced_compile) {
                   
                   other_advanced_options$force_recompile <- MetaOrdDTA:::if_null_then_set_to(other_advanced_options$force_recompile, TRUE)
                   other_advanced_options$quiet <- MetaOrdDTA:::if_null_then_set_to(other_advanced_options$quiet, FALSE)
@@ -234,8 +245,8 @@ prep_data_and_model <- function(  debugging,
                                                                                 prior_only = basic_model_options$prior_only,
                                                                                 ##
                                                                                 debugging = debugging,
-                                                                                force_recompile = FALSE,
-                                                                                quiet   = FALSE,
+                                                                                force_recompile = isTRUE(other_advanced_options$force_recompile),
+                                                                                quiet = isTRUE(other_advanced_options$quiet),
                                                                                 compile = TRUE)
                                                                             
             
@@ -383,6 +394,5 @@ prep_data_and_model <- function(  debugging,
 
 
  
-
 
 

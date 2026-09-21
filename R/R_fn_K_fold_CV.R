@@ -81,29 +81,173 @@ create_folds <- function(indicator_index_test_in_study,
                          network,
                          n_studies
 ) {
-        
-        set.seed(seed, kind = "Mersenne-Twister")
-        ##
-        if (!(network)) { 
-          study_test_matrix <- matrix(rep(1, n_studies), ncol = 1)
-        } else { 
-          study_test_matrix <- indicator_index_test_in_study
+        if (length(K) != 1L || is.na(K) || K < 2L || K > n_studies) {
+          stop("K must be between 2 and the number of studies")
         }
-        ##
-        ## ---- Group studies by test pattern:
-        ##
-        test_patterns <- apply(study_test_matrix, 1, paste, collapse = "")
-        ##
-        ## ---- Create folds within each pattern:
-        ##
-        folds <- rep(NA, nrow(study_test_matrix))
-        for (pattern in unique(test_patterns)) {
-          idx <- which(test_patterns == pattern)
-          folds[idx] <- sample(rep(1:K, length.out = length(idx)))
+
+        if (isTRUE(network) &&
+            (is.null(indicator_index_test_in_study) ||
+             nrow(indicator_index_test_in_study) != n_studies)) {
+          stop("indicator_index_test_in_study must have one row per study")
         }
-        
-        return(folds)
+
+        create_folds_new(
+          indicator_index_test_in_study = indicator_index_test_in_study,
+          K = as.integer(K),
+          seed = seed,
+          network = isTRUE(network),
+          n_studies = n_studies
+        )
   
+}
+
+
+validate_kfold_assignments <- function(fold_assignments, K, n_studies) {
+  if (length(fold_assignments) != n_studies) {
+    stop("fold_assignments length must equal the number of studies")
+  }
+  if (anyNA(fold_assignments) || any(fold_assignments != as.integer(fold_assignments))) {
+    stop("fold_assignments must contain integer fold labels without missing values")
+  }
+
+  labels <- sort(unique(as.integer(fold_assignments)))
+  if (!identical(labels, seq_len(as.integer(K)))) {
+    stop("fold_assignments must use every integer label from 1 through K")
+  }
+
+  as.integer(fold_assignments)
+}
+
+
+log_mean_exp <- function(x) {
+  maximum <- max(x)
+  if (!is.finite(maximum)) {
+    return(maximum)
+  }
+  maximum + log(mean(exp(x - maximum)))
+}
+
+
+kfold_fold_metrics <- function(log_lik_study_array, holdout_studies) {
+  draws <- as.array(log_lik_study_array)
+  if (length(dim(draws)) != 3L) {
+    stop("log_lik_study_array must have iteration, chain, and study dimensions")
+  }
+
+  variable_names <- dimnames(draws)[[3L]]
+  study_columns <- holdout_studies
+  if (!is.null(variable_names)) {
+    expected <- sprintf("log_lik_study[%d]", holdout_studies)
+    matched <- match(expected, variable_names)
+    if (!anyNA(matched)) {
+      study_columns <- matched
+    }
+  }
+
+  holdout_draws <- draws[, , study_columns, drop = FALSE]
+  pointwise <- vapply(
+    seq_along(holdout_studies),
+    function(i) log_mean_exp(as.numeric(holdout_draws[, , i])),
+    numeric(1L)
+  )
+  names(pointwise) <- as.character(holdout_studies)
+
+  list(
+    elpd = sum(pointwise),
+    pointwise_elpd = pointwise
+  )
+}
+
+
+kfold_pointwise_from_results <- function(fold_results, n_studies) {
+  pointwise <- rep(NA_real_, n_studies)
+
+  for (fold_result in fold_results) {
+    if (is.null(fold_result) || !identical(fold_result$status, "completed")) {
+      next
+    }
+
+    fold_pointwise <- fold_result$pointwise_elpd
+    if (is.null(fold_pointwise) && !is.null(fold_result$log_lik_study_array)) {
+      fold_pointwise <- kfold_fold_metrics(
+        fold_result$log_lik_study_array,
+        fold_result$holdout_studies
+      )$pointwise_elpd
+    }
+    if (is.null(fold_pointwise)) {
+      stop("Fold results do not contain pointwise ELPD or log-likelihood draws")
+    }
+
+    pointwise[fold_result$holdout_studies] <- unname(fold_pointwise)
+  }
+
+  pointwise
+}
+
+
+kfold_elpd_summary <- function(pointwise_elpd) {
+  observed <- pointwise_elpd[is.finite(pointwise_elpd)]
+  list(
+    elpd_kfold = sum(observed),
+    se_elpd = if (length(observed) > 1L) {
+      sqrt(length(observed) * stats::var(observed))
+    } else {
+      NA_real_
+    },
+    n_scored = length(observed)
+  )
+}
+
+
+#' Recompute and optionally compact saved K-fold results
+#'
+#' Re-scores legacy results using study-wise log posterior predictive density.
+#' Large per-fold draw arrays can be dropped after their pointwise scores have
+#' been recovered.
+#'
+#' @param kfold_results A K-fold result object, optionally wrapped in a list
+#'   named `outs_kfold`.
+#' @param drop_draws If `TRUE`, discard large log-likelihood arrays and fold
+#'   summary tibbles after rescoring.
+#' @return The result object with corrected pointwise ELPD, total ELPD and SE.
+#' @export
+rescore_kfold_results <- function(kfold_results, drop_draws = TRUE) {
+  wrapped <- !is.null(kfold_results$outs_kfold)
+  results <- if (wrapped) kfold_results$outs_kfold else kfold_results
+  n_studies <- length(results$fold_assignments)
+  validate_kfold_assignments(results$fold_assignments, results$K, n_studies)
+
+  pointwise <- kfold_pointwise_from_results(results$fold_results, n_studies)
+  if (any(!is.finite(pointwise))) {
+    stop("K-fold results have incomplete held-out predictions")
+  }
+  summary <- kfold_elpd_summary(pointwise)
+  results$pointwise_elpd <- pointwise
+  results$elpd_kfold <- summary$elpd_kfold
+  results$se_elpd <- summary$se_elpd
+
+  for (fold in seq_along(results$fold_results)) {
+    fold_result <- results$fold_results[[fold]]
+    if (!is.null(fold_result$log_lik_study_array)) {
+      metrics <- kfold_fold_metrics(
+        fold_result$log_lik_study_array,
+        fold_result$holdout_studies
+      )
+      fold_result$pointwise_elpd <- metrics$pointwise_elpd
+      fold_result$elpd_fold <- metrics$elpd
+    }
+    if (isTRUE(drop_draws)) {
+      fold_result$log_lik_study_array <- NULL
+      fold_result$tibble_all <- NULL
+    }
+    results$fold_results[[fold]] <- fold_result
+  }
+
+  if (wrapped) {
+    kfold_results$outs_kfold <- results
+    return(kfold_results)
+  }
+  results
 }
 
 
@@ -111,16 +255,20 @@ create_folds <- function(indicator_index_test_in_study,
 #' R_fn_run_kfold_cv
 #' @keywords internal
 #' @export
-R_fn_run_kfold_cv <- function(   debugging,
+R_fn_run_kfold_cv <- function(   debugging = FALSE,
                                  ##
-                                 K = 10, 
+                                 K = 10,
+                                 seed = 123,
+                                 fold_assignments,
                                  ##
                                  model_prep_obj,
                                  ##
-                                 stan_data_list, 
+                                 stan_data_list,
+                                 ##
+                                 cmdstanr_args = NULL,
                                  ##
                                  priors,
-                                 init_lists_per_chain,
+                                 init_lists_per_chain = NULL,
                                  ##
                                  n_burnin,
                                  n_iter,
@@ -128,110 +276,90 @@ R_fn_run_kfold_cv <- function(   debugging,
                                  adapt_delta,
                                  max_treedepth,
                                  ##
-                                 use_BayesMVP_for_faster_summaries
+                                 output_dir = metaorddta_output_path("cv_results"),
+                                 ##
+                                 use_BayesMVP_for_faster_summaries = FALSE
 ) {
-  
-          cat("Using", K, "-fold CV (LOO inappropriate for NMA models)\n")
-          
-          # Try to keep network connected in each fold
+          cat("Using", K, "-fold CV (sequential)\n")
+
           n_studies <- stan_data_list$n_studies
-          ##
-          fold_size <- ceiling(n_studies / K)
-          fold_ids <- rep(1:K, each = fold_size)[1:n_studies]
-          fold_ids <- sample(fold_ids)  # Randomize
-          
-          elpd_kfold <- 0
-          fold_results <- list()
-          
-          k <- 1
-          
-          for (k in 1:K) {
-                  
-                  cat("\nFold", k, "- holding out", sum(fold_ids == k), "studies\n")
-                  
-                  # Check network connectivity
-                  holdout_studies   <- which(fold_ids == k)
-                  remaining_studies <- which(fold_ids != k)
-                  ##
-                  priors$K_fold_CV_indicator <- as.integer(fold_ids != k)
-                  ##
-                  model_samples_obj <-  model_prep_obj$sample(   
-                    n_burnin = n_burnin,
-                    n_iter   = n_iter,
-                    adapt_delta = adapt_delta, 
-                    max_treedepth = max_treedepth,
-                    metric_shape = "diag_e",
-                    ##
-                    priors = priors,
-                    ##
-                    n_chains = n_chains,
-                    ##
-                    init_lists_per_chain = init_lists_per_chain
-                  )
-                  ##
-                  model_summary_and_trace_obj <- model_samples_obj$summary(
-                    compute_main_params = TRUE,
-                    compute_transformed_parameters = FALSE, 
-                    compute_generated_quantities = TRUE,
-                    ##
-                    save_log_lik_trace = TRUE,
-                    ##
-                    use_BayesMVP_for_faster_summaries = TRUE)
-                  ##
-                  rm(model_samples_obj)
-                  gc() ; gc()
-                  ##
-                  # posterior_draws <- model_summary_and_trace_obj$get_all_traces_list()
-                  trace_gq <- model_summary_and_trace_obj$get_all_traces_list()$traces_as_arrays$trace_gq
-                  ##
-                  rm(model_summary_and_trace_obj)
-                  gc() ; gc()
-                  ##
-                  ## Extract log_lik_study for ALL studies
-                  log_lik_study_array <- filter_param_draws_string(
-                    named_draws_array = trace_gq,
-                    param_string = "log_lik_study",
-                    condition = "exact_match",
-                    exclude_NA = TRUE
-                  )
-                  ##
-                  rm(trace_gq)
-                  gc() ; gc()
-                  ##
-                  # Calculate holdout log-likelihood (only for holdout studies)
-                  holdout_indices <- which(fold_ids == k)
-                  log_lik_holdout_samples <- log_lik_study_array[, , holdout_indices, drop = FALSE]
-                  sum(log_lik_study_array)
-                  sum(log_lik_holdout_samples)
-                  ##
-                  # Sum across holdout studies and average across iterations/chains
-                  elpd_holdout <- mean(apply(log_lik_holdout_samples, c(1, 2), sum))
-                  ##
-                  fold_results[[k]] <- list(
-                    elpd = elpd_holdout,
-                    n_holdout = length(holdout_indices),
-                    holdout_studies = holdout_indices
-                  )
-                  ##
-                  elpd_kfold <- elpd_kfold + elpd_holdout
-                  ##
-                  fold_results[[k]]
-                  elpd_kfold
-            
+          fold_ids <- validate_kfold_assignments(fold_assignments, K, n_studies)
+          dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+          cmdstanr_args <- if (is.null(cmdstanr_args)) list() else cmdstanr_args
+
+          fold_results <- vector("list", K)
+
+          for (k in seq_len(K)) {
+            holdout_studies <- which(fold_ids == k)
+            cat("\nFold", k, "- holding out", length(holdout_studies), "studies\n")
+
+            fold_priors <- priors
+            fold_priors$K_fold_CV_indicator <- as.integer(fold_ids != k)
+            fold_cmdstanr_args <- utils::modifyList(
+              cmdstanr_args,
+              list(
+                seed = seed + k,
+                output_dir = file.path(output_dir, sprintf("fold_%02d", k)),
+                output_basename = paste0("fold_", k, "_chain")
+              )
+            )
+
+            start_time <- Sys.time()
+            model_samples_obj <- model_prep_obj$sample(
+              seed = seed + k,
+              n_burnin = n_burnin,
+              n_iter = n_iter,
+              adapt_delta = adapt_delta,
+              max_treedepth = max_treedepth,
+              metric_shape = "diag_e",
+              priors = fold_priors,
+              n_chains = n_chains,
+              init_lists_per_chain = init_lists_per_chain,
+              cmdstanr_args = fold_cmdstanr_args
+            )
+            model_summary_and_trace_obj <- model_samples_obj$summary(
+              compute_main_params = TRUE,
+              compute_transformed_parameters = FALSE,
+              compute_generated_quantities = TRUE,
+              save_log_lik_trace = TRUE,
+              use_BayesMVP_for_faster_summaries = use_BayesMVP_for_faster_summaries
+            )
+
+            trace_gq <- model_summary_and_trace_obj$get_all_traces_list()$traces_as_arrays$trace_gq
+            log_lik_study_array <- filter_param_draws_string(
+              named_draws_array = trace_gq,
+              param_string = "log_lik_study",
+              condition = "exact_match",
+              exclude_NA = TRUE
+            )
+            metrics <- kfold_fold_metrics(log_lik_study_array, holdout_studies)
+
+            fold_results[[k]] <- list(
+              fold = k,
+              status = "completed",
+              elpd = metrics$elpd,
+              pointwise_elpd = metrics$pointwise_elpd,
+              n_holdout = length(holdout_studies),
+              holdout_studies = holdout_studies,
+              duration_mins = as.numeric(difftime(Sys.time(), start_time, units = "mins"))
+            )
+
+            rm(model_samples_obj, model_summary_and_trace_obj, trace_gq, log_lik_study_array)
+            gc()
           }
-          
-          # Compute SE using fold-level results
-          fold_elpds <- sapply(fold_results, function(x) x$elpd)
-          se_elpd <- sd(fold_elpds) * sqrt(K)
-          
-          return(list(
-            elpd_kfold = elpd_kfold,
-            se_elpd = se_elpd,
+
+          pointwise_elpd <- kfold_pointwise_from_results(fold_results, n_studies)
+          summary <- kfold_elpd_summary(pointwise_elpd)
+
+          list(
+            elpd_kfold = summary$elpd_kfold,
+            se_elpd = summary$se_elpd,
+            pointwise_elpd = pointwise_elpd,
             K = K,
             fold_results = fold_results,
-            fold_assignments = fold_ids
-          ))
-  
+            fold_assignments = fold_ids,
+            errors = list()
+          )
 }
 
 
@@ -245,6 +373,7 @@ R_fn_run_kfold_cv <- function(   debugging,
 
 #' R_fn_run_kfold_cv_parallel
 #' Run k-fold cross-validation in parallel across multiple folds
+#' @importFrom foreach %dopar%
 #' @export
 R_fn_run_kfold_cv_parallel <- function(  debugging,
                                          ##
@@ -272,12 +401,14 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
                                          use_BayesMVP_for_faster_summaries
 ) {
   
-        require(doParallel)
-        require(foreach)
+        if (!requireNamespace("doParallel", quietly = TRUE) ||
+            !requireNamespace("foreach", quietly = TRUE)) {
+          stop("Parallel K-fold CV requires the doParallel and foreach packages")
+        }
         ##
-        if (use_BayesMVP_for_faster_summaries) { 
-          require(RcppParallel)
-          require(BayesMVP)
+        if (use_BayesMVP_for_faster_summaries &&
+            !requireNamespace("BayesMVP", quietly = TRUE)) {
+          stop("BayesMVP is required when use_BayesMVP_for_faster_summaries = TRUE")
         }
         ##
         cat("Using", K, "-fold CV (LOO inappropriate for NMA models) - PARALLEL VERSION\n")
@@ -285,7 +416,7 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
         # Calculate optimal number of workers
         if (is.null(n_workers)) {
           # Use all available cores divided by chains per model
-          n_workers <- min(K, floor(parallel::detectCores() / n_chains))
+          n_workers <- min(K, max(1L, floor(parallel::detectCores() / n_chains)))
         }
         cat(sprintf("Running %d folds in parallel using %d workers (%d chains each = %d cores)\n", 
                     K, n_workers, n_chains, n_workers * n_chains))
@@ -313,7 +444,7 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
         ##
         minimal_env$network <- model_prep_obj$basic_model_options$network
         minimal_env$cts <- model_prep_obj$basic_model_options$cts
-        minimal_env$minimal_env$prior_only <- model_prep_obj$basic_model_options$prior_only
+        minimal_env$prior_only <- model_prep_obj$basic_model_options$prior_only
         ##
         minimal_env$cov_data <- model_prep_obj$cov_data
         minimal_env$x <- model_prep_obj$x
@@ -322,17 +453,11 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
         if (is.null(fold_assignments)) {
           stop("fold_assignments must be provided! Create them externally with create_folds()")
         }
-        fold_ids <- fold_assignments
-        ##
-        # Validate they match
-        if (minimal_env$network) {
-          if (length(fold_ids) != model_prep_obj$indicator_index_test_in_study %>% nrow()) {
-            stop("fold_assignments length doesn't match number of studies!")
-          }
-        }
-        if (max(fold_ids) != K) {
-          stop("fold_assignments has different K than specified!")
-        }
+        fold_ids <- validate_kfold_assignments(
+          fold_assignments,
+          K,
+          stan_data_list$n_studies
+        )
         ##
         minimal_env$fold_ids <- fold_ids
         ##
@@ -360,13 +485,12 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
         minimal_env$output_dir <- output_dir
         ##
         minimal_env$use_BayesMVP_for_faster_summaries <- use_BayesMVP_for_faster_summaries
-        ##
-        # minimal_env$cmdstanr_args <- cmdstanr_args
+        minimal_env$cmdstanr_args <- if (is.null(cmdstanr_args)) list() else cmdstanr_args
         ##
         # Set up parallel cluster
-        cl <- makeCluster(n_workers, 
-                          outfile = "")
-        registerDoParallel(cl)
+        cl <- parallel::makeCluster(n_workers, outfile = "")
+        on.exit(parallel::stopCluster(cl), add = TRUE)
+        doParallel::registerDoParallel(cl)
         ##
         # # Export everything to all workers
         # clusterExport(cl,
@@ -376,10 +500,10 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
         minimal_env$resize_init_list <- MetaOrdDTA::resize_init_list
         minimal_env$filter_param_draws_string <- MetaOrdDTA::filter_param_draws_string
         ##
-        clusterExport(cl, 
-                      ls(minimal_env), 
-                      envir = minimal_env)
-        clusterEvalQ(cl, {
+        parallel::clusterExport(cl,
+                                ls(minimal_env),
+                                envir = minimal_env)
+        parallel::clusterEvalQ(cl, {
           library(cmdstanr)
           library(MetaOrdDTA)
           library(posterior)
@@ -426,12 +550,6 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
                                                      fold_output_dir <- file.path(output_dir, fold_id)
                                                      dir.create(fold_output_dir, showWarnings = FALSE, recursive = TRUE)
                                                      # ##
-                                                     cmdstanr_args <- list(    seed = seed + k,
-                                                                               output_dir = fold_output_dir,  # CSV files go here
-                                                                               output_basename = paste0("fold_", k, "_chain"),  # Unique prefix
-                                                                               save_latent_dynamics = FALSE  # Don't save extra diagnostic files
-                                                     )
-                                                     ##
                                                      # Add this RIGHT AFTER creating fold_output_dir (around line 136)
                                                      # Create unique temp directory
                                                      fold_temp_dir <- file.path(tempdir(), fold_id)
@@ -478,8 +596,10 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
                                                      ## Create fold-specific priors
                                                      priors$K_fold_CV_indicator <- as.integer(fold_ids != k)
                                                      ##
-                                                     init_lists_per_chain <- resize_init_list( init_lists_per_chain = init_lists_per_chain, 
-                                                                                               n_chains_new = n_chains)
+                                                     init_lists_per_chain <- resize_init_list(
+                                                       init_lists_per_chain = init_lists_per_chain,
+                                                       n_chains_new = n_chains
+                                                     )
                                                      ##
                                                      priors$softplus <- softplus
                                                      ##
@@ -500,13 +620,20 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
                                                      ##
                                                      print(paste("compound_symmetry = ", stan_data_list$compound_symmetry))
                                                      ##
-                                                     cmdstanr_args <- list(data = stan_data_list,
-                                                                           seed = seed + k,
-                                                                           output_dir = fold_output_dir,  # CSV files go here
-                                                                           output_basename = paste0("fold_", k, "_chain"),  # Unique prefix
-                                                                           save_latent_dynamics = FALSE  # Don't save extra diagnostic files
-                                                                           )
-                                                     final_stan_args <- modifyList(final_stan_args, cmdstanr_args)
+                                                     final_stan_args <- utils::modifyList(
+                                                       final_stan_args,
+                                                       cmdstanr_args
+                                                     )
+                                                     final_stan_args <- utils::modifyList(
+                                                       final_stan_args,
+                                                       list(
+                                                         data = stan_data_list,
+                                                         seed = seed + k,
+                                                         output_dir = fold_output_dir,
+                                                         output_basename = paste0("fold_", k, "_chain"),
+                                                         save_latent_dynamics = FALSE
+                                                       )
+                                                     )
                                                      # ##
                                                      # final_stan_args <- modifyList(final_stan_args, cmdstanr_args)
                                                      # ##
@@ -540,15 +667,16 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
                                                      min_ESS  <- min(log_lik_study_tibble$ess_bulk, na.rm = TRUE)
                                                      max_rhat <- max(log_lik_study_tibble$rhat, na.rm = TRUE)
                                                      ##
-                                                     ## Calculate holdout log-likelihood
-                                                     log_lik_holdout_samples <- log_lik_study_array[, , holdout_studies, drop = FALSE]
-                                                     ##
-                                                     ## Sum across holdout studies and average across iterations/chains
-                                                     elpd_holdout <- mean(apply(log_lik_holdout_samples, c(1, 2), sum))
+                                                     metrics <- MetaOrdDTA:::kfold_fold_metrics(
+                                                       log_lik_study_array,
+                                                       holdout_studies
+                                                     )
+                                                     elpd_holdout <- metrics$elpd
                                                      ##
                                                      ### Update fold result
                                                      fold_result$status <- "completed"
                                                      fold_result$elpd <- elpd_holdout
+                                                     fold_result$pointwise_elpd <- metrics$pointwise_elpd
                                                      ##
                                                      fold_result$tibble_all <- tibble_all
                                                      fold_result$beta_mu <- beta_mu
@@ -612,8 +740,9 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
                                      }
   
   
-        # Stop cluster
-        stopCluster(cl)
+        # Stop workers before aggregating the results.
+        parallel::stopCluster(cl)
+        on.exit(NULL, add = FALSE)
         
         # Clean up temporary files
         for (k in 1:K) {
@@ -623,30 +752,41 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
           }
         }
              
-        # Process results
-        successful_folds <- Filter(function(x) !is.null(x) && x$status == "completed", 
-                                   fold_results_list)
+        # Process results, retaining fold positions even when a worker failed.
+        fold_results <- vector("list", K)
+        for (result in fold_results_list) {
+          if (is.list(result) && !is.null(result$fold)) {
+            fold_results[[result$fold]] <- result
+          }
+        }
+        successful_folds <- Filter(
+          function(x) !is.null(x) && identical(x$status, "completed"),
+          fold_results
+        )
         
         if (length(successful_folds) < K) {
           warning(sprintf("Only %d/%d folds completed successfully", 
                           length(successful_folds), K))
         }
         
-        # Calculate total elpd_kfold
-        elpd_kfold <- sum(sapply(successful_folds, function(x) x$elpd))
-        
-        # Compute SE using fold-level results
-        fold_elpds <- sapply(successful_folds, function(x) x$elpd)
-        se_elpd <- sd(fold_elpds) * sqrt(K)
+        pointwise_elpd <- kfold_pointwise_from_results(fold_results, stan_data_list$n_studies)
+        elpd_summary <- kfold_elpd_summary(pointwise_elpd)
+        elpd_kfold <- elpd_summary$elpd_kfold
+        se_elpd <- elpd_summary$se_elpd
         
         # Summary of timing
         total_time <- sum(sapply(successful_folds, function(x) x$duration_mins))
-        parallel_time <- max(sapply(successful_folds, function(x) x$duration_mins))
+        parallel_time <- if (length(successful_folds)) {
+          max(sapply(successful_folds, function(x) x$duration_mins))
+        } else {
+          NA_real_
+        }
         ##
         min_ESS_vec <- max_rhat_vec <- c()
-        for (k in 1:length(successful_folds)) {
-          min_ESS_vec[k]  <- successful_folds[[k]]$min_ESS
-          max_rhat_vec[k] <- successful_folds[[k]]$max_rhat
+        min_ESS_vec <- max_rhat_vec <- rep(NA_real_, K)
+        for (result in successful_folds) {
+          min_ESS_vec[result$fold] <- result$min_ESS
+          max_rhat_vec[result$fold] <- result$max_rhat
         }
         
         cat("\n===== K-FOLD CV SUMMARY =====\n")
@@ -666,12 +806,13 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
         return(list(
           elpd_kfold = elpd_kfold,
           se_elpd = se_elpd,
+          pointwise_elpd = pointwise_elpd,
           K = K,
           ##
           min_ESS_vec = min_ESS_vec,
           max_rhat_vec = max_rhat_vec,
           ##
-          fold_results = successful_folds,
+          fold_results = fold_results,
           fold_assignments = fold_ids,
           n_workers = n_workers,
           timing = list(
@@ -679,8 +820,8 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
             wall_clock_mins = parallel_time,
             speedup = total_time / parallel_time
           ),
-          errors = Filter(function(x) !is.null(x) && x$status == "error", 
-                          fold_results_list)
+          errors = Filter(function(x) !is.null(x) && identical(x$status, "error"),
+                          fold_results)
         ))
   
 }
@@ -1128,26 +1269,36 @@ filter_kfold_by_ess <- function(kfold_results,
           }
         }
         
+        if (!length(good_folds)) {
+          stop("No folds meet the requested ESS threshold")
+        }
+
         # Filter fold results
         filtered_fold_results <- kfold_results$fold_results[good_folds]
-        
-        # Recompute ELPD (sum of fold ELPDs)
-        fold_elpds <- sapply(filtered_fold_results, function(x) x$elpd)
-        new_elpd_kfold <- sum(fold_elpds)
-        
-        # Recompute SE 
-        # Note: This is tricky - we're using fewer folds now
-        # Standard approach: SE = sd(fold_elpds) * sqrt(n_folds)
-        new_se_elpd <- sd(fold_elpds) * sqrt(length(good_folds))
+        pointwise <- kfold_results$pointwise_elpd
+        if (is.null(pointwise)) {
+          pointwise <- kfold_pointwise_from_results(
+            kfold_results$fold_results,
+            length(kfold_results$fold_assignments)
+          )
+        }
+        studies_used <- which(kfold_results$fold_assignments %in% good_folds)
+        pointwise <- pointwise[studies_used]
+        summary <- kfold_elpd_summary(pointwise)
         
         # Create filtered results object
         filtered_results <- list(
-          elpd_kfold = new_elpd_kfold,
-          se_elpd = new_se_elpd,
+          elpd_kfold = summary$elpd_kfold,
+          se_elpd = summary$se_elpd,
+          pointwise_elpd = pointwise,
           K_original = kfold_results$K,
           K_used = length(good_folds),
           min_ESS_vec = ess_values[good_folds],
-          max_rhat_vec = kfold_results$max_rhat_vec[good_folds],
+          max_rhat_vec = if (!is.null(kfold_results$max_rhat_vec)) {
+            kfold_results$max_rhat_vec[good_folds]
+          } else {
+            NULL
+          },
           fold_results = filtered_fold_results,
           excluded_folds = bad_folds,
           min_ess_threshold = min_ess_threshold
@@ -1156,8 +1307,8 @@ filter_kfold_by_ess <- function(kfold_results,
         if (verbose) {
           cat(sprintf("\nFiltered results (using %d/%d folds):\n", 
                       length(good_folds), kfold_results$K))
-          cat(sprintf("  ELPD: %.1f (SE: %.1f)\n", new_elpd_kfold, new_se_elpd))
-          cat(sprintf("  Change in ELPD: %.1f\n", new_elpd_kfold - kfold_results$elpd_kfold))
+          cat(sprintf("  ELPD: %.1f (SE: %.1f)\n", summary$elpd_kfold, summary$se_elpd))
+          cat(sprintf("  Change in ELPD: %.1f\n", summary$elpd_kfold - kfold_results$elpd_kfold))
         }
         
         return(filtered_results)
@@ -1201,134 +1352,175 @@ compare_kfold_thresholds <- function(kfold_results,
 compare_models_k_fold_CV <- function(  kfold_results_list, 
                                        model_names = NULL,
                                        min_ess_threshold = 100,
+                                       exclude_low_ess = FALSE,
+                                       allow_incomplete = FALSE,
+                                       reference_model = "best",
                                        verbose = TRUE) {
-  
+
         n_models <- length(kfold_results_list)
-        
-        # Set model names if not provided
+        if (n_models < 2L) {
+          stop("At least two K-fold result objects are required")
+        }
+
+        results <- lapply(kfold_results_list, function(x) {
+          if (!is.null(x$outs_kfold)) x$outs_kfold else x
+        })
+
         if (is.null(model_names)) {
-          model_names <- paste0("Model_", 1:n_models)
+          model_names <- paste0("Model_", seq_len(n_models))
         }
-        
-        # 1. Check that all models used the same fold assignments
+        if (length(model_names) != n_models) {
+          stop("model_names must have one entry per model")
+        }
+
         if (verbose) cat("Checking fold consistency across models...\n")
-        
-        # Get fold assignments from first model
-        ref_fold_assignments <- kfold_results_list[[1]]$fold_assignments
-        ref_K <- kfold_results_list[[1]]$outs_kfold$K
-        
-        for (i in 2:n_models) {
-          if (!identical(kfold_results_list[[i]]$fold_assignments, ref_fold_assignments)) {
-            stop(sprintf("Model %d (%s) has different fold assignments than Model 1!", 
-                         i, model_names[i]))
+        ref_fold_assignments <- results[[1L]]$fold_assignments
+        ref_K <- results[[1L]]$K
+        n_studies <- length(ref_fold_assignments)
+
+        validate_kfold_assignments(ref_fold_assignments, ref_K, n_studies)
+        for (i in seq_len(n_models)[-1L]) {
+          if (!identical(results[[i]]$fold_assignments, ref_fold_assignments)) {
+            stop(sprintf(
+              "Model %d (%s) has different fold assignments from Model 1",
+              i, model_names[i]
+            ))
           }
-          print(kfold_results_list[[i]]$outs_kfold$K)
-          ##
-          if (kfold_results_list[[i]]$outs_kfold$K != ref_K) {
-            stop(sprintf("Model %d (%s) has different K (%d) than Model 1 (%d)!", 
-                         i, model_names[i], kfold_results_list[[i]]$K, ref_K))
-            ##
-            
+          if (!identical(results[[i]]$K, ref_K)) {
+            stop(sprintf("Model %d (%s) has a different K", i, model_names[i]))
           }
         }
-        
-        if (verbose) cat("✓ All models used identical fold assignments\n\n")
-        
-        # Check held-out studies match (extra safety check)
-        for (fold in 1:ref_K) {
-          ref_holdout <- kfold_results_list[[1]]$outs_kfold$fold_results[[fold]]$holdout_studies
-          for (i in 2:n_models) {
-            model_holdout <- kfold_results_list[[i]]$outs_kfold$fold_results[[fold]]$holdout_studies
+
+        for (fold in seq_len(ref_K)) {
+          ref_holdout <- results[[1L]]$fold_results[[fold]]$holdout_studies
+          for (i in seq_len(n_models)[-1L]) {
+            model_holdout <- results[[i]]$fold_results[[fold]]$holdout_studies
             if (!identical(sort(ref_holdout), sort(model_holdout))) {
-              stop(sprintf("Fold %d has different holdout studies between models!", fold))
+              stop(sprintf("Fold %d has different holdout studies between models", fold))
             }
           }
         }
-        
-        # 2. Find ALL folds with low ESS across ANY model
-        all_min_ess <- matrix(NA, nrow = ref_K, ncol = n_models)
+        if (verbose) cat("All models used identical fold assignments\n\n")
+
+        all_min_ess <- matrix(NA_real_, nrow = ref_K, ncol = n_models)
         colnames(all_min_ess) <- model_names
-        
-        for (i in 1:n_models) {
-          all_min_ess[, i] <- kfold_results_list[[i]]$outs_kfold$min_ESS_vec
-        }
-        
-        # Find minimum ESS for each fold across all models
-        min_ess_per_fold <- apply(all_min_ess, 1, min, na.rm = TRUE)
-        
-        # Identify folds to exclude (any model has ESS below threshold)
-        bad_folds <- which(min_ess_per_fold < min_ess_threshold)
-        good_folds <- which(min_ess_per_fold >= min_ess_threshold)
-        
-        if (verbose) {
-          cat("ESS summary across models:\n")
-          print(round(all_min_ess, 1))
-          cat("\nMinimum ESS per fold:", round(min_ess_per_fold, 1), "\n")
-          
-          if (length(bad_folds) > 0) {
-            cat(sprintf("\nExcluding %d fold(s) with ESS < %d in ANY model:\n", 
-                        length(bad_folds), min_ess_threshold))
-            for (fold in bad_folds) {
-              cat(sprintf("  Fold %d: min ESS = %.1f\n", fold, min_ess_per_fold[fold]))
-            }
+        for (i in seq_len(n_models)) {
+          if (!is.null(results[[i]]$min_ESS_vec)) {
+            all_min_ess[, i] <- results[[i]]$min_ESS_vec
           }
         }
-        
-        # 3. Filter all models using the SAME good folds
-        filtered_results <- list()
-        
-        for (i in 1:n_models) {
-          # Get fold results for good folds only
-          filtered_fold_results <- kfold_results_list[[i]]$outs_kfold$fold_results[good_folds]
-          
-          # Recompute ELPD and SE
-          fold_elpds <- sapply(filtered_fold_results, function(x) x$elpd)
-          new_elpd <- sum(fold_elpds)
-          new_se <- sd(fold_elpds) * sqrt(length(good_folds))
-          
-          filtered_results[[model_names[i]]] <- list(
-            elpd_kfold = new_elpd,
-            se_elpd = new_se,
-            K_original = ref_K,
-            K_used = length(good_folds),
-            fold_elpds = fold_elpds,
-            excluded_folds = bad_folds,
-            min_ESS_vec = kfold_results_list[[i]]$min_ESS_vec[good_folds]
+        min_ess_per_fold <- apply(all_min_ess, 1L, function(x) {
+          if (all(is.na(x))) NA_real_ else min(x, na.rm = TRUE)
+        })
+        diagnostic_folds <- which(!is.na(min_ess_per_fold) &
+                                    min_ess_per_fold < min_ess_threshold)
+
+        folds_used <- if (isTRUE(exclude_low_ess)) {
+          setdiff(seq_len(ref_K), diagnostic_folds)
+        } else {
+          seq_len(ref_K)
+        }
+        if (!length(folds_used)) {
+          stop("No folds remain after applying the ESS threshold")
+        }
+
+        if (length(diagnostic_folds)) {
+          warning(
+            sprintf(
+              "%d fold(s) have ESS below %s; rerun those folds before final inference%s",
+              length(diagnostic_folds),
+              min_ess_threshold,
+              if (exclude_low_ess) " (they were excluded by explicit request)" else ""
+            ),
+            call. = FALSE
           )
         }
-        
-        # 4. Create comparison table
+
+        studies_used <- which(ref_fold_assignments %in% folds_used)
+        filtered_results <- vector("list", n_models)
+        names(filtered_results) <- model_names
+        pointwise_by_model <- vector("list", n_models)
+
+        for (i in seq_len(n_models)) {
+          pointwise <- results[[i]]$pointwise_elpd
+          if (is.null(pointwise)) {
+            pointwise <- kfold_pointwise_from_results(
+              results[[i]]$fold_results,
+              n_studies
+            )
+          }
+          if (!allow_incomplete && any(!is.finite(pointwise[studies_used]))) {
+            stop(sprintf("Model %s has incomplete held-out predictions", model_names[i]))
+          }
+          selected <- pointwise[studies_used]
+          summary <- kfold_elpd_summary(selected)
+          pointwise_by_model[[i]] <- selected
+          fold_elpds <- vapply(folds_used, function(fold) {
+            sum(pointwise[ref_fold_assignments == fold], na.rm = TRUE)
+          }, numeric(1L))
+
+          filtered_results[[i]] <- list(
+            elpd_kfold = summary$elpd_kfold,
+            se_elpd = summary$se_elpd,
+            pointwise_elpd = selected,
+            K_original = ref_K,
+            K_used = length(folds_used),
+            fold_elpds = fold_elpds,
+            excluded_folds = setdiff(seq_len(ref_K), folds_used),
+            diagnostic_folds = diagnostic_folds,
+            min_ESS_vec = all_min_ess[folds_used, i]
+          )
+        }
+
         comparison_table <- data.frame(
           Model = model_names,
-          ELPD = sapply(filtered_results, function(x) x$elpd_kfold),
-          SE = sapply(filtered_results, function(x) x$se_elpd),
-          Delta_ELPD = NA,
-          Delta_SE = NA,
+          ELPD = vapply(filtered_results, `[[`, numeric(1L), "elpd_kfold"),
+          SE = vapply(filtered_results, `[[`, numeric(1L), "se_elpd"),
+          Delta_ELPD = 0,
+          Delta_SE = 0,
           stringsAsFactors = FALSE
         )
-        
-        # Calculate differences from first model
-        for (i in 2:n_models) {
-              
-              comparison_table$Delta_ELPD[i] <- comparison_table$ELPD[i] - comparison_table$ELPD[1]
-              # SE of difference (assuming independence - conservative)
-              comparison_table$Delta_SE[i] <- sqrt(comparison_table$SE[i]^2 + comparison_table$SE[1]^2)
-              
+
+        reference_index <- if (identical(reference_model, "best")) {
+          which.max(comparison_table$ELPD)
+        } else if (is.character(reference_model) && length(reference_model) == 1L) {
+          match(reference_model, model_names)
+        } else if (is.numeric(reference_model) && length(reference_model) == 1L) {
+          as.integer(reference_model)
+        } else {
+          NA_integer_
         }
-        
+        if (is.na(reference_index) || reference_index < 1L || reference_index > n_models) {
+          stop("reference_model must be 'best', a model name, or a valid model index")
+        }
+
+        reference_pointwise <- pointwise_by_model[[reference_index]]
+        for (i in seq_len(n_models)) {
+          delta <- pointwise_by_model[[i]] - reference_pointwise
+          delta <- delta[is.finite(delta)]
+          comparison_table$Delta_ELPD[i] <- sum(delta)
+          comparison_table$Delta_SE[i] <- if (length(delta) > 1L) {
+            sqrt(length(delta) * stats::var(delta))
+          } else {
+            NA_real_
+          }
+        }
+
         if (verbose) {
-          cat(sprintf("\n\nFinal comparison using %d/%d folds:\n", length(good_folds), ref_K))
+          cat(sprintf("Final comparison using %d/%d folds:\n", length(folds_used), ref_K))
           print(comparison_table, digits = 1)
         }
-        
-        # Return everything
-        return(list(
+
+        list(
           filtered_results = filtered_results,
           comparison_table = comparison_table,
-          excluded_folds = bad_folds,
-          K_used = length(good_folds),
-          min_ess_matrix = all_min_ess
-        ))
+          excluded_folds = setdiff(seq_len(ref_K), folds_used),
+          diagnostic_folds = diagnostic_folds,
+          K_used = length(folds_used),
+          min_ess_matrix = all_min_ess,
+          fold_assignments = ref_fold_assignments,
+          reference_model = model_names[reference_index]
+        )
   
 }
 
@@ -1348,13 +1540,13 @@ summarise_model_comparison_k_fold_CV <- function(comparison_results) {
             cat(sprintf("%d. %s: ELPD = %.0f (%.0f) [BEST]\n", 
                         i, table$Model[i], table$ELPD[i], table$SE[i]))
           } else {
-            sig <- ifelse(abs(table$Delta_ELPD[i]) > 2*table$Delta_SE[i], "*", "")
-            cat(sprintf("%d. %s: ELPD = %.0f (%.0f), Δ = %.0f (%.0f) %s\n", 
+            cat(sprintf("%d. %s: ELPD = %.0f (%.0f), Δ = %.0f (%.0f)\n",
                         i, table$Model[i], table$ELPD[i], table$SE[i],
-                        table$Delta_ELPD[i], table$Delta_SE[i], sig))
+                        table$Delta_ELPD[i], table$Delta_SE[i]))
           }
         }
-        cat("\n* = Significantly different from best model (|Δ| > 2*SE)\n")
+        cat("\nModels are ranked by ELPD (higher is better). Delta SE describes\n")
+        cat("uncertainty in the paired difference; it is not a selection threshold.\n")
   
 }
 
@@ -1410,15 +1602,6 @@ kfold_CV_to_latex <- function(comparison_results,
     return(list(num = num, covs = covs))
   }
   
-  # Find intercept-only model to compute deltas relative to it
-  intercept_idx <- which(grepl("Model_0|intercept-only", table$Model))
-  intercept_elpd <- table$ELPD[intercept_idx]
-  intercept_se <- table$SE[intercept_idx]
-  
-  # Recalculate deltas relative to intercept-only
-  table$Delta_ELPD_new <- table$ELPD - intercept_elpd
-  table$Delta_SE_new <- sqrt(table$SE^2 + intercept_se^2)
-  
   # Start building LaTeX
   cat("%%%%\n%%%%\n")
   cat("\\begin{table}[H]\n")
@@ -1448,6 +1631,7 @@ kfold_CV_to_latex <- function(comparison_results,
     
     is_best <- (i == 1)
     is_intercept <- (model_num == 0)
+    is_reference <- identical(table$Model[i], comparison_results$reference_model)
     
     # Format model name
     if (is_best) {
@@ -1456,12 +1640,12 @@ kfold_CV_to_latex <- function(comparison_results,
       elpd_str <- sprintf("$\\mathbf{%s}$", fmt_num(elpd))
       se_str <- sprintf("$\\mathbf{%s}$", fmt_num(se))
       
-      if (is_intercept) {
+      if (is_reference) {
         delta_elpd_str <- "\\textbf{--}"
         delta_se_str <- "\\textbf{--}"
       } else {
-        delta_elpd_str <- sprintf("$\\mathbf{%s}$", fmt_num(table$Delta_ELPD_new[i]))
-        delta_se_str <- sprintf("$\\mathbf{%s}$", fmt_num(table$Delta_SE_new[i]))
+        delta_elpd_str <- sprintf("$\\mathbf{%s}$", fmt_num(table$Delta_ELPD[i]))
+        delta_se_str <- sprintf("$\\mathbf{%s}$", fmt_num(table$Delta_SE[i]))
       }
     } else {
       model_str <- sprintf("MR model %d", model_num)
@@ -1469,12 +1653,12 @@ kfold_CV_to_latex <- function(comparison_results,
       elpd_str <- sprintf("$%s$", fmt_num(elpd))
       se_str <- sprintf("$%s$", fmt_num(se))
       
-      if (is_intercept) {
+      if (is_reference) {
         delta_elpd_str <- "--"
         delta_se_str <- "--"
       } else {
-        delta_elpd_str <- sprintf("$%s$", fmt_num(table$Delta_ELPD_new[i]))
-        delta_se_str <- sprintf("$%s$", fmt_num(table$Delta_SE_new[i]))
+        delta_elpd_str <- sprintf("$%s$", fmt_num(table$Delta_ELPD[i]))
+        delta_se_str <- sprintf("$%s$", fmt_num(table$Delta_SE[i]))
       }
     }
     
@@ -1501,7 +1685,10 @@ kfold_CV_to_latex <- function(comparison_results,
   cat("\\footnotesize\n")
   cat("\\item $^*$ All models use fixed cutpoints with compound symmetry correlation structure (i.e. based on Model A from baseline analysis).\n")
   cat("\\item ELPD = expected log predictive density; SE = standard error\n")
-  cat("\\item $\\Delta$ELPD and $\\Delta$SE computed relative to intercept-only model (MR model 0)\n")
+  cat(sprintf(
+    "\\item $\\Delta$ELPD and $\\Delta$SE use paired study-wise differences relative to %s.\n",
+    gsub("_", "\\\\_", comparison_results$reference_model)
+  ))
   cat("\\end{tablenotes}\n")
   cat(sprintf("\\label{table_application_%s_%s}\n", target_condition, label_suffix))
   cat("\\end{table}\n")
@@ -1551,19 +1738,16 @@ make_latex_table_k_fold_CV <- function(comparison_results,
                                           digits_elpd, table_data$ELPD,
                                           digits_se, table_data$SE)
           
-          # Format Delta ELPD with SE and significance stars
+          # Format paired Delta ELPD with its SE. The SE quantifies uncertainty
+          # in the estimated difference; it is not a hypothesis-test gate for
+          # ranking models by predictive performance.
           formatted_table$`$\\Delta$ELPD` <- character(n_models)
           formatted_table$`$\\Delta$ELPD`[1] <- "---" # Best model
           
           for (i in 2:n_models) {
-            # Check significance (|Δ| > 2*SE)
-            is_sig <- abs(table_data$Delta_ELPD[i]) > 2 * table_data$Delta_SE[i]
-            star <- ifelse(is_sig, "$^*$", "")
-            
-            formatted_table$`$\\Delta$ELPD`[i] <- sprintf("$%.*f$ ($%.*f$)%s",
+            formatted_table$`$\\Delta$ELPD`[i] <- sprintf("$%.*f$ ($%.*f$)",
                                                           digits_elpd, table_data$Delta_ELPD[i],
-                                                          digits_se, table_data$Delta_SE[i],
-                                                          star)
+                                                          digits_se, table_data$Delta_SE[i])
           }
           
           # Start building LaTeX code
@@ -1634,15 +1818,9 @@ make_latex_table_k_fold_CV <- function(comparison_results,
                                    excluded_str))
           }
           
-          # Note about significance
-          if (any(grepl("\\*", formatted_table$`$\\Delta$ELPD`))) {
-            footnotes <- c(footnotes,
-                           "\\footnotesize $^*$ Significantly different from best model ($|\\Delta| > 2 \\times \\text{SE}$).")
-          }
-          
           # Note about ELPD
           footnotes <- c(footnotes,
-                         "\\footnotesize ELPD = Expected Log Pointwise Predictive Density (higher is better).")
+                         "\\footnotesize ELPD = expected log predictive density (higher is better). Models are ranked by ELPD; the paired $\\Delta$SE describes uncertainty and is not a hypothesis-test threshold.")
           
           # Add footnotes with line breaks
           if (length(footnotes) > 0) {
