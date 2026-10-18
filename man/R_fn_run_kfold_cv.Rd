@@ -5,18 +5,22 @@
 \title{R_fn_run_kfold_cv}
 \usage{
 R_fn_run_kfold_cv(
-  debugging,
+  debugging = FALSE,
   K = 10,
+  seed = 123,
+  fold_assignments,
   model_prep_obj,
   stan_data_list,
+  cmdstanr_args = NULL,
   priors,
-  init_lists_per_chain,
+  init_lists_per_chain = NULL,
   n_burnin,
   n_iter,
   n_chains,
   adapt_delta,
   max_treedepth,
-  use_BayesMVP_for_faster_summaries
+  output_dir = metaorddta_output_path("cv_results"),
+  use_BayesMVP_for_faster_summaries = FALSE
 )
 }
 \description{

@@ -35,27 +35,114 @@ generate_performance_metadata <- function(n_thr,
 }
 
 
+#' @keywords internal
+#' @export
+create_AUC_summary_tibble <- function(auc_array, 
+                                      test_names = NULL) {
+  
+        n_iter   <- dim(auc_array)[1]
+        n_chains <- dim(auc_array)[2]
+        n_tests  <- dim(auc_array)[3]
+        
+        summary_list <- list()
+        
+        for (t in 1:n_tests) {
+          vals <- as.vector(auc_array[, , t]) * 100  # Convert to percentage
+          
+          summary_row <- data.frame(
+            variable = paste0("AUC[", t, "]"),
+            test = if (!is.null(test_names)) test_names[t] else paste0("Test", t),
+            mean = mean(vals),
+            sd = sd(vals),
+            `2.5%` = quantile(vals, 0.025, names = FALSE),
+            `50%` = quantile(vals, 0.5, names = FALSE),
+            `97.5%` = quantile(vals, 0.975, names = FALSE),
+            check.names = FALSE
+          )
+          
+          summary_list[[t]] <- summary_row
+        }
+        
+        tibble(bind_rows(summary_list))
+  
+}
+
+
+#' @keywords internal
+#' @export
+create_AUC_diff_summary_tibble <- function(auc_diff_array, 
+                                           test_names = NULL) {
+        
+        n_iter <- dim(auc_diff_array)[1]
+        n_chains <- dim(auc_diff_array)[2]
+        n_comparisons <- dim(auc_diff_array)[3]
+        n_tests <- length(test_names)
+        
+        # Generate pairwise comparison labels
+        comparison_names <- c()
+        k <- 1
+        for (i in 1:(n_tests-1)) {
+          for (j in (i+1):n_tests) {
+            if (!is.null(test_names)) {
+              comparison_names[k] <- paste0(test_names[i], " vs ", test_names[j])
+            } else {
+              comparison_names[k] <- paste0("Test", i, " vs Test", j)
+            }
+            k <- k + 1
+          }
+        }
+        
+        summary_list <- list()
+        
+        for (c in 1:n_comparisons) {
+          vals <- as.vector(auc_diff_array[, , c]) * 100  # Convert to percentage
+          
+          summary_row <- data.frame(
+            variable = paste0("AUC_diff[", c, "]"),
+            comparison = comparison_names[c],
+            mean = mean(vals),
+            sd = sd(vals),
+            `2.5%` = quantile(vals, 0.025, names = FALSE),
+            `50%` = quantile(vals, 0.5, names = FALSE),
+            `97.5%` = quantile(vals, 0.975, names = FALSE),
+            check.names = FALSE
+          )
+          
+          summary_list[[c]] <- summary_row
+        }
+        
+        tibble(bind_rows(summary_list))
+  
+}
 
 
 
 #' R_fn_extract_NMA_AUC_summary
+#' @useDynLib MetaOrdDTA, .registration = TRUE
+#' @importFrom Rcpp evalCpp
 #' @keywords internal
 #' @export
-R_fn_extract_NMA_AUC_summary <- function( tibble_gq,
-                                          network,
-                                          n_thr,
-                                          test_names = NULL) {
+R_fn_extract_NMA_AUC_summary <- function(tibble_gq,
+                                         network,
+                                         n_thr,
+                                         test_names = NULL
+) {
   
         require(dplyr)
-        require(tidyr)
         
-        # Extract AUC summaries if they exist
+        # Extract raw AUC arrays from tibble_gq 
+        # (You'd need to extract the actual arrays from the Stan output)
+        # For now, assuming you can get them from the tibble_gq somehow
+        
+        # If you have the actual arrays available:
+        # auc_summary <- create_AUC_summary_tibble(AUC_baseline, test_names)
+        # auc_pred_summary <- create_AUC_summary_tibble(AUC_baseline_pred, test_names)
+        
+        # Otherwise, keep the existing extraction but simplified:
         auc_summary <- tibble_gq %>%
           filter(grepl("^AUC\\[", parameter)) %>%
           mutate(
-            test = as.numeric(gsub(".*\\[(\\d+)\\]", "\\1", parameter))  # Fixed: added .*
-          ) %>%
-          mutate(
+            test = as.numeric(gsub(".*\\[(\\d+)\\]", "\\1", parameter)),
             test_name = if(!is.null(test_names)) test_names[test] else paste0("Test", test)
           ) %>%
           select(test, test_name,
@@ -63,15 +150,13 @@ R_fn_extract_NMA_AUC_summary <- function( tibble_gq,
                  AUC_median = `50%`,
                  AUC_lower = `2.5%`,
                  AUC_upper = `97.5%`,
-                 AUC_sd = sd)
+                 AUC_sd = sd) %>% 
+          mutate(across(starts_with("AUC"), ~ . * 100))  # Convert all to percentages
         
-        # Extract AUC pred summaries if they exist
         auc_pred_summary <- tibble_gq %>%
           filter(grepl("^AUC_pred\\[", parameter)) %>%
           mutate(
-            test = as.numeric(gsub(".*\\[(\\d+)\\]", "\\1", parameter))  # Fixed: added .*
-          ) %>%
-          mutate(
+            test = as.numeric(gsub(".*\\[(\\d+)\\]", "\\1", parameter)),
             test_name = if(!is.null(test_names)) test_names[test] else paste0("Test", test)
           ) %>%
           select(test, test_name,
@@ -79,43 +164,40 @@ R_fn_extract_NMA_AUC_summary <- function( tibble_gq,
                  AUC_median = `50%`,
                  AUC_lower = `2.5%`,
                  AUC_upper = `97.5%`,
-                 AUC_sd = sd)
+                 AUC_sd = sd) %>% 
+          mutate(across(starts_with("AUC"), ~ . * 100))  # Convert all to percentages
         
         auc_diff_summary <- NULL
-        if (network) {
-          # Extract AUC differences if they exist
-          # General solution for any number of tests
-          n_tests <- length(test_names)  # Use test_names to get number of tests
+        if (network && length(test_names) > 1) {
+          # If you have the actual AUC_diff array:
+          # auc_diff_summary <- create_AUC_diff_summary_tibble(AUC_diff, test_names)
           
-          auc_diff_summary <-  tibble_gq %>%
+          # Otherwise, use existing approach but simplified:
+          n_tests <- length(test_names)
+          
+          # Build pair metadata
+          pair_metadata <- expand.grid(test1 = 1:(n_tests-1), test2 = 1:n_tests) %>%
+            filter(test2 > test1) %>%
+            mutate(
+              index = row_number(),
+              test1_name = test_names[test1],
+              test2_name = test_names[test2],
+              comparison = paste0(test1_name, " vs ", test2_name)
+            )
+          
+          auc_diff_summary <- tibble_gq %>%
             filter(grepl("^AUC_diff\\[", parameter)) %>%
             mutate(
-              index = as.numeric(gsub(".*\\[(\\d+)\\]", "\\1", parameter))  # Fixed: added .*
+              index = as.numeric(gsub(".*\\[(\\d+)\\]", "\\1", parameter))
             ) %>%
-            # Generate metadata for AUC differences
-            left_join(
-              expand.grid(
-                test1 = 1:(n_tests-1),
-                test2 = 1:n_tests
-              ) %>%
-                filter(test2 > test1) %>%
-                mutate(
-                  index = row_number(),
-                  test1_name = test_names[test1],
-                  test2_name = test_names[test2],
-                  comparison = paste0(test1_name, " vs ", test2_name)
-                ),
-              by = "index"
-            ) %>%
-            select(test1, test2, test1_name, test2_name,
+            left_join(pair_metadata, by = "index") %>%
+            select(test1, test2, comparison,
                    AUC_diff_mean = mean,
                    AUC_diff_median = `50%`,
                    AUC_diff_lower = `2.5%`,
                    AUC_diff_upper = `97.5%`,
                    AUC_diff_sd = sd) %>%
-            mutate(
-              prob_test1_better = NA_real_  # Fixed: changed NAreal to NA_real_
-            )
+            mutate(across(starts_with("AUC_diff"), ~ . * 100))  # Convert all to percentages
         }
         
         return(list(
@@ -125,6 +207,121 @@ R_fn_extract_NMA_AUC_summary <- function( tibble_gq,
         ))
   
 }
+
+# R_fn_extract_NMA_AUC_summary <- function( tibble_gq,
+#                                           network,
+#                                           n_thr,
+#                                           test_names = NULL) {
+#   
+#         require(dplyr)
+#         require(tidyr)
+#         
+#         # Extract AUC summaries if they exist
+#         auc_summary <- tibble_gq %>%
+#           filter(grepl("^AUC\\[", parameter)) %>%
+#           mutate(
+#             test = as.numeric(gsub(".*\\[(\\d+)\\]", "\\1", parameter))  # Fixed: added .*
+#           ) %>%
+#           mutate(
+#             test_name = if(!is.null(test_names)) test_names[test] else paste0("Test", test)
+#           ) %>%
+#           select(test, test_name,
+#                  AUC_mean = mean,
+#                  AUC_median = `50%`,
+#                  AUC_lower = `2.5%`,
+#                  AUC_upper = `97.5%`,
+#                  AUC_sd = sd) %>% 
+#           mutate(     AUC_mean = 100*AUC_mean,
+#                       AUC_median = 100*AUC_median,
+#                       AUC_lower = 100*AUC_lower,
+#                       AUC_upper = 100*AUC_upper,
+#                       AUC_sd = 100*AUC_sd)
+#         
+#         # Extract AUC pred summaries if they exist
+#         auc_pred_summary <- tibble_gq %>%
+#           filter(grepl("^AUC_pred\\[", parameter)) %>%
+#           mutate(
+#             test = as.numeric(gsub(".*\\[(\\d+)\\]", "\\1", parameter))  # Fixed: added .*
+#           ) %>%
+#           mutate(
+#             test_name = if(!is.null(test_names)) test_names[test] else paste0("Test", test)
+#           ) %>%
+#           select(test, test_name,
+#                  AUC_mean = mean,
+#                  AUC_median = `50%`,
+#                  AUC_lower = `2.5%`,
+#                  AUC_upper = `97.5%`,
+#                  AUC_sd = sd) %>% 
+#           mutate( AUC_mean = 100*AUC_mean,
+#                   AUC_median = 100*AUC_median,
+#                   AUC_lower = 100*AUC_lower,
+#                   AUC_upper = 100*AUC_upper,
+#                   AUC_sd = 100*AUC_sd)
+#         
+#         auc_diff_summary <- NULL
+#         if (network) {
+#           # Extract AUC differences if they exist
+#           # General solution for any number of tests
+#           n_tests <- length(test_names)  # Use test_names to get number of tests
+#           
+#           pair_metadata <- data.frame()
+#           index <- 1
+#           for(t1 in 1:(n_tests-1)) {
+#             for(t2 in (t1+1):n_tests) {
+#               pair_metadata <- rbind(pair_metadata, 
+#                                      data.frame(
+#                                        index = index,
+#                                        test1 = t1,
+#                                        test2 = t2,
+#                                        test1_name = test_names[t1],
+#                                        test2_name = test_names[t2]
+#                                      ))
+#               index <- index + 1
+#             }
+#           }
+#           
+#           auc_diff_summary <- tibble_gq %>%
+#             filter(grepl("^AUC_diff\\[", parameter)) %>%
+#             mutate(
+#               index = as.numeric(gsub(".*\\[(\\d+)\\]", "\\1", parameter))
+#             ) %>%
+#             left_join(pair_metadata, by = "index") %>%
+#             #   expand.grid(
+#             #     test1 = 1:(n_tests-1),
+#             #     test2 = 1:n_tests
+#             #   ) %>%
+#             #     filter(test2 > test1) %>%
+#             #     mutate(
+#             #       index = row_number(),
+#             #       test1_name = test_names[test1],
+#             #       test2_name = test_names[test2],
+#             #       comparison = paste0(test1_name, " vs ", test2_name)
+#             #     ),
+#             #   by = "index"
+#             # ) %>%
+#             select(test1, test2, test1_name, test2_name,
+#                    AUC_diff_mean = mean,
+#                    AUC_diff_median = `50%`,
+#                    AUC_diff_lower = `2.5%`,
+#                    AUC_diff_upper = `97.5%`,
+#                    AUC_diff_sd = sd) %>%
+#             mutate(
+#               prob_test1_better = NA_real_,  # Fixed: changed NAreal to NA_real_
+#               AUC_diff_mean = 100*AUC_diff_mean,
+#               AUC_diff_median = 100*AUC_diff_median,
+#               AUC_diff_lower = 100*AUC_diff_lower,
+#               AUC_diff_upper = 100*AUC_diff_upper,
+#               AUC_diff_sd = 100*AUC_diff_sd
+#             )
+#         }
+#         
+#         return(list(
+#           auc = auc_summary,
+#           auc_pred = auc_pred_summary,
+#           auc_diff = auc_diff_summary
+#         ))
+#   
+# }
 
 
 
@@ -141,10 +338,9 @@ R_fn_GQ_covariates_NMA <- function(baseline_case_nd,
                                    chains = min(8, parallel::detectCores())
 ) {
           
-          require(cmdstanr)
-          
           ##
           stan_data_list <- model_prep_obj$internal_obj$outs_data$stan_data_list
+          n_index_tests <- stan_data_list$n_index_tests
           ##
           stan_model_file_path     <- model_summary_and_trace_obj$internal_obj$outs_stan_compile$stan_model_file_path
           stan_functions_directory <- model_summary_and_trace_obj$internal_obj$outs_stan_compile$stan_functions_directory
@@ -216,85 +412,6 @@ R_fn_GQ_covariates_NMA <- function(baseline_case_nd,
 
 
 
-
-
-# Convert BridgeStan notation to Stan notation
-#' @export
-convert_bridgestan_par_names_to_stan <- function(names) {
-  
-          # Handle the conversion more carefully
-          result <- names
-          
-          # Find first dot and replace with [
-          result <- sub("\\.", "[", result)
-          
-          # Replace all remaining dots with commas
-          result <- gsub("\\.", ",", result)
-          
-          # Add closing bracket if we added an opening one
-          needs_bracket <- grepl("\\[", result) & !grepl("\\]", result)
-          result[needs_bracket] <- paste0(result[needs_bracket], "]")
-          
-          return(result)
-  
-}
-
-
-
-
-#' @export
-permute_3d_draws_array <- function(array,
-                                   iter_index = 1,
-                                   chain_index = 2,
-                                   param_index = 3,
-                                   new_iter_index = 2,
-                                   new_chain_index = 3,
-                                   new_param_index = 1) {
-  
-          # Create the permutation vector
-          # We need to map old positions to new positions
-          perm_vector <- numeric(3)
-          
-          # Find which old index goes to position 1
-          if (new_iter_index == 1) perm_vector[1] <- iter_index
-          else if (new_chain_index == 1) perm_vector[1] <- chain_index
-          else if (new_param_index == 1) perm_vector[1] <- param_index
-          
-          # Find which old index goes to position 2
-          if (new_iter_index == 2) perm_vector[2] <- iter_index
-          else if (new_chain_index == 2) perm_vector[2] <- chain_index
-          else if (new_param_index == 2) perm_vector[2] <- param_index
-          
-          # Find which old index goes to position 3
-          if (new_iter_index == 3) perm_vector[3] <- iter_index
-          else if (new_chain_index == 3) perm_vector[3] <- chain_index
-          else if (new_param_index == 3) perm_vector[3] <- param_index
-          
-          # Apply the permutation
-          new_array <- aperm(array, perm = perm_vector)
-          
-          # Update dimension names if they exist
-          if (!is.null(dimnames(array))) {
-            old_names <- dimnames(array)
-            new_names <- list(
-              old_names[[perm_vector[1]]],
-              old_names[[perm_vector[2]]],
-              old_names[[perm_vector[3]]]
-            )
-            
-            # Rename based on new positions
-            names(new_names) <- c(
-              if (new_iter_index == 1) "iteration" else if (new_chain_index == 1) "chain" else "parameter",
-              if (new_iter_index == 2) "iteration" else if (new_chain_index == 2) "chain" else "parameter",
-              if (new_iter_index == 3) "iteration" else if (new_chain_index == 3) "chain" else "parameter"
-            )
-            
-            dimnames(new_array) <- new_names
-          }
-          
-          return(new_array)
-  
-}
 
 
 
@@ -527,18 +644,20 @@ create_summary_tibble_for_Se_Sp_baseline <- function( arr,
 
 
 
+ 
+
 
 
 
 #' Compute Se/Sp baseline for custom covariate values
 #' @export
-R_fn_using_Rcpp_compute_MR_Se_Sp_AUC_baseline <- function(debugging = FALSE,
-                                        model_prep_obj,
-                                        model_summary_and_trace_obj,
-                                        baseline_case_nd,  # List of vectors, one per test
-                                        baseline_case_d,   # List of vectors, one per test
-                                        use_probit_link = TRUE,
-                                        test_names = NULL
+R_fn_using_Rcpp_compute_MR_Se_Sp_AUC_baseline <- function(  debugging = FALSE,
+                                                            model_prep_obj,
+                                                            model_summary_and_trace_obj,
+                                                            baseline_case_nd,  # List of vectors, one per test
+                                                            baseline_case_d,   # List of vectors, one per test
+                                                            use_probit_link = TRUE,
+                                                            test_names = NULL
 ) {
   
           # Extract traces
@@ -686,7 +805,7 @@ R_fn_using_Rcpp_compute_MR_Se_Sp_AUC_baseline <- function(debugging = FALSE,
           trace_C_for_pred_flat <- as.vector(trace_C_for_pred)
           
           # Call Rcpp function
-          rcpp_results <- Rcpp_compute_Se_Sp_baseline_loop(
+          rcpp_results <- MetaOrdDTA:::Rcpp_compute_Se_Sp_baseline_loop(
             trace_beta_mu_flat = trace_beta_mu_flat,
             beta_mu_dims = dim(trace_beta_mu),
             trace_C_flat = trace_C_flat,
@@ -713,7 +832,7 @@ R_fn_using_Rcpp_compute_MR_Se_Sp_AUC_baseline <- function(debugging = FALSE,
                                dim = c(n_iter, n_chains, n_index_tests, n_thr_max))
           ##
           # Call Rcpp function
-          pred_results <- Rcpp_compute_Se_Sp_baseline_pred_separated(
+          pred_results <- MetaOrdDTA:::Rcpp_compute_Se_Sp_baseline_pred_separated(
             trace_beta_mu_flat = trace_beta_mu_flat,
             beta_mu_dims = dim(trace_beta_mu),
             beta_mu_names = dimnames(trace_beta_mu)[[3]],
@@ -762,12 +881,23 @@ R_fn_using_Rcpp_compute_MR_Se_Sp_AUC_baseline <- function(debugging = FALSE,
           dimnames(Sp_baseline_pred) <- dimnames(Se_baseline)
           dimnames(Fp_baseline_pred) <- dimnames(Se_baseline)
           ##
+          ##
+          Se_summaries = create_summary_tibble_for_Se_Sp_baseline(arr = Se_baseline, 
+                                                                  n_thr_vec = n_thr, 
+                                                                  var_prefix = "Se_baseline")
+          Sp_summaries = create_summary_tibble_for_Se_Sp_baseline(arr = Sp_baseline, 
+                                                                  n_thr_vec = n_thr, 
+                                                                  var_prefix = "Sp_baseline")
+          Fp_summaries = create_summary_tibble_for_Se_Sp_baseline(arr = Fp_baseline, 
+                                                                  n_thr_vec = n_thr, 
+                                                                  var_prefix = "Fp_baseline")
+          
           ## ---- Compute AUC:
           ##
-          # Add this to the end of your R_fn_compute_Se_Sp_baseline function, before the return statement:
+          # Add this to the end of the R_fn_compute_Se_Sp_baseline function, before the return statement:
           
           # Compute AUC
-          AUC_array <- Rcpp_compute_AUC_all_samples(
+          AUC_array <- MetaOrdDTA:::Rcpp_compute_AUC_all_samples(
             Se_array = as.vector(Se_baseline),
             Sp_array = as.vector(Sp_baseline),
             array_dims = c(n_iter, n_chains, n_index_tests, n_thr_max),
@@ -779,7 +909,7 @@ R_fn_using_Rcpp_compute_MR_Se_Sp_AUC_baseline <- function(debugging = FALSE,
           AUC_baseline <- array(AUC_array, dim = c(n_iter, n_chains, n_index_tests))
           
           # Compute AUC_pred using predictive values
-          AUC_pred_array <- Rcpp_compute_AUC_all_samples(
+          AUC_pred_array <- MetaOrdDTA:::Rcpp_compute_AUC_all_samples(
             Se_array = as.vector(Se_baseline_pred),
             Sp_array = as.vector(Sp_baseline_pred),
             array_dims = c(n_iter, n_chains, n_index_tests, n_thr_max),
@@ -800,38 +930,10 @@ R_fn_using_Rcpp_compute_MR_Se_Sp_AUC_baseline <- function(debugging = FALSE,
               pair_idx <- pair_idx + 1
             }
           }
-          
-          # Create summaries for AUC
-          create_AUC_summary_tibble <- function(auc_array,
-                                                test_names = NULL) {
-            
-                n_iter <- dim(auc_array)[1]
-                n_chains <- dim(auc_array)[2]
-                n_tests <- dim(auc_array)[3]
-                
-                summary_list <- list()
-                
-                for (t in 1:n_tests) {
-                  vals <- as.vector(auc_array[, , t])
-                  
-                  summary_row <- data.frame(
-                    variable = paste0("AUC[", t, "]"),
-                    test = if (!is.null(test_names)) test_names[t] else paste0("Test", t),
-                    mean = mean(vals),
-                    `2.5%` = quantile(vals, 0.025, names = FALSE),
-                    `50%` = quantile(vals, 0.5, names = FALSE),
-                    `97.5%` = quantile(vals, 0.975, names = FALSE),
-                    check.names = FALSE
-                  )
-                  
-                  summary_list[[t]] <- summary_row
-                }
-                
-                tibble(bind_rows(summary_list))
-                
-          }
-          
-          
+          ##
+          summaries <- list()
+          full_outputs <- list()
+          ##
           # Return results
           return(list(
             Se_baseline = Se_baseline,
@@ -874,8 +976,8 @@ R_fn_using_Rcpp_compute_MR_Se_Sp_AUC_baseline <- function(debugging = FALSE,
             AUC_diff = AUC_diff,
             ##
             AUC_summary = create_AUC_summary_tibble(AUC_baseline, test_names),
-            AUC_pred_summary = create_AUC_summary_tibble(AUC_baseline_pred, test_names)#,
-            # AUC_diff_summary = create_AUC_summary_tibble(AUC_diff, test_names)
+            AUC_pred_summary = create_AUC_summary_tibble(AUC_baseline_pred, test_names),
+            AUC_diff_summary = create_AUC_diff_summary_tibble(AUC_diff, test_names)
           ))
   
 }
@@ -1169,7 +1271,7 @@ R_fn_compute_MR_complete_new_baseline_analysis_v2 <- function( debugging = FALSE
 #             n_thr = n_thr,
 #             n_covariates_nd = n_covariates_nd,
 #             n_covariates_d = n_covariates_d,
-#             use_probit_link = TRUE  # Adjust based on your model
+#             use_probit_link = TRUE  # Adjust based on the model
 #           )
 #           
 #           # Format output
@@ -1272,7 +1374,7 @@ R_fn_using_Rcpp_compute_NMA_comparisons_posthoc <- function( trace_gq,
         require(Rcpp)
         require(dplyr)
         
-        # Source the C++ code (or have it in your package src/)
+        # Source the C++ code (or have it in the package src/)
         # sourceCpp("nma_comparisons.cpp")
         
         # Pre-compute indices
@@ -1338,7 +1440,7 @@ R_fn_using_Rcpp_compute_NMA_performance_posthoc <- function(trace_gq,
           require(Rcpp)
           require(dplyr)
           
-          # Source the C++ code (or have it in your package src/)
+          # Source the C++ code (or have it in the package src/)
           # sourceCpp("nma_comparisons.cpp")
           
           # Pre-compute indices
@@ -1537,15 +1639,202 @@ R_fn_deviance_summary <- function( summary_tibble,
 
 
 
+#' create_MR_AUC_latex_table
+#' @export
+create_MR_AUC_latex_table <- function(baseline_outs_list, 
+                                   test_names = NULL,
+                                   group_by = NULL,
+                                   group_labels = NULL,
+                                   row_labels = NULL,
+                                   caption = "AUC comparison across scenarios",
+                                   label = "table_meta_reg_AUC",
+                                   digits = 1) {
+  
+        n_scenarios <- length(baseline_outs_list)
+        
+        if (is.null(test_names)) {
+          test_names <- baseline_outs_list[[1]]$AUC_summary$test
+        }
+        n_tests <- length(test_names)
+        
+        if (is.null(row_labels)) {
+          row_labels <- paste("Scenario", 1:n_scenarios)
+        }
+        
+        # Extract AUC values
+        auc_matrix <- matrix(NA, nrow = n_scenarios, ncol = n_tests)
+        
+        for (s in 1:n_scenarios) {
+          auc_data <- baseline_outs_list[[s]]$AUC_summary
+          for (t in 1:n_tests) {
+            # MULTIPLY BY 100 HERE IF VALUES ARE DECIMALS
+            mean_val <- auc_data$mean[t] * 1
+            lower_val <- auc_data$`2.5%`[t] * 1
+            upper_val <- auc_data$`97.5%`[t] * 1
+            
+            auc_matrix[s, t] <- sprintf("%.*f (%.*f-%.*f)", 
+                                        digits, mean_val, 
+                                        digits, lower_val, 
+                                        digits, upper_val)
+          }
+        }
+        
+        # Build LaTeX table
+        latex_lines <- character()
+        
+        # Table header
+        latex_lines <- c(latex_lines,
+                         "\\begin{table}[H]",
+                         "\\centering",
+                         paste0("\\caption{", caption, "}"),
+                         paste0("\\label{", label, "}"),
+                         "\\begin{tabular}{l", paste(rep("c", n_tests), collapse = ""), "}",
+                         "\\hline"
+        )
+        
+        # Column headers
+        test_headers <- paste(test_names, collapse = " & ")
+        latex_lines <- c(latex_lines,
+                         paste("Scenario &", test_headers, "\\\\"),
+                         paste("        &", paste(rep("AUC (95\\% CI)", n_tests), collapse = " & "), "\\\\"),
+                         "\\hline"
+        )
+        
+        # Add rows with optional grouping
+        if (!is.null(group_by)) {
+          unique_groups <- unique(group_by)
+          
+          for (g in unique_groups) {
+            group_rows <- which(group_by == g)
+            
+            # Add group label if provided
+            if (!is.null(group_labels)) {
+              latex_lines <- c(latex_lines,
+                               paste0("\\multicolumn{", n_tests + 1, "}{l}{\\textbf{", group_labels[g], "}} \\\\")
+              )
+            }
+            
+            for (row_idx in group_rows) {
+              auc_values <- paste(auc_matrix[row_idx, ], collapse = " & ")
+              latex_lines <- c(latex_lines,
+                               paste(row_labels[row_idx], "&", auc_values, "\\\\")
+              )
+            }
+            
+            # Add line after group except last
+            if (g != unique_groups[length(unique_groups)]) {
+              latex_lines <- c(latex_lines, "\\hline")
+            }
+          }
+        } else {
+          # No grouping - just add all rows
+          for (row_idx in 1:n_scenarios) {
+            auc_values <- paste(auc_matrix[row_idx, ], collapse = " & ")
+            latex_lines <- c(latex_lines,
+                             paste(row_labels[row_idx], "&", auc_values, "\\\\")
+            )
+          }
+        }
+        
+        # Table footer
+        latex_lines <- c(latex_lines,
+                         "\\hline",
+                         "\\end{tabular}",
+                         "\\end{table}"
+        )
+        
+        return(paste(latex_lines, collapse = "\n"))
+        
+}
 
 
 
 
- 
-
-
-
-
-
+#' create_MR_AUC_latex_table_2vars
+#' @export
+create_MR_AUC_latex_table_2vars <- function(baseline_outs_list, 
+                                         test_names = NULL,
+                                         var1_levels = NULL,  # e.g., c("MINI", "SCID", "Structured")
+                                         var2_levels = NULL,  # e.g., c("Low (6%)", "Med (15%)", "High (33%)")
+                                         var1_name = "Group",
+                                         var2_name = "Level",
+                                         caption = "AUC comparison",
+                                         label = "table_AUC",
+                                         digits = 1) {
+  
+        n_scenarios <- length(baseline_outs_list)
+        n_var1 <- length(var1_levels)
+        n_var2 <- length(var2_levels)
+        
+        # Check that scenarios match expected structure
+        if (n_scenarios != n_var1 * n_var2) {
+          stop("Number of scenarios must equal n_var1 × n_var2")
+        }
+        
+        if (is.null(test_names)) {
+          test_names <- baseline_outs_list[[1]]$AUC_summary$test
+        }
+        n_tests <- length(test_names)
+        
+        # Extract AUC values
+        auc_matrix <- matrix(NA, nrow = n_scenarios, ncol = n_tests)
+        
+        for (s in 1:n_scenarios) {
+          auc_data <- baseline_outs_list[[s]]$AUC_summary
+          for (t in 1:n_tests) {
+            mean_val <- auc_data$mean[t] * 1
+            lower_val <- auc_data$`2.5%`[t] * 1
+            upper_val <- auc_data$`97.5%`[t] * 1
+            
+            auc_matrix[s, t] <- sprintf("%.*f (%.*f-%.*f)", 
+                                        digits, mean_val, 
+                                        digits, lower_val, 
+                                        digits, upper_val)
+          }
+        }
+        
+        # Build LaTeX table
+        latex_lines <- c(
+          "\\begin{table}[H]",
+          "\\centering",
+          paste0("\\caption{", caption, "}"),
+          paste0("\\label{", label, "}"),
+          paste0("\\begin{tabular}{ll", paste(rep("c", n_tests), collapse = ""), "}"),
+          "\\hline",
+          paste(var1_name, "&", var2_name, "&", paste(test_names, collapse = " & "), "\\\\"),
+          paste("", "&", "", "&", paste(rep("AUC (95\\% CI)", n_tests), collapse = " & "), "\\\\"),
+          "\\hline"
+        )
+        
+        # Add rows grouped by var1
+        scenario_idx <- 1
+        for (i in 1:n_var1) {
+          for (j in 1:n_var2) {
+            # First column: var1 (only on first row of group)
+            col1 <- if (j == 1) var1_levels[i] else ""
+            col2 <- var2_levels[j]
+            
+            auc_values <- paste(auc_matrix[scenario_idx, ], collapse = " & ")
+            latex_lines <- c(latex_lines,
+                             paste(col1, "&", col2, "&", auc_values, "\\\\")
+            )
+            scenario_idx <- scenario_idx + 1
+          }
+          
+          # Add hline after each var1 group except last
+          if (i < n_var1) {
+            latex_lines <- c(latex_lines, "\\hline")
+          }
+        }
+        
+        latex_lines <- c(latex_lines,
+                         "\\hline",
+                         "\\end{tabular}",
+                         "\\end{table}"
+        )
+        
+        return(paste(latex_lines, collapse = "\n"))
+  
+}
 
 

@@ -7,7 +7,7 @@
 filter_param_names_string_batched(
   all_param_names_vec,
   param_string_vec,
-  condition,
+  condition = "exact_match",
   debugging = FALSE
 )
 }

@@ -56,7 +56,7 @@ filtered_param_names_string <-   function( all_param_names_vec,
 #' @export
 filter_param_names_string_batched <- function(  all_param_names_vec, 
                                                 param_string_vec,
-                                                condition,
+                                                condition = "exact_match",
                                                 debugging = FALSE) {
             
             
@@ -104,9 +104,10 @@ filter_param_names_string_batched <- function(  all_param_names_vec,
 #' @export
 filter_param_draws_string <- function(  named_draws_array,
                                         param_string, 
-                                        condition,
-                                        exclude_NA, ## = FALSE,
-                                        debugging = FALSE) {
+                                        condition = "exact_match",
+                                        exclude_NA = FALSE,
+                                        debugging = FALSE
+) {
   
   
               named_draws_array_2 <- format_named_array_for_bayesplot(named_draws_array)
@@ -126,7 +127,7 @@ filter_param_draws_string <- function(  named_draws_array,
                                                                             debugging = debugging)
                       
                       ## Then filter/subset "named_draws_array_2":
-                      draws_array_filtered <- named_draws_array_2[,,param_names_filtered]
+                      draws_array_filtered <- named_draws_array_2[, , param_names_filtered, drop = FALSE]
                   })
               }
               
@@ -152,7 +153,9 @@ filter_param_draws_string <- function(  named_draws_array,
                           warning(paste("All parameters containing", param_string, "contain only NAs"))
                           return(list())  # Return empty list if no valid parameters
                         }
-                        draws_array_filtered_wo_NAs <- draws_array_filtered[,,param_names_filtered_wo_NAs]
+                        draws_array_filtered_wo_NAs <- draws_array_filtered[
+                          , , param_names_filtered_wo_NAs, drop = FALSE
+                        ]
                         
                         if (debugging) { 
                           print(draws_array_filtered_wo_NAs)
@@ -179,14 +182,18 @@ filter_param_draws_string <- function(  named_draws_array,
 # debugging = TRUE
 
 
+
+
+
 #' filter_param_draws_string_batched
 #' @keywords internal
 #' @export
 filter_param_draws_string_batched <- function(    named_draws_array,
                                                   param_strings_vec,
-                                                  condition,
-                                                  exclude_NA,## = FALSE,
-                                                  debugging = FALSE) {
+                                                  condition = "exact_match",
+                                                  exclude_NA = FALSE,
+                                                  debugging = FALSE
+) {
 
             param_draws_filtered_list <- list()
             
@@ -212,7 +219,7 @@ filter_param_draws_string_batched <- function(    named_draws_array,
                       param_draws_filtered_array <- NULL
                       try({ 
                         param_draws_filtered_array <- convert_list_of_arrays_to_one_big_array( 
-                                                                          draws_array_list = param_draws_filtered_list )
+                                                      draws_array_list = param_draws_filtered_list)
                         param_draws_filtered_array    
                       })
                       
@@ -263,25 +270,25 @@ extract_params_from_tibble_batch <- function(  debugging = FALSE,
                                                condition = "exact_match",
                                                combine = TRUE) {
             
-            # Extract all parameter names from the tibble
-            all_param_names_vec <- unique(tibble$parameter)
+            name_column <- intersect(c("parameter", "variable"), names(tibble))[1L]
+            if (is.na(name_column)) {
+              stop("Summary tibble must contain a 'parameter' or 'variable' column")
+            }
+            all_param_names_vec <- unique(tibble[[name_column]])
             
-            # Use your existing batch function to filter parameter names
+            # Use the existing batch function to filter parameter names
             filtered_params_list <- filter_param_names_string_batched(
-              all_param_names_vec = all_param_names_vec,
-              param_string_vec = param_strings_vec,
-              condition = condition,
-              debugging = debugging
-            )
+                                    all_param_names_vec = all_param_names_vec,
+                                    param_string_vec = param_strings_vec,
+                                    condition = condition,
+                                    debugging = debugging)
             
             # Filter tibble for each parameter string
             results_list <- list()
             for (param_string in names(filtered_params_list)) {
               if (length(filtered_params_list[[param_string]]) > 0) {
-                results_list[[param_string]] <- dplyr::filter(
-                  tibble, 
-                  parameter %in% filtered_params_list[[param_string]]
-                )
+                keep <- tibble[[name_column]] %in% filtered_params_list[[param_string]]
+                results_list[[param_string]] <- tibble[keep, , drop = FALSE]
               }
             }
             
@@ -307,84 +314,94 @@ extract_params_from_array_batch <- function(debugging,
                                             condition,## = "exact_match",
                                             combine = TRUE) {
   
-  # Check if input is a 3D array
-  if (!is.array(array_3d) || length(dim(array_3d)) != 3) {
-    stop("Input must be a 3D array")
-  }
+        # Check if input is a 3D array
+        if (!is.array(array_3d) || length(dim(array_3d)) != 3) {
+          stop("Input must be a 3D array")
+        }
+        
+        # Extract all parameter names from the array
+        all_param_names_vec <- dimnames(array_3d)[[3]]  # Third dimension contains parameter names
+        
+        if (is.null(all_param_names_vec)) {
+          stop("Array must have named parameters in the third dimension")
+        }
+        
+        # Use the existing batch function to filter parameter names
+        filtered_params_list <- filter_param_names_string_batched(
+                                all_param_names_vec = all_param_names_vec,
+                                param_string_vec = param_strings_vec,
+                                condition = condition,
+                                debugging = debugging)
+        
+        # Extract array slices for each parameter string
+        results_list <- list()
+        
+        for (param_string in names(filtered_params_list)) {
+          
+              param_indices <- which(all_param_names_vec %in% filtered_params_list[[param_string]])
+              
+              if (length(param_indices) > 0) {
+                # Extract the subset of the array for these parameters
+                # Keep all iterations and chains, subset parameters
+                results_list[[param_string]] <- array_3d[, , param_indices, drop = FALSE]
+                
+                # Preserve dimension names
+                dimnames(results_list[[param_string]]) <- list(
+                  iterations = dimnames(array_3d)[[1]],
+                  chains = dimnames(array_3d)[[2]],
+                  parameters = all_param_names_vec[param_indices]
+                )
+              }
+          
+        }
+        
+        # Return combined or as list
+        if (combine && length(results_list) > 0) {
+          
+                # For combining arrays, we concatenate along the parameter dimension
+                all_params <- unlist(lapply(results_list, function(x) dimnames(x)[[3]]))
+                
+                # Create combined array
+                n_iter <- dim(array_3d)[1]
+                n_chains <- dim(array_3d)[2]
+                n_params_total <- length(all_params)
+                
+                combined_array <- array(
+                  data = NA,
+                  dim = c(n_iter, n_chains, n_params_total),
+                  dimnames = list(
+                    iterations = dimnames(array_3d)[[1]],
+                    chains = dimnames(array_3d)[[2]],
+                    parameters = all_params
+                  )
+                )
+                
+                # Fill the combined array
+                param_start <- 1
+                for (param_string in names(results_list)) {
+                  n_params_group <- dim(results_list[[param_string]])[3]
+                  param_end <- param_start + n_params_group - 1
+                  combined_array[, , param_start:param_end] <- results_list[[param_string]]
+                  param_start <- param_end + 1
+                }
+                
+                # Add attribute to track which parameters came from which group
+                attr(combined_array, "param_groups") <- rep(names(results_list), 
+                                                            sapply(results_list, function(x) dim(x)[3]))
+                
+                return(combined_array)
+          
+        } else {
+          
+                return(results_list)
+          
+        }
   
-  # Extract all parameter names from the array
-  all_param_names_vec <- dimnames(array_3d)[[3]]  # Third dimension contains parameter names
-  
-  if (is.null(all_param_names_vec)) {
-    stop("Array must have named parameters in the third dimension")
-  }
-  
-  # Use your existing batch function to filter parameter names
-  filtered_params_list <- filter_param_names_string_batched(
-    all_param_names_vec = all_param_names_vec,
-    param_string_vec = param_strings_vec,
-    condition = condition,
-    debugging = debugging
-  )
-  
-  # Extract array slices for each parameter string
-  results_list <- list()
-  
-  for (param_string in names(filtered_params_list)) {
-    param_indices <- which(all_param_names_vec %in% filtered_params_list[[param_string]])
-    
-    if (length(param_indices) > 0) {
-      # Extract the subset of the array for these parameters
-      # Keep all iterations and chains, subset parameters
-      results_list[[param_string]] <- array_3d[, , param_indices, drop = FALSE]
-      
-      # Preserve dimension names
-      dimnames(results_list[[param_string]]) <- list(
-        iterations = dimnames(array_3d)[[1]],
-        chains = dimnames(array_3d)[[2]],
-        parameters = all_param_names_vec[param_indices]
-      )
-    }
-  }
-  
-  # Return combined or as list
-  if (combine && length(results_list) > 0) {
-    # For combining arrays, we concatenate along the parameter dimension
-    all_params <- unlist(lapply(results_list, function(x) dimnames(x)[[3]]))
-    
-    # Create combined array
-    n_iter <- dim(array_3d)[1]
-    n_chains <- dim(array_3d)[2]
-    n_params_total <- length(all_params)
-    
-    combined_array <- array(
-      data = NA,
-      dim = c(n_iter, n_chains, n_params_total),
-      dimnames = list(
-        iterations = dimnames(array_3d)[[1]],
-        chains = dimnames(array_3d)[[2]],
-        parameters = all_params
-      )
-    )
-    
-    # Fill the combined array
-    param_start <- 1
-    for (param_string in names(results_list)) {
-      n_params_group <- dim(results_list[[param_string]])[3]
-      param_end <- param_start + n_params_group - 1
-      combined_array[, , param_start:param_end] <- results_list[[param_string]]
-      param_start <- param_end + 1
-    }
-    
-    # Add attribute to track which parameters came from which group
-    attr(combined_array, "param_groups") <- rep(names(results_list), 
-                                                sapply(results_list, function(x) dim(x)[3]))
-    
-    return(combined_array)
-  } else {
-    return(results_list)
-  }
 }
+
+
+
+
 
 
 

@@ -49,6 +49,7 @@ data {
         vector[n_thr + 1] prior_dirichlet_alpha;
         real prior_kappa_mean;
         real<lower=0.0> prior_kappa_SD;
+        real<lower=0.0> prior_kappa_dof;
         ////
         //// ---- Other:
         ////
@@ -159,7 +160,7 @@ model {
                        prior_raw_scale_SD_SD);
         ////
         {
-           log_kappa ~ student_t(5, prior_kappa_mean, prior_kappa_SD);
+           log_kappa ~ student_t(prior_kappa_dof, prior_kappa_mean, prior_kappa_SD);
            target += -log_kappa;
            dirichlet_phi ~ dirichlet(prior_dirichlet_alpha);
         }
@@ -213,26 +214,29 @@ generated quantities {
       ////
       vector[n_thr] C_mu;
       ////
-      {
-          for (k in 1:n_thr) {
-              vector[n_studies] observed_cutpoints;
-              int n_obs = 0;
-              
-              for (s in 1:n_studies) {
-                  // Search through the cutpoint_index for this study to see if cutpoint k was observed
-                  for (j in 2:(n_obs_cutpoints[s] + 1)) {  // Start at 2 because index 1 is 0
-                      if (cutpoint_index[1, s, j] == k) {
-                          n_obs += 1;
-                          observed_cutpoints[n_obs] = C[s, k];
-                          break;  // Found it, no need to continue searching
-                      }
-                  }
-              }
-              
-              if (n_obs > 0) {
-                  C_mu[k] = median(observed_cutpoints[1:n_obs]);
-              }
-          }
+      // {
+      //     for (k in 1:n_thr) {
+      //         vector[n_studies] observed_cutpoints;
+      //         int n_obs = 0;
+      //         
+      //         for (s in 1:n_studies) {
+      //             // Search through the cutpoint_index for this study to see if cutpoint k was observed
+      //             for (j in 2:(n_obs_cutpoints[s] + 1)) {  // Start at 2 because index 1 is 0
+      //                 if (cutpoint_index[1, s, j] == k) {
+      //                     n_obs += 1;
+      //                     observed_cutpoints[n_obs] = C[s, k];
+      //                     break;  // Found it, no need to continue searching
+      //                 }
+      //             }
+      //         }
+      //         
+      //         if (n_obs > 0) {
+      //             C_mu[k] = median(observed_cutpoints[1:n_obs]);
+      //         }
+      //     }
+      // }
+      for (k in 1:n_thr) {
+        C_mu[k] = median(C[, k]);
       }
       ////
       //// ---- Calculate summary accuracy (using mean parameters):
@@ -308,13 +312,13 @@ generated quantities {
       ////
       vector[n_studies] log_lik_study = rep_vector(0.0, n_studies);
       ////
-      matrix[n_studies, n_thr] fp; // global
-      matrix[n_studies, n_thr] sp; // global
-      matrix[n_studies, n_thr] se; // global
+      // matrix[n_studies, n_thr] fp; // global
+      // matrix[n_studies, n_thr] sp; // global
+      // matrix[n_studies, n_thr] se; // global
       ////
-      vector[n_studies] deviance_nd; // global
-      vector[n_studies] deviance_d;  // global
-      vector[n_studies] deviance;    // global
+      // vector[n_studies] deviance_nd; // global
+      // vector[n_studies] deviance_d;  // global
+      // vector[n_studies] deviance;    // global
       {
           array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_prob_to_random_C_HSROC(
                                                           C, n_thr, Xlocations, Xscale, n_studies, 
@@ -341,28 +345,28 @@ generated quantities {
           array[2] matrix[n_studies, n_thr] cond_prob = outs[2];
           array[2] matrix[n_studies, n_thr] surv_prob = outs[3];
           ////
-          fp = surv_prob[1];
-          sp = 1.0 - fp;
-          se = surv_prob[2];
-          ////
-          //// ---- Model fit (deviance):
-          ////
-          array[4] matrix[n_studies, n_thr] outs_model_fit = compute_deviance(
-                                                             cond_prob, n_thr, n_studies, 
-                                                             x_2, n, n_obs_cutpoints);
-          ////
-          matrix[n_studies, n_thr] x_hat_nd = outs_model_fit[1];
-          matrix[n_studies, n_thr] dev_nd   = outs_model_fit[2];
-          matrix[n_studies, n_thr] x_hat_d  = outs_model_fit[3];
-          matrix[n_studies, n_thr] dev_d    = outs_model_fit[4];
-          ////
-          for (s in 1:n_studies) {
-              for (k in 1:to_int(n_obs_cutpoints[s])) {
-                 deviance_nd[s] += is_nan(dev_nd[s, k]) ? 0.0 : dev_nd[s, k];
-                 deviance_d[s]  += is_nan(dev_d[s, k]) ? 0.0 : dev_d[s, k];
-              }
-              deviance[s] = deviance_nd[s] + deviance_d[s];
-          }
+          // fp = surv_prob[1];
+          // sp = 1.0 - fp;
+          // se = surv_prob[2];
+          // ////
+          // //// ---- Model fit (deviance):
+          // ////
+          // array[4] matrix[n_studies, n_thr] outs_model_fit = compute_deviance(
+          //                                                    cond_prob, n_thr, n_studies, 
+          //                                                    x_2, n, n_obs_cutpoints);
+          // ////
+          // matrix[n_studies, n_thr] x_hat_nd = outs_model_fit[1];
+          // matrix[n_studies, n_thr] dev_nd   = outs_model_fit[2];
+          // matrix[n_studies, n_thr] x_hat_d  = outs_model_fit[3];
+          // matrix[n_studies, n_thr] dev_d    = outs_model_fit[4];
+          // ////
+          // for (s in 1:n_studies) {
+          //     for (k in 1:to_int(n_obs_cutpoints[s])) {
+          //        deviance_nd[s] += is_nan(dev_nd[s, k]) ? 0.0 : dev_nd[s, k];
+          //        deviance_d[s]  += is_nan(dev_d[s, k]) ? 0.0 : dev_d[s, k];
+          //     }
+          //     deviance[s] = deviance_nd[s] + deviance_d[s];
+          // }
       }
       // ////
       // //// ---- "Ordinal-bivariate equivalent" params:

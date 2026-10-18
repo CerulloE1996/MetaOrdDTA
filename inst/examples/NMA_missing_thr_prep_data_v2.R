@@ -61,8 +61,10 @@ if (network == FALSE) {
         
         if (intercept_only_for_sim_DGM == FALSE) {
           
-                  outs_covs_subset <- readRDS(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "real_data_cov_data_4_tests"))
-                  real_data <- readRDS(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "real_data_4_tests"))
+                  outs_covs_subset <- readRDS(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", 
+                                                        paste0("real_data_cov_data_4_tests", "_", "GAD")))
+                  real_data <- readRDS(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data",
+                                                 paste0("real_data_4_tests", "_", "GAD")))
                   ##
                   X <- list(outs_covs_subset$X_nd, 
                             outs_covs_subset$X_d)
@@ -105,8 +107,10 @@ if (network == FALSE) {
                   X_d  <- outs_covs_subset$X_d  ## this is the real covariate data
                   X <- list(X_nd, X_d)
                   ##
-                  X <- MetaOrdDTA:::R_fn_expand_covariates_to_all_studies( X,
-                                                                           indicator_index_test_in_study = real_data$indicator_index_test_in_study)
+                  # X <- MetaOrdDTA:::R_fn_expand_covariates_to_all_studies( X,
+                  #                                                          indicator_index_test_in_study = real_data$indicator_index_test_in_study)
+                  X <- MetaOrdDTA:::expand_covariates_to_all_studies( X,
+                                                                      indicator_index_test_in_study = real_data$indicator_index_test_in_study)
                   real_data$cov_data$X <- X
                   original_cov_data <- list(X = X)
                   ##

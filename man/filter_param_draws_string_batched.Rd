@@ -7,8 +7,8 @@
 filter_param_draws_string_batched(
   named_draws_array,
   param_strings_vec,
-  condition,
-  exclude_NA,
+  condition = "exact_match",
+  exclude_NA = FALSE,
   debugging = FALSE
 )
 }

@@ -173,11 +173,17 @@ The default is "ordinal".}
 \item \href{#method-MetaOrd_model-plot_traces}{\code{MetaOrd_model$plot_traces()}}
 \item \href{#method-MetaOrd_model-plot_densities}{\code{MetaOrd_model$plot_densities()}}
 \item \href{#method-MetaOrd_model-extract_params}{\code{MetaOrd_model$extract_params()}}
+\item \href{#method-MetaOrd_model-make_folds_k_fold_CV}{\code{MetaOrd_model$make_folds_k_fold_CV()}}
 \item \href{#method-MetaOrd_model-run_k_fold_CV}{\code{MetaOrd_model$run_k_fold_CV()}}
 \item \href{#method-MetaOrd_model-plot_sROC}{\code{MetaOrd_model$plot_sROC()}}
+\item \href{#method-MetaOrd_model-plot_threshold}{\code{MetaOrd_model$plot_threshold()}}
+\item \href{#method-MetaOrd_model-plot_pairwise}{\code{MetaOrd_model$plot_pairwise()}}
 \item \href{#method-MetaOrd_model-extract_NMA_comparisons}{\code{MetaOrd_model$extract_NMA_comparisons()}}
 \item \href{#method-MetaOrd_model-extract_NMA_performance}{\code{MetaOrd_model$extract_NMA_performance()}}
+\item \href{#method-MetaOrd_model-recompute_baseline}{\code{MetaOrd_model$recompute_baseline()}}
+\item \href{#method-MetaOrd_model-compute_pairwise_comparisons}{\code{MetaOrd_model$compute_pairwise_comparisons()}}
 \item \href{#method-MetaOrd_model-extract_AUC}{\code{MetaOrd_model$extract_AUC()}}
+\item \href{#method-MetaOrd_model-extract_MR_Se_Sp}{\code{MetaOrd_model$extract_MR_Se_Sp()}}
 \item \href{#method-MetaOrd_model-clone}{\code{MetaOrd_model$clone()}}
 }
 }
@@ -189,18 +195,19 @@ Create a new "MetaOrd_model" object.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{MetaOrd_model$new(
   debugging = FALSE,
-  x = self$x,
-  intercept_only = self$intercept_only,
+  x,
+  intercept_only,
   cov_data = self$cov_data,
   indicator_index_test_in_study = self$indicator_index_test_in_study,
   network = NULL,
-  cts = NULL,
-  prior_only = NULL,
-  model_parameterisation = NULL,
+  compound_symmetry = NULL,
+  hetero_sigma = NULL,
+  prior_only = FALSE,
+  model_parameterisation,
   random_thresholds = NULL,
   Dirichlet_random_effects_type = NULL,
   box_cox = NULL,
-  softplus = NULL,
+  softplus = FALSE,
   priors = NULL,
   n_chains = NULL,
   init_lists_per_chain = self$init_lists_per_chain,
@@ -232,8 +239,6 @@ Create a new "MetaOrd_model" object.
 
 \item{\code{network}}{See class documentation for details.}
 
-\item{\code{cts}}{Whether to use a continuous ("cts") model or whether to use an ordinal ("ord") model.}
-
 \item{\code{prior_only}}{See class documentation for details.}
 
 \item{\code{model_parameterisation}}{See class documentation for details.}
@@ -253,6 +258,8 @@ Create a new "MetaOrd_model" object.
 \item{\code{init_lists_per_chain}}{List of initial values for each chain. See class documentation for details.}
 
 \item{\code{test_type}}{Type of test. See class documentation for details.}
+
+\item{\code{cts}}{Whether to use a continuous ("cts") model or whether to use an ordinal ("ord") model.}
 }
 \if{html}{\out{</div>}}
 }
@@ -272,8 +279,9 @@ Sample from the model
   intercept_only = self$intercept_only,
   cov_data = self$cov_data,
   indicator_index_test_in_study = self$indicator_index_test_in_study,
-  cts = self$basic_model_options$cts,
   network = self$basic_model_options$network,
+  compound_symmetry = self$advanced_model_options$compound_symmetry,
+  hetero_sigma = self$advanced_model_options$hetero_sigma,
   prior_only = self$basic_model_options$prior_only,
   model_parameterisation = self$advanced_model_options$model_parameterisation,
   random_thresholds = self$advanced_model_options$random_thresholds,
@@ -288,7 +296,7 @@ Sample from the model
   seed = NULL,
   n_superchains = NULL,
   n_chains = self$MCMC_params$n_chains,
-  n_burnin = 500,
+  n_burnin = 1000,
   n_iter = 1000,
   adapt_delta = 0.8,
   max_treedepth = 10,
@@ -681,8 +689,8 @@ plots for all model parameters which have a trace array.
 \subsection{Method \code{extract_params()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{MetaOrd_model$extract_params(
-  debugging = FALSE,
   params,
+  debugging = FALSE,
   tibble = NULL,
   condition = "exact_match",
   combine = TRUE
@@ -692,9 +700,9 @@ plots for all model parameters which have a trace array.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{debugging}}{...}
-
 \item{\code{params}}{...}
+
+\item{\code{debugging}}{...}
 
 \item{\code{tibble}}{...}
 
@@ -709,21 +717,45 @@ Extract params
 }
 }
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-MetaOrd_model-make_folds_k_fold_CV"></a>}}
+\if{latex}{\out{\hypertarget{method-MetaOrd_model-make_folds_k_fold_CV}{}}}
+\subsection{Method \code{make_folds_k_fold_CV()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{MetaOrd_model$make_folds_k_fold_CV(debugging = FALSE, seed, K)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{debugging}}{...}
+
+\item{\code{seed}}{...}
+
+\item{\code{K}}{...}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-MetaOrd_model-run_k_fold_CV"></a>}}
 \if{latex}{\out{\hypertarget{method-MetaOrd_model-run_k_fold_CV}{}}}
 \subsection{Method \code{run_k_fold_CV()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{MetaOrd_model$run_k_fold_CV(
   debugging = FALSE,
-  K = 10,
-  n_burnin = self$MCMC_params$n_burnin,
-  n_iter = self$MCMC_params$n_iter,
-  n_chains = self$MCMC_params$n_chains,
-  adapt_delta = self$MCMC_params$adapt_delta,
-  max_treedepth = self$MCMC_params$max_treedepth,
-  parallel = "auto",
+  seed,
+  fold_assignments = NULL,
+  cmdstanr_args = NULL,
+  init_lists_per_chain = NULL,
+  priors = self$priors,
+  n_burnin = 1000,
+  n_iter = 1000,
+  n_chains = NULL,
+  adapt_delta = 0.8,
+  max_treedepth = 10,
+  parallel = NULL,
   n_workers = NULL,
-  output_dir = "cv_results",
+  output_dir = metaorddta_output_path("cv_results"),
   use_BayesMVP_for_faster_summaries = NULL
 )}\if{html}{\out{</div>}}
 }
@@ -733,13 +765,25 @@ Extract params
 \describe{
 \item{\code{debugging}}{...}
 
-\item{\code{params}}{...}
+\item{\code{n_burnin}}{...}
 
-\item{\code{tibble}}{...}
+\item{\code{n_iter}}{...}
 
-\item{\code{condition}}{...}
+\item{\code{n_chains}}{...}
 
-\item{\code{combine}}{...}
+\item{\code{adapt_delta}}{...}
+
+\item{\code{max_treedepth}}{...}
+
+\item{\code{parallel}}{...}
+
+\item{\code{n_workers}}{...}
+
+\item{\code{output_dir}}{...}
+
+\item{\code{use_BayesMVP_for_faster_summaries}}{...}
+
+\item{\code{K}}{...}
 }
 \if{html}{\out{</div>}}
 }
@@ -753,23 +797,50 @@ Extract params
 \subsection{Method \code{plot_sROC()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{MetaOrd_model$plot_sROC(
-  new_cov_data = NULL,
   debugging = FALSE,
+  test_names = NULL,
+  relevant_thresholds = NULL,
   df_true = NULL,
-  conf_region_colour = "blue",
-  pred_region_colour = "blue",
-  test_names = NULL
+  layout = c("separate", "by_test", "by_scenario", "grid", "grid_separate"),
+  separate_sROC_settings = NULL,
+  by_test_sROC_settings = NULL,
+  by_scenario_sROC_settings = NULL,
+  by_test_grid_sROC_settings = NULL,
+  by_scenario_grid_sROC_settings = NULL,
+  by_test_grid_separate_sROC_settings = NULL,
+  by_scenario_grid_separate_sROC_settings = NULL,
+  aesthetic_mapping = NULL
 )}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
+\item{\code{debugging}}{...}
+
+\item{\code{test_names}}{...}
+
+\item{\code{relevant_thresholds}}{...}
+
 \item{\code{df_true}}{...}
 
-\item{\code{conf_region_colour}}{...}
+\item{\code{layout}}{...}
 
-\item{\code{pred_region_colour}}{...}
+\item{\code{separate_sROC_settings}}{...}
+
+\item{\code{by_test_sROC_settings}}{...}
+
+\item{\code{by_scenario_sROC_settings}}{...}
+
+\item{\code{by_test_grid_sROC_settings}}{...}
+
+\item{\code{by_scenario_grid_sROC_settings}}{...}
+
+\item{\code{by_test_grid_separate_sROC_settings}}{...}
+
+\item{\code{by_scenario_grid_separate_sROC_settings}}{...}
+
+\item{\code{aesthetic_mapping}}{...}
 }
 \if{html}{\out{</div>}}
 }
@@ -778,14 +849,119 @@ sROC plot(s).
 }
 }
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-MetaOrd_model-plot_threshold"></a>}}
+\if{latex}{\out{\hypertarget{method-MetaOrd_model-plot_threshold}{}}}
+\subsection{Method \code{plot_threshold()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{MetaOrd_model$plot_threshold(
+  debugging = FALSE,
+  test_names = NULL,
+  relevant_thresholds = NULL,
+  plot_type = c("Se", "Sp", "both"),
+  df_true = NULL,
+  new_cov_data = NULL,
+  layout = c("separate", "by_test", "by_scenario", "grid", "grid_separate"),
+  separate_threshold_settings = NULL,
+  by_test_threshold_settings = NULL,
+  by_scenario_threshold_settings = NULL,
+  by_test_grid_threshold_settings = NULL,
+  by_scenario_grid_threshold_settings = NULL,
+  by_test_grid_separate_threshold_settings = NULL,
+  by_scenario_grid_separate_threshold_settings = NULL,
+  aesthetic_mapping = NULL,
+  show_actual_thresholds = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{debugging}}{...}
+
+\item{\code{test_names}}{...}
+
+\item{\code{relevant_thresholds}}{...}
+
+\item{\code{plot_type}}{...}
+
+\item{\code{df_true}}{...}
+
+\item{\code{new_cov_data}}{...}
+
+\item{\code{layout}}{...}
+
+\item{\code{separate_threshold_settings}}{...}
+
+\item{\code{by_test_threshold_settings}}{...}
+
+\item{\code{by_scenario_threshold_settings}}{...}
+
+\item{\code{by_test_grid_threshold_settings}}{...}
+
+\item{\code{by_scenario_grid_threshold_settings}}{...}
+
+\item{\code{by_test_grid_separate_threshold_settings}}{...}
+
+\item{\code{by_scenario_grid_separate_threshold_settings}}{...}
+
+\item{\code{aesthetic_mapping}}{...}
+
+\item{\code{show_actual_thresholds}}{...}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+Accuracy vs. threshold plot(s).
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-MetaOrd_model-plot_pairwise"></a>}}
+\if{latex}{\out{\hypertarget{method-MetaOrd_model-plot_pairwise}{}}}
+\subsection{Method \code{plot_pairwise()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{MetaOrd_model$plot_pairwise(
+  debugging = FALSE,
+  comparison_type = "both",
+  test_names = NULL,
+  relevant_thresholds = NULL,
+  baseline_plot_settings = NULL,
+  metareg_plot_settings = NULL,
+  aesthetic_mapping = NULL
+)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{debugging}}{...}
+
+\item{\code{comparison_type}}{...}
+
+\item{\code{test_names}}{...}
+
+\item{\code{relevant_thresholds}}{...}
+
+\item{\code{baseline_plot_settings}}{...}
+
+\item{\code{metareg_plot_settings}}{...}
+
+\item{\code{aesthetic_mapping}}{...}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+Accuracy vs. threshold plot(s).
+}
+}
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-MetaOrd_model-extract_NMA_comparisons"></a>}}
 \if{latex}{\out{\hypertarget{method-MetaOrd_model-extract_NMA_comparisons}{}}}
 \subsection{Method \code{extract_NMA_comparisons()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{MetaOrd_model$extract_NMA_comparisons(
-  new_cov_data = NULL,
   debugging = FALSE,
-  test_names = NULL
+  test_names = NULL,
+  MR_scenario = NULL
 )}\if{html}{\out{</div>}}
 }
 
@@ -808,9 +984,9 @@ NMA comparisons summary
 \subsection{Method \code{extract_NMA_performance()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{MetaOrd_model$extract_NMA_performance(
-  new_cov_data = NULL,
   debugging = FALSE,
-  test_names = NULL
+  test_names = NULL,
+  new_cov_data = NULL
 )}\if{html}{\out{</div>}}
 }
 
@@ -820,6 +996,8 @@ NMA comparisons summary
 \item{\code{debugging}}{...}
 
 \item{\code{test_names}}{...}
+
+\item{\code{new_cov_data}}{...}
 }
 \if{html}{\out{</div>}}
 }
@@ -828,16 +1006,15 @@ NMA performance metrics (e.g., DOR) summary
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-MetaOrd_model-extract_AUC"></a>}}
-\if{latex}{\out{\hypertarget{method-MetaOrd_model-extract_AUC}{}}}
-\subsection{Method \code{extract_AUC()}}{
+\if{html}{\out{<a id="method-MetaOrd_model-recompute_baseline"></a>}}
+\if{latex}{\out{\hypertarget{method-MetaOrd_model-recompute_baseline}{}}}
+\subsection{Method \code{recompute_baseline()}}{
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{MetaOrd_model$extract_AUC(
-  new_cov_data = NULL,
+\if{html}{\out{<div class="r">}}\preformatted{MetaOrd_model$recompute_baseline(
   debugging = FALSE,
-  test_names = NULL,
-  use_BayesMVP_for_faster_summaries = NULL,
-  compute_nested_rhat = FALSE
+  test_names,
+  MR_scenarios = NULL,
+  use_probit_link = TRUE
 )}\if{html}{\out{</div>}}
 }
 
@@ -847,11 +1024,100 @@ NMA performance metrics (e.g., DOR) summary
 \item{\code{debugging}}{...}
 
 \item{\code{test_names}}{...}
+
+\item{\code{MR_scenarios}}{...}
+
+\item{\code{use_probit_link}}{..}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-NMA AUC summary
+new_baseline_outs
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-MetaOrd_model-compute_pairwise_comparisons"></a>}}
+\if{latex}{\out{\hypertarget{method-MetaOrd_model-compute_pairwise_comparisons}{}}}
+\subsection{Method \code{compute_pairwise_comparisons()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{MetaOrd_model$compute_pairwise_comparisons(
+  debugging = FALSE,
+  test_names,
+  MR_scenarios = NULL,
+  recompute_baseline = TRUE,
+  use_probit_link = TRUE
+)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{debugging}}{...}
+
+\item{\code{test_names}}{...}
+
+\item{\code{MR_scenarios}}{...}
+
+\item{\code{use_probit_link}}{..}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+new_baseline_outs
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-MetaOrd_model-extract_AUC"></a>}}
+\if{latex}{\out{\hypertarget{method-MetaOrd_model-extract_AUC}{}}}
+\subsection{Method \code{extract_AUC()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{MetaOrd_model$extract_AUC(
+  debugging = FALSE,
+  test_names,
+  use_BayesMVP_for_faster_summaries = NULL
+)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{debugging}}{...}
+
+\item{\code{test_names}}{...}
+
+\item{\code{use_BayesMVP_for_faster_summaries}}{...}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+AUC summary
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-MetaOrd_model-extract_MR_Se_Sp"></a>}}
+\if{latex}{\out{\hypertarget{method-MetaOrd_model-extract_MR_Se_Sp}{}}}
+\subsection{Method \code{extract_MR_Se_Sp()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{MetaOrd_model$extract_MR_Se_Sp(
+  debugging = FALSE,
+  test_names,
+  use_BayesMVP_for_faster_summaries = NULL
+)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{debugging}}{...}
+
+\item{\code{test_names}}{...}
+
+\item{\code{use_BayesMVP_for_faster_summaries}}{...}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+Se/Sp summary
 }
 }
 \if{html}{\out{<hr>}}

@@ -5,10 +5,10 @@
 \title{extract_params_from_tibble_batch}
 \usage{
 extract_params_from_tibble_batch(
-  debugging,
+  debugging = FALSE,
   tibble,
   param_strings_vec,
-  condition,
+  condition = "exact_match",
   combine = TRUE
 )
 }

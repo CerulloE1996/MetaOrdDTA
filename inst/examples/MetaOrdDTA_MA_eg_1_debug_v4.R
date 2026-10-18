@@ -8,7 +8,7 @@ run_single_simulation <- function(start_sim_index,
                                   model_parameterisation,
                                   softplus,
                                   box_cox,
-                                  cts,
+                                  # cts,
                                   random_thresholds,
                                   Dirichlet_random_effects_type,
                                   local_pkg_dir,
@@ -24,7 +24,7 @@ run_single_simulation <- function(start_sim_index,
         list2env(sim_config, environment())
         list2env(model_config, environment())
         
-        # # Get the base directory (where your main script is)
+        # # Get the base directory containing the main script
         # if (exists("local_pkg_dir")) {
         #   base_dir <- local_pkg_dir
         # } else {
@@ -32,7 +32,7 @@ run_single_simulation <- function(start_sim_index,
         # }
         
         # Create output directory with absolute path
-        output_dir <- file.path(local_pkg_dir, "simulation_results")
+        output_dir <- MetaOrdDTA::metaorddta_output_path("simulation_results")
         if (!dir.exists(output_dir)) {
           dir.create(output_dir, recursive = TRUE)
         }
@@ -45,17 +45,12 @@ run_single_simulation <- function(start_sim_index,
       
       {
       
-       
-          # 
           {
-            require(MetaOrdDTA)
-            require(RcppParallel)
-            require(BayesMVP)
-            require(dplyr)
+              require(MetaOrdDTA)
+              require(RcppParallel)
+              require(BayesMVP)
+              require(dplyr)
           }
-      
-      
-      
       
           file_name_string <- paste0( "test_", index_test_MA,
                                       "N_", N_per_study_mean,
@@ -115,67 +110,63 @@ for (iii in 1:n_sims_to_run) {
 
   
   {
-    
-    
-      # ##
-      # ## ---- Load NMA data:
-      # ##
-       # setwd(local_pkg_dir)
-      # setwd("/")
-      ## print(paste(getwd()))
-      ##  
-      try({ 
-        rm(true_DGM_Se)
-        rm(true_DGM_Sp)
-        })
-      source(file.path(local_pkg_dir, "R", "R_fn_sim_data_ord_MA.R"), local = TRUE)
-      source(file.path(local_pkg_dir, "inst", "examples", "NMA_missing_thr_prep_data.R"), local = TRUE)
-      source(file.path(local_pkg_dir, "inst", "examples", "thr_sim_study_helper_fns.R"), , local = TRUE)
-      ##
-      # data <- readRDS(file.path(path, "inst", "examples", "data_example_1_NMA_list.RDS"))
-      ##
-      # x_NMA <- data$x_NMA
-      # ##
-      # x_MA <- list()
-      # for (c in 1:2) {
-      #   x_MA[[c]] <- x_NMA[[c]][[index_test_chosen_index - 1]]
-      # }
-      # ##
-      # ## Select which data ("x") to use:
-      # ##
-      # str(x_NMA)
-      ##
-      ## ---- Select x to use:
-      ##
-      if (index_test_MA == "GAD_7") {
-        if (missing_thr == TRUE) x <- x_GAD7_w_missing_thr
-        else                     x <- x_GAD7
-      } else if (index_test_MA == "GAD_2") {
-        if (missing_thr == TRUE) x <- x_GAD2_w_missing_thr
-        else                     x <- x_GAD2
-      } else if (index_test_MA == "HADS") {
-        if (missing_thr == TRUE) x <- x_HADS_w_missing_thr
-        else                     x <- x_HADS
-      } else if (index_test_MA == "BAI") {
-        if (missing_thr == TRUE) x <- x_BAI_w_missing_thr
-        else                     x <- x_BAI
-        
-      
-        
-        
-      }
-      ##
-      n_thr <- ncol(x[[1]]) - 1
-      ##
-      n_studies <- nrow(x[[1]])
-      n_studies
-      ##
-      # x <- arrange_missing_values(x)
+        # ##
+        # ## ---- Load NMA data:
+        # ##
+         # setwd(local_pkg_dir)
+        # setwd("/")
+        ## print(paste(getwd()))
+        ##  
+        try({ 
+          rm(true_DGM_Se)
+          rm(true_DGM_Sp)
+          })
+        # source(file.path(local_pkg_dir, "R", "R_fn_sim_data_ord_MA.R"), local = TRUE)
+        source(file.path(local_pkg_dir, "R", "R_fn_sim_data_ord_MA_v2.R"), local = TRUE)
+        # source(file.path(local_pkg_dir, "inst", "examples", "NMA_missing_thr_prep_data.R"), local = TRUE) ## old
+        source(file.path(local_pkg_dir, "inst", "examples", "MA_missing_thr_prep_data.R"), local = TRUE)
+        source(file.path(local_pkg_dir, "inst", "examples", "thr_sim_study_helper_fns.R"), , local = TRUE)
+        ##
+        # data <- readRDS(file.path(path, "inst", "examples", "data_example_1_NMA_list.RDS"))
+        ##
+        # x_NMA <- data$x_NMA
+        # ##
+        # x_MA <- list()
+        # for (c in 1:2) {
+        #   x_MA[[c]] <- x_NMA[[c]][[index_test_chosen_index - 1]]
+        # }
+        # ##
+        # ## Select which data ("x") to use:
+        # ##
+        # str(x_NMA)
+        ##
+        ## ---- Select x to use:
+        ##
+        # if (index_test_MA == "GAD_7") {
+        #   if (missing_thr == TRUE) x <- x_GAD7_w_missing_thr
+        #   else                     x <- x_GAD7
+        # } else if (index_test_MA == "GAD_2") {
+          if (missing_thr == TRUE) x <- x_GAD2_w_missing_thr
+          else                     x <- x_GAD2
+        # } else if (index_test_MA == "HADS") {
+        #   if (missing_thr == TRUE) x <- x_HADS_w_missing_thr
+        #   else                     x <- x_HADS
+        # } else if (index_test_MA == "BAI") {
+        #   if (missing_thr == TRUE) x <- x_BAI_w_missing_thr
+        #   else                     x <- x_BAI
+        # }
+        ##
+        n_thr <- ncol(x[[1]]) - 1
+        ##
+        n_studies <- nrow(x[[1]])
+        n_studies
+        ##
+        # x <- arrange_missing_values(x)
   }
   # 
   
   
-  100 * sum(x_BAI_w_missing_thr[[1]] == -1) / (n_studies * (ncol(x_BAI_w_missing_thr[[1]]) - 1))
+  # 100 * sum(x_BAI_w_missing_thr[[1]] == -1) / (n_studies * (ncol(x_BAI_w_missing_thr[[1]]) - 1))
   
   try({  
   
@@ -196,44 +187,44 @@ init_lists_per_chain <- NULL
 ##
 ##
 
-use_custom_file  <- TRUE
-
+# use_custom_file  <- TRUE
 # 
-if (model_parameterisation == "Bivariate") {
-
-    custom_file_name <- "DTA_MA_strat_bivariate.stan"
-
-} else {
-  # {
-  #   if (use_custom_file == TRUE) custom_file_name <- file_name
-  #   else  custom_file_name <- NULL
-  # }
-  
-  
-    if ((model_parameterisation == "R&G") && (random_thresholds == FALSE)) {
-      
-      custom_file_name <- "DTA_MA_Gat_FIXEDthr.stan"
-      
-    } else if ((model_parameterisation == "R&G") && (random_thresholds == TRUE)) {
-      
-      custom_file_name <- "DTA_MA_Gat_RANDthr_kappa.stan"
-      
-    } else if ((model_parameterisation == "Xu") && (random_thresholds == FALSE)) {
-      
-      custom_file_name <- "DTA_MA_Xu_FIXEDthr.stan"
-      
-    } else if ((model_parameterisation == "Xu") && (random_thresholds == TRUE)) {
-      
-      custom_file_name <- "DTA_MA_Xu_RANDthr_kappa.stan"
-      
-    } else if ((model_parameterisation == "Jones"))  {
-      
-      custom_file_name <- "DTA_MA_Jones.stan"
-      
-    }
-  
-
-}
+# # 
+# if (model_parameterisation == "Bivariate") {
+# 
+#     custom_file_name <- "DTA_MA_strat_bivariate.stan"
+# 
+# } else {
+#   # {
+#   #   if (use_custom_file == TRUE) custom_file_name <- file_name
+#   #   else  custom_file_name <- NULL
+#   # }
+#   
+#   
+#     if ((model_parameterisation == "R&G") && (random_thresholds == FALSE)) {
+#       
+#       custom_file_name <- "DTA_MA_Gat_FIXEDthr.stan"
+#       
+#     } else if ((model_parameterisation == "R&G") && (random_thresholds == TRUE)) {
+#       
+#       custom_file_name <- "DTA_MA_Gat_RANDthr_kappa.stan"
+#       
+#     } else if ((model_parameterisation == "Xu") && (random_thresholds == FALSE)) {
+#       
+#       custom_file_name <- "DTA_MA_Xu_FIXEDthr.stan"
+#       
+#     } else if ((model_parameterisation == "Xu") && (random_thresholds == TRUE)) {
+#       
+#       custom_file_name <- "DTA_MA_Xu_RANDthr_kappa.stan"
+#       
+#     } else if ((model_parameterisation == "Jones"))  {
+#       
+#       custom_file_name <- "DTA_MA_Jones.stan"
+#       
+#     }
+#   
+# 
+# }
 
 
 
@@ -250,80 +241,86 @@ if (model_parameterisation == "Bivariate") {
 
 
 
-if (covariates) {
-      
-      X <- list(cov_data_list$X_nd[[1]], 
-                cov_data_list$X_d[[1]])
-      ##
-      cov_data <- list()
-      ##
-      cov_data$X <- X
-      ##
-      
-      if (model_parameterisation == "R&G") { 
-        cov_data$baseline_case    <- cov_data_list$baseline_case
-      } else { 
-        cov_data$baseline_case_nd <- cov_data_list$baseline_case_nd
-        cov_data$baseline_case_d  <- cov_data_list$baseline_case_d
-      }
-
-}
+# if (covariates) {
+#       
+#       X <- list(cov_data_list$X_nd[[1]], 
+#                 cov_data_list$X_d[[1]])
+#       ##
+#       cov_data <- list()
+#       ##
+#       cov_data$X <- X
+#       ##
+#       
+#       if (model_parameterisation == "R&G") { 
+#         cov_data$baseline_case    <- cov_data_list$baseline_case
+#       } else { 
+#         cov_data$baseline_case_nd <- cov_data_list$baseline_case_nd
+#         cov_data$baseline_case_d  <- cov_data_list$baseline_case_d
+#       }
+# 
+# }
 
 
 # mean(X[[1]][, 2])
 
 
+# Add this before the parallel code
+Sys.setenv(CXXFLAGS = "-O3 -march=native -mtune=native -fPIC")
+Sys.setenv(CXX14FLAGS = "-O3 -march=native -mtune=native -fPIC")
+
+# Remove the problematic TLS-related flags
+Sys.unsetenv("STAN_THREADS")
+
 #
 model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(
-                  debugging = TRUE,
+                  debugging = F,
                   ##
                   x = x,
                   indicator_index_test_in_study = NULL,
-                  # n_index_tests_per_study = NULL,
                   ##
                   intercept_only = TRUE,
-                  cov_data = cov_data,
+                  cov_data = NULL,
                   ##
                   # priors = priors,
                   ##
                   n_chains = n_chains,
                   ##
-                  cts = cts,
-                  network = network,
+                  network = FALSE,
+                  compound_symmetry = NULL,
+                  hetero_sigma = NULL,
                   ##
                   prior_only = FALSE,
                   ##
-                  softplus = softplus,
-                  ##
-                  box_cox = box_cox,
+                  # softplus = softplus,
+                  # box_cox = box_cox,
                   ##
                   model_parameterisation = model_parameterisation,
                   random_thresholds = random_thresholds,
-                  Dirichlet_random_effects_type = Dirichlet_random_effects_type, ## only used if random cutpoints
-                  ##
-                  init_lists_per_chain = init_lists_per_chain,
-                  ##
-                  advanced_compile = TRUE, ## default is standard/"basic" compile
-                  ##
-                  force_recompile = F,
-                  ##
-                  set_custom_CXX_CPP_flags = TRUE,
-                  CCACHE_PATH = "/usr/bin/ccache",
-                  custom_cpp_user_header_file_path = NULL, ## if wish to include custom C++ files
-                  CXX_COMPILER_PATH = "/opt/AMD/aocc-compiler-5.0.0/bin/clang++", ## g++
-                  CPP_COMPILER_PATH = "/opt/AMD/aocc-compiler-5.0.0/bin/clang", ## gcc
-                  # CXX_COMPILER_PATH = "g++",
-                  # CPP_COMPILER_PATH = "gcc",
-                  MATH_FLAGS  = "-fno-math-errno  -fno-signed-zeros -fno-trapping-math", ## fine
-                  FMA_FLAGS = "-mfma", ## NOT fine !!!#
-                  # AVX_FLAGS =  "-mavx", ## NOT working
-                  AVX_FLAGS = "-mavx -mavx2 -mavx512vl -mavx512dq  -mavx512f",
-                  THREAD_FLAGS = "-pthread -D_REENTRANT", ## fine
-                  ##
-                  # compute_sim_study_metrics = compute_sim_study_metrics,
-                  # vec_index_inner_thr = vec_index_inner,
-                  ##
-                  custom_file_name = custom_file_name
+                  Dirichlet_random_effects_type = Dirichlet_random_effects_type ## only used if random cutpoints
+                  #
+                  # init_lists_per_chain = init_lists_per_chain
+                  #
+                  # advanced_compile = TRUE, ## default is standard/"basic" compile
+                  # ##
+                  # force_recompile = F,
+                  # #
+                  # set_custom_CXX_CPP_flags = TRUE,
+                  # CCACHE_PATH = "/usr/bin/ccache",
+                  # custom_cpp_user_header_file_path = NULL, ## if wish to include custom C++ files
+                  # CXX_COMPILER_PATH = "/opt/AMD/aocc-compiler-5.0.0/bin/clang++", ## g++
+                  # CPP_COMPILER_PATH = "/opt/AMD/aocc-compiler-5.0.0/bin/clang", ## gcc
+                  # # CXX_COMPILER_PATH = "g++",
+                  # # CPP_COMPILER_PATH = "gcc",
+                  # MATH_FLAGS  = "-fno-math-errno  -fno-signed-zeros -fno-trapping-math", ## fine
+                  # FMA_FLAGS = "-mfma", ## NOT fine !!!#
+                  # # AVX_FLAGS =  "-mavx", ## NOT working
+                  # AVX_FLAGS = "-mavx -mavx2 -mavx512vl -mavx512dq  -mavx512f",
+                  # THREAD_FLAGS = "-pthread -D_REENTRANT", ## fine
+                  # #
+                  # # compute_sim_study_metrics = compute_sim_study_metrics,
+                  # # vec_index_inner_thr = vec_index_inner,
+                  # #
+                  # custom_file_name = custom_file_name
                   )
 
 
@@ -384,12 +381,6 @@ model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(
               }
 
       }
-      # 
-
-
-
- 
-
 
 priors$use_probit_link <- 1
 
@@ -436,7 +427,7 @@ if (model_parameterisation == "R&G") {
 # exp(0 - 2*priors$prior_raw_scale_mu_SD)
 # exp(0 + 2*priors$prior_raw_scale_mu_SD)
 
-priors
+# priors
 
 priors$K_fold_CV_indicator <- rep(1, n_studies)
 
@@ -453,10 +444,7 @@ model_samples_obj <-  model_prep_obj$sample(
                              priors = priors,
                              init_lists_per_chain = init_lists_per_chain,
                              ##
-                             n_chains = n_chains
-                             )
-
- 
+                             n_chains = n_chains)
 ##
 ## ----  Summarise + output results: ----------------------------------------------------------------
 ##
@@ -498,86 +486,86 @@ try({
   dplyr::filter(tibble_all, (stringr::str_detect(parameter, "target_sds"))) %>% print(n = 1000)
 })
 
-dplyr::filter(tibble_all, (stringr::str_detect(parameter, "C_raw"))) %>% print(n = 1000)
-
-
-dplyr::filter(tibble_all, (stringr::str_detect(parameter, "beta_mu"))) %>% print(n = 1000)
-dplyr::filter(tibble_all, (stringr::str_detect(parameter, "raw_scale_mu"))) %>% print(n = 1000)
-dplyr::filter(tibble_all, (stringr::str_detect(parameter, "beta_SD"))) %>% print(n = 1000)
-dplyr::filter(tibble_all, (stringr::str_detect(parameter, "raw_scale_SD"))) %>% print(n = 1000)
-
-dplyr::filter(tibble_all, (stringr::str_detect(parameter, "kappa"))) %>% print(n = 1000)
-dplyr::filter(tibble_all, (stringr::str_detect(parameter, "dirichlet_cat_SDs_sigma"))) %>% print(n = 1000)
-
-
-
-dplyr::filter(tibble_all, (stringr::str_detect(parameter, "Omega"))) %>% print(n = 1000)
-dplyr::filter(tibble_all, (stringr::str_detect(parameter, "Sigma"))) %>% print(n = 1000)
-
-
-
-
-tibble_all ## save this!
-as.numeric(object.size(tibble_all)) / 1024^2 ## < 1 MB
-
-traces_all <- model_summary_and_trace_obj$get_all_traces_list()
-trace <- traces_all$traces_as_arrays
-trace_gq <- trace$trace_gq ## could save this trace
-as.numeric(object.size(trace_gq)) / 1024^2 ## ~ 10 MB
-
-
-
-   model_summary_and_trace_obj$get_efficiency_metrics()$time_sampling
-   model_summary_and_trace_obj$get_HMC_info()$stan_HMC_info_list$out_list_sampling$mean_L_sampling
-
-   100 * model_summary_and_trace_obj$get_HMC_info()$HMC_diagnostic_info$divergences$n_divs /  (n_chains*(n_iter))
-
-
-   
-   
-   mean(X[[1]][, 2])
-   
-   mean(X[, 2])
-
+# dplyr::filter(tibble_all, (stringr::str_detect(parameter, "C_raw"))) %>% print(n = 1000)
 # 
+# 
+# dplyr::filter(tibble_all, (stringr::str_detect(parameter, "beta_mu"))) %>% print(n = 1000)
+# dplyr::filter(tibble_all, (stringr::str_detect(parameter, "raw_scale_mu"))) %>% print(n = 1000)
+# dplyr::filter(tibble_all, (stringr::str_detect(parameter, "beta_SD"))) %>% print(n = 1000)
+# dplyr::filter(tibble_all, (stringr::str_detect(parameter, "raw_scale_SD"))) %>% print(n = 1000)
+# 
+# dplyr::filter(tibble_all, (stringr::str_detect(parameter, "kappa"))) %>% print(n = 1000)
+# dplyr::filter(tibble_all, (stringr::str_detect(parameter, "dirichlet_cat_SDs_sigma"))) %>% print(n = 1000)
+# 
+# 
+# 
+# dplyr::filter(tibble_all, (stringr::str_detect(parameter, "Omega"))) %>% print(n = 1000)
+# dplyr::filter(tibble_all, (stringr::str_detect(parameter, "Sigma"))) %>% print(n = 1000)
+# 
+
+
+
+# tibble_all ## save this!
+# as.numeric(object.size(tibble_all)) / 1024^2 ## < 1 MB
+# 
+# traces_all <- model_summary_and_trace_obj$get_all_traces_list()
+# trace <- traces_all$traces_as_arrays
+# trace_gq <- trace$trace_gq ## could save this trace
+# as.numeric(object.size(trace_gq)) / 1024^2 ## ~ 10 MB
+# 
+# 
+# 
+#    model_summary_and_trace_obj$get_efficiency_metrics()$time_sampling
+#    model_summary_and_trace_obj$get_HMC_info()$stan_HMC_info_list$out_list_sampling$mean_L_sampling
+# 
+#    100 * model_summary_and_trace_obj$get_HMC_info()$HMC_diagnostic_info$divergences$n_divs /  (n_chains*(n_iter))
+# 
+# 
+#    
+#    
+#    mean(X[[1]][, 2])
+#    
+#    mean(X[, 2])
+
+# # 
+# # ##
+# # ## 
+# # ## ----  Plots: ----------------------------------------------------------------------
 # ##
-# ## 
-# ## ----  Plots: ----------------------------------------------------------------------
-##
-dplyr::filter(tibble_all, (stringr::str_detect(parameter, "beta_mu"))) %>% print(n = 1000)
-##
-new_cov_data <- list()
-##
-baseline_case <- c(1,              ## intercept
-                  ##
-                  0.0,   ## prev_GAD
-                  ##
-                  0, ## low_RoB_QUADAS
-                  ##
-                  0, ## Ref_test_SCID
-                  0, ## Ref_test_Structured
-                  ##
-                  0, ## study_setting_2
-                  0) ## study_setting_3
-##
-new_cov_data$baseline_case_nd <- baseline_case
-new_cov_data$baseline_case_d  <- baseline_case
-##
-##
-if (model_parameterisation == "R&G") { 
- new_cov_data$baseline_case    <- baseline_case
-} else { 
- new_cov_data$baseline_case_nd <- baseline_case
- new_cov_data$baseline_case_d  <- baseline_case
-}
-   
-plots <- model_summary_and_trace_obj$plot_sROC(new_cov_data = new_cov_data)
-
-plots$plot_list[[1]]
-plots$plot_list[[2]]
-
-str(plots)
-   
+# dplyr::filter(tibble_all, (stringr::str_detect(parameter, "beta_mu"))) %>% print(n = 1000)
+# ##
+# new_cov_data <- list()
+# ##
+# baseline_case <- c(1,              ## intercept
+#                   ##
+#                   0.0,   ## prev_GAD
+#                   ##
+#                   0, ## low_RoB_QUADAS
+#                   ##
+#                   0, ## Ref_test_SCID
+#                   0, ## Ref_test_Structured
+#                   ##
+#                   0, ## study_setting_2
+#                   0) ## study_setting_3
+# ##
+# new_cov_data$baseline_case_nd <- baseline_case
+# new_cov_data$baseline_case_d  <- baseline_case
+# ##
+# ##
+# if (model_parameterisation == "R&G") { 
+#  new_cov_data$baseline_case    <- baseline_case
+# } else { 
+#  new_cov_data$baseline_case_nd <- baseline_case
+#  new_cov_data$baseline_case_d  <- baseline_case
+# }
+#    
+# plots <- model_summary_and_trace_obj$plot_sROC(new_cov_data = new_cov_data)
+# 
+# plots$plot_list[[1]]
+# plots$plot_list[[2]]
+# 
+# str(plots)
+#    
    
 # # ##
 # # require(Cairo)
@@ -689,7 +677,7 @@ str(plots)
   # 
 
  # 
-  if (min_ESS > 100) {
+  if (min_ESS > 500) {
 
          # Store results for this simulation
          results_list[[sim_index]] <- list(

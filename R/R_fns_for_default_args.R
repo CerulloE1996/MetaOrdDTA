@@ -134,7 +134,8 @@ default_box_cox <- function(cts) {
 #' @export
 default_softplus <- function() { 
 
-    softplus <- TRUE ## default is to use softplus on ALL models (instead of exp() / log-normal)
+    # softplus <- TRUE ## default is to use softplus on ALL models (instead of exp() / log-normal)
+    softplus <- FALSE ## default is to use exp() / log-normal on ALL models (instead of softplus)
     ##
     # print(paste("softplus = ", softplus))
     return(list(softplus))

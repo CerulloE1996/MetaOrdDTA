@@ -1,5 +1,5 @@
 
-
+## MetaOrdDTA_MA_eg_1_run.R
  
  
 # # # # # # # ##
@@ -60,13 +60,7 @@ rm(list = ls())
     
     # ?devtools::install
 
-
 }
-#
-# # 
-# 
-
-
 
   
 
@@ -378,7 +372,7 @@ if (n_studies < 50) {
 
 {
   
-  output_dir = "simulation_results"
+  output_dir = MetaOrdDTA::metaorddta_output_path("simulation_results")
   
   # Create output directory if it doesn't exist
   if (!dir.exists(output_dir)) {
@@ -437,7 +431,7 @@ use_custom_file <- FALSE
 #                 missing_thr = TRUE
 #               )
 #               ##
-#               # Define your model configurations
+#               # Define the model configurations
 #               model_configs <- list(
 #                 list(model_parameterisation = "Bivariate",
 #                      start_sim_index = 16,
@@ -514,7 +508,7 @@ use_custom_file <- FALSE
 #                 missing_thr = TRUE
 #               )
 #               ##
-#               # Define your model configurations
+#               # Define the model configurations
 #               model_configs <- list(
 #                 list(model_parameterisation = "Bivariate",
 #                      start_sim_index = 16,
@@ -591,7 +585,7 @@ use_custom_file <- FALSE
 #                 missing_thr = TRUE
 #               )
 #               ##
-#               # Define your model configurations
+#               # Define the model configurations
 #               model_configs <- list(
 #                 list(model_parameterisation = "Bivariate",
 #                      start_sim_index = 16,
@@ -670,7 +664,7 @@ use_custom_file <- FALSE
 #           missing_thr = TRUE
 #         )
 #         ##
-#         # Define your model configurations
+#         # Define the model configurations
 #         model_configs <- list(
 #           list(model_parameterisation = "Bivariate",
 #                start_sim_index = 51,
@@ -747,7 +741,7 @@ use_custom_file <- FALSE
 #       missing_thr = TRUE
 #     )
 #     ##
-#     # Define your model configurations
+#     # Define the model configurations
 #     model_configs <- list(
 #       # ##
 #       # list(model_parameterisation = "Bivariate",
@@ -825,7 +819,7 @@ use_custom_file <- FALSE
 #       missing_thr = TRUE
 #     )
 #     ##
-#     # Define your model configurations
+#     # Define the model configurations
 #     model_configs <- list(
 #       ##
 #       list(model_parameterisation = "Bivariate",
@@ -1112,7 +1106,7 @@ use_custom_file <- FALSE
 
 n_chains <- 4
 
-start_sim_index <- 6000
+start_sim_index <- 1
 
 # 2141 - 1600 # 550
 # 2029 - 1578 # 450
@@ -1128,7 +1122,7 @@ start_sim_index <- 6000
 
 sim_configs <- list( 
   # ##
-  # ## ---- GAD_2, n_studies = 10:
+  # ## ---- GAD_2, n_studies = 10: ----------------------------------
   # ##
   # list( N_per_study_mean = 500,
   #       n_chains = n_chains,
@@ -1202,7 +1196,7 @@ sim_configs <- list(
   #       random_thresholds = TRUE,
   #       Dirichlet_random_effects_type = "kappa"),
   ##
-  ## ---- GAD_2, n_studies = 50:
+  ## ---- GAD_2, n_studies = 50: ----------------------------------
   ##
   # list( N_per_study_mean = 500,
   #       n_chains = n_chains,
@@ -1228,29 +1222,29 @@ sim_configs <- list(
   #       random_thresholds = FALSE,
   #       Dirichlet_random_effects_type = "fixed"),
   # ##
-  # list( N_per_study_mean = 500,
-  #       n_chains = n_chains,
-  #       n_iter = ceiling(1000/(n_chains/4)),
-  #       n_burnin = 500,
-  #       adapt_delta = 0.65,
-  #       max_treedepth = 10,
-  #       network = FALSE,
-  #       use_custom_file = FALSE,
-  #       file_name = NULL,
-  #       missing_thr = TRUE,
-  #       ##
-  #       index_test_MA = "GAD_2",
-  #       vec_index_inner = 1:6,
-  #       n_studies = 50,
-  #       model_parameterisation = "Xu", 
-  #       alpha_pi = "one",
-  #       start_sim_index = start_sim_index,
-  #       n_sims = start_sim_index + 150,
-  #       box_cox = FALSE,
-  #       softplus = FALSE,
-  #       cts = FALSE,
-  #       random_thresholds = FALSE,
-  #       Dirichlet_random_effects_type = "fixed"),
+  list( N_per_study_mean = 500,
+        n_chains = n_chains,
+        n_iter = ceiling(1000/(n_chains/4)),
+        n_burnin = 500,
+        adapt_delta = 0.65,
+        max_treedepth = 10,
+        network = FALSE,
+        use_custom_file = FALSE,
+        file_name = NULL,
+        missing_thr = TRUE,
+        ##
+        index_test_MA = "GAD_2",
+        vec_index_inner = 1:6,
+        n_studies = 50,
+        model_parameterisation = "Xu",
+        alpha_pi = "one",
+        start_sim_index = 1,
+        n_sims = 50,
+        box_cox = FALSE,
+        softplus = FALSE,
+        cts = FALSE,
+        random_thresholds = FALSE,
+        Dirichlet_random_effects_type = "fixed")
   # ##
   # list( N_per_study_mean = 500,
   #       n_chains = n_chains,
@@ -1276,7 +1270,7 @@ sim_configs <- list(
   #       random_thresholds = TRUE,
   #       Dirichlet_random_effects_type = "kappa"),
   # ##
-  # ## ---- HADS, n_studies = 10:
+  # ## ---- HADS, n_studies = 10: ----------------------------------
   # ##
   # list( N_per_study_mean = 500,
   #       n_chains = n_chains,
@@ -1350,7 +1344,7 @@ sim_configs <- list(
   #       random_thresholds = TRUE,
   #       Dirichlet_random_effects_type = "kappa")
   ##
-  ## ---- HADS, n_studies = 50:
+  ## ---- HADS, n_studies = 50: ----------------------------------
   ##
   # list( N_per_study_mean = 500,
   #       n_chains = n_chains,
@@ -1424,7 +1418,7 @@ sim_configs <- list(
   #       random_thresholds = TRUE,
   #       Dirichlet_random_effects_type = "kappa"),
   # # ##
-  # # ## ---- BAI, n_studies = 10:
+  # # ## ---- BAI, n_studies = 10:  ----------------------------------
   # # ##
   # list( N_per_study_mean = 500,
   #       n_chains = n_chains,
@@ -1498,29 +1492,29 @@ sim_configs <- list(
   #       random_thresholds = FALSE,
   #       Dirichlet_random_effects_type = "fixed"),
   # ##
-  list( N_per_study_mean = 500,
-        n_chains = n_chains,
-        n_iter = ceiling(1000/(n_chains/4)),
-        n_burnin = 500,
-        adapt_delta = 0.65,
-        max_treedepth = 10,
-        network = FALSE,
-        use_custom_file = FALSE,
-        file_name = NULL,
-        missing_thr = TRUE,
-        ##
-        index_test_MA = "BAI",
-        vec_index_inner = 3:43,
-        n_studies = 10,
-        model_parameterisation = "Xu",
-        alpha_pi = "one",
-        start_sim_index = start_sim_index,
-        n_sims =  start_sim_index +  400,
-        box_cox = FALSE,
-        softplus = FALSE,
-        cts = FALSE,
-        random_thresholds = TRUE,
-        Dirichlet_random_effects_type = "kappa"),
+  # list( N_per_study_mean = 500,
+  #       n_chains = n_chains,
+  #       n_iter = ceiling(1000/(n_chains/4)),
+  #       n_burnin = 500,
+  #       adapt_delta = 0.65,
+  #       max_treedepth = 10,
+  #       network = FALSE,
+  #       use_custom_file = FALSE,
+  #       file_name = NULL,
+  #       missing_thr = TRUE,
+  #       ##
+  #       index_test_MA = "BAI",
+  #       vec_index_inner = 3:43,
+  #       n_studies = 10,
+  #       model_parameterisation = "Xu",
+  #       alpha_pi = "one",
+  #       start_sim_index = start_sim_index,
+  #       n_sims =  start_sim_index +  400,
+  #       box_cox = FALSE,
+  #       softplus = FALSE,
+  #       cts = FALSE,
+  #       random_thresholds = TRUE,
+  #       Dirichlet_random_effects_type = "kappa"),
   # ##
   # list( N_per_study_mean = 500,
   #       n_chains = n_chains,
@@ -1572,29 +1566,29 @@ sim_configs <- list(
   ##
   ## ---- BAI, n_studies = 50:
   ##
-  list( N_per_study_mean = 500,
-        n_chains = n_chains,
-        n_iter = ceiling(1000/(n_chains/4)),
-        n_burnin = 500,
-        adapt_delta = 0.65,
-        max_treedepth = 10,
-        network = FALSE,
-        use_custom_file = FALSE,
-        file_name = NULL,
-        missing_thr = TRUE,
-        ##
-        index_test_MA = "BAI",
-        vec_index_inner = 3:43,
-        n_studies = 50,
-        model_parameterisation = "Bivariate",
-        alpha_pi = "flat",
-        start_sim_index = start_sim_index,
-        n_sims =  start_sim_index + 150,
-        box_cox = FALSE,
-        softplus = FALSE,
-        cts = FALSE,
-        random_thresholds = FALSE,
-        Dirichlet_random_effects_type = "none"),
+  # list( N_per_study_mean = 500,
+  #       n_chains = n_chains,
+  #       n_iter = ceiling(1000/(n_chains/4)),
+  #       n_burnin = 500,
+  #       adapt_delta = 0.65,
+  #       max_treedepth = 10,
+  #       network = FALSE,
+  #       use_custom_file = FALSE,
+  #       file_name = NULL,
+  #       missing_thr = TRUE,
+  #       ##
+  #       index_test_MA = "BAI",
+  #       vec_index_inner = 3:43,
+  #       n_studies = 50,
+  #       model_parameterisation = "Bivariate",
+  #       alpha_pi = "flat",
+  #       start_sim_index = start_sim_index,
+  #       n_sims =  start_sim_index + 150,
+  #       box_cox = FALSE,
+  #       softplus = FALSE,
+  #       cts = FALSE,
+  #       random_thresholds = FALSE,
+  #       Dirichlet_random_effects_type = "none"),
   ##
   # list( N_per_study_mean = 500,
   #       n_chains = n_chains,
@@ -1644,29 +1638,29 @@ sim_configs <- list(
   #       random_thresholds = FALSE,
   #       Dirichlet_random_effects_type = "fixed"),
   # #
-  list( N_per_study_mean = 500,
-        n_chains = n_chains,
-        n_iter = ceiling(1000/(n_chains/4)),
-        n_burnin = 500,
-        adapt_delta = 0.65,
-        max_treedepth = 10,
-        network = FALSE,
-        use_custom_file = FALSE,
-        file_name = NULL,
-        missing_thr = TRUE,
-        ##
-        index_test_MA = "BAI",
-        vec_index_inner = 3:43,
-        n_studies = 50,
-        model_parameterisation = "Xu",
-        alpha_pi = "one",
-        start_sim_index = start_sim_index,
-        n_sims =  start_sim_index + 100,
-        box_cox = FALSE,
-        softplus = FALSE,
-        cts = FALSE,
-        random_thresholds = TRUE,
-        Dirichlet_random_effects_type = "kappa")
+  # list( N_per_study_mean = 500,
+  #       n_chains = n_chains,
+  #       n_iter = ceiling(1000/(n_chains/4)),
+  #       n_burnin = 500,
+  #       adapt_delta = 0.65,
+  #       max_treedepth = 10,
+  #       network = FALSE,
+  #       use_custom_file = FALSE,
+  #       file_name = NULL,
+  #       missing_thr = TRUE,
+  #       ##
+  #       index_test_MA = "BAI",
+  #       vec_index_inner = 3:43,
+  #       n_studies = 50,
+  #       model_parameterisation = "Xu",
+  #       alpha_pi = "one",
+  #       start_sim_index = start_sim_index,
+  #       n_sims =  start_sim_index + 100,
+  #       box_cox = FALSE,
+  #       softplus = FALSE,
+  #       cts = FALSE,
+  #       random_thresholds = TRUE,
+  #       Dirichlet_random_effects_type = "kappa")
   # #
   # list( N_per_study_mean = 500,
   #       n_chains = n_chains,
@@ -1770,7 +1764,7 @@ source(file.path("inst", "examples", "MetaOrdDTA_MA_eg_1_debug_v4.R"))
             
             
             # Define output_dir in global environment
-            output_dir <- normalizePath("simulation_results", mustWork = FALSE)
+            output_dir <- normalizePath(MetaOrdDTA::metaorddta_output_path("simulation_results"), mustWork = FALSE)
             
             # Create it if it doesn't exist
             if (!dir.exists(output_dir)) {
@@ -1813,10 +1807,11 @@ results <- foreach(ii = 1:n_configs,
                        #   setwd(current_wd)
                  
                        # Load packages
-                       library(MetaOrdDTA)
-                       library(cmdstanr)
-                       library(posterior)
-                       library(dplyr)
+                       require(RcppParallel)
+                       require(cmdstanr)
+                       require(MetaOrdDTA)
+                       require(posterior)
+                       require(dplyr)
                        
                        config <- sim_configs[[ii]]
                        
@@ -1835,8 +1830,6 @@ results <- foreach(ii = 1:n_configs,
                        softplus <- config$softplus
                        random_thresholds <- ifelse(is.null(config$random_thresholds), FALSE, config$random_thresholds)
                        Dirichlet_random_effects_type <- config$Dirichlet_random_effects_type
-                       cts <- config$cts
-                       
                        
                        cat(sprintf("\n===== Worker %d: Running %s =====\n", ii, model_parameterisation))
                        
@@ -1846,10 +1839,11 @@ results <- foreach(ii = 1:n_configs,
                        ##
                        output <- run_single_simulation(start_sim_index = start_sim_index,
                                                        n_sims = n_sims,
+                                                       ##
                                                        model_parameterisation = model_parameterisation,
                                                        softplus = softplus,
                                                        box_cox = box_cox,
-                                                       cts = cts,
+                                                       ##
                                                        random_thresholds = random_thresholds,
                                                        Dirichlet_random_effects_type = Dirichlet_random_effects_type,
                                                        local_pkg_dir = local_pkg_dir,
@@ -2062,7 +2056,7 @@ require(stringr)
 
  
 #  
-param <- "Jones"
+# param <- "Jones"
 param <- "Xu"
 # param <- "R&G"
 ##
@@ -2139,7 +2133,7 @@ file_name <- paste0(file_name_base, "_complete_results_list.RDS")
                                          file_name_base,
                                          "_results_list.RDS")
         ##
-        results_list <- readRDS(file.path("simulation_results", file_name_specific_run))
+        results_list <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name_specific_run))
         counter <- counter + 1
 
         # file_name_base <- paste0(    "test_", index_test_MA,
@@ -2155,9 +2149,9 @@ file_name <- paste0(file_name_base, "_complete_results_list.RDS")
         #                                  file_name_base,
         #                                  "_results_list.RDS")
         # ##
-        # # results_list <- readRDS(file.path("simulation_results", file_name_specific_run))
+        # # results_list <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name_specific_run))
         #
-        # saveRDS(object = results_list, file = file.path(getwd(), "simulation_results", file_name_specific_run))
+        # saveRDS(object = results_list, file = file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name_specific_run))
 
 
 
@@ -2170,7 +2164,7 @@ file_name <- paste0(file_name_base, "_complete_results_list.RDS")
 # 
 
 
-complete_results_list <- readRDS(file.path(getwd(), "simulation_results", file_name))
+complete_results_list <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 # complete_results_list
 length(complete_results_list)
 
@@ -2247,7 +2241,7 @@ compute_equivalent_ESS(N = 50,
 
 # complete_results_list[[15]]
 
-# csv_file <- read.csv(file.path("simulation_results", csv_name))
+# csv_file <- read.csv(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), csv_name))
 # csv_file
 
 
@@ -2350,10 +2344,10 @@ complete_results_list[[1]]
   
         {
             cat(paste("\n--------------------------------------------------\n"))
-            message("if target_MCSE_RMSE = 0.15%:")
+            message("if target_MCSE_RMSE = 0.25%:")
             print(calc_min_sim_size_RMSE(
               metrics = metrics,
-              target_MCSE_RMSE = 0.15, 
+              target_MCSE_RMSE = 0.25, 
               min_k = min_k,
               max_k = max_k
             ))
@@ -2588,64 +2582,64 @@ complete_results_list[[1]][[7]] %>% print(n = 100)
 # ## ---- Bivariate:
 ##
 file_name <- "test_GAD_2N_500n_studies_50param_Bivariatesoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_GAD_2_50studies_500N_Bivariate <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_50studies_500N_Bivariate <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Jones:
 ##
 file_name <- "test_GAD_2N_500n_studies_50param_Jonessoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_GAD_2_50studies_500N_Jones <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_50studies_500N_Jones <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Xu, Fixed:
 ##
 file_name <- "test_GAD_2N_500n_studies_50param_Xusoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_GAD_2_50studies_500N_Xu_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_50studies_500N_Xu_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Fixed:
 ##
 file_name <- "test_GAD_2N_500n_studies_50param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_GAD_2_50studies_500N_RG_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_50studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
 # ---- Xu, Random C:
 #
 file_name <- "test_GAD_2N_500n_studies_50param_Xusoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_GAD_2_50studies_500N_Xu_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_50studies_500N_Xu_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
 # ---- R&G, Random C:
 #
 file_name <- "test_GAD_2N_500n_studies_50param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_GAD_2_50studies_500N_RG_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_50studies_500N_RG_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 # ##
 ## ----------- For HADS ---------------------------------------------------------------------------------------------- :
 ##
 ## ---- Bivariate:
 #
 file_name <- "test_HADSN_500n_studies_50param_Bivariatesoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_HADS_50studies_500N_Bivariate <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_50studies_500N_Bivariate <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Jones:
 ##
 file_name <- "test_HADSN_500n_studies_50param_Jonessoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_HADS_50studies_500N_Jones <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_50studies_500N_Jones <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Xu, Fixed:
 ##
 file_name <- "test_HADSN_500n_studies_50param_Xusoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_HADS_50studies_500N_Xu_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_50studies_500N_Xu_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Fixed:
 ##
 file_name <- "test_HADSN_500n_studies_50param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_HADS_50studies_500N_RG_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_50studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Xu, Random C:
 ##
 file_name <- "test_HADSN_500n_studies_50param_Xusoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_HADS_50studies_500N_Xu_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_50studies_500N_Xu_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
 ## ---- R&G, Random C:
 ##
 file_name <- "test_HADSN_500n_studies_50param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_HADS_50studies_500N_RG_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_50studies_500N_RG_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ----------- For BAI ---------------------------------------------------------------------------------------------- :
 ##
@@ -2653,32 +2647,32 @@ complete_results_list_HADS_50studies_500N_RG_random_alpha2 <- readRDS(file.path(
 ## ---- Bivariate:
 ##
 file_name <- "test_BAIN_500n_studies_50param_Bivariatesoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_BAI_50studies_500N_Bivariate <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_50studies_500N_Bivariate <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Jones:
 ##
 file_name <- "test_BAIN_500n_studies_50param_Jonessoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_BAI_50studies_500N_Jones <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_50studies_500N_Jones <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Xu, Fixed:
 ##
 file_name <- "test_BAIN_500n_studies_50param_Xusoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_BAI_50studies_500N_Xu_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_50studies_500N_Xu_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Fixed:
 ##
 file_name <- "test_BAIN_500n_studies_50param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_BAI_50studies_500N_RG_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_50studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Xu, Random C:
 ##
 file_name <- "test_BAIN_500n_studies_50param_Xusoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_BAI_50studies_500N_Xu_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_50studies_500N_Xu_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Random C:
 ##
 file_name <- "test_BAIN_500n_studies_50param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_BAI_50studies_500N_RG_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_50studies_500N_RG_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ##
 ## ------------------------------ n_studies == 10:-------------------------------------------------------------------------------------
@@ -2690,64 +2684,64 @@ complete_results_list_BAI_50studies_500N_RG_random_alpha2 <- readRDS(file.path("
 ## ---- Bivariate:
 ##
 file_name <- "test_GAD_2N_500n_studies_10param_Bivariatesoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_GAD_2_10studies_500N_Bivariate <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_10studies_500N_Bivariate <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Jones:
 ##
 file_name <- "test_GAD_2N_500n_studies_10param_Jonessoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_GAD_2_10studies_500N_Jones <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_10studies_500N_Jones <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Xu, Fixed:
 ##
 file_name <- "test_GAD_2N_500n_studies_10param_Xusoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_GAD_2_10studies_500N_Xu_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_10studies_500N_Xu_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Fixed:
 ##
 file_name <- "test_GAD_2N_500n_studies_10param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_GAD_2_10studies_500N_RG_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_10studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
 # ---- Xu, Random C:
 #
 file_name <- "test_GAD_2N_500n_studies_10param_Xusoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_GAD_2_10studies_500N_Xu_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_10studies_500N_Xu_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
 # ---- R&G, Random C:
 #
 file_name <- "test_GAD_2N_500n_studies_10param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_GAD_2_10studies_500N_RG_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_GAD_2_10studies_500N_RG_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 # ##
 ## ----------- For HADS ---------------------------------------------------------------------------------------------- :
 ##
 ## ---- Bivariate:
 #
 file_name <- "test_HADSN_500n_studies_10param_Bivariatesoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_HADS_10studies_500N_Bivariate <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_10studies_500N_Bivariate <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Jones:
 ##
 file_name <- "test_HADSN_500n_studies_10param_Jonessoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_HADS_10studies_500N_Jones <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_10studies_500N_Jones <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Xu, Fixed:
 ##
 file_name <- "test_HADSN_500n_studies_10param_Xusoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_HADS_10studies_500N_Xu_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_10studies_500N_Xu_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Fixed:
 ##
 file_name <- "test_HADSN_500n_studies_10param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_HADS_10studies_500N_RG_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_10studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Xu, Random C:
 ##
 file_name <- "test_HADSN_500n_studies_10param_Xusoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_HADS_10studies_500N_Xu_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_10studies_500N_Xu_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
 ## ---- R&G, Random C:
 ##
 file_name <- "test_HADSN_500n_studies_10param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_HADS_10studies_500N_RG_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_HADS_10studies_500N_RG_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ----------- For BAI ---------------------------------------------------------------------------------------------- :
 ##
@@ -2755,32 +2749,32 @@ complete_results_list_HADS_10studies_500N_RG_random_alpha2 <- readRDS(file.path(
 ## ---- Bivariate:
 ##
 file_name <- "test_BAIN_500n_studies_10param_Bivariatesoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_BAI_10studies_500N_Bivariate <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_10studies_500N_Bivariate <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Jones:
 ##
 file_name <- "test_BAIN_500n_studies_10param_Jonessoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
-complete_results_list_BAI_10studies_500N_Jones <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_10studies_500N_Jones <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Xu, Fixed:
 ##
 file_name <- "test_BAIN_500n_studies_10param_Xusoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_BAI_10studies_500N_Xu_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_10studies_500N_Xu_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Fixed:
 ##
 file_name <- "test_BAIN_500n_studies_10param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_BAI_10studies_500N_RG_fixed_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_10studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- Xu, Random C:
 ##
 file_name <- "test_BAIN_500n_studies_10param_Xusoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_BAI_10studies_500N_Xu_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_10studies_500N_Xu_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Random C:
 ##
 file_name <- "test_BAIN_500n_studies_10param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_BAI_10studies_500N_RG_random_alpha2 <- readRDS(file.path("simulation_results", file_name))
+complete_results_list_BAI_10studies_500N_RG_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 
 }
 
@@ -2803,13 +2797,13 @@ complete_results_list_BAI_10studies_500N_RG_random_alpha2 <- readRDS(file.path("
 # ## ---- HADS:
 # ##
 # model_parameterisation <- "Jones" ; alpha_pi <- "flat" ;  n_studies <- 10 ; test <- "HADS" ; random_thresholds <- FALSE
-# model_parameterisation <- "Xu"    ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "HADS" ; random_thresholds <- FALSE
+model_parameterisation <- "Xu"    ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "HADS" ; random_thresholds <- FALSE
 # model_parameterisation <- "Xu"    ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "HADS" ; random_thresholds <- TRUE
 # model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "HADS" ; random_thresholds <- FALSE
 # model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "HADS" ; random_thresholds <- TRUE
 # ##
 # model_parameterisation <- "Jones" ; alpha_pi <- "flat" ;  n_studies <- 50 ; test <- "HADS" ; random_thresholds <- FALSE
-# model_parameterisation <- "Xu"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "HADS" ; random_thresholds <- FALSE
+model_parameterisation <- "Xu"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "HADS" ; random_thresholds <- FALSE
 # model_parameterisation <- "Xu"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "HADS" ; random_thresholds <- TRUE
 # model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "HADS" ; random_thresholds <- FALSE
 # model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "HADS" ; random_thresholds <- TRUE
@@ -2891,8 +2885,6 @@ model_parameterisation <- "Xu"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test
 #                                paste0(file_name_string, ".RDS"))
 # ##
 # saveRDS(datasets_sim_list, data_list_file)
-# 
-
 
 
 {
@@ -2913,8 +2905,7 @@ model_parameterisation <- "Xu"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test
       ##
       true_DGM_Se <- true_DGM_Se_HADS
       true_DGM_Sp <- true_DGM_Sp_HADS
-     
-     
+      ##
       true_DGM_Se_BAI <-   c(98.121, 97.614, 96.772, 95.936, 93.841, 92.638, 91.416, 89.622, 
                              88.139, 86.268, 85.294, 82.32, 80.428, 78.427, 74.974, 70.799, 
                              68.462, 63.491, 60.883, 58.539, 56.383, 54.35, 50.759, 48.56, 
@@ -2923,6 +2914,7 @@ model_parameterisation <- "Xu"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test
                              17.637, 15.099, 14.384, 13.499, 12.561, 11.41, 10.189, 8.997, 
                              8.138, NA, 6.857, 6.437, 5.878, 5.314, 4.552, 3.904, 3.548, 
                              NA, NA, 2.332, NA, 1.587, 0.86)
+      ##
       true_DGM_Sp_BAI <-  c(11.205, 19.163, 26.865, 32.213, 37.886, 42.833, 48.774, 53.075, 
                             58.456, 61.69, 64.889, 68.052, 71.944, 74.159, 76.549, 79.443, 
                             81.474, 83.406, 84.623, 85.742, 86.979, 87.926, 89.172, 90.354, 
@@ -2972,8 +2964,6 @@ for (seed_idx in 1:total_target_sims) {
       seed <- seed_idx
       set.seed(seed)
       
-      
-      
     } else {
       cat(sprintf("Warning: seed file not found: %s\n", seed_file))
     }
@@ -2997,10 +2987,6 @@ try({
   cat(sprintf("Saved complete results list with %d non-NULL entries to: %s\n",
               sum(!sapply(complete_results_list, is.null)), results_list_file))
 })
-
-
-
-
 
 
 ##
@@ -3085,7 +3071,8 @@ complete_results_list_BAI <- list(    complete_results_list_BAI_10studies_500N_B
       length(N_vec)
       ## 
       min_k_vec_GAD_2  <- rep(1, 2*n_models)
-      min_k_vec_HADS   <- rep(3, 2*n_models)
+      # min_k_vec_HADS   <- rep(3, 2*n_models)
+      min_k_vec_HADS   <- rep(7, 2*n_models)
       min_k_vec_GAD_7  <- rep(3, 2*n_models)
       min_k_vec <- c(min_k_vec_GAD_2, 
                      min_k_vec_HADS,
@@ -3093,7 +3080,8 @@ complete_results_list_BAI <- list(    complete_results_list_BAI_10studies_500N_B
       length(min_k_vec)
       ##
       max_k_vec_GAD_2  <- rep(6, 2*n_models)
-      max_k_vec_HADS   <- rep(17, 2*n_models)
+      # max_k_vec_HADS   <- rep(17, 2*n_models)
+      max_k_vec_HADS   <- rep(15, 2*n_models)
       max_k_vec_BAI    <- rep(43, 2*n_models)
       max_k_vec <- c(max_k_vec_GAD_2, 
                      max_k_vec_HADS,
@@ -3366,14 +3354,14 @@ for (dgm in DGM_names) {
   
   
         ##
-        ## RMSE plots:
-        ##
-        plot_sROC <- create_sROC_plot(   data = threshold_sim_data,
-                                         DGM_name = dgm,
-                                         base_size = base_size)
-        ##
-        sROC_plots[[dgm]] <- plot_sROC
-        ##
+        # ## RMSE plots:
+        # ##
+        # plot_sROC <- create_sROC_plot(   data = threshold_sim_data,
+        #                                  DGM_name = dgm,
+        #                                  base_size = base_size)
+        # ##
+        # sROC_plots[[dgm]] <- plot_sROC
+        # ##
         ## RMSE plots:
         ##
         plot_se <- create_RMSE_plot(data = overall_sim_data, 

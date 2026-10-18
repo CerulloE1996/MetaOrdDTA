@@ -33,6 +33,48 @@ real safe_binomial_lpmf( int x,
 }   
 
 
+real safe_Phi(real x) {
+  
+    if (is_nan(x)) {
+        return -1.0;  // or whatever default makes sense
+    } else if (x < -37.5) {
+        return 0.0;
+    } else if (x > 8.25) {
+        return 1.0;
+    } else {
+        return Phi(x);
+    }
+    
+}
+vector safe_Phi(vector x) {
+  
+      int N = num_elements(x);
+      vector[N] out;
+      
+      for (n in 1:N) { 
+        out[n] = safe_Phi(x[n]);
+      }
+      
+      return(out);
+      
+}
+matrix safe_Phi(matrix x) { 
+  
+      int N = rows(x);
+      int M = cols(x);
+      matrix[N, M] out;
+      
+      for (m in 1:M) {
+        for (n in 1:N) { 
+          out[n, m] = safe_Phi(x[n, m]);
+        }
+      }
+      
+      return(out);
+  
+}
+
+
 real compute_log_lik_binomial_fact_lp(    array[] matrix latent_surv, 
                                           data int use_probit_link,
                                           data int n_thr,
@@ -50,7 +92,7 @@ real compute_log_lik_binomial_fact_lp(    array[] matrix latent_surv,
           for (c in 1:2) {
                 ////
                 matrix[n_studies, n_thr] surv_prob;
-                if (use_probit_link == 1) surv_prob = Phi(latent_surv[c]);
+                if (use_probit_link == 1) surv_prob = safe_Phi(latent_surv[c]);
                 else                      surv_prob = inv_logit(latent_surv[c]);
                 ////
               
@@ -104,7 +146,7 @@ array[,] matrix compute_log_lik_binomial_fact_data(   data array[] matrix latent
           //// ---- Calculate surv  probabilities:
           ////
           for (c in 1:2) {
-              if (use_probit_link == 1) surv_prob[c] = Phi(latent_surv[c]);
+              if (use_probit_link == 1) surv_prob[c] = safe_Phi(latent_surv[c]);
               else                      surv_prob[c] = inv_logit(latent_surv[c]);
           }
           ////
@@ -161,7 +203,7 @@ real compute_NMA_log_lik_binomial_fact_lp(    array[] matrix latent_surv,
           //// ---- Calculate surv  probabilities:
           ////
           for (c in 1:2) {
-              if (use_probit_link == 1) surv_prob[c] = Phi(latent_surv[c]);
+              if (use_probit_link == 1) surv_prob[c] = safe_Phi(latent_surv[c]);
               else                      surv_prob[c] = inv_logit(latent_surv[c]);
           }
           ////
@@ -227,7 +269,7 @@ array[,] matrix compute_NMA_log_lik_binomial_fact_data(  array[] matrix latent_s
           //// ---- Calculate surv  probabilities:
           ////
           for (c in 1:2) {
-              if (use_probit_link == 1) surv_prob[c] = Phi(latent_surv[c]);
+              if (use_probit_link == 1) surv_prob[c] = safe_Phi(latent_surv[c]);
               else                      surv_prob[c] = inv_logit(latent_surv[c]);
           }
           ////

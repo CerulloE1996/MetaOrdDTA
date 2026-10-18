@@ -416,8 +416,8 @@ create_summary_and_traces <- function(    package,
                       ##
                       names_main <-     filter_param_names_string_batched(   all_param_names_vec = names_all, 
                                                                              param_string = grouped_params$names_main, 
-                                                                            condition = "exact_match",
-                                                                            debugging = FALSE)
+                                                                             condition = "exact_match",
+                                                                             debugging = FALSE)
                       names_main <- unname(unlist(names_main)) ; names_main
                       n_main <- (length(names_main))
                       ##
@@ -579,7 +579,7 @@ create_summary_and_traces <- function(    package,
          ## print(n_main)
          pars_indicies_to_track <- 1:n_par_inc_tp_and_gq
          n_params_full <- n_par_inc_tp_and_gq
-         all_param_outs_trace_inc_log_lik <- BayesMVP:::fn_compute_param_constrain_from_trace_parallel( unc_params_trace_input_main = main_trace,
+         all_param_outs_trace_inc_log_lik <- BayesMVPsim:::fn_compute_param_constrain_from_trace_parallel( unc_params_trace_input_main = main_trace,
                                                                                                         unc_params_trace_input_nuisance = nuisance_trace,
                                                                                                         pars_indicies_to_track = pars_indicies_to_track,
                                                                                                         n_params_full = n_params_full,
@@ -764,8 +764,8 @@ create_summary_and_traces <- function(    package,
                  ##
                  ##
                  if (compute_transformed_parameters == TRUE) {
-                       outs <- filter_param_draws_string_batched(  named_draws_array = stan_draws_array,
-                                                                                param_string = grouped_params$names_tp,
+                       outs <- MetaOrdDTA:::filter_param_draws_string_batched(  named_draws_array = stan_draws_array,
+                                                                   param_strings_vec = grouped_params$names_tp,
                                                                                 condition = "exact_match",
                                                                                 exclude_NA = exclude_NA,
                                                                                 debugging = FALSE)
@@ -789,8 +789,8 @@ create_summary_and_traces <- function(    package,
                  ## Transformed parameters trace (excl. "log_lik"):
                  ##
                  if (compute_transformed_parameters == TRUE) {
-                       outs <- filter_param_draws_string_batched(  named_draws_array = stan_draws_array,
-                                                                                param_string = grouped_params$names_tp,
+                       outs <-  MetaOrdDTA:::filter_param_draws_string_batched(  named_draws_array = stan_draws_array,
+                                                                   param_strings_vec = grouped_params$names_tp,
                                                                                 condition = "exact_match",
                                                                                 exclude_NA = exclude_NA,
                                                                                 debugging = FALSE)
@@ -811,8 +811,8 @@ create_summary_and_traces <- function(    package,
                  ## Generated quantities trace:
                  ##
                  if (compute_generated_quantities == TRUE) {
-                       outs <- filter_param_draws_string_batched(   named_draws_array = stan_draws_array,
-                                                                                 param_string = grouped_params$names_gq,
+                       outs <-  filter_param_draws_string_batched(   named_draws_array = stan_draws_array,
+                                                                    param_strings_vec = grouped_params$names_gq,
                                                                                  condition = "exact_match",
                                                                                  exclude_NA = exclude_NA,
                                                                                  debugging = FALSE)
@@ -822,19 +822,38 @@ create_summary_and_traces <- function(    package,
                        trace_gq      <- outs$param_draws_filtered_array
                        ##
                        names_gq <- dimnames(trace_gq)$variable
-                       n_gq <- length(names_gq)
+                       n_gq <- length(names_gq) ; n_gq
                        ##
                        try({  
                          rm(outs)
                          gc() ; gc()
                        })
+                       
+                      # dimnames(stan_draws_array)[[3]]
+                      
+                      # # First, check what's in the filtered list after the function call
+                      # outs <- filter_param_draws_string_batched(
+                      #   named_draws_array = stan_draws_array,
+                      #   param_strings_vec = grouped_params$names_gq,
+                      #   condition = "exact_match",
+                      #   exclude_NA = exclude_NA,
+                      #   debugging = TRUE  # Turn on debugging
+                      # )
+                      # 
+                      # # Check what's actually in the list
+                      # str(outs$param_draws_filtered_list)
+                      # names(outs$param_draws_filtered_list)
+                      # 
+                      # str(outs$param_draws_filtered_list)
+                      
+                       
                  }
                  
                  trace_log_lik <- NULL
                  if (save_log_lik_trace == TRUE) {
-                        outs <- filter_param_draws_string_batched(    named_draws_array = stan_draws_array,
-                                                                                   param_string = "log_lik",
-                                                                                   condition = "exact_match",
+                        outs <- MetaOrdDTA:::filter_param_draws_string_batched(    named_draws_array = stan_draws_array,
+                                                                      param_strings_vec = "log_lik",
+                                                                                   condition = "containing",
                                                                                    exclude_NA = exclude_NA,
                                                                                    debugging = FALSE)
                        ##
@@ -957,7 +976,7 @@ create_summary_and_traces <- function(    package,
           
                   # str(trace_main_3)
             
-                  summary_tibble_main_params <- generate_summary_tibble(  n_threads = n_cores,
+                  summary_tibble_main_params <- MetaOrdDTA:::generate_summary_tibble(  n_threads = n_cores,
                                                                           input_array = trace_main_3,
                                                                           iter_dim  =  iter_dim,
                                                                           chain_dim = chain_dim,
@@ -1022,7 +1041,7 @@ create_summary_and_traces <- function(    package,
                        n_chains <- dim(trace_tp_wo_log_lik_3)[3]
                    }
                    ##
-                   summary_tibble_transformed_parameters <- generate_summary_tibble(   n_threads = n_cores,
+                   summary_tibble_transformed_parameters <-  MetaOrdDTA:::generate_summary_tibble(   n_threads = n_cores,
                                                                                        input_array = trace_tp_wo_log_lik_3,
                                                                                        iter_dim = iter_dim,
                                                                                        chain_dim = chain_dim,
@@ -1048,44 +1067,45 @@ create_summary_and_traces <- function(    package,
    ## --------- GENERATED QUANTITIES ---------------------------------------------------------------- 
    ##
    {
-        summary_tibble_generated_quantities <- NULL
-        ##
-        # str(trace_gq)
-        # length(names_gq)
-        # n_gq
-        ##
-        if  ((compute_generated_quantities == TRUE) && (n_gq > 0))  { 
-                      
+     summary_tibble_generated_quantities <- NULL
+     ##
+     # str(trace_gq)
+     # length(names_gq)
+     # n_gq
+     ##
+     if  ((compute_generated_quantities == TRUE) && (n_gq > 0))  { 
+                    
           if ((package == "BayesMVP") || (use_BayesMVP_for_faster_summaries == TRUE)) {
             
-                          if (package == "MetaOrdDTA") { 
-                              n_chains <- dim(trace_gq_3)[3]
-                              n_superchains <- MetaOrdDTA:::if_null_then_set_to(n_superchains, n_chains)
-                          } else if (package == "BayesMVP") { 
-                              n_chains <- dim(trace_gq_3)[3]
-                          }
-                          ##
-                          summary_tibble_generated_quantities <- generate_summary_tibble( n_threads = n_cores,
-                                                                                          input_array = trace_gq_3,
-                                                                                          iter_dim = iter_dim,
-                                                                                          chain_dim = chain_dim,
-                                                                                          param_names = names_gq,
-                                                                                          compute_nested_rhat = compute_nested_rhat,
-                                                                                          n_superchains = n_superchains)
+                        if (package == "MetaOrdDTA") { 
+                            n_chains <- dim(trace_gq_3)[3]
+                            n_superchains <- MetaOrdDTA:::if_null_then_set_to(n_superchains, n_chains)
+                        } else if (package == "BayesMVP") {
+                            n_chains <- dim(trace_gq_3)[3]
+                        }
+                        ##
+                        summary_tibble_generated_quantities <-  MetaOrdDTA:::generate_summary_tibble( n_threads = n_cores,
+                                                                                        input_array = trace_gq_3,
+                                                                                        iter_dim = iter_dim,
+                                                                                        chain_dim = chain_dim,
+                                                                                        param_names = names_gq,
+                                                                                        compute_nested_rhat = compute_nested_rhat,
+                                                                                        n_superchains = n_superchains)
                   
               } else if ((package == "MetaOrdDTA") || (use_BayesMVP_for_faster_summaries == FALSE)) {  
     
-                          summary_tibble_generated_quantities <- MetaOrdDTA:::R_fn_compute_cmdstanr_summary_tibble( stan_fitted_model = stan_fitted_model, 
-                                                                                                                    variables_vec =  names_gq)
+                        summary_tibble_generated_quantities <- MetaOrdDTA:::R_fn_compute_cmdstanr_summary_tibble( stan_fitted_model = stan_fitted_model, 
+                                                                                                                  variables_vec =  names_gq)
                 
               }
-          try({  
-            rm(trace_gq_3)
-            gc() ; gc()
-          })
-          ##
-                            
-        }
+       ##
+       try({  
+          rm(trace_gq_3)
+          gc() ; gc()
+       })
+       ##
+                          
+     }
    }
    ##
    ## -----------------------------  DF / tibble creation (for "posterior" and "bayesplot" R packages)  --------------------------------------------
@@ -1625,7 +1645,6 @@ create_summary_and_traces <- function(    package,
   
   
 }
-
 
 
 

@@ -9,6 +9,7 @@ R_fn_run_kfold_cv_parallel(
   debugging,
   K = 10,
   seed = 123,
+  fold_assignments,
   model_prep_obj,
   stan_data_list,
   cmdstanr_args,
@@ -20,7 +21,7 @@ R_fn_run_kfold_cv_parallel(
   adapt_delta,
   max_treedepth,
   n_workers = NULL,
-  output_dir = "cv_results",
+  output_dir = metaorddta_output_path("cv_results"),
   use_BayesMVP_for_faster_summaries
 )
 }

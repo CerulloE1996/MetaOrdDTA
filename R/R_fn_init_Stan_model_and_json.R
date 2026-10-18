@@ -31,38 +31,23 @@ init_stan_model_external <- function( debugging = FALSE,
         ##
         validated_json_string <- paste(readLines(json_file_path), collapse="")
         jsonlite::write_json(x = validated_json_string, path = json_file_path)
-        ##
-        ## Create Stan model:
-        ##
+        if (is.null(stan_model_obj)) {
+          stop("The Stan model has not been compiled. Recreate the model with compile = TRUE before sampling.")
+        }
+
+        ## Sampling five throw-away iterations used to happen here merely to inspect
+        ## the model variables. Apart from doubling work, that run could fail and
+        ## leave the real fit in a partially initialised state. CmdStanR exposes the
+        ## variable metadata directly from the compiled model, so no pseudo-fit is
+        ## required.
         stan_model_file_path <- file.path(stan_model_file_path)
-        ##
-        stan_init_pseudo_sampling_outs <- R_fn_sample_stan_model( 
-                                                          debugging = debugging,
-                                                          ##
-                                                          stan_data_list = stan_data_list, 
-                                                          stan_model_obj = stan_model_obj,
-                                                          ##
-                                                          n_chains = n_chains, 
-                                                          init_lists_per_chain = init_lists_per_chain,
-                                                          seed = 123,
-                                                          n_burnin = 5, 
-                                                          n_iter = 5, 
-                                                          adapt_delta = 0.10, 
-                                                          max_treedepth = 1,
-                                                          metric_shape = "diag_e",
-                                                          ##
-                                                          cmdstanr_args = list())
-        ##
-        ## Extract Stan output:
-        ##
-        stan_model_obj           <- stan_init_pseudo_sampling_outs$stan_model_obj
         json_file_path       <- normalizePath(json_file_path)
         stan_model_file_path <- normalizePath(stan_model_file_path)
         ##
         ## Output:
         ##
         return(list(
-          stan_init_pseudo_sampling_outs = stan_init_pseudo_sampling_outs,
+          stan_init_pseudo_sampling_outs = NULL,
           stan_model_obj = stan_model_obj,
           json_file_path = json_file_path,
           stan_model_file_path = stan_model_file_path))
@@ -97,10 +82,7 @@ R_fn_init_stan_inits_external <- function( stan_data_list,
           ##
           stan_data_list <- R_fn_remove_duplicates_from_list(stan_data_list)
           ##
-          print("R_fn_init_stan_inits_external - hello_1")
-          ##
-          str(stan_data_list)
-          try((stan_data_list$priors <- NULL))
+          stan_data_list$priors <- NULL
           ##
           outs_init_stan_model <- init_stan_model_external( stan_data_list = stan_data_list,
                                                             stan_model_file_path = stan_model_file_path,
@@ -108,8 +90,6 @@ R_fn_init_stan_inits_external <- function( stan_data_list,
                                                             n_chains = n_chains,
                                                             init_lists_per_chain = init_lists_per_chain)
           
-          print("R_fn_init_stan_inits_external - hello_2")
-          ##
           stan_init_pseudo_sampling_outs <- outs_init_stan_model$stan_init_pseudo_sampling_outs
           # stan_model_obj <- outs_init_stan_model$stan_model_obj
           json_file_path <- outs_init_stan_model$json_file_path
@@ -120,41 +100,27 @@ R_fn_init_stan_inits_external <- function( stan_data_list,
           {
             stan_param_names_list <- list()
             ##
-            message(paste("parameters = "))
-            stan_param_names_list$parameters             <- print(names(stan_model_obj$variables()$parameters)) ## length = "n_params_main"
+            stan_param_names_list$parameters <- names(stan_model_obj$variables()$parameters)
             ##
-            message(paste("transformed_parameters = "))
-            stan_param_names_list$transformed_parameters <- print(names(stan_model_obj$variables()$transformed_parameters))
+            stan_param_names_list$transformed_parameters <- names(stan_model_obj$variables()$transformed_parameters)
             ##
-            message(paste("generated_quantities = "))
-            stan_param_names_list$generated_quantities   <- print(names(stan_model_obj$variables()$generated_quantities))
+            stan_param_names_list$generated_quantities <- names(stan_model_obj$variables()$generated_quantities)
             ##
-            message(paste("All Stan model variables = "))
-            stan_param_names_list$all_params <- print(c( stan_param_names_list$parameters, 
-                                                    stan_param_names_list$transformed_parameters, 
-                                                    stan_param_names_list$generated_quantities))
+            stan_param_names_list$all_params <- c(
+              stan_param_names_list$parameters,
+              stan_param_names_list$transformed_parameters,
+              stan_param_names_list$generated_quantities
+            )
           }
           ##
           ## Get "parameters" block param names (will be in the correct order):
           ##
           stan_param_names_main <- stan_param_names_list$parameters ; stan_param_names_main
           ##
-          ## Set init vectors (in correct order)
-          ##
-          inits_unconstrained_vec_per_chain <- list()
-          ##
-          for (kk in 1:n_chains) {
-              ##
-              ## Get/format json string:
-              ##
-              json_string_for_inits_chain_kk <- convert_stan_data_list_to_JSON(init_lists_per_chain[[kk]])
-              validated_json_string          <- paste(readLines(json_string_for_inits_chain_kk), collapse="")
-              ##
-              ## Turn the json string (of unconstrained params or "parameters block" params) into a vector of unconstrained 
-              ## params or "parameters block" params:
-              ##
-              inits_unconstrained_vec_per_chain[[kk]] <- convert_JSON_string_to_ordered_R_vector(validated_json_string, stan_param_names_main)
-          }
+          ## This legacy field is retained for compatibility. The vectors were not
+          ## used by sampling or summaries, and attempting to infer Stan's
+          ## unconstrained representation from JSON was not reliable.
+          inits_unconstrained_vec_per_chain <- NULL
           ##
           ## ---- Output:
           ##
@@ -311,8 +277,6 @@ R_fn_init_stan_inits_internal <- function( stan_data_list,
                         stan_model_file_path = stan_model_file_path))
   
 }
-
-
 
 
 

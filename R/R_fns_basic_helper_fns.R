@@ -341,17 +341,38 @@ find_all_stan_param_names <- function( stan_draws_array,
 convert_list_of_arrays_to_one_big_array <- function(draws_array_list) {
   
   
-  str(draws_array_list)
+          # str(draws_array_list)
   
           if (is.list(draws_array_list)) {
+            
+                
+                # Filter out NULL and empty arrays first
+                valid_arrays <- list()
+                valid_indices <- c()
+                
+                for (i in seq_along(draws_array_list)) {
+                  arr <- draws_array_list[[i]]
+                  if (!is.null(arr) && length(arr) > 0) {
+                    # Check if it has actual dimensions
+                    if (is.matrix(arr) || (is.array(arr) && prod(dim(arr)) > 0)) {
+                      valid_arrays[[length(valid_arrays) + 1]] <- arr
+                      valid_indices <- c(valid_indices, i)
+                    }
+                  }
+                }
+                
+                # If no valid arrays, return NULL
+                if (length(valid_arrays) == 0) {
+                  return(NULL)
+                }
   
                 ##
                 ## Verify all arrays have same iterations and chains:
                 ##
-                n_iter   <- dim(draws_array_list[[1]])[1] ; n_iter
+                n_iter   <- dim(valid_arrays[[1]])[1] ; n_iter
                 print(paste("convert_list_of_arrays_to_one_big_array - n_iter = ", n_iter))
                 ##
-                n_chains <- dim(draws_array_list[[1]])[2] ; n_chains
+                n_chains <- dim(valid_arrays[[1]])[2] ; n_chains
                 print(paste("convert_list_of_arrays_to_one_big_array - n_iter = ", n_iter))
                 ##
                 ## Calculate total number of variables:
@@ -361,30 +382,75 @@ convert_list_of_arrays_to_one_big_array <- function(draws_array_list) {
                 param_names_per_list <- list()
                 ##
       
-                for (l in 1:length(draws_array_list)) {
+                for (l in 1:length(valid_arrays)) {
+                  list_or_mat_l <- valid_arrays[[l]]
+                  is_matrix <- is.matrix(list_or_mat_l)
                   
-                      list_or_mat_l <- draws_array_list[[l]]
-                      is_matrix <- is.matrix(list_or_mat_l)
-                      ##
-                      if (is_matrix) n_variables_list_l <- 1
-                      else           n_variables_list_l <- dim(list_or_mat_l)[3]
-                      ##
-                      n_variables_total <- n_variables_total + n_variables_list_l
-                      n_variables_per_list[l] <- n_variables_list_l
-                      try({  
-                        if (!is_matrix) param_names_per_list[[l]] <-  find_all_stan_param_names(list_or_mat_l)
-                        else            param_names_per_list[[l]] <-  names(draws_array_list)[l]
-                      })
-                      ##
-                      # dimnames_per_list[[l]] <- find_all_stan_param_names(named_draws_array)
-                     
-                      
+                  if (is_matrix) {
+                    n_variables_list_l <- 1
+                    # For matrix, use the list element name if available
+                    if (!is.null(names(draws_array_list))) {
+                      param_names_per_list[[l]] <- names(draws_array_list)[valid_indices[l]]
+                    } else {
+                      param_names_per_list[[l]] <- paste0("param_", l)
+                    }
+                  } else {
+                    n_variables_list_l <- dim(list_or_mat_l)[3]
+                    # For array, get the actual dimnames
+                    if (!is.null(dimnames(list_or_mat_l)[[3]])) {
+                      param_names_per_list[[l]] <- dimnames(list_or_mat_l)[[3]]
+                    } else {
+                      param_names_per_list[[l]] <- paste0("param_", l, "_", 1:n_variables_list_l)
+                    }
+                  }
+                  
+                  n_variables_total <- n_variables_total + n_variables_list_l
+                  n_variables_per_list[l] <- n_variables_list_l
                 }
+                
+                # for (l in 1:length(valid_arrays)) {
+                #   
+                #       list_or_mat_l <- valid_arrays[[l]]
+                #       is_matrix <- is.matrix(list_or_mat_l)
+                #       ##
+                #       if (is_matrix) n_variables_list_l <- 1
+                #       else           n_variables_list_l <- dim(list_or_mat_l)[3]
+                #       ##
+                #       n_variables_total <- n_variables_total + n_variables_list_l
+                #       n_variables_per_list[l] <- n_variables_list_l
+                #       
+                #       # FIX: Ensure param_names_per_list gets the right number of names
+                #       if (!is_matrix) {
+                #         param_names_per_list[[l]] <- dimnames(list_or_mat_l)[[3]]  # Get actual dimnames
+                #       } else {
+                #         param_names_per_list[[l]] <- names(valid_arrays)[l]  # Use valid_arrays names, not draws_array_list
+                #       }
+                #       
+                #       # try({  
+                #       #   if (!is_matrix) param_names_per_list[[l]] <-  find_all_stan_param_names(list_or_mat_l)
+                #       #   else            param_names_per_list[[l]] <-  names(valid_arrays)[l]
+                #       # })
+                #       ##
+                #       # dimnames_per_list[[l]] <- find_all_stan_param_names(named_draws_array)
+                #      
+                #       
+                # }
+                # 
+                
+                # Then when creating full_dim_names_vec, make sure it's not NULL:
+                full_dim_names_vec <- unlist(param_names_per_list)
+                
+                # Add a check:
+                if (length(full_dim_names_vec) != n_variables_total) {
+                  # If names don't match, create generic names
+                  full_dim_names_vec <- paste0("var_", 1:n_variables_total)
+                }
+                
                 ##
                 ## Make vector of full dim names:
                 ##
-                full_dim_names_vec <- c(unlist(param_names_per_list))
-                ##
+                # full_dim_names_vec <- c(unlist(param_names_per_list))
+                # ##
                 ## Create empty array to hold all variables:
                 ##
                 combined_array <- array(
@@ -409,25 +475,54 @@ convert_list_of_arrays_to_one_big_array <- function(draws_array_list) {
                 # str(current_array)
                 # ##
                 # i = 1
-                for (l in 1:length(draws_array_list)) {
+                for (l in 1:length(valid_arrays)) {
                   
-                      current_array <- draws_array_list[[l]]
-                      ##
+                      current_array <- valid_arrays[[l]]
                       n_vars <- n_variables_per_list[l]
+                      
+                      # # Debug: Check dimensions
+                      # cat(sprintf("Loop %d: n_vars=%d, var_index=%d, array dim=%s\n", 
+                      #             l, n_vars, var_index, paste(dim(current_array), collapse="x")))
+                      
+                      # Check if we're going out of bounds
+                      if (var_index + n_vars - 1 > n_variables_total) {
+                        cat(sprintf("ERROR: Would exceed bounds! var_index=%d, n_vars=%d, total=%d\n",
+                                    var_index, n_vars, n_variables_total))
+                        next
+                      }
+                      
+                      # Check dimensions match
+                      if (is.matrix(current_array)) {
+                        # For matrix, reshape to 3D array
+                        current_array <- array(current_array, dim = c(n_iter, n_chains, 1))
+                      }
                       ##
                       current_var_names <- param_names_per_list[l]
                       ##
-                      ## Copy values to the combined array:
-                      ##
-                      combined_array[, , var_index:(var_index + n_vars - 1)] <- current_array
+                      # Copy values and update index ONCE
+                      if (n_vars > 0) {
+                        combined_array[, , var_index:(var_index + n_vars - 1)] <- current_array
+                        all_var_names <- c(all_var_names, current_var_names)
+                        var_index <- var_index + n_vars  # ONLY UPDATE HERE
+                      }
+                      
+                      # 
+                      # ##
+                      # ## Copy values to the combined array:
+                      # ##
+                      # if (n_vars > 0) {
+                      #   combined_array[, , var_index:(var_index + n_vars - 1)] <- current_array
+                      #   var_index <- var_index + n_vars
+                      # }
+                      # combined_array[, , var_index:(var_index + n_vars - 1)] <- current_array
                       ##
                       ## Add variable names
                       ##
-                      all_var_names <- c(all_var_names, current_var_names)
+                      # all_var_names <- c(all_var_names, current_var_names)
                       ##
                       ## Update index:
                       ##
-                      var_index <- var_index + n_vars
+                      # var_index <- var_index + n_vars
                   
                 }
                 # str(combined_array)
@@ -440,7 +535,7 @@ convert_list_of_arrays_to_one_big_array <- function(draws_array_list) {
                 # dimnames(combined_array)[[2]]
                 ##
                 # # Apply the draws_array class if the original arrays had it
-                # if ("draws_array" %in% class(draws_array_list[[1]])) {
+                # if ("draws_array" %in% class(valid_arrays[[1]])) {
                 #   class(combined_array) <- c("draws_array", class(combined_array))
                 # }
                 ##
@@ -448,7 +543,7 @@ convert_list_of_arrays_to_one_big_array <- function(draws_array_list) {
           
           } else { 
             
-                return(draws_array_list)
+                return(valid_arrays)
             
           }
   

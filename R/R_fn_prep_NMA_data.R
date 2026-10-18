@@ -232,7 +232,7 @@ R_fn_prep_NMA_data <- function( x,
     print(paste("cov_info_list$X = "))
     print(str(cov_info_list$X))
     
-    X <- MetaOrdDTA:::R_fn_expand_covariates_to_all_studies( X = cov_info_list$X,
+    X <- MetaOrdDTA:::expand_covariates_to_all_studies( X = cov_info_list$X,
                                                              indicator_index_test_in_study = indicator_index_test_in_study)
     cov_info_list$X_nd <- X[[1]]
     cov_info_list$X_d  <- X[[2]]

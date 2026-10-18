@@ -12,6 +12,31 @@ functions {
         #include "Stan_fns_simplex.stan"
         #include "Stan_fns_Jacobian.stan"
         #include "Stan_fns_model_fit.stan"
+        
+        // Induced Dirichlet log-density given cutpoints C:
+        real induced_dirichlet_lpdf( vector ord_probs, 
+                                     vector C_vec, 
+                                     vector alpha, 
+                                     int use_probit,
+                                     real anchor) {
+                                       
+                  int K = num_elements(ord_probs);
+                  int n_thr = K - 1;
+                  real lp = 0.0;
+                  // Dirichlet on category probs:
+                  lp += dirichlet_lpdf(ord_probs | alpha);
+                  // Jacobian: d(cumul_prob)/d(C) = pdf(C)
+                  for (k in 1:n_thr) {
+                      if (use_probit == 1) {
+                          lp += std_normal_lpdf(C_vec[k] - anchor);
+                      } else {
+                          // logistic density
+                          lp += log_inv_logit(C_vec[k] - anchor) + log1m_inv_logit(C_vec[k] - anchor);
+                      }
+                  }
+                  return lp;
+              
+        }
 }
 
 
@@ -54,6 +79,7 @@ data {
         array[2] vector[n_thr + 1] prior_dirichlet_alpha;
         vector[2] prior_kappa_mean;
         vector<lower=0.0>[2] prior_kappa_SD;
+        vector<lower=0.0>[2] prior_kappa_dof;
         ////
         //// ---- Other: 
         ////
@@ -99,16 +125,16 @@ parameters {
         ////
         array[2] matrix<lower=-7.5, upper=2.5>[n_studies, n_thr] C_raw; //// restricting solves divs/numerical stab. issues w/ lots of sparse categories!
         vector<lower=1.0>[2] kappa;
-        // array[2] simplex[n_cat] dirichlet_phi;
-        array[2] simplex[n_thr] raw_dirichlet_phi;
+        array[2] simplex[n_cat] dirichlet_phi;
+        // array[2] simplex[n_thr] raw_dirichlet_phi;
 }
 
  
 transformed parameters { 
-        array[2] simplex[n_cat] dirichlet_phi;
-        for (c in 1:2) {
-          dirichlet_phi[c] = stickbreaking_logistic_simplex_constrain(raw_dirichlet_phi[c]);
-        }
+        // array[2] simplex[n_cat] dirichlet_phi;
+        // for (c in 1:2) {
+        //   dirichlet_phi[c] = stickbreaking_logistic_simplex_constrain(raw_dirichlet_phi[c]); // THIS IS WRONG!!!!!!
+        // }
         ////
         vector[2] log_kappa = log(kappa);
         ////
@@ -154,9 +180,9 @@ transformed parameters {
 
 
 model { 
-        for (c in 1:2) {
-          target += stickbreaking_logistic_simplex_constrain_lp(raw_dirichlet_phi[c]);
-        }
+        // for (c in 1:2) {
+        //   target += stickbreaking_logistic_simplex_constrain_lp(raw_dirichlet_phi[c]);
+        // }
         ////
         //// ---- Priors: 
         ////
@@ -171,7 +197,7 @@ model {
         beta_L_Omega ~ lkj_corr_cholesky(prior_beta_corr_LKJ); 
         ////
         for (c in 1:2) {
-           log_kappa[c] ~ student_t(5, prior_kappa_mean[c], prior_kappa_SD[c]);
+           log_kappa[c] ~ student_t(prior_kappa_dof[c], prior_kappa_mean[c], prior_kappa_SD[c]);
            // kappa[c] ~ normal(0, 100);
            target += -log_kappa[c];
            dirichlet_phi[c] ~ dirichlet(prior_dirichlet_alpha[c]);
@@ -185,8 +211,10 @@ model {
                  if (use_probit_link == 1) Ind_Dir_ord_prob = to_vector(cumul_probs_to_ord_probs(Phi(C[c][s, ])));
                  else                      Ind_Dir_ord_prob = to_vector(cumul_probs_to_ord_probs(inv_logit(C[c][s, ])));
                  ////
-                 Ind_Dir_ord_prob ~ induced_dirichlet_given_C(
-                                    to_vector(C[c][s, ]), alpha[c], use_probit_link);
+                 real anchor_ct = prior_beta_mu_mean[c, 1]; // prior intercepts as anchor point
+                 target += induced_dirichlet_lpdf(Ind_Dir_ord_prob | C[c][s, ], alpha[c], 1, anchor_ct);
+                 // Ind_Dir_ord_prob ~ induced_dirichlet_given_C(
+                 //                    to_vector(C[c][s, ]), alpha[c], use_probit_link);
              }
         }
         ////
@@ -232,30 +260,40 @@ generated quantities {
       //                                  (square(alpha_0) * (alpha_0 + 1.0)));
       // }
       ////
-      //// ---- Calculate summary cutpoints:
-      ////
+      // //// ---- Calculate summary cutpoints:
+      // ////
       array[2] vector[n_thr] C_mu;
-      ////
-      for (c in 1:2) {
-          for (k in 1:n_thr) {
-              vector[n_studies] observed_cutpoints;
-              int n_obs = 0;
-              ////
-              for (s in 1:n_studies) {
-                  // Search through the cutpoint_index for this study to see if cutpoint k was observed
-                  for (j in 2:(n_obs_cutpoints[s] + 1)) {  // Start at 2 because index 1 is 0
-                      if (cutpoint_index[c, s, j] == k) {
-                          n_obs += 1;
-                          observed_cutpoints[n_obs] = C[c][s, k];
-                          break;  // Found it, no need to continue searching
-                      }
-                  }
-              }
-              if (n_obs > 0) {
-                  C_mu[c][k] = median(observed_cutpoints[1:n_obs]);
-              }
-          }
+      // ////
+      // for (c in 1:2) {
+      //     for (k in 1:n_thr) {
+      //         vector[n_studies] observed_cutpoints;
+      //         int n_obs = 0;
+      //         ////
+      //         for (s in 1:n_studies) {
+      //             // Search through the cutpoint_index for this study to see if cutpoint k was observed
+      //             for (j in 2:(n_obs_cutpoints[s] + 1)) {  // Start at 2 because index 1 is 0
+      //                 if (cutpoint_index[c, s, j] == k) {
+      //                     n_obs += 1;
+      //                     observed_cutpoints[n_obs] = C[c][s, k];
+      //                     break;  // Found it, no need to continue searching
+      //                 }
+      //             }
+      //         }
+      //         if (n_obs > 0) {
+      //             C_mu[c][k] = median(observed_cutpoints[1:n_obs]);
+      //         }
+      //     }
+      // }
+      for (c in 1:2) {  
+         for (k in 1:n_thr) {
+            C_mu[c][k] = median(C[c][, k]); 
+         }
       }
+      //
+      // for (c in 1:2) {
+      //   vector[n_cat - 1] cumul_probs = ord_probs_to_cumul_probs(dirichlet_cat_SDs_sigma[c]);
+      //   C_mu[c] = ID_cumul_probs_to_C(cumul_probs, use_probit_link);
+      // }
       ////
       //// ---- Calculate summary accuracy - "baseline" covariate values:
       ////  
@@ -265,11 +303,11 @@ generated quantities {
       //// ---- Calculate baseline Se/Sp:
       ////
       vector[n_thr] Fp_baseline = (use_probit_link == 1) ? 
-                                  safe_Phi(-(C_mu[1] - Xbeta_baseline_nd))  : 
+                                  safe_Phi( -(C_mu[1] - Xbeta_baseline_nd))  : 
                                   inv_logit(-(C_mu[1] - Xbeta_baseline_nd));
       vector[n_thr] Sp_baseline = 1.0 - Fp_baseline;
       vector[n_thr] Se_baseline = (use_probit_link == 1) ? 
-                                  safe_Phi(-(C_mu[2] - Xbeta_baseline_d))   : 
+                                  safe_Phi( -(C_mu[2] - Xbeta_baseline_d))   : 
                                   inv_logit(-(C_mu[2] - Xbeta_baseline_d));
       ////
       //// ---- Calculate predictive accuracy:
@@ -311,14 +349,14 @@ generated quantities {
       //// ---- Log-lik + study-specific accuracy computation (using "data" / double-precision fn for efficiency):
       ////
       vector[n_studies] log_lik_study = rep_vector(0.0, n_studies);
-      ////
-      matrix[n_studies, n_thr] fp; // global
-      matrix[n_studies, n_thr] sp; // global
-      matrix[n_studies, n_thr] se; // global
-      ////
-      vector[n_studies] deviance_nd; // global
-      vector[n_studies] deviance_d;  // global
-      vector[n_studies] deviance;    // global
+      // ////
+      // matrix[n_studies, n_thr] fp; // global
+      // matrix[n_studies, n_thr] sp; // global
+      // matrix[n_studies, n_thr] se; // global
+      // ////
+      // vector[n_studies] deviance_nd; // global
+      // vector[n_studies] deviance_d;  // global
+      // vector[n_studies] deviance;    // global
       {
           real scale = 1.0; // since using "Xu-like"" param.
           array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_to_random_hetero_C(
@@ -347,28 +385,28 @@ generated quantities {
           array[2] matrix[n_studies, n_thr] cond_prob = outs[2];
           array[2] matrix[n_studies, n_thr] surv_prob = outs[3];
           // ////
-          fp = surv_prob[1];
-          sp = 1.0 - fp;
-          se = surv_prob[2];
+          // fp = surv_prob[1];
+          // sp = 1.0 - fp;
+          // se = surv_prob[2];
+          // ////
+          // //// ---- Model fit (deviance):
+          // ////
+          // array[4] matrix[n_studies, n_thr] outs_model_fit = compute_deviance(
+          //                                                    cond_prob, n_thr, n_studies,
+          //                                                    x_2, n, n_obs_cutpoints);
+          // ////
+          // matrix[n_studies, n_thr] x_hat_nd = outs_model_fit[1];
+          // matrix[n_studies, n_thr] dev_nd   = outs_model_fit[2];
+          // matrix[n_studies, n_thr] x_hat_d  = outs_model_fit[3];
+          // matrix[n_studies, n_thr] dev_d    = outs_model_fit[4];
           ////
-          //// ---- Model fit (deviance):
-          ////
-          array[4] matrix[n_studies, n_thr] outs_model_fit = compute_deviance(
-                                                             cond_prob, n_thr, n_studies,
-                                                             x_2, n, n_obs_cutpoints);
-          ////
-          matrix[n_studies, n_thr] x_hat_nd = outs_model_fit[1];
-          matrix[n_studies, n_thr] dev_nd   = outs_model_fit[2];
-          matrix[n_studies, n_thr] x_hat_d  = outs_model_fit[3];
-          matrix[n_studies, n_thr] dev_d    = outs_model_fit[4];
-          ////
-          for (s in 1:n_studies) {
-              for (k in 1:to_int(n_obs_cutpoints[s])) {
-                 deviance_nd[s] += is_nan(dev_nd[s, k]) ? 0.0 : dev_nd[s, k];
-                 deviance_d[s]  += is_nan(dev_d[s, k]) ? 0.0 : dev_d[s, k];
-              }
-              deviance[s] = deviance_nd[s] + deviance_d[s];
-          }
+          // for (s in 1:n_studies) {
+          //     for (k in 1:to_int(n_obs_cutpoints[s])) {
+          //        deviance_nd[s] += is_nan(dev_nd[s, k]) ? 0.0 : dev_nd[s, k];
+          //        deviance_d[s]  += is_nan(dev_d[s, k]) ? 0.0 : dev_d[s, k];
+          //     }
+          //     deviance[s] = deviance_nd[s] + deviance_d[s];
+          // }
       }
 
 }

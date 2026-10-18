@@ -107,6 +107,16 @@ prep_data_and_model <- function(  debugging,
               advanced_model_options$softplus <-  MetaOrdDTA:::if_null_then_set_to( advanced_model_options$softplus, 
                                                                                    default_fns_list$softplus()[[1]])
               print(paste("advanced_model_options$softplus = ", advanced_model_options$softplus))
+              ##
+              ##
+              ##
+              advanced_model_options$compound_symmetry <-  MetaOrdDTA:::if_null_then_set_to( advanced_model_options$compound_symmetry, FALSE)
+              print(paste("advanced_model_options$compound_symmetry = ", advanced_model_options$compound_symmetry))
+              ##
+              ##
+              ##
+              advanced_model_options$hetero_sigma <-  MetaOrdDTA:::if_null_then_set_to( advanced_model_options$hetero_sigma, FALSE)
+              print(paste("advanced_model_options$hetero_sigma = ", advanced_model_options$hetero_sigma))
           })
           ##
           ## -----------------  Setup data: ---------------------------------------------------------------------------
@@ -144,8 +154,14 @@ prep_data_and_model <- function(  debugging,
           # print(paste("internal_obj$outs_data$stan_data_list = "))
           # print(str(internal_obj$outs_data$stan_data_list))
           ##
+          internal_obj$outs_data$stan_data_list$box_cox  <- advanced_model_options$box_cox
+          internal_obj$outs_data$stan_data_list$softplus <- advanced_model_options$softplus
+          ##
           if (basic_model_options$network == FALSE) { 
                  internal_obj$outs_data$n_tests <- 1
+          } else { 
+            internal_obj$outs_data$stan_data_list$compound_symmetry <- advanced_model_options$compound_symmetry
+            internal_obj$outs_data$stan_data_list$hetero_sigma <- advanced_model_options$hetero_sigma
           }
           # internal_obj$outs_data$stan_data_list
           ##
@@ -173,7 +189,18 @@ prep_data_and_model <- function(  debugging,
             other_advanced_options$advanced_compile <- FALSE
           }
           
-          if (other_advanced_options$advanced_compile) {
+          if (!isTRUE(other_advanced_options$compile)) {
+                  internal_obj$outs_stan_compile <- MetaOrdDTA:::R_fn_compile_stan_model_basic_given_file_name(
+                    stan_model_file_name = internal_obj$outs_stan_model_name$stan_model_file_name,
+                    cts = basic_model_options$cts,
+                    network = basic_model_options$network,
+                    prior_only = basic_model_options$prior_only,
+                    debugging = debugging,
+                    force_recompile = FALSE,
+                    quiet = isTRUE(other_advanced_options$quiet),
+                    compile = FALSE
+                  )
+          } else if (other_advanced_options$advanced_compile) {
                   
                   other_advanced_options$force_recompile <- MetaOrdDTA:::if_null_then_set_to(other_advanced_options$force_recompile, TRUE)
                   other_advanced_options$quiet <- MetaOrdDTA:::if_null_then_set_to(other_advanced_options$quiet, FALSE)
@@ -218,8 +245,8 @@ prep_data_and_model <- function(  debugging,
                                                                                 prior_only = basic_model_options$prior_only,
                                                                                 ##
                                                                                 debugging = debugging,
-                                                                                force_recompile = FALSE,
-                                                                                quiet   = FALSE,
+                                                                                force_recompile = isTRUE(other_advanced_options$force_recompile),
+                                                                                quiet = isTRUE(other_advanced_options$quiet),
                                                                                 compile = TRUE)
                                                                             
             
@@ -367,6 +394,5 @@ prep_data_and_model <- function(  debugging,
 
 
  
-
 
 

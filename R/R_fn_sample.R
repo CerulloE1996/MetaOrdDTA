@@ -49,9 +49,15 @@ R_fn_sample_stan_model  <-    function(   debugging = FALSE,
                 
                 tictoc::tic()
                 
-                try({  stan_data_list$priors <- NULL }, silent = TRUE)
-                
                 stan_mod_samples <- do.call(stan_model_obj$sample, final_stan_args)
+                return_codes <- stan_mod_samples$return_codes()
+                if (any(is.na(return_codes)) || any(return_codes != 0L)) {
+                  stop(
+                    "Stan sampling failed for chain(s): ",
+                    paste(which(is.na(return_codes) | return_codes != 0L), collapse = ", "),
+                    call. = FALSE
+                  )
+                }
                 ##
                 # stan_mod_samples <- stan_model_obj$sample(   seed = seed,
                 #                                              data = stan_data_list,
@@ -66,17 +72,9 @@ R_fn_sample_stan_model  <-    function(   debugging = FALSE,
                 #                                              ...)
                 
                 
-                try({
-                  print(tictoc::toc(log = TRUE))
-                  log.txt <- tictoc::tic.log(format = TRUE)
-                  tictoc::tic.clearlog()
-                  time_total <- unlist(log.txt)
-                  ##
-                  extract_numeric_string <-  stringr::str_extract(time_total, "\\d+\\.\\d+")   
-                  time_total <- as.numeric(extract_numeric_string)
-                })
-                
-                print(paste("time_total = ",  time_total))
+                elapsed <- tictoc::toc(quiet = !debugging)
+                time_total <- unname(elapsed$toc - elapsed$tic)
+                if (debugging) message("time_total = ", time_total)
                 
                 gc(reset = TRUE)
             
@@ -162,8 +160,6 @@ R_fn_sample_model  <-    function(      debugging = FALSE,
   
 
 }
-
-
 
 
 

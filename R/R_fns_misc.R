@@ -1,10 +1,111 @@
 
 
 
+#' remove_duplicates_by_name
+#' @export
+remove_duplicates_by_name <- function(my_list)  {
+  
+      if (is.null(names(my_list))) 
+        return(my_list)
+  
+      my_list[!duplicated(names(my_list))]
+  
+}
+
+#' compute_equivalent_ESS
+#' @export
+compute_equivalent_ESS <- function(N, 
+                                   N_new, 
+                                   ESS_observed, 
+                                   scaling_powers = c(0.33, 0.5, 1.0)) {
+  
+        # For each scaling assumption, compute equivalent ESS
+        # posterior_SD ∝ 1/N^power
+        # So SD_new/SD_old = (N/N_new)^power
+        
+        equivalent_ESS <- numeric(length(scaling_powers))
+        
+        for (i in seq_along(scaling_powers)) {
+          power <- scaling_powers[i]
+          
+          # Ratio of posterior SDs
+          SD_ratio <- (N / N_new)^power
+          
+          # For equal MC error: ESS_new = ESS_old * SD_ratio^2
+          equivalent_ESS[i] <- ESS_observed * SD_ratio^2
+        }
+        
+        # Create nice output
+        cat(sprintf("Original: N = %d studies, ESS = %.0f\n", N, ESS_observed))
+        cat(sprintf("New:      N = %d studies\n", N_new))
+        cat("\nEquivalent ESS for same MC error:\n")
+        cat(sprintf("  Conservative (SD ∝ 1/N^0.33): ESS ≈ %.0f\n", equivalent_ESS[1]))
+        cat(sprintf("  Typical      (SD ∝ 1/N^0.50): ESS ≈ %.0f\n", equivalent_ESS[2]))
+        cat(sprintf("  Optimistic   (SD ∝ 1/N^1.00): ESS ≈ %.0f\n", equivalent_ESS[3]))
+        cat(sprintf("\nRange: %.0f - %.0f\n", min(equivalent_ESS), max(equivalent_ESS)))
+        
+        # Return invisibly for programmatic use
+        invisible(list(
+          N = N,
+          N_new = N_new,
+          ESS_observed = ESS_observed,
+          equivalent_ESS = equivalent_ESS,
+          range = c(min = min(equivalent_ESS), max = max(equivalent_ESS))
+        ))
+  
+}
+
+
+#' validate_and_extrapolate_ESS
+#' @export
+validate_and_extrapolate_ESS <- function(N1, 
+                                         ESS1,
+                                         N2, 
+                                         ESS2,
+                                         N_target) {
+        # Estimate scaling power
+        p <- log(ESS2/ESS1) / (2*log(N1/N2))
+        
+        # Extrapolate
+        ESS_target <- ESS1 * (N1/N_target)^(2*p)
+        
+        cat(sprintf("Observed scaling: SD ∝ 1/N^%.2f\n", p))
+        cat(sprintf("Target ESS for N=%d: %.0f\n", N_target, ESS_target))
+        
+        # Add safety margin
+        cat(sprintf("With 20%% safety margin: %.0f\n", ESS_target * 0.8))
+        
+        return(list(p = p,
+                    ESS_target = ESS_target))
+  
+}
+# If SD ∝ 1/N^p, then from N=500 to N=2500:
+# ESS should scale by (500/2500)^(2p) = (1/5)^(2p)
+##
+# So if you observe ESS_500 = X and ESS_2500 = Y:
+# p = log(Y/X) / (2*log(5))
+##
+# Then for N=10,000:
+# ESS_10000 = ESS_500 * (500/10000)^(2p)
+##
+# For N=25,000:
+# ESS_25000 = ESS_500 * (500/25000)^(2p)
+
+
+
 #' resize_init_list
 #' @export
 resize_init_list <- function(init_lists_per_chain, 
                              n_chains_new) {
+
+        if (is.null(init_lists_per_chain)) {
+          return(NULL)
+        }
+
+        if (length(n_chains_new) != 1L || is.na(n_chains_new) || n_chains_new < 1L) {
+          stop("n_chains_new must be a single positive integer")
+        }
+        n_chains_new <- as.integer(n_chains_new)
   
         n_chains_old <- length(init_lists_per_chain)
         
@@ -21,6 +122,141 @@ resize_init_list <- function(init_lists_per_chain,
         }
   
 }
+
+
+
+#' remove_all_negative_rows_MAtrices
+#' @export
+remove_all_negative_rows_MA <- function(matrix_list) {
+  
+        # Check input
+        if (length(matrix_list) != 2) {
+          stop("Function expects a list of exactly 2 matrices")
+        }
+        
+        mat1 <- matrix_list[[1]]
+        mat2 <- matrix_list[[2]]
+        
+        # Check dimensions match
+        if (nrow(mat1) != nrow(mat2)) {
+          stop("Matrices must have the same number of rows")
+        }
+        
+        # Find rows that are all -1 in each matrix
+        all_neg_mat1 <- apply(mat1, 1, function(row) all(row == -1))
+        all_neg_mat2 <- apply(mat2, 1, function(row) all(row == -1))
+        
+        # Combine - remove row if it's all -1 in EITHER matrix
+        rows_to_remove <- all_neg_mat1 | all_neg_mat2
+        
+        # Keep only rows that aren't all -1 in either matrix
+        rows_to_keep <- !rows_to_remove
+        
+        # Subset both matrices
+        mat1_clean <- mat1[rows_to_keep, , drop = FALSE]
+        mat2_clean <- mat2[rows_to_keep, , drop = FALSE]
+        
+        # Return cleaned list
+        cleaned_list <- list(mat1_clean, mat2_clean)
+        
+        # Add some useful info
+        attr(cleaned_list, "n_removed") <- sum(rows_to_remove)
+        attr(cleaned_list, "n_kept") <- sum(rows_to_keep)
+        attr(cleaned_list, "removed_indices") <- which(rows_to_remove)
+        
+        # Print summary
+        cat(sprintf("Removed %d rows (kept %d of %d rows)\n", 
+                    sum(rows_to_remove), sum(rows_to_keep), length(rows_to_remove)))
+        
+        return(cleaned_list)
+  
+}
+
+
+
+
+
+# Convert BridgeStan notation to Stan notation
+#' @export
+convert_bridgestan_par_names_to_stan <- function(names) {
+  
+        # Handle the conversion more carefully
+        result <- names
+        
+        # Find first dot and replace with [
+        result <- sub("\\.", "[", result)
+        
+        # Replace all remaining dots with commas
+        result <- gsub("\\.", ",", result)
+        
+        # Add closing bracket if we added an opening one
+        needs_bracket <- grepl("\\[", result) & !grepl("\\]", result)
+        result[needs_bracket] <- paste0(result[needs_bracket], "]")
+        
+        return(result)
+  
+}
+
+
+
+
+#' @export
+permute_3d_draws_array <- function(array,
+                                   iter_index = 1,
+                                   chain_index = 2,
+                                   param_index = 3,
+                                   new_iter_index = 2,
+                                   new_chain_index = 3,
+                                   new_param_index = 1) {
+  
+        # Create the permutation vector
+        # We need to map old positions to new positions
+        perm_vector <- numeric(3)
+        
+        # Find which old index goes to position 1
+        if (new_iter_index == 1) perm_vector[1] <- iter_index
+        else if (new_chain_index == 1) perm_vector[1] <- chain_index
+        else if (new_param_index == 1) perm_vector[1] <- param_index
+        
+        # Find which old index goes to position 2
+        if (new_iter_index == 2) perm_vector[2] <- iter_index
+        else if (new_chain_index == 2) perm_vector[2] <- chain_index
+        else if (new_param_index == 2) perm_vector[2] <- param_index
+        
+        # Find which old index goes to position 3
+        if (new_iter_index == 3) perm_vector[3] <- iter_index
+        else if (new_chain_index == 3) perm_vector[3] <- chain_index
+        else if (new_param_index == 3) perm_vector[3] <- param_index
+        
+        # Apply the permutation
+        new_array <- aperm(array, perm = perm_vector)
+        
+        # Update dimension names if they exist
+        if (!is.null(dimnames(array))) {
+          old_names <- dimnames(array)
+          new_names <- list(
+            old_names[[perm_vector[1]]],
+            old_names[[perm_vector[2]]],
+            old_names[[perm_vector[3]]]
+          )
+          
+          # Rename based on new positions
+          names(new_names) <- c(
+            if (new_iter_index == 1) "iteration" else if (new_chain_index == 1) "chain" else "parameter",
+            if (new_iter_index == 2) "iteration" else if (new_chain_index == 2) "chain" else "parameter",
+            if (new_iter_index == 3) "iteration" else if (new_chain_index == 3) "chain" else "parameter"
+          )
+          
+          dimnames(new_array) <- new_names
+        }
+        
+        return(new_array)
+  
+}
+
+
+
+
 
 
 
@@ -534,14 +770,14 @@ generate_ordinal_dirichlet_prior <- function(n_cat,
 
 #' generate_dual_ordinal_dirichlet_priors
 #' @export
-generate_dual_ordinal_dirichlet_priors <- function(n_cat, 
-                                                   nd_peak = 0.15,          # Where non-diseased peaks (as fraction)
-                                                   d_peak = 0.30,           # Where diseased peaks (as fraction)
-                                                   nd_max_alpha = 5.0,      # Max alpha for non-diseased
-                                                   d_max_alpha = 5.0,       # Max alpha for diseased
-                                                   nd_min_alpha = 1.0,      # Min alpha for non-diseased
-                                                   d_min_alpha = 1.0,
-                                                   smoothness = 0.15) {     # Higher = smoother distribution
+generate_dual_ordinal_dirichlet_priors <- function(  n_cat, 
+                                                     nd_peak = 0.15,          # Where non-diseased peaks (as fraction)
+                                                     d_peak = 0.30,           # Where diseased peaks (as fraction)
+                                                     nd_max_alpha = 5.0,      # Max alpha for non-diseased
+                                                     d_max_alpha = 5.0,       # Max alpha for diseased
+                                                     nd_min_alpha = 1.0,      # Min alpha for non-diseased
+                                                     d_min_alpha = 1.0,
+                                                     smoothness = 0.15) {     # Higher = smoother distribution
   
         # Create sequence for category positions
         positions <- seq(0, 1, length.out = n_cat)
@@ -553,8 +789,7 @@ generate_dual_ordinal_dirichlet_priors <- function(n_cat,
         
         # Generate smoother diseased alphas
         d_spread <- smoothness * 1.5   # Even wider for diseased
-        d_alpha_values <- d_min_alpha + (d_max_alpha - d_min_alpha) * 
-          exp(-((positions - d_peak)^2) / (2 * d_spread^2))
+        d_alpha_values <- d_min_alpha + (d_max_alpha - d_min_alpha) * exp(-((positions - d_peak)^2) / (2 * d_spread^2))
         
         # Round for cleaner values
         nd_alpha_values <- round(nd_alpha_values, 1)
@@ -564,7 +799,7 @@ generate_dual_ordinal_dirichlet_priors <- function(n_cat,
           non_diseased = nd_alpha_values,
           diseased = d_alpha_values
         ))
-  
+
 }
 
 
@@ -779,6 +1014,8 @@ convert_to_aggregate_counts <- function(y_list,
             
           }
           
+          s <- 1
+          
           for (s in 1:n_studies) {
             
                     study_data <- y_list[[s]]
@@ -794,8 +1031,8 @@ convert_to_aggregate_counts <- function(y_list,
                     n_cat_t <- n_thr_t + 1
                     index_test_results   <- study_data[, t] ## - 1 ## minus one so {0, .., 27} for e.g. PHQ-9.
                      
-                    print(paste("min = ", min(index_test_results)))
-                    print(paste("max = ", max(index_test_results)))
+                    # print(paste("min = ", min(index_test_results)))
+                    # print(paste("max = ", max(index_test_results)))
                     
                     # x_d_list[[t - 1]][s, 1]  <- n_total_d[s]
                     # x_nd_list[[t - 1]][s, 1] <- n_total_nd[s]
@@ -822,8 +1059,6 @@ convert_to_aggregate_counts <- function(y_list,
             }
             
           }
-
-          
           
           return(list(
             n_total_nd = n_total_nd,
@@ -838,7 +1073,110 @@ convert_to_aggregate_counts <- function(y_list,
 
 
 
+#' @export
+summarise_crude_accuracy <- function(test_data, 
+                                     test_name = NULL) {
+        
+          summary <- test_data %>%
+            group_by(Cutoff) %>%
+            summarise(
+              n_studies = n(),
+              Se_mean = mean(Se, na.rm = TRUE),
+              Se_median = median(Se, na.rm = TRUE),
+              Se_sd = sd(Se, na.rm = TRUE),
+              Sp_mean = mean(Sp, na.rm = TRUE),
+              Sp_median = median(Sp, na.rm = TRUE),
+              Sp_sd = sd(Sp, na.rm = TRUE),
+              .groups = 'drop'
+            ) %>%
+            arrange(Cutoff)
+          
+          if (!is.null(test_name)) {
+            summary <- summary %>% mutate(test = test_name, .before = 1)
+          }
+          
+          return(summary)
+  
+}
 
+
+
+plot_score_distribution <- function(test_data,
+                                    test_name = NULL, 
+                                    summary_type = "median"
+) {
+  
+          # From 2x2 data we can estimate P(score = c) from consecutive cutoffs
+          # P(score = c | D) ≈ Se(c) - Se(c+1)
+          # P(score = c | ND) ≈ (1-Sp(c)) - (1-Sp(c+1))
+          
+          # Get distribution per study
+          dist_data <- test_data %>%
+            group_by(Author, Year) %>%
+            arrange(Cutoff) %>%
+            mutate(
+              # Proportion AT each score (not cumulative)
+              prop_D = Se - lead(Se, default = 0),
+              prop_ND = lead(Sp, default = 1) - Sp
+            ) %>%
+            ungroup() %>%
+            select(Author, Year, Cutoff, prop_D, prop_ND) %>%
+            pivot_longer(
+              cols = c(prop_D, prop_ND),
+              names_to = "group",
+              values_to = "proportion"
+            ) %>%
+            mutate(
+              group = ifelse(group == "prop_D", "Diseased", "Non-diseased")
+            )
+          
+          # Summarise across studies
+          summary_data <- dist_data %>%
+            group_by(Cutoff, group) %>%
+            summarise(
+              mean_prop = mean(proportion, na.rm = TRUE),
+              median_prop = median(proportion, na.rm = TRUE),
+              .groups = 'drop'
+            ) %>%
+            mutate(
+              prop = if (summary_type == "median") median_prop else mean_prop
+            )
+          
+          # Plot as histogram-style bar chart
+          p <- ggplot(summary_data, aes(x = Cutoff, y = prop, fill = group)) +
+            geom_col(position = "dodge", width = 0.7, alpha = 0.8) +
+            scale_fill_manual(values = c("Diseased" = "#E41A1C", "Non-diseased" = "#377EB8")) +
+            labs(
+              x = "Score",
+              y = "Proportion",
+              title = ifelse(is.null(test_name), "Score Distribution", 
+                             paste0(test_name, ": Score Distribution")),
+              subtitle = paste0(summary_type, " across studies"),
+              fill = "Group"
+            ) +
+            theme_minimal() +
+            theme(legend.position = "bottom")
+          
+          return(p)
+  
+}
+
+
+
+
+
+# All tests:
+plot_all_distributions <- function(test_data_list,
+                                   test_names, 
+                                   ncol = 2) {
+  
+          plots <- map2(test_data_list, test_names, ~plot_score_distribution(.x, .y))
+          
+          patchwork::wrap_plots(plots, ncol = ncol) +
+            patchwork::plot_layout(guides = "collect") &
+            theme(legend.position = "bottom")
+  
+}
 
 
 
@@ -1507,20 +1845,14 @@ filter_tibble_by_thresholds <- function(tibble_data,
         
 }
 
- 
- 
+
+
 
 #' filter_clinically_relevant_comparisons
 #' @export
 filter_clinically_relevant_comparisons <- function(tibble_comp, 
-                                                   relevant_thresholds = list(
-                                                     "GAD-2" = c(2, 3),
-                                                     "GAD-7" = c(5, 10, 15),
-                                                     "HADS" = c(8, 11),
-                                                     "BAI" = c(8, 16, 26)
-                                                   )
-) {
-  
+                                                   relevant_thresholds) {
+        
         # Create valid combinations
         valid_combos <- bind_rows(
           lapply(names(relevant_thresholds), function(test) {
@@ -1531,8 +1863,8 @@ filter_clinically_relevant_comparisons <- function(tibble_comp,
           })
         )
         
-        # Filter using joins
-        tibble_comp %>%
+        # Filter using joins - SAVE THE RESULT!
+        filtered_tibble <- tibble_comp %>%
           inner_join(valid_combos, by = c("test1_name" = "test_name", "threshold1" = "threshold")) %>%
           inner_join(valid_combos, by = c("test2_name" = "test_name", "threshold2" = "threshold")) %>%
           mutate(
@@ -1542,16 +1874,322 @@ filter_clinically_relevant_comparisons <- function(tibble_comp,
               test1_name, " (≥", threshold1, ") vs ",
               test2_name, " (≥", threshold2, ")"
             )
-          )
+          ) %>%
+          arrange(test1, threshold1, test2, threshold2)
+        
+        return(filtered_tibble)
   
 }
 
 
+#' Find bracketing equivalent thresholds based on sensitivity
+#' @param tibble_comp Tibble of pairwise comparisons (e.g., subset_comp$`GAD-2`)
+#' @param require_CI_cross If TRUE, only include thresholds where Se CI crosses zero
+#' @param Sp_warning_threshold Warn if Sp_diff exceeds this (default 0.10 = 10%)
+#' @return Tibble with TWO rows per test: one where Se_diff < 0, one where Se_diff > 0
+find_equivalent_thresholds_bracketed <- function(
+    tibble_comp,
+    require_CI_cross = FALSE,
+    Sp_warning_threshold = 0.10
+) {
+        
+        require(dplyr)
+        
+        # Preserve original test order from input
+        test_order <- unique(tibble_comp$test2_name)
+        
+        # Find the "below" threshold (largest negative Se_diff, closest to zero from below)
+        below <- tibble_comp %>%
+          filter(diff_Se_median < 0) %>%
+          group_by(test2, test2_name) %>%
+          slice_max(diff_Se_median, n = 1, with_ties = FALSE) %>%  # closest to zero (least negative)
+          ungroup() %>%
+          mutate(bracket = "below")
+        
+        # Find the "above" threshold (smallest positive Se_diff, closest to zero from above)
+        above <- tibble_comp %>%
+          filter(diff_Se_median >= 0) %>%
+          group_by(test2, test2_name) %>%
+          slice_min(diff_Se_median, n = 1, with_ties = FALSE) %>%  # closest to zero (least positive)
+          ungroup() %>%
+          mutate(bracket = "above")
+        
+        # Combine
+        results <- bind_rows(below, above) %>%
+          # Add helper columns
+          mutate(
+            Se_CI_crosses_zero = (diff_Se_lower <= 0) & (diff_Se_upper >= 0),
+            Sp_CI_crosses_zero = (diff_Sp_lower <= 0) & (diff_Sp_upper >= 0)
+          ) %>%
+          # Flag Sp concerns
+          mutate(
+            Sp_flag = case_when(
+              Sp_CI_crosses_zero ~ "",
+              diff_Sp_median < -Sp_warning_threshold ~ "⚠️ Lower Sp",
+              diff_Sp_median > Sp_warning_threshold ~ "⚠️ Higher Sp",
+              TRUE ~ ""
+            )
+          ) %>%
+          # Convert to percentages
+          mutate(
+            Se_diff_median = round(diff_Se_median * 100, 1),
+            Se_diff_lower = round(diff_Se_lower * 100, 1),
+            Se_diff_upper = round(diff_Se_upper * 100, 1),
+            Sp_diff_median = round(diff_Sp_median * 100, 1),
+            Sp_diff_lower = round(diff_Sp_lower * 100, 1),
+            Sp_diff_upper = round(diff_Sp_upper * 100, 1)
+          ) %>%
+          # Select output columns
+          select(
+            test = test2_name,
+            bracket,
+            threshold = threshold2,
+            Se_diff_median,
+            Se_diff_lower,
+            Se_diff_upper,
+            Se_CI_crosses_zero,
+            Sp_diff_median,
+            Sp_diff_lower,
+            Sp_diff_upper,
+            Sp_CI_crosses_zero,
+            Sp_flag
+          ) %>%
+          # Preserve original test order, then bracket within test
+          mutate(
+            test = factor(test, levels = test_order),
+            bracket = factor(bracket, levels = c("below", "above"))
+          ) %>%
+          arrange(test, bracket) %>%
+          mutate(test = as.character(test))
+        
+        # Check for tests missing one or both brackets
+        for (t in test_order) {
+          test_rows <- results %>% filter(test == t)
+          if (nrow(test_rows) == 0) {
+            message("⚠️ ", t, ": No thresholds found")
+          } else if (!"below" %in% test_rows$bracket) {
+            message("ℹ️ ", t, ": No 'below' threshold (all Se_diff >= 0)")
+          } else if (!"above" %in% test_rows$bracket) {
+            message("ℹ️ ", t, ": No 'above' threshold (all Se_diff < 0)")
+          }
+        }
+        
+        return(results)
+  
+}
 
 
+#' Generate LaTeX table code for equivalent thresholds
+#' @param results_tibble Output from find_equivalent_thresholds_bracketed()
+#' @param reference_test Name of reference test (e.g., "GAD-2")
+#' @param reference_threshold Reference threshold (e.g., 3)
+#' @param caption Table caption
+#' @param label LaTeX label for referencing
+#' @return Character string of LaTeX code
+# generate_equiv_thresholds_latex <- function(
+#     results_tibble,
+#     reference_test = "GAD-2",
+#     reference_threshold = 3,
+#     caption = NULL,
+#     label = "tab:equiv_thresholds"
+# ) {
+#   
+#   require(dplyr)
+#   require(glue)
+#   
+#   # Default caption
+#   
+#   if (is.null(caption)) {
+#     caption <- glue("Equivalent screening thresholds compared to {reference_test} \\\\geq {reference_threshold}. ",
+#                     "For each test, two thresholds are shown: `below' (highest threshold with sensitivity below reference) ",
+#                     "and `above' (lowest threshold with sensitivity above reference). ",
+#                     "Values shown are median differences (95\\\\% CrI) in percentage points.")
+#   }
+#   
+#   # Format the data
+#   formatted <- results_tibble %>%
+#     mutate(
+#       # Format Se with CI
+#       Se_formatted = sprintf("%.1f (%.1f, %.1f)", 
+#                              Se_diff_median, Se_diff_lower, Se_diff_upper),
+#       # Format Sp with CI  
+#       Sp_formatted = sprintf("%.1f (%.1f, %.1f)",
+#                              Sp_diff_median, Sp_diff_lower, Sp_diff_upper),
+#       # Format bracket as symbol
+#       bracket_symbol = ifelse(bracket == "below", "$\\downarrow$", "$\\uparrow$"),
+#       # Format threshold with ≥
+#       threshold_fmt = paste0("$\\geq$", threshold),
+#       # Checkmark for CI crossing zero
+#       Se_cross = ifelse(Se_CI_crosses_zero, "\\checkmark", ""),
+#       Sp_cross = ifelse(Sp_CI_crosses_zero, "\\checkmark", ""),
+#       # Clean up Sp flag for LaTeX
+#       Sp_flag_clean = gsub("⚠️", "$\\\\dagger$", Sp_flag)
+#     )
+#   
+#   # Build LaTeX code
+#   latex_lines <- c(
+#     "\\begin{table}[htbp]",
+#     "\\centering",
+#     glue("\\caption{{{caption}}}"),
+#     glue("\\label{{{label}}}"),
+#     "\\footnotesize",
+#     "\\begin{tabular}{llccccc}",
+#     "\\toprule",
+#     "Test & Direction & Threshold & $\\Delta$Se (95\\% CrI) & Se CI $\\ni$ 0 & $\\Delta$Sp (95\\% CrI) & Sp CI $\\ni$ 0 \\\\",
+#     "\\midrule"
+#   )
+#   
+#   # Add data rows
+#   current_test <- ""
+#   for (i in 1:nrow(formatted)) {
+#     row <- formatted[i, ]
+#     
+#     # Add midrule between tests (except before first)
+#     if (row$test != current_test && current_test != "") {
+#       latex_lines <- c(latex_lines, "\\midrule")
+#     }
+#     
+#     # Show test name only on first row of each test
+#     test_display <- ifelse(row$test != current_test, row$test, "")
+#     current_test <- row$test
+#     
+#     # Build row
+#     data_row <- glue("{test_display} & {row$bracket_symbol} & {row$threshold_fmt} & {row$Se_formatted} & {row$Se_cross} & {row$Sp_formatted} & {row$Sp_cross} \\\\")
+#     
+#     latex_lines <- c(latex_lines, data_row)
+#   }
+#   
+#   # Close table
+#   latex_lines <- c(
+#     latex_lines,
+#     "\\bottomrule",
+#     "\\end{tabular}",
+#     "\\begin{tablenotes}[flushleft]",
+#     "\\footnotesize",
+#     glue("\\item \\textit{{Note:}} Reference test is {reference_test} $\\geq$ {reference_threshold}. "),
+#     "\\item $\\downarrow$ = threshold where sensitivity is below reference; $\\uparrow$ = threshold where sensitivity is above reference.",
+#     "\\item $\\Delta$Se and $\\Delta$Sp are differences in percentage points (Test $-$ Reference).",
+#     "\\item \\checkmark = 95\\% CrI contains zero (no significant difference).",
+#     "\\end{tablenotes}",
+#     "\\end{table}"
+#   )
+#   
+#   # Combine and return
+#   latex_code <- paste(latex_lines, collapse = "\n")
+#   
+#   return(cat(latex_code))
+#   
+# }
+# 
 
 
+#' Subset pairwise comparisons to only bracketing thresholds (either side of zero Se_diff)
+#' @param subset_comp Named list of comparison tibbles (one per reference test)
+#' @param thr_screening_reference_tests Named list of reference thresholds to include
+#' @return Named list of subsetted tibbles (same structure as input)
+subset_to_bracketing_thresholds <- function(
+    subset_comp,
+    thr_screening_reference_tests
+) {
+  
+        require(dplyr)
+        
+        subset_comp_bracketed <- list()
+        
+        for (ref_test in names(subset_comp)) {
+          
+          tibble_comp <- subset_comp[[ref_test]]
+          
+          # Get reference thresholds to include for this ref test
+          ref_thresholds <- thr_screening_reference_tests[[ref_test]]
+          
+          if (is.null(ref_thresholds)) {
+            message("⚠️ No thresholds specified for ", ref_test, " - skipping")
+            next
+          }
+          
+          # Filter to specified reference thresholds
+          tibble_comp <- tibble_comp %>%
+            filter(threshold1 %in% ref_thresholds)
+          
+          if (nrow(tibble_comp) == 0) {
+            message("⚠️ No data after filtering ", ref_test, " to thresholds: ", 
+                    paste(ref_thresholds, collapse = ", "))
+            next
+          }
+          
+          # For each ref_threshold x comparator_test combo, find bracketing thresholds
+          bracketed_rows <- tibble_comp %>%
+            group_by(threshold1, test2, test2_name) %>%
+            group_modify(~ {
+              
+              # Find "below" - largest negative Se_diff (closest to zero from below)
+              below <- .x %>%
+                filter(diff_Se_median < 0) %>%
+                slice_max(diff_Se_median, n = 1, with_ties = FALSE)
+              
+              # Find "above" - smallest positive Se_diff (closest to zero from above)
+              above <- .x %>%
+                filter(diff_Se_median >= 0) %>%
+                slice_min(diff_Se_median, n = 1, with_ties = FALSE)
+              
+              bind_rows(below, above)
+            }) %>%
+            ungroup()
+          
+          # Report what we found
+          n_original <- nrow(tibble_comp)
+          n_bracketed <- nrow(bracketed_rows)
+          message("✓ ", ref_test, ": ", n_original, " → ", n_bracketed, " rows ",
+                  "(", length(ref_thresholds), " ref thresholds × ",
+                  length(unique(bracketed_rows$test2_name)), " comparators × 2 brackets)")
+          
+          subset_comp_bracketed[[ref_test]] <- bracketed_rows
+        }
+        
+        return(subset_comp_bracketed)
+  
+}
 
+
+#' Get the relevant_thresholds list for plotting (extracts only the kept thresholds)
+#' @param subset_comp_bracketed Output from subset_to_bracketing_thresholds()
+#' @return Named list suitable for plot_pairwise_differences relevant_thresholds param
+extract_bracketed_thresholds <- function(
+    subset_comp_bracketed
+) {
+  
+        require(dplyr)
+        
+        # Combine all tibbles
+        all_data <- bind_rows(subset_comp_bracketed, .id = "ref_test")
+        
+        # For each test, get all thresholds that appear (either as ref or comparator)
+        all_tests <- unique(c(all_data$test1_name, all_data$test2_name))
+        
+        relevant_thresholds <- list()
+        
+        for (test in all_tests) {
+          
+          # Thresholds where this test is the reference (threshold1)
+          as_ref <- all_data %>%
+            filter(test1_name == test) %>%
+            pull(threshold1) %>%
+            unique()
+          
+          # Thresholds where this test is the comparator (threshold2)
+          as_comp <- all_data %>%
+            filter(test2_name == test) %>%
+            pull(threshold2) %>%
+            unique()
+          
+          # Combine and sort
+          relevant_thresholds[[test]] <- sort(unique(c(as_ref, as_comp)))
+        }
+        
+        return(relevant_thresholds)
+  
+}
 
 
 
@@ -1566,7 +2204,7 @@ extract_param_latex <- function(model_or_tibble,
           # It's already a tibble
           tibble <- model_or_tibble
         } else if("model_summary_and_trace_obj" %in% names(model_or_tibble)) {
-          # It's your model structure!
+          # Model structure:
           param_parts <- strsplit(param_name, "\\[")[[1]][1]
           tibble <- model_or_tibble$model_summary_and_trace_obj$extract_params(params = param_parts)
         } else if("extract_params" %in% names(model_or_tibble)) {
@@ -1727,77 +2365,281 @@ format_se_sp_rows <- function(model_list,
 
 
 
-
-#' Full function to do all tests at once:
-#' create_all_se_sp_sections
 #' @export
-create_all_se_sp_sections <- function(model_list,
-                                      digits,
-                                      n_tests,
-                                      max_n_thr
+create_all_se_sp_sections <- function(  model_list,
+                                        thresholds_list,
+                                        threshold_labels = NULL,
+                                        digits = 2,
+                                        n_tests,
+                                        max_n_thr,
+                                        test_numbers = NULL,
+                                        add_midrule_between_tests = TRUE
 ) {
   
-        all_lines <- c()
+        # Get test names from thresholds_list (preserves order)
+        test_names <- names(thresholds_list)
+        n_tests_in_list <- length(test_names)
         
-        # Test configurations
-        test_configs <- list(
-          list(name = "GAD-2", num = 1, thresholds = c(2, 3, 4), # 3 is SCREENING standard for GAD
-               labels = c(" ",
-                          "(standard screening thr.)", 
-                          " ")),
-          list(name = "GAD-7", num = 2, thresholds = c(8, 9, 10, 11), # 10 is SCREENING standard for GAD (10 = "moderate", 5 = "mild", 15 = "severe")
-               labels = c(" ",
-                          " ",
-                          "(moderate; standard screening thr)",
-                          " ")),
-          list(name = "HADS", num = 3, thresholds = c(8, 9, 10, 11, 12), ## 8 = "Possible", 11 = "probable"   # 11 is standard screening thr.
-               labels = c("(possible; screening thr.)", 
-                          " ", 
-                          " ",
-                          "(probable thr.)", 
-                          " ")),
-          list(name = "BAI", num = 4, thresholds = c(16, 17, 18, 19, 20), # 16 is standard
-               labels = c("(moderate thr.)",
-                          " ",
-                          " ", 
-                          " ", 
-                          " "))
+        # If test_numbers not provided, assume order matches thresholds_list
+        if (is.null(test_numbers)) {
+          test_numbers <- setNames(seq_along(test_names), test_names)
+        }
+        
+        # If threshold_labels not provided, create empty labels
+        if (is.null(threshold_labels)) {
+          threshold_labels <- lapply(thresholds_list, function(x) rep(" ", length(x)))
+          names(threshold_labels) <- test_names
+        }
+        
+        # Validate inputs
+        stopifnot(
+          "thresholds_list must be a named list" = is.list(thresholds_list) && !is.null(names(thresholds_list)),
+          "All test names in thresholds_list must have corresponding test_numbers" = all(test_names %in% names(test_numbers))
         )
         
-        for(config in test_configs) {
-          # Sensitivity
-          se_lines <- format_se_sp_rows(  model_list = model_list, 
-                                          test_num = config$num, 
-                                          thresholds = config$thresholds,
-                                          n_tests = n_tests,
-                                          max_n_thr = max_n_thr,
-                                          threshold_labels = config$labels, 
-                                          param_type = "Se_baseline", 
-                                          test_name = config$name,
-                                          digits = digits)
-          all_lines <- c(all_lines, se_lines)
-          ##
-          # Specificity
-          sp_lines <- format_se_sp_rows(  model_list = model_list, 
-                                          test_num = config$num, 
-                                          thresholds = config$thresholds,
-                                          n_tests = n_tests,
-                                          max_n_thr = max_n_thr,
-                                          threshold_labels = config$labels, 
-                                          param_type = "Sp_baseline", 
-                                          test_name = config$name,
-                                          digits = digits)
-          all_lines <- c(all_lines, sp_lines)
+        # Check threshold_labels match thresholds_list structure
+        for (test in test_names) {
           
-          # Add midrule between tests (except last)
-          if(config$name != "BAI") {
-            all_lines <- c(all_lines, "%%%%", "\\midrule", "%%%%")
-          }
+                if (length(threshold_labels[[test]]) != length(thresholds_list[[test]])) {
+                  warning(paste0("threshold_labels for '", test, "' has different length than thresholds. Padding with empty strings."))
+                  # Pad or truncate labels
+                  n_thr <- length(thresholds_list[[test]])
+                  n_lab <- length(threshold_labels[[test]])
+                  if (n_lab < n_thr) {
+                    threshold_labels[[test]] <- c(threshold_labels[[test]], rep(" ", n_thr - n_lab))
+                  } else {
+                    threshold_labels[[test]] <- threshold_labels[[test]][1:n_thr]
+                  }
+                }
+          
+        }
+        
+        all_lines <- c()
+        
+        for (i in seq_along(test_names)) {
+                
+                test_name <- test_names[i]
+                test_num <- test_numbers[test_name]
+                thresholds <- thresholds_list[[test_name]]
+                labels <- threshold_labels[[test_name]]
+                
+                # Sensitivity rows
+                se_lines <- format_se_sp_rows(
+                  model_list = model_list,
+                  test_num = test_num,
+                  thresholds = thresholds,
+                  n_tests = n_tests,
+                  max_n_thr = max_n_thr,
+                  threshold_labels = labels,
+                  param_type = "Se_baseline",
+                  test_name = test_name,
+                  digits = digits
+                )
+                all_lines <- c(all_lines, se_lines)
+                
+                # Specificity rows
+                sp_lines <- format_se_sp_rows(
+                  model_list = model_list,
+                  test_num = test_num,
+                  thresholds = thresholds,
+                  n_tests = n_tests,
+                  max_n_thr = max_n_thr,
+                  threshold_labels = labels,
+                  param_type = "Sp_baseline",
+                  test_name = test_name,
+                  digits = digits
+                )
+                all_lines <- c(all_lines, sp_lines)
+                
+                # Add midrule between tests (except after last)
+                if (add_midrule_between_tests && i < n_tests_in_list) {
+                  all_lines <- c(all_lines, "%%%%", "\\midrule", "%%%%")
+                }
+          
         }
         
         return(all_lines)
   
 }
+
+
+
+
+
+
+#' @export
+create_all_se_sp_sections_compact <- function(  model_list,
+                                                thresholds_list,
+                                                threshold_labels = NULL,
+                                                digits = 3,
+                                                n_tests,
+                                                max_n_thr,
+                                                test_numbers = NULL,
+                                                add_midrule_between_tests = TRUE
+) {
+        
+        # Get test names from thresholds_list (preserves order)
+        test_names <- names(thresholds_list)
+        n_tests_in_list <- length(test_names)
+        
+        # If test_numbers not provided, assume order matches thresholds_list
+        if (is.null(test_numbers)) {
+          test_numbers <- setNames(seq_along(test_names), test_names)
+        }
+        
+        # If threshold_labels not provided, create empty labels
+        if (is.null(threshold_labels)) {
+          threshold_labels <- lapply(thresholds_list, function(x) rep("", length(x)))
+          names(threshold_labels) <- test_names
+        }
+        
+        # Extract Se and Sp matrices for all models ONCE (not per-row)
+        se_results_list <- lapply(model_list, function(model) {
+          extract_se_sp_latex(model, 
+                              param_type = "Se_baseline",
+                              n_tests = n_tests,
+                              max_n_thr = max_n_thr,
+                              digits = digits)
+        })
+        
+        sp_results_list <- lapply(model_list, function(model) {
+          extract_se_sp_latex(model, 
+                              param_type = "Sp_baseline",
+                              n_tests = n_tests,
+                              max_n_thr = max_n_thr,
+                              digits = digits)
+        })
+        
+        all_lines <- c()
+        
+        for (i in seq_along(test_names)) {
+          
+                test_name <- test_names[i]
+                test_num <- test_numbers[test_name]
+                thresholds <- thresholds_list[[test_name]]
+                labels <- threshold_labels[[test_name]]
+                
+                # Pad labels if needed
+                if (length(labels) < length(thresholds)) {
+                  labels <- c(labels, rep("", length(thresholds) - length(labels)))
+                }
+                
+                # Escape underscores for LaTeX
+                test_name_latex <- gsub("_", "\\\\_", test_name)
+                
+                # Add test header
+                all_lines <- c(all_lines, 
+                               paste0("\\multicolumn{3}{l}{\\textit{\\textbf{", test_name_latex, "}}} \\\\"))
+                
+                # For each threshold
+                for (j in seq_along(thresholds)) {
+                  
+                  thr <- thresholds[j]
+                  label <- labels[j]
+                  
+                  # Get Se values from each model (for now assuming single model)
+                  se_values <- sapply(se_results_list, function(res) {
+                    if (is.null(res) || is.na(res$est[test_num, thr])) {
+                      return("")
+                    } else {
+                      return(sprintf("$%.*f ~ \\ci{%.*f}{%.*f}$", 
+                                     digits, res$est[test_num, thr],
+                                     digits, res$lower[test_num, thr],
+                                     digits, res$upper[test_num, thr]))
+                    }
+                  })
+                  
+                  # Get Sp values from each model
+                  sp_values <- sapply(sp_results_list, function(res) {
+                    if (is.null(res) || is.na(res$est[test_num, thr])) {
+                      return("")
+                    } else {
+                      return(sprintf("$%.*f ~ \\ci{%.*f}{%.*f}$", 
+                                     digits, res$est[test_num, thr],
+                                     digits, res$lower[test_num, thr],
+                                     digits, res$upper[test_num, thr]))
+                    }
+                  })
+                  
+                  # Format threshold with optional label
+                  if (label != "" && !is.na(label) && label != " ") {
+                    thr_col <- paste0("$\\geq ", thr, "$ \\scriptsize{", label, "}")
+                  } else {
+                    thr_col <- paste0("$\\geq ", thr, "$")
+                  }
+                  
+                  # Build row: Threshold & Se & Sp (using first model for now)
+                  row_line <- paste0(thr_col, " & ", se_values[1], " & ", sp_values[1], " \\\\")
+                  all_lines <- c(all_lines, row_line)
+                }
+                
+                # Add midrule between tests (except after last)
+                if (add_midrule_between_tests && i < n_tests_in_list) {
+                  all_lines <- c(all_lines, "\\midrule")
+                }
+          
+        }
+        
+        return(all_lines)
+  
+}
+
+
+
+
+#' Generate complete LaTeX table with Se/Sp compact format
+#' @export
+create_se_sp_table_compact <- function( model_list,
+                                        thresholds_list,
+                                        threshold_labels = NULL,
+                                        digits = 3,
+                                        n_tests,
+                                        max_n_thr,
+                                        test_numbers = NULL,
+                                        caption = "Sensitivity and specificity estimates from baseline NMA-DTA model",
+                                        label = "tab:se_sp_results"
+) {
+  
+        # Generate body rows
+        body_lines <- create_all_se_sp_sections_compact(
+          model_list = model_list,
+          thresholds_list = thresholds_list,
+          threshold_labels = threshold_labels,
+          digits = digits,
+          n_tests = n_tests,
+          max_n_thr = max_n_thr,
+          test_numbers = test_numbers,
+          add_midrule_between_tests = TRUE
+        )
+        
+        # Build complete table
+        table_lines <- c(
+          "\\begin{table}[H]",
+          "\\centering",
+          paste0("\\caption{", caption, "}"),
+          paste0("\\label{", label, "}"),
+          "\\footnotesize",
+          "\\begin{tabular}{lcc}",
+          "\\toprule",
+          "\\textbf{Threshold} & \\textbf{Sensitivity (95\\% CrI)} & \\textbf{Specificity (95\\% CrI)} \\\\",
+          "\\midrule",
+          body_lines,
+          "\\bottomrule",
+          "\\end{tabular}",
+          "\\begin{tablenotes}",
+          "\\footnotesize",
+          "\\item CrI = credible interval. Estimates from Bayesian NMA-DTA model.",
+          "\\end{tablenotes}",
+          "\\end{table}"
+        )
+        
+        return(table_lines)
+  
+}
+
+
+
+
 
 
 
@@ -2041,10 +2883,14 @@ create_table2_latex <- function(model_list,
 
 
 
+#' @export
 create_AUC_latex_table <- function( auc_outs,
                                     digits = 3) {
   
-        
+  
+        require(tidyr)
+        require(dplyr)
+  
         auc_main <- auc_outs$auc
         auc_diff <- auc_outs$auc_diff
         auc_pred <- auc_outs$auc_pred
@@ -2053,7 +2899,7 @@ create_AUC_latex_table <- function( auc_outs,
         
         # Header
         lines <- c(lines, 
-                   "\\begin{table}[!h]",
+                   "\\begin{table}[H]",
                    "\\centering", 
                    "\\caption{AUC values, pairwise differences, and predictive intervals}",
                    "\\small",
@@ -2066,9 +2912,9 @@ create_AUC_latex_table <- function( auc_outs,
                    "\\midrule")
         
         for(i in 1:nrow(auc_main)) {
-          line <- sprintf("%s & %.3f & (%.3f, %.3f) \\\\",
+          line <- sprintf("%s & %.1f & (%.1f, %.1f) \\\\",
                           auc_main$test_name[i],
-                          auc_main$AUC_median[i],
+                          auc_main$AUC_mean[i],
                           auc_main$AUC_lower[i],
                           auc_main$AUC_upper[i])
           lines <- c(lines, line)
@@ -2080,12 +2926,16 @@ create_AUC_latex_table <- function( auc_outs,
                    "\\multicolumn{3}{l}{\\textbf{Pairwise AUC differences:}} \\\\",
                    "\\midrule")
         
+        auc_diff <- auc_diff %>%
+            separate(comparison, into = c("test1_name", "test2_name"), 
+                   sep = " vs ", remove = FALSE)
+        
         for(i in 1:nrow(auc_diff)) {
           sig_marker <- ifelse(auc_diff$AUC_diff_lower[i] > 0 | auc_diff$AUC_diff_upper[i] < 0, "*", "")
-          line <- sprintf("%s vs %s & %.3f & (%.3f, %.3f)%s \\\\",
+          line <- sprintf("%s vs %s & %.1f & (%.1f, %.1f)%s \\\\",
                           auc_diff$test1_name[i],
                           auc_diff$test2_name[i],
-                          auc_diff$AUC_diff_median[i],
+                          auc_diff$AUC_diff_mean[i],
                           auc_diff$AUC_diff_lower[i],
                           auc_diff$AUC_diff_upper[i],
                           sig_marker)
@@ -2099,9 +2949,9 @@ create_AUC_latex_table <- function( auc_outs,
                    "\\midrule")
         
         for(i in 1:nrow(auc_pred)) {
-          line <- sprintf("%s & %.3f & (%.3f, %.3f) \\\\",
+          line <- sprintf("%s & %.1f & (%.1f, %.1f) \\\\",
                           auc_pred$test_name[i],
-                          auc_pred$AUC_median[i],
+                          auc_pred$AUC_mean[i],
                           auc_pred$AUC_lower[i],
                           auc_pred$AUC_upper[i])
           lines <- c(lines, line)
@@ -2129,20 +2979,62 @@ create_AUC_latex_table <- function( auc_outs,
 
 
 
+ 
+# latex_format_val <- function(row) {
+#   sprintf("%.3f ~ (%.3f, %.3f)", row$`50%`, row$`2.5%`, row$`97.5%`)
+# }
+
+#' latex_format_val
+#' @export
+latex_format_val <- function(row, 
+                             digits = 3,
+                             use_signif = FALSE) {
+      
+      if (use_signif) {
+        # Use signif() for significant figures
+        median <- signif(row$`50%`, digits)
+        lower <- signif(row$`2.5%`, digits)
+        upper <- signif(row$`97.5%`, digits)
+      } else {
+        # Use round() for decimal places
+        median <- round(row$`50%`, digits)
+        lower <- round(row$`2.5%`, digits)
+        upper <- round(row$`97.5%`, digits)
+      }
+      
+      # Create format string with correct number of decimal places
+      if (use_signif == FALSE) {
+        
+            # For round(), use fixed decimal places
+            format_str <- sprintf("%%.%df~(%%.%df,~%%.%df)", digits, digits, digits)
+            sprintf(format_str, median, lower, upper)
+        
+      } else {
+        
+            # For signif(), use %g to display appropriately
+            sprintf("%g~(%g,~%g)", median, lower, upper)
+        
+      }
+  
+}
 
 
 
 
 
-# Function 1: Create meta-regression coefficients table
+# Create meta-regression coefficients table
+#' @export
 create_metareg_coef_table <- function(beta_tibble, 
-                                      test_names = c("GAD-2", "GAD-7", "HADS", "BAI")) {
+                                      digits = 3,
+                                      use_signif = FALSE,
+                                      test_names
+) {
   
           lines <- c()
           
           # Header
           lines <- c(lines,
-                     "\\begin{table}[!h]",
+                     "\\begin{table}[H]",
                      "\\centering",
                      "\\caption{Meta-regression coefficients (probit scale)}",
                      "\\small",
@@ -2151,6 +3043,10 @@ create_metareg_coef_table <- function(beta_tibble,
                      "& \\multicolumn{1}{c}{Non-diseased} & \\multicolumn{1}{c}{Diseased} \\\\",
                      "\\midrule"
           )
+          
+          format_val <- function(row) {
+            sprintf("%.3f (%.3f, %.3f)", row$`50%`, row$`2.5%`, row$`97.5%`)
+          }
           
           # Process each test
           for (test in test_names) {
@@ -2168,14 +3064,20 @@ create_metareg_coef_table <- function(beta_tibble,
               
               # Format values
               if (nrow(nd_row) > 0) {
-                nd_val <- sprintf("%.3f ~ \\ci{%.3f}{%.3f}", nd_row$mean, nd_row$`2.5%`, nd_row$`97.5%`)
+                nd_val <- latex_format_val(row = nd_row, 
+                                           digits = digits,
+                                           use_signif = use_signif)
+                # nd_val <- sprintf("%.3f ~ \\ci{%.3f}{%.3f}", nd_row$mean, nd_row$`2.5%`, nd_row$`97.5%`)
                 if (nd_row$is_significant) nd_val <- sprintf("\\mathbf{%s}", nd_val)
               } else {
                 nd_val <- "--"
               }
               
               if (nrow(d_row) > 0) {
-                d_val <- sprintf("%.3f ~ \\ci{%.3f}{%.3f}", d_row$mean, d_row$`2.5%`, d_row$`97.5%`)
+                d_val <- latex_format_val(row = d_row,
+                                          digits = digits,
+                                          use_signif = use_signif)
+                # d_val <- sprintf("%.3f ~ \\ci{%.3f}{%.3f}", d_row$mean, d_row$`2.5%`, d_row$`97.5%`)
                 if (d_row$is_significant) d_val <- sprintf("\\mathbf{%s}", d_val)
               } else {
                 d_val <- "--"
@@ -2220,23 +3122,71 @@ create_metareg_coef_table <- function(beta_tibble,
 
 
 
-# Function 2: Create heterogeneity comparison table
-create_heterogeneity_comparison_table <- function(total_SD_intercept, total_SD_covariate,
-                                                  beta_sigma_intercept, beta_sigma_covariate,
-                                                  beta_tau_intercept, beta_tau_covariate,
-                                                  beta_corr_intercept, beta_corr_covariate,
-                                                  rho12_intercept, rho12_covariate) {
+#  Create heterogeneity comparison table (MR vs. Intercept-only NMA model):
+#' @export
+create_heterogeneity_comparison_table <- function(MR_model_summary_and_trace_obj,
+                                                  Intercept_only_model_summary_and_trace_obj,
+                                                  compound_symmetry = TRUE,
+                                                  digits = 3,
+                                                  use_signif = FALSE
+) {
+  
+          ##
+          ## ---- Make tibbles needed for (best/chosen according to K-fold CV) NMA meta-regression model:
+          ##
+          {
+            ##
+            total_SD_covariate <- MR_model_summary_and_trace_obj$extract_params(params = c("total_SD_inc_C")) %>% 
+              select(parameter, `2.5%`, `50%`, `97.5%`, n_eff, Rhat) %>% 
+              print(n = 100)
+            ##
+            beta_sigma_covariate <- MR_model_summary_and_trace_obj$extract_params(params = c("beta_sigma")) %>% 
+              select(parameter, `2.5%`, `50%`, `97.5%`, n_eff, Rhat) %>% 
+              print(n = 100)
+            ##
+            beta_tau_covariate <- MR_model_summary_and_trace_obj$extract_params(params = c("beta_tau")) %>% 
+              select(parameter, `2.5%`, `50%`, `97.5%`, n_eff, Rhat) %>% 
+              print(n = 100)
+            ##
+            beta_corr_covariate <- MR_model_summary_and_trace_obj$extract_params(params = c("beta_corr")) %>% 
+              select(parameter, `2.5%`, `50%`, `97.5%`, n_eff, Rhat) %>% 
+              print(n = 100)
+            ##
+            rho12_covariate <- MR_model_summary_and_trace_obj$extract_params(params = c("rho12")) %>% 
+              select(parameter, `2.5%`, `50%`, `97.5%`, n_eff, Rhat) %>% 
+              print(n = 100)
+          }
+          ##
+          ## ---- Make tibbles needed for (best/chosen according to K-fold CV) NON-MR (i.e. intercept-only) NMA model:
+          ##
+          {
+            ##
+            total_SD_intercept <- Intercept_only_model_summary_and_trace_obj$extract_params(params = c("total_SD_inc_C")) %>% 
+              select(parameter, `2.5%`, `50%`, `97.5%`, n_eff, Rhat) %>% 
+              print(n = 100)
+            ##
+            beta_sigma_intercept <- Intercept_only_model_summary_and_trace_obj$extract_params(params = c("beta_sigma")) %>% 
+              select(parameter, `2.5%`, `50%`, `97.5%`, n_eff, Rhat) %>% 
+              print(n = 100)
+            ##
+            beta_tau_intercept <- Intercept_only_model_summary_and_trace_obj$extract_params(params = c("beta_tau")) %>% 
+              select(parameter, `2.5%`, `50%`, `97.5%`, n_eff, Rhat) %>% 
+              print(n = 100)
+            ##
+            beta_corr_intercept <- Intercept_only_model_summary_and_trace_obj$extract_params(params = c("beta_corr")) %>% 
+              select(parameter, `2.5%`, `50%`, `97.5%`, n_eff, Rhat) %>% 
+              print(n = 100)
+            ##
+            rho12_intercept <- Intercept_only_model_summary_and_trace_obj$extract_params(params = c("rho12")) %>% 
+              select(parameter, `2.5%`, `50%`, `97.5%`, n_eff, Rhat) %>% 
+              print(n = 100)
+          }
   
           lines <- c()
           
-          # Helper function to format values
-          format_val <- function(row) {
-            sprintf("%.3f ~ \\ci{%.3f}{%.3f}", row$`50%`, row$`2.5%`, row$`97.5%`)
-          }
-          
           # Header
           lines <- c(lines,
-                     "\\begin{table}[!h]",
+                     "\\begin{table}[H]",
                      "\\centering",
                      "\\caption{Impact of covariates on heterogeneity parameters}",
                      "\\small",
@@ -2253,40 +3203,121 @@ create_heterogeneity_comparison_table <- function(total_SD_intercept, total_SD_c
           lines <- c(lines,
                      "\\multicolumn{3}{l}{\\textit{\\textbf{NMA shared between-study SD's:}}} \\\\",
                      sprintf("$\\sigma_{\\beta}^{(d-)}$ & $%s$ & $%s$ \\\\",
-                             format_val(beta_sigma_intercept[1,]),
-                             format_val(beta_sigma_covariate[1,])),
+                             latex_format_val(row =  beta_sigma_intercept[1,],
+                                              digits = digits,
+                                              use_signif = use_signif),
+                             latex_format_val(row =  beta_sigma_covariate[1,],
+                                              digits = digits,
+                                              use_signif = use_signif)),
                      sprintf("$\\sigma_{\\beta}^{(d+)}$ & $%s$ & $%s$ \\\\",
-                             format_val(beta_sigma_intercept[2,]),
-                             format_val(beta_sigma_covariate[2,]))
+                             latex_format_val(row =  beta_sigma_intercept[2,],
+                                              digits = digits,
+                                              use_signif = use_signif),
+                             latex_format_val(row =  beta_sigma_covariate[2,],
+                                              digits = digits,
+                                              use_signif = use_signif))
           )
           
-          # Test-specific deviation SD's (CS structure - same for all tests)
+          # Test-specific deviation SD's - MODIFY THIS SECTION ONLY
           lines <- c(lines,
                      "%%%%",
                      "\\midrule",
-                     "%%%%",
-                     "\\multicolumn{3}{l}{\\textit{\\textbf{NMA test-specific deviation SD's (CS structure):}}} \\\\",
-                     sprintf("$\\tau^{(d-)}$ (all tests) & $%s$ & $%s$ \\\\",
-                             format_val(beta_tau_intercept[1,]),  # Just use first row since CS
-                             format_val(beta_tau_covariate[1,])),
-                     sprintf("$\\tau^{(d+)}$ (all tests) & $%s$ & $%s$ \\\\",
-                             format_val(beta_tau_intercept[5,]),  # Row 5 is diseased
-                             format_val(beta_tau_covariate[5,]))
-          )
+                     "%%%%")
           
-          # Total heterogeneity (CS structure - same for all tests)
+          if (compound_symmetry) {
+            lines <- c(lines,
+                       "\\multicolumn{3}{l}{\\textit{\\textbf{NMA test-specific deviation SD's (CS structure):}}} \\\\",
+                       sprintf("$\\tau^{(d-)}$ (all tests) & $%s$ & $%s$ \\\\",
+                               latex_format_val(row = beta_tau_intercept[1,],
+                                                digits = digits,
+                                                use_signif = use_signif),
+                               latex_format_val(row =  beta_tau_covariate[1,],
+                                                digits = digits,
+                                                use_signif = use_signif)))
+                       sprintf("$\\tau^{(d+)}$ (all tests) & $%s$ & $%s$ \\\\",
+                               latex_format_val(row =  beta_tau_intercept[5,],
+                                                digits = digits,
+                                                use_signif = use_signif),
+                               latex_format_val(row =  beta_tau_covariate[5,],
+                                                digits = digits,
+                                                use_signif = use_signif))
+        
+          } else {   # UN - show each test's tau
+            lines <- c(lines,
+                       "\\multicolumn{3}{l}{\\textit{\\textbf{NMA test-specific deviation SD's (UN structure):}}} \\\\")
+            # Assuming 4 tests
+            for (i in 1:4) {
+              lines <- c(lines,
+                         sprintf("$\\tau_%d^{(d-)}$ & $%s$ & $%s$ \\\\", i,
+                                 latex_format_val(row =  beta_tau_intercept[i,],
+                                                  digits = digits,
+                                                  use_signif = use_signif),
+                                 latex_format_val(row =  beta_tau_covariate[i,],
+                                                  digits = digits,
+                                                  use_signif = use_signif)))
+            }
+            for (i in 1:4) {
+              lines <- c(lines,
+                         sprintf("$\\tau_%d^{(d+)}$ & $%s$ & $%s$ \\\\", i,
+                                 latex_format_val(row =  beta_tau_intercept[4+i,],
+                                                  digits = digits,
+                                                  use_signif = use_signif),
+                                 latex_format_val(row =  beta_tau_covariate[4+i,],
+                                                  digits = digits,
+                                                  use_signif = use_signif)))
+            }
+          }
+          
+          # Total heterogeneity - NEED TO MODIFY THIS SECTION
           lines <- c(lines,
                      "%%%%",
                      "\\midrule",
-                     "%%%%",
-                     "\\multicolumn{3}{l}{\\textit{\\textbf{Total within-test, between-study heterogeneity:}}} \\\\",
-                     sprintf("$\\sigma_{total}^{(d-)}$ (all tests) & $%s$ & $%s$ \\\\",
-                             format_val(total_SD_intercept[1,]),  # Just use first row since CS
-                             format_val(total_SD_covariate[1,])),
-                     sprintf("$\\sigma_{total}^{(d+)}$ (all tests) & $%s$ & $%s$ \\\\",
-                             format_val(total_SD_intercept[5,]),  # Row 5 is diseased
-                             format_val(total_SD_covariate[5,]))
-          )
+                     "%%%%")
+          
+          if (compound_symmetry) {
+            # CS - the original code
+            lines <- c(lines,
+                       "\\multicolumn{3}{l}{\\textit{\\textbf{Total within-test, between-study heterogeneity:}}} \\\\",
+                       sprintf("$\\sigma_{total}^{(d-)}$ (all tests) & $%s$ & $%s$ \\\\",
+                               latex_format_val(row =  total_SD_intercept[1,],
+                                                digits = digits,
+                                                use_signif = use_signif),
+                               latex_format_val(row =  total_SD_covariate[1,],
+                                                digits = digits,
+                                                use_signif = use_signif)),
+                       sprintf("$\\sigma_{total}^{(d+)}$ (all tests) & $%s$ & $%s$ \\\\",
+                               latex_format_val(row =  total_SD_intercept[5,],
+                                                digits = digits,
+                                                use_signif = use_signif),
+                               latex_format_val(row =  total_SD_covariate[5,],
+                                                digits = digits,
+                                                use_signif = use_signif))
+            )
+          } else {
+            # UN - show each test
+            lines <- c(lines,
+                       "\\multicolumn{3}{l}{\\textit{\\textbf{Total within-test, between-study heterogeneity:}}} \\\\")
+            for (i in 1:4) {
+              lines <- c(lines,
+                         sprintf("$\\sigma_{total,%d}^{(d-)}$ & $%s$ & $%s$ \\\\", i,
+                                 latex_format_val(row =  total_SD_intercept[i,],
+                                                  digits = digits,
+                                                  use_signif = use_signif),
+                                 latex_format_val(row =  total_SD_covariate[i,],
+                                                  digits = digits,
+                                                  use_signif = use_signif)))
+            }
+            for (i in 1:4) {
+              lines <- c(lines,
+                         sprintf("$\\sigma_{total,%d}^{(d+)}$ & $%s$ & $%s$ \\\\", i,
+                                 latex_format_val(row = total_SD_intercept[4+i,],
+                                                  digits = digits,
+                                                  use_signif = use_signif),
+                                 latex_format_val(row = total_SD_covariate[4+i,],
+                                                  digits = digits,
+                                                  use_signif = use_signif)))
+            }
+          }
           
           # Correlation structure
           lines <- c(lines,
@@ -2295,14 +3326,22 @@ create_heterogeneity_comparison_table <- function(total_SD_intercept, total_SD_c
                      "%%%%",
                      "\\multicolumn{3}{l}{\\textit{\\textbf{Correlation structure:}}} \\\\",
                      sprintf("$\\rho_{\\beta}$ (NMA shared corr.) & $%s$ & $%s$ \\\\",
-                             format_val(beta_corr_intercept),
-                             format_val(beta_corr_covariate)),
+                             latex_format_val(row = beta_corr_intercept,
+                                              digits = digits,
+                                              use_signif = use_signif),
+                             latex_format_val(row = beta_corr_covariate,
+                                              digits = digits,
+                                              use_signif = use_signif)),
                      sprintf("$\\rho_{12}$ (within-test corr.) & $%s$ & $%s$ \\\\",
-                             format_val(rho12_intercept[1,]),  # Just use first non-NA row
-                             format_val(rho12_covariate[1,]))
+                             latex_format_val(row = rho12_intercept[1,],
+                                              digits = digits,
+                                              use_signif = use_signif),
+                             latex_format_val(row = rho12_covariate[1,],
+                                              digits = digits,
+                                              use_signif = use_signif))
           )
           
-          # Footer
+          # Footer - slight modification for CS/UN
           lines <- c(lines,
                      "%%%%",
                      "\\bottomrule",
@@ -2311,8 +3350,13 @@ create_heterogeneity_comparison_table <- function(total_SD_intercept, total_SD_c
                      "%%%%",
                      "\\begin{tablenotes}",
                      "\\footnotesize",
-                     "\\item Both models use fixed cutpoints with compound symmetry correlation (Model A specification).",
-                     "\\item CS = compound symmetry; all tests share the same variance components.",
+                     sprintf("\\item Both models use fixed cutpoints with %s correlation structure.",
+                             ifelse(compound_symmetry, "compound symmetry", "unstructured")),
+                     sprintf("\\item %s; %s.",
+                             ifelse(compound_symmetry, "CS = compound symmetry", "UN = unstructured"),
+                             ifelse(compound_symmetry, 
+                                    "all tests share the same variance components",
+                                    "each test has its own variance components")),
                      "\\end{tablenotes}",
                      "%%%%",
                      "\\end{table}"
@@ -2322,7 +3366,11 @@ create_heterogeneity_comparison_table <- function(total_SD_intercept, total_SD_c
   
 }
 
- 
+
+
+
+
+
 
 
 

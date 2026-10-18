@@ -57,6 +57,15 @@ transformed data {
         }
     }
     
+    for (k in 1:n_thr) {
+        n_studies_per_thr[k] = 0;
+        for (s in 1:n_studies) {
+            if (study_has_thr[k, s] == 1) {
+                n_studies_per_thr[k] += 1;
+            }
+        }
+    }
+    
     // Process each study
     for (s in 1:n_studies) {
         // For each threshold k (1 to n_thr)
@@ -121,58 +130,73 @@ transformed data {
 
 
 parameters {
-        // Separate parameters for each threshold
-        array[n_thr] vector[2] mu;  // [threshold][1=sens, 2=spec]
-        array[n_thr] cholesky_factor_corr[2] L_Omega;
-        array[n_thr] vector<lower=0>[2] sigma;
-        array[n_thr, n_studies] vector[2] z;  // random effects
+    //// Separate parameters for each threshold
+    array[n_thr] vector[2] mu;  // [threshold][1=sens, 2=spec]
+    array[n_thr] cholesky_factor_corr[2] L_Omega;
+    array[n_thr] vector<lower=0.0>[2] sigma;
+    array[n_thr, n_studies] vector[2] z;  // random effects
 }
 
 transformed parameters {
-    // Study-specific logit probabilities
-    array[n_thr, n_studies] vector[2] logit_pi;
+    //// Study-specific logit probabilities
+    array[n_thr, n_studies] vector[2] probit_pi;
     
     for (k in 1:n_thr) {
         for (s in 1:n_studies) {
             if (study_has_thr[k, s] == 1) {
-                logit_pi[k, s] = mu[k] + diag_pre_multiply(sigma[k], L_Omega[k]) * z[k, s];
+                probit_pi[k, s] = mu[k] + diag_pre_multiply(sigma[k], L_Omega[k]) * z[k, s];
             }
         }
     }
 }
 
 model {
-    // Priors for each threshold
+    //// ---- Priors for each threshold:
     for (k in 1:n_thr) {
-        mu[k, 1] ~ normal(0, 1);
-        mu[k, 2] ~ normal(0, 1);
-        
-        sigma[k, 1] ~ normal(0, 1); 
-        sigma[k, 2] ~ normal(0, 1);
-        
-        L_Omega[k] ~ lkj_corr_cholesky(2);
-        
-        // Random effects for studies with this threshold
-        for (s in 1:n_studies) {
-            // if (study_has_thr[k, s] == 1) {
-                z[k, s] ~ std_normal();
-            // }
-        }
+      
+          mu[k, 1:2] ~ normal(0, 1);
+          if (n_studies_per_thr[k] > 2) { 
+            
+                sigma[k, 1:2] ~ normal(0, 1); 
+                L_Omega[k] ~ lkj_corr_cholesky(2);
+              
+          } else if (n_studies_per_thr[k] == 2) {
+               
+                sigma[k, 1:2] ~ normal(0, 0.25); 
+                L_Omega[k] ~ lkj_corr_cholesky(24);
+                
+          } else if (n_studies_per_thr[k] == 1) {
+            
+                sigma[k, 1:2] ~ normal(0, 0.01); 
+                L_Omega[k] ~ lkj_corr_cholesky(50);
+                
+          } else { 
+                sigma[k, 1:2] ~ normal(0.0, 1.0);
+          }
+            
+          // Random effects for studies with this threshold
+          for (s in 1:n_studies) {
+               // if (study_has_thr[k, s] == 1) {
+                  z[k, s] ~ std_normal();
+               // }
+          }
+          
     }
-    
-    // Likelihood
+    //// ---- Likelihood:
     for (k in 1:n_thr) {
         for (s in 1:n_studies) {
             if (study_has_thr[k, s] == 1) {
+              
                 int n_diseased = TP[k, s] + FN[k, s];
                 int n_nondiseased = TN[k, s] + FP[k, s];
                 
                 if (n_diseased > 0) {
-                    TP[k, s] ~ binomial(n_diseased, Phi(logit_pi[k, s, 1]));
+                    TP[k, s] ~ binomial(n_diseased, Phi(probit_pi[k, s, 1]));
                 }
                 if (n_nondiseased > 0) {
-                    TN[k, s] ~ binomial(n_nondiseased, Phi(logit_pi[k, s, 2]));
+                    TN[k, s] ~ binomial(n_nondiseased, Phi(probit_pi[k, s, 2]));
                 }
+                
             }
         }
     }
@@ -184,14 +208,14 @@ generated quantities {
         vector[n_thr] Sp_baseline;
         vector[n_thr] Fp_baseline;
         ////
-        // Predictive values
-        vector[n_thr] Se_baseline_pred;
-        vector[n_thr] Sp_baseline_pred;
-        vector[n_thr] Fp_baseline_pred;
+        // // Predictive values
+        // vector[n_thr] Se_baseline_pred;
+        // vector[n_thr] Sp_baseline_pred;
+        // vector[n_thr] Fp_baseline_pred;
         ////
-        // Between-study correlations and variances
-        array[n_thr] corr_matrix[2] Omega;
-        array[n_thr] matrix[2, 2] Sigma;
+        // // Between-study correlations and variances
+        // array[n_thr] corr_matrix[2] Omega;
+        // array[n_thr] matrix[2, 2] Sigma;
         ////
         // Log-likelihood for model comparison
         // array[n_thr, n_studies, 2] real log_lik;
@@ -206,37 +230,41 @@ generated quantities {
                 Sp_baseline[k] = inv_logit(mu[k, 2]);
             }
             Fp_baseline[k] = 1 - Sp_baseline[k];
-            
-            // Between-study correlation and covariance
-            Omega[k] = multiply_lower_tri_self_transpose(L_Omega[k]);
-            Sigma[k] = quad_form_diag(Omega[k], sigma[k]);
-            
-            // Predictive accuracy
-            vector[2] pred = multi_normal_rng(mu[k], Sigma[k]);
-            if (use_probit_link == 1) {
-                Se_baseline_pred[k] = safe_Phi(pred[1]);
-                Sp_baseline_pred[k] = safe_Phi(pred[2]);
-            } else {
-                Se_baseline_pred[k] = inv_logit(pred[1]);
-                Sp_baseline_pred[k] = inv_logit(pred[2]);
-            }
-            Fp_baseline_pred[k] = 1 - Sp_baseline_pred[k];
-            
-            // // Diagnostic measures
-            // DOR[k] = (Se_baseline[k] * Sp_baseline[k]) / ((1 - Se_baseline[k]) * (1 - Sp_baseline[k]));
-            // LRp[k] = Se_baseline[k] / (1 - Sp_baseline[k]);
-            // LRn[k] = (1 - Se_baseline[k]) / Sp_baseline[k];
-            
-            // // Log-likelihood for each study at this threshold
-            // for (i in 1:n_studies_per_thr[k]) {
-            //     int s = study_index[k, i];
-            //     int pos = TP[k, i] + FN[k, i];
-            //     int neg = TN[k, i] + FP[k, i];
-            //     
-            //     log_lik[k, s, 1] = binomial_logit_lpmf(TP[k, i] | pos, logit_pi[k, s, 1]);
-            //     log_lik[k, s, 2] = binomial_logit_lpmf(TN[k, i] | neg, logit_pi[k, s, 2]);
-            // }
         }
+            
+        // for (k in 1:n_thr) {
+        //     if (n_studies_per_thr[k] > 1) {
+        //         // Between-study correlation and covariance
+        //         Omega[k] = multiply_lower_tri_self_transpose(L_Omega[k]);
+        //         Sigma[k] = quad_form_diag(Omega[k], sigma[k]);
+        //         
+        //         // Predictive accuracy
+        //         vector[2] pred = multi_normal_rng(mu[k], Sigma[k]);
+        //         if (use_probit_link == 1) {
+        //             Se_baseline_pred[k] = safe_Phi(pred[1]);
+        //             Sp_baseline_pred[k] = safe_Phi(pred[2]);
+        //         } else {
+        //             Se_baseline_pred[k] = inv_logit(pred[1]);
+        //             Sp_baseline_pred[k] = inv_logit(pred[2]);
+        //         }
+        //         Fp_baseline_pred[k] = 1 - Sp_baseline_pred[k];
+        //     }
+        //     
+        //     // // Diagnostic measures
+        //     // DOR[k] = (Se_baseline[k] * Sp_baseline[k]) / ((1 - Se_baseline[k]) * (1 - Sp_baseline[k]));
+        //     // LRp[k] = Se_baseline[k] / (1 - Sp_baseline[k]);
+        //     // LRn[k] = (1 - Se_baseline[k]) / Sp_baseline[k];
+        //     
+        //     // // Log-likelihood for each study at this threshold
+        //     // for (i in 1:n_studies_per_thr[k]) {
+        //     //     int s = study_index[k, i];
+        //     //     int pos = TP[k, i] + FN[k, i];
+        //     //     int neg = TN[k, i] + FP[k, i];
+        //     //     
+        //     //     log_lik[k, s, 1] = binomial_logit_lpmf(TP[k, i] | pos, logit_pi[k, s, 1]);
+        //     //     log_lik[k, s, 2] = binomial_logit_lpmf(TN[k, i] | neg, logit_pi[k, s, 2]);
+        //     // }
+        // }
 }
 
 

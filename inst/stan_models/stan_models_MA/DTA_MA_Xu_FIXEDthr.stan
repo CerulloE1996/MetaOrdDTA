@@ -12,6 +12,61 @@ functions {
         #include "Stan_fns_simplex.stan"
         #include "Stan_fns_Jacobian.stan"  
         #include "Stan_fns_model_fit.stan"
+        
+        // // Induced Dirichlet log-density given cutpoints C:
+        // real induced_dirichlet_lpdf( vector ord_probs, 
+        //                              vector C_vec, 
+        //                              vector alpha, 
+        //                              int use_probit,
+        //                              real anchor) {
+        //                                
+        //           int K = num_elements(ord_probs);
+        //           int n_thr = K - 1;
+        //           real lp = 0.0;
+        //           // Dirichlet on category probs:
+        //           lp += dirichlet_lpdf(ord_probs | alpha);
+        //           // Jacobian: d(cumul_prob)/d(C) = pdf(C)
+        //           for (k in 1:n_thr) {
+        //               if (use_probit == 1) {
+        //                   lp += std_normal_lpdf(C_vec[k] - anchor);
+        //               } else {
+        //                   // logistic density
+        //                   lp += log_inv_logit(C_vec[k] - anchor) + log1m_inv_logit(C_vec[k] - anchor);
+        //               }
+        //           }
+        //           return lp;
+        //       
+        // }
+        
+        // real induced_dirichlet_lpdf( vector c, 
+        //                              vector alpha, 
+        //                              real anchor) {
+        //                                
+        //           int K = num_elements(c) + 1;
+        //           vector[K - 1] sigma = Phi(c - anchor);
+        //           vector[K] p;
+        //           matrix[K, K] J = rep_matrix(0, K, K);
+        //           
+        //           // Induced ordinal probabilities
+        //           p[1] = 1 - sigma[1];
+        //           for (k in 2:(K - 1))
+        //             p[k] = sigma[k - 1] - sigma[k];
+        //           p[K] = sigma[K - 1];
+        //           
+        //           // Baseline column of Jacobian
+        //           for (k in 1:K) J[k, 1] = 1;
+        //           
+        //           // Diagonal entries of Jacobian
+        //           for (k in 2:K) {
+        //             real rho = std_normal_lpdf(c - anchor[k - 1]); // sigma[k - 1] * (1 - sigma[k - 1]);
+        //             J[k, k] = - rho;
+        //             J[k - 1, k] = rho;
+        //           }
+        //           
+        //           return   dirichlet_lpdf(p | alpha) + log_determinant(J);
+        //           
+        // }
+
 }
 
 
@@ -95,6 +150,9 @@ parameters {
         real<lower=beta_corr_lb, upper=beta_corr_ub> beta_corr;  //// between-study corr (possibly restricted)  
         //// 
         array[2] vector<lower=-7.5, upper=2.5>[n_thr] C_raw_vec;   //// Global cutpoints ("raw" / unconstrained) 
+        /// array[2] vector[n_thr] C_raw_vec; 
+        ////
+        // matrix[n_studies, 2] beta_random;
 }  
 
 
@@ -144,17 +202,24 @@ model {
         //// ---- Induced-dirichlet ** Prior ** model:
         //// 
         for (c in 1:2) {
-             vector[n_cat] Ind_Dir_ord_prob; //// = cumul_probs_to_ord_probs(Phi(C));
-             if (use_probit_link == 1) Ind_Dir_ord_prob = cumul_probs_to_ord_probs(Phi(C[c]));
-             else                      Ind_Dir_ord_prob = cumul_probs_to_ord_probs(inv_logit(C[c]));
+             // vector[n_cat] Ind_Dir_ord_prob; //// = cumul_probs_to_ord_probs(Phi(C));
+             // if (use_probit_link == 1) Ind_Dir_ord_prob = cumul_probs_to_ord_probs(Phi(C[c]));
+             // else                      Ind_Dir_ord_prob = cumul_probs_to_ord_probs(inv_logit(C[c]));
              ////
-             Ind_Dir_ord_prob ~ induced_dirichlet_given_C(
-                                C[c], prior_dirichlet_alpha[c], use_probit_link); // more efficient than Betancourt et al. and seems to work fine. 
+             real anchor_ct = prior_beta_mu_mean[c, 1]; // prior intercepts as anchor point
+             // target += induced_dirichlet_lpdf(Ind_Dir_ord_prob | C[c], prior_dirichlet_alpha[c], 1, anchor_ct);
+             target += induced_dirichlet_lpdf(C[c] | prior_dirichlet_alpha[c], anchor_ct);
+             // Ind_Dir_ord_prob ~ induced_dirichlet_given_C(
+             //                    C[c], prior_dirichlet_alpha[c], use_probit_link); // more efficient than Betancourt et al. and seems to work fine. 
         }
         //// 
         //// ---- Likelihood / Model:
         ////
-        target += std_normal_lpdf(to_vector(beta_z)); 
+        // for (s in 1:n_studies) {
+        //    beta_random[s, 1:2] ~ multi_normal_cholesky(rep_vector(0.0, 2), beta_L_Sigma);
+        // }
+        ////
+        target += std_normal_lpdf(to_vector(beta_z));
         for (c in 1:2) {
                 target += raw_C_to_C_log_det_J_lp(C_raw_vec[c], softplus);
         }
@@ -192,11 +257,11 @@ generated quantities {
       //// ---- Calculate baseline Se/Sp:
       ////
       vector[n_thr] Fp_baseline = (use_probit_link == 1) ? 
-                                  safe_Phi(-(C[1]  - Xbeta_baseline_nd))  : 
+                                  Phi(-(C[1]  - Xbeta_baseline_nd))  : 
                                   inv_logit(-(C[1] - Xbeta_baseline_nd));
       vector[n_thr] Sp_baseline = 1.0 - Fp_baseline;
       vector[n_thr] Se_baseline = (use_probit_link == 1) ? 
-                                  safe_Phi(-(C[2] - Xbeta_baseline_d))   : 
+                                  Phi(-(C[2] - Xbeta_baseline_d))   : 
                                   inv_logit(-(C[2] - Xbeta_baseline_d));
       //// 
       //// ---- Calculate predictive accuracy:
@@ -209,24 +274,24 @@ generated quantities {
       real Xbeta_baseline_pred_d  = dot_product(baseline_case_d,  beta_mu[2, 1:n_covariates_d])  + beta_random_pred[2];
       ////
       vector[n_thr] Fp_baseline_pred = (use_probit_link == 1) ? 
-                                       safe_Phi(-(C[1]  - Xbeta_baseline_pred_nd)) : 
+                                       Phi(-(C[1]  - Xbeta_baseline_pred_nd)) : 
                                        inv_logit(-(C[1] - Xbeta_baseline_pred_nd));
       vector[n_thr] Sp_baseline_pred = 1.0 - Fp_baseline_pred;
       vector[n_thr] Se_baseline_pred = (use_probit_link == 1) ? 
-                                       safe_Phi(-(C[2]  - Xbeta_baseline_pred_d))  : 
+                                       Phi(-(C[2]  - Xbeta_baseline_pred_d))  : 
                                        inv_logit(-(C[2] - Xbeta_baseline_pred_d));
       ////
       //// ---- Log-lik + study-specific accuracy computation (using "data" / double-precision fn for efficiency):
       ////
       vector[n_studies] log_lik_study = rep_vector(0.0, n_studies);
       ////
-      matrix[n_studies, n_thr] fp; // global
-      matrix[n_studies, n_thr] sp; // global
-      matrix[n_studies, n_thr] se; // global
-      ////
-      vector[n_studies] deviance_nd; // global
-      vector[n_studies] deviance_d;  // global
-      vector[n_studies] deviance;    // global
+      // matrix[n_studies, n_thr] fp; // global
+      // matrix[n_studies, n_thr] sp; // global
+      // matrix[n_studies, n_thr] se; // global
+      // ////
+      // vector[n_studies] deviance_nd; // global
+      // vector[n_studies] deviance_d;  // global
+      // vector[n_studies] deviance;    // global
       {
           // real scale = 1.0; // since using "Xu-like"" param.
           array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_to_fixed_hetero_C(
@@ -254,28 +319,28 @@ generated quantities {
           array[2] matrix[n_studies, n_thr] cond_prob = outs[2];
           array[2] matrix[n_studies, n_thr] surv_prob = outs[3];
           // ////
-          fp = surv_prob[1];
-          sp = 1.0 - fp;
-          se = surv_prob[2];
-          ////
-          //// ---- Model fit (deviance):
-          ////
-          array[4] matrix[n_studies, n_thr] outs_model_fit = compute_deviance(
-                                                             cond_prob, n_thr, n_studies, 
-                                                             x_2, n, n_obs_cutpoints);
-          ////
-          matrix[n_studies, n_thr] x_hat_nd = outs_model_fit[1];
-          matrix[n_studies, n_thr] dev_nd   = outs_model_fit[2];
-          matrix[n_studies, n_thr] x_hat_d  = outs_model_fit[3];
-          matrix[n_studies, n_thr] dev_d    = outs_model_fit[4];
-          ////
-          for (s in 1:n_studies) {
-              for (k in 1:to_int(n_obs_cutpoints[s])) {
-                 deviance_nd[s] += dev_nd[s, k];
-                 deviance_d[s]  += dev_d[s, k];
-              }
-              deviance[s] = deviance_nd[s] + deviance_d[s];
-          }
+          // fp = surv_prob[1];
+          // sp = 1.0 - fp;
+          // se = surv_prob[2];
+          // ////
+          // //// ---- Model fit (deviance):
+          // ////
+          // array[4] matrix[n_studies, n_thr] outs_model_fit = compute_deviance(
+          //                                                    cond_prob, n_thr, n_studies, 
+          //                                                    x_2, n, n_obs_cutpoints);
+          // ////
+          // matrix[n_studies, n_thr] x_hat_nd = outs_model_fit[1];
+          // matrix[n_studies, n_thr] dev_nd   = outs_model_fit[2];
+          // matrix[n_studies, n_thr] x_hat_d  = outs_model_fit[3];
+          // matrix[n_studies, n_thr] dev_d    = outs_model_fit[4];
+          // ////
+          // // for (s in 1:n_studies) {
+          // //     for (k in 1:to_int(n_obs_cutpoints[s])) {
+          // //        deviance_nd[s] += dev_nd[s, k];
+          // //        deviance_d[s]  += dev_d[s, k];
+          // //     }
+          // //     deviance[s] = deviance_nd[s] + deviance_d[s];
+          // // }
       }
 
 }

@@ -31,15 +31,17 @@ initialise_update_run_model <- function(      debugging = FALSE,
                                               ##
                                               init_lists_per_chain,
                                               ##
-                                              cmdstanr_args
+                                              cmdstanr_args,
+                                              ##
+                                              algorithm,
+                                              NicoStan_args
 ) {
             
           if (basic_model_options$network) {
             try({ 
               n_index_tests_per_study <- rowSums(indicator_index_test_in_study)
             }, silent = TRUE)
-            print(paste("n_index_tests_per_study = "))
-            cat(n_index_tests_per_study)
+            if (debugging) message("n_index_tests_per_study = ", paste(n_index_tests_per_study, collapse = ", "))
           } else { 
             n_index_tests_per_study <- NULL
           }
@@ -99,8 +101,7 @@ initialise_update_run_model <- function(      debugging = FALSE,
           ##
           ## ---- Prepare / cleanup / update the "stan_data_list" list for the Stan model:
           ##
-          try({ 
-                {
+          {
                       ##
                       if (basic_model_options$cts) { 
                         internal_obj$outs_data$stan_data_list$box_cox <-  advanced_model_options$box_cox
@@ -113,41 +114,21 @@ initialise_update_run_model <- function(      debugging = FALSE,
                       internal_obj$outs_data$stan_data_list$n_thr     <- internal_obj$outs_data$n_thr
                       internal_obj$outs_data$stan_data_list$n_cat     <- internal_obj$outs_data$n_cat
                       ##
+                      internal_obj$outs_data$stan_data_list$compound_symmetry     <- advanced_model_options$compound_symmetry
+                      internal_obj$outs_data$stan_data_list$hetero_sigma     <- advanced_model_options$hetero_sigma
+                      ##
                       internal_obj$outs_data$stan_data_list <- c(internal_obj$outs_data$stan_data_list, priors) ## add priors to "stan_data_list"
-                }
-                ##
-          })
-          # print(paste("internal_obj$outs_data = "))
-          # print(internal_obj$outs_data)
-          print(paste("internal_obj$outs_data$stan_data_list = "))
-          print(internal_obj$outs_data$stan_data_list)
+          }
           ##
           ## ---- Initialise Stan model (shouldn't have to compile again):
           ##
-          try({
-                  ##
-                  internal_obj$outs_stan_model_name$stan_model_file_path <-  system.file(package = "MetaOrdDTA", 
-                                                                 file.path("stan_models", "stan_models_MA", 
-                                                                 internal_obj$outs_stan_model_name$stan_model_file_name))
-                  ##
-                  if (debugging == TRUE) {
-                        ##
-                        ## TEMP / FOR DEBUGGING:
-                        ##
-                        internal_obj$stan_model_MA_path <- "/home/enzo/Documents/Work/PhD_work/R_packages/MetaOrdDTA/inst/stan_models/stan_models_MA"
-                        
-                        if (basic_model_options$prior_only) {
-                          internal_obj$outs_stan_model_name$stan_model_file_path <- file.path( internal_obj$outs_stan_model_name$stan_model_MA_path,
-                                                                          "prior_only",
-                                                                          internal_obj$outs_stan_model_name$stan_model_file_name)
-                        } else { 
-                          internal_obj$outs_stan_model_name$stan_model_file_path <- file.path( internal_obj$outs_stan_model_name$stan_model_MA_path,
-                                                                          internal_obj$outs_stan_model_name$stan_model_file_name)
-                        }
-                  }
-                  print("internal_obj$outs_stan_model_name = ")
-                  print(internal_obj$outs_stan_model_name)
-          })
+          ## The compiler already resolved the correct MA/NMA and prior-only path.
+          ## The previous code overwrote every path with the MA directory.
+          internal_obj$outs_stan_model_name$stan_model_file_path <-
+            internal_obj$outs_stan_compile$stan_model_file_path
+          if (debugging) {
+            message("Stan model: ", internal_obj$outs_stan_model_name$stan_model_file_path)
+          }
           ##
           ## ---- Remove any duplicates from "stan_data_list":
           ##
@@ -167,7 +148,7 @@ initialise_update_run_model <- function(      debugging = FALSE,
           #               init_lists_per_chain[[i]][[1]] <- NULL
           #             }
           #             
-          #             # Or give it a name if it's required by your model
+          #             # Or give it a name if it's required by the model
           #             # names(init_lists_per_chain[[i]])[1] <- "parameter_name"
           #     }
           # })
@@ -178,8 +159,7 @@ initialise_update_run_model <- function(      debugging = FALSE,
           # # try(( init_lists_per_chain <- NULL))
           # # init_lists_per_chain[[1]]
           # init_lists_per_chain[[1]]$inits
-          try({
-            
+          {
                 # 
                 # internal_obj$outs_stan_compile$stan_model_obj$variables()$parameters
                 # 
@@ -213,7 +193,7 @@ initialise_update_run_model <- function(      debugging = FALSE,
                                                 n_chains             = MCMC_params$n_chains,
                                                 init_lists_per_chain = init_lists_per_chain)
           
-          })
+          }
           # internal_obj$outs_data$stan_data_list$n[[1]][[1]]
           # init_lists_per_chain[[1]]
           ##
@@ -223,11 +203,21 @@ initialise_update_run_model <- function(      debugging = FALSE,
           ##
           if (debugging) message(paste("initialise_update_run_model", "hello_there_5"))
           ##
-          try({ internal_obj$stan_data_list$priors <- NULL }, silent = TRUE)
-          ##
-          try({
-            try({
-              internal_obj$outs_stan_sampling <-   R_fn_sample_model(     
+          ## (algorithm = "NicoStan": the NicoStan version of the model with NicoSIMD's fused AVX functions,
+          ##  sampled with NicoStan; see R_fn_sample_model_with_NicoStan.R)
+          if (identical(algorithm, "NicoStan")) {
+            internal_obj$outs_stan_sampling <- R_fn_sample_model_with_NicoStan(
+                                                     stan_data_list = internal_obj$outs_data$stan_data_list,
+                                                     stan_model_file_name =
+                                                           internal_obj$outs_stan_model_name$stan_model_file_name,
+                                                     n_chains = MCMC_params$n_chains,
+                                                     init_lists_per_chain = init_lists_per_chain,
+                                                     seed = MCMC_params$seed,
+                                                     n_burnin = MCMC_params$n_burnin,
+                                                     n_iter = MCMC_params$n_iter,
+                                                     NicoStan_args = NicoStan_args)
+          } else {
+          internal_obj$outs_stan_sampling <- R_fn_sample_model(
                                                      stan_data_list = internal_obj$outs_data$stan_data_list,
                                                      stan_model_obj = internal_obj$outs_stan_init$stan_model_obj,
                                                      ##
@@ -242,19 +232,9 @@ initialise_update_run_model <- function(      debugging = FALSE,
                                                      metric_shape = MCMC_params$metric_shape,
                                                      ##
                                                      cmdstanr_args = cmdstanr_args)
-                    ##
-                    # internal_obj$outs_stan_sampling <- outs_stan_sampling
-                    # ##
-                    # internal_obj$stan_mod_samples <- outs_stan_sampling$stan_mod_samples
-                    # internal_obj$time_total       <- outs_stan_sampling$time_total
-                    
-            })
-            ##
-            if (debugging) message(paste("initialise_update_run_model", "hello_there_6"))
-            ##
-          })
-          
-          try({ internal_obj$stan_data_list$priors <- NULL }, silent = TRUE)
+          }
+
+          if (debugging) message(paste("initialise_update_run_model", "hello_there_6"))
           
           if (debugging) message(paste("initialise_update_run_model", "hello_there_7"))
           
@@ -279,7 +259,6 @@ initialise_update_run_model <- function(      debugging = FALSE,
 
 
  
-
 
 
 

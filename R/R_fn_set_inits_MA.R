@@ -96,7 +96,7 @@ R_fn_set_inits_MA <- function(    inits,
                   
                 } else if (cts == FALSE) { ## ordinal (Xu-based or R&G-based)
                   
-                             if (model_parameterisation %in% c("HSROC", "R&G", "Gatsonis")) {  
+                           if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
 
                                         ##
                                         ## Set default inits for the locations ("beta"):
@@ -137,7 +137,7 @@ R_fn_set_inits_MA <- function(    inits,
                                                 
                                         }
                                      
-                             } else if (model_parameterisation %in% c("bivariate", "Xu")) { 
+                            } else if (grepl("ord_biv|ordinal_biv|biv|Xu|O-", model_parameterisation, ignore.case = TRUE)) {
 
                                         ##
                                         ## Set default inits for the locations ("beta"):

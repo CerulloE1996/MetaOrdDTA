@@ -7,8 +7,8 @@
 filter_param_draws_string(
   named_draws_array,
   param_string,
-  condition,
-  exclude_NA,
+  condition = "exact_match",
+  exclude_NA = FALSE,
   debugging = FALSE
 )
 }

@@ -164,6 +164,7 @@ parameters {
           ////
           //// ---- Cutpoints and Induced-Dirichlet params:
           //// 
+          // array[2] vector<lower=-7.5, upper=2.5>[n_total_study_thresh] C_raw_vec;  //// RAW LOG-DIFFS
           array[2] vector<lower=-7.5, upper=2.5>[n_total_study_thresh] C_raw_vec;  //// RAW LOG-DIFFS
           array[2] vector<lower=-5.0, upper=5.0>[n_total_C_per_class_if_fixed] raw_dirichlet_phi_vec; // props/probs
           // array[2] vector<lower=0.0, upper=10.0>[n_index_tests] log_kappa; 
@@ -175,7 +176,6 @@ transformed parameters {
           array[2] vector[n_index_tests] log_kappa;
           for (c in 1:2) {
              log_kappa[c] = log(kappa[c]);
-             // kappa[c] = exp(log_kappa[c]);
           }
           ////
           matrix<lower=0.0>[n_index_tests, 2] beta_tau;
@@ -294,8 +294,7 @@ model {
               for (c in 1:2) {
                  log_kappa[c][t] ~ student_t(prior_kappa_df[c][t], prior_kappa_mean[c][t], prior_kappa_SD[c][t]);
                  target += -log_kappa[c][t];
-                 ////
-                 // kappa[c][t] ~ normal(prior_kappa_mean[c][t], prior_kappa_SD[c][t]);
+                 // kappa[c][t] ~ normal(0.0, 1000);
                  ////
                  dirichlet_phi[c][t, 1:n_cat[t]] ~ dirichlet(prior_dirichlet_phi[c][t, 1:n_cat[t]]); // ID prior
                  ////

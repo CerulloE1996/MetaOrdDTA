@@ -35,13 +35,22 @@ data {
           ////
           array[n_index_tests, 2, n_studies, n_thr_max + 1] int x;
           array[n_index_tests, 2, n_studies, n_thr_max + 1] int cutpoint_index;
+          // ////
+          // //// ---- Covariates (w/ missing cts):
+          // ////
+          // array[n_index_tests] int n_missing_cov_nd;  // number of missing values per test
+          // array[n_index_tests] int n_missing_cov_d;   // number of missing values per test
+          // array[n_index_tests, n_studies] int<lower=0, upper=1> has_missing_nd;  // whether a study has ANY missing values
+          // array[n_index_tests, n_studies] int<lower=0, upper=1> has_missing_d;   // whether a study has ANY missing values
+          // array[n_index_tests, n_studies, max(n_covariates_nd)] int<lower=0, upper=1> is_missing_nd; // which SPECIFIC covariates are missing
+          // array[n_index_tests, n_studies, max(n_covariates_d)]  int<lower=0, upper=1> is_missing_d;  // which SPECIFIC covariates are missing
+          // int n_covariates_missing_nd;  // total missing values across all tests
+          // int n_covariates_missing_d;   // total missing values across all tests
           ////
-          //// ---- Covariates:
-          ////
-          array[n_index_tests] int n_covariates_nd;
-          array[n_index_tests] int n_covariates_d;
-          array[n_index_tests] matrix[n_studies, max(n_covariates_nd)] X_nd;
-          array[n_index_tests] matrix[n_studies, max(n_covariates_d)]  X_d;
+          array[n_index_tests] int n_covariates_nd; // total INCLUDING ones w/ missing
+          array[n_index_tests] int n_covariates_d;  // total INCLUDING ones w/ missing
+          array[n_index_tests] matrix[n_studies, max(n_covariates_nd)] X_nd; // "observed" with 999's for missing
+          array[n_index_tests] matrix[n_studies, max(n_covariates_d)]  X_d;   // "observed" with 999's for missing
           array[n_index_tests] vector[max(n_covariates_nd)] baseline_case_nd;
           array[n_index_tests] vector[max(n_covariates_d)]  baseline_case_d;
           ////
@@ -60,7 +69,7 @@ data {
           ////
           //// ---- Induced-Dirichlet priors:
           ////
-          array[n_index_tests] vector<lower=0.0>[n_thr_max + 1] prior_dirichlet_alpha;
+          array[2] matrix<lower=0.0>[n_index_tests, n_thr_max + 1] prior_dirichlet_alpha;
           ////
           //// ---- Other:
           ////
@@ -77,7 +86,7 @@ data {
 transformed data {
           ////
           int n_covariates_max = max(max(n_covariates_nd), max(n_covariates_d));
-          ////
+          //
           array[n_index_tests, 2, n_studies, n_thr_max] int x_2;
           array[n_index_tests, 2, n_studies] int N_total;
           array[n_index_tests, 2, n_studies, n_thr_max] int n;
@@ -143,6 +152,7 @@ parameters {
           ////
           array[n_index_tests] matrix[2, n_covariates_max] beta_mu; 
           ////
+          // array[2] vector<lower=-7.5, upper=2.5>[n_total_C_per_class_if_fixed] C_raw_vec;  //// RAW LOG-DIFFS - Global cutpoints for each test (staggered array/matrix using "n_thr[t]" to index correctly)
           array[2] vector<lower=-7.5, upper=2.5>[n_total_C_per_class_if_fixed] C_raw_vec;  //// RAW LOG-DIFFS - Global cutpoints for each test (staggered array/matrix using "n_thr[t]" to index correctly)
           ////
           //// ---- "NMA" params:
@@ -152,10 +162,49 @@ parameters {
           matrix<lower=0.0>[n_index_tests, 2] beta_tau_raw;
           ////
           real<lower=beta_corr_lb, upper=beta_corr_ub> beta_corr;  //// between-study corr (possibly restricted) 
+          // ////
+          // //// ---- For missing covariates:
+          // ////
+          // vector[n_covariates_missing_nd] missing_cts_cov_vals_nd;
+          // vector[n_covariates_missing_d]  missing_cts_cov_vals_d;
+          // ////
+          // vector[n_covariates_max] mu_cov_pop;
+          // vector<lower=0>[n_covariates_max] sigma_cov_pop;
 }
 
- 
+
 transformed parameters {
+          // array[n_index_tests] matrix[n_studies, max(n_covariates_nd)] X_nd_complete;  // complete
+          // array[n_index_tests] matrix[n_studies, max(n_covariates_d)]  X_d_complete;   // complete
+          // for (t in 1:n_index_tests) {
+          //   X_nd_complete[t] = X_nd[t]; // Initialize with observed
+          //   X_d_complete[t]  = X_d[t];   // Initialize with observed
+          // }
+          // //// ---- Fill in missing cts covariate values:
+          // {
+          //   int pos_nd = 1;
+          //   int pos_d = 1;
+          //   for (t in 1:n_index_tests) {
+          //     for (s in 1:n_studies) {
+          //         if (has_missing_nd[t, s] == 1) {s
+          //           for (cov in 1:n_covariates_nd[t]) {
+          //             if (is_missing_nd[t, s, cov] == 1) {
+          //               X_nd_complete[t][s, cov] = missing_cts_cov_vals_nd[pos_nd];
+          //               pos_nd += 1;
+          //             }
+          //           }
+          //         }
+          //         if (has_missing_d[t, s] == 1) {
+          //           for (cov in 1:n_covariates_d[t]) {
+          //             if (is_missing_d[t, s, cov] == 1) {
+          //               X_d_complete[t][s, cov] = missing_cts_cov_vals_d[pos_d];
+          //               pos_d += 1;
+          //             }
+          //           }
+          //         }
+          //     }
+          //   }
+          // }
           ////
           matrix<lower=0.0>[n_index_tests, 2] beta_tau;
           if (compound_symmetry) {
@@ -251,7 +300,7 @@ model {
                   vector[n_thr_t] Ind_Dir_cumul_prob = (use_probit_link == 1) ? Phi(C_vec_t) : inv_logit(C_vec_t);
                   vector[n_cat_t] Ind_Dir_ord_prob   = cumul_probs_to_ord_probs(Ind_Dir_cumul_prob);
                   Ind_Dir_ord_prob ~ induced_dirichlet_given_C(
-                                     C_vec_t, prior_dirichlet_alpha[t][1:n_cat_t], use_probit_link);
+                                     C_vec_t, to_vector(prior_dirichlet_alpha[c][t, 1:n_cat_t]), use_probit_link);
             }
         }
         ////

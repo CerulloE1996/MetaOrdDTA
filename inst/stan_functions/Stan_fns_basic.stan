@@ -1,32 +1,32 @@
 
 
 
-
-real safe_Phi(real x) {
-  
-    if (is_nan(x)) {
-        return -1.0;  // or whatever default makes sense
-    } else if (x < -37.5) {
-        return 0.0;
-    } else if (x > 8.25) {
-        return 1.0;
-    } else {
-        return Phi(x);
-    }
-    
-}
-vector safe_Phi(vector x) {
-  
-      int N = num_elements(x);
-      vector[N] out;
-      
-      for (n in 1:N) { 
-        out[n] = safe_Phi(x[n]);
-      }
-      
-      return(out);
-      
-}
+// 
+// real safe_Phi(real x) {
+//   
+//     if (is_nan(x)) {
+//         return -1.0;  // or whatever default makes sense
+//     } else if (x < -37.5) {
+//         return 0.0;
+//     } else if (x > 8.25) {
+//         return 1.0;
+//     } else {
+//         return Phi(x);
+//     }
+//     
+// }
+// vector safe_Phi(vector x) {
+//   
+//       int N = num_elements(x);
+//       vector[N] out;
+//       
+//       for (n in 1:N) { 
+//         out[n] = safe_Phi(x[n]);
+//       }
+//       
+//       return(out);
+//       
+// }
 
 
 ////

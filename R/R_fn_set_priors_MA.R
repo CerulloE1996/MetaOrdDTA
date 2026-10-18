@@ -56,7 +56,10 @@ R_fn_set_priors_MA <- function(   priors,
         priors$K_fold_CV_indicator <- if_null_then_set_to(priors$K_fold_CV_indicator, rep(1, n_studies))
         ##
         if (cts == TRUE) { 
-          
+                  
+                  priors$cts_thr_values <- if_null_then_set_to( priors$cts_thr_values,
+                                                                seq(from = 1, to = n_thr, length = n_thr))
+                  ##
                   message("Configuring priors for continuous (Jones et al) -based model")
                   ##
                   ## Set default priors for the locations ("beta") and/or check that priors are in correct format:
@@ -67,13 +70,13 @@ R_fn_set_priors_MA <- function(   priors,
                   ## probit scale so this is ~ unif. (but may rule-out "extreme" values (e.g.,0.999) depending on cutpoint value, 
                   ## so still need to think about the priors!!):
                   priors$prior_beta_mu_SD <- if_null_then_set_to(priors$prior_beta_mu_SD,
-                                                                   matrix(5.0*mult, nrow = 2, ncol = n_covariates_max))
+                                                                   matrix(1.0*mult, nrow = 2, ncol = n_covariates_max))
                   ##
                   priors$prior_beta_SD_mean <- if_null_then_set_to(priors$prior_beta_SD_mean, rep(0.0, 2))
                   ##
                   ## this allows a lot of heterogeneity on the probit scale, e.g.: pnorm(0.0 +/- 2*0.5) gives 15.9%/84.1%.:
                   priors$prior_beta_SD_SD   <- if_null_then_set_to(priors$prior_beta_SD_SD,  
-                                                                   rep(1.0*mult, 2)) 
+                                                                   rep(0.5*mult, 2)) 
                   ##
                   ## Set default priors for the raw scales ("gamma"):
                   ##
@@ -130,7 +133,7 @@ R_fn_set_priors_MA <- function(   priors,
           
                   message("Configuring priors for ordinal model")
                   ##
-                  if (model_parameterisation %in% c("HSROC", "R&G", "Gatsonis")) { 
+                  if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
                     
                           message("Configuring priors for HSROC-based (Rutter & Gatsonis) -based ordinal model")
                           ##
@@ -147,7 +150,7 @@ R_fn_set_priors_MA <- function(   priors,
                           ##
                           ## this allows a lot of heterogeneity on the probit scale, e.g.: pnorm(0.0 +/- 2*0.5) gives 15.9%/84.1%.:
                           priors$prior_beta_SD_SD   <- if_null_then_set_to(priors$prior_beta_SD_SD,   
-                                                                           1.0*mult)
+                                                                           0.5*mult)
                           ##
                           ## Set default priors for the raw scales ("gamma"):
                           ##
@@ -163,7 +166,7 @@ R_fn_set_priors_MA <- function(   priors,
                                                                                             1.0*mult)
                                       ## allows a lot of heterogeneity on the "probit-sp_scaled" scale: sp_scaled(0.0 - 2*0.75) ~ 0.291, sp_scaled(0.0 + 2*0.75) ~ 2.46:
                                       priors$prior_raw_scale_SD_SD   <- if_null_then_set_to(priors$prior_raw_scale_SD_SD, 
-                                                                                            1.0*mult)
+                                                                                            0.5*mult)
                                       
                           } else {    ## if using log-normal / exp() for scales (priors will need to be of smaller magnitude as exp() amplifies much more 
                                       ## that softplus(x)).
@@ -171,12 +174,12 @@ R_fn_set_priors_MA <- function(   priors,
                                                                                             1.0*mult)
                                       ## allows a lot of heterogeneity on the "probit-exp" scale: exp(0.0 - 2*0.5) ~0.37, exp(0.0 + 2*0.5) ~ 7.39:
                                       priors$prior_raw_scale_SD_SD   <- if_null_then_set_to(priors$prior_raw_scale_SD_SD, 
-                                                                                            1.0*mult) 
+                                                                                            0.5*mult) 
                                       
                           }
                           ##
                           
-                  } else if (model_parameterisation %in% c("bivariate", "Xu")) {
+                  } else if (grepl("ord_biv|ordinal_biv|biv|Xu|O-", model_parameterisation, ignore.case = TRUE)) {
                     
                           message("Configuring priors for Xu et al. -based ordinal model")
                           ##
@@ -193,7 +196,7 @@ R_fn_set_priors_MA <- function(   priors,
                                                                            c(0.0, 0.0))
                           ## this allows a lot of heterogeneity on the probit scale, e.g.: pnorm(0.0 +/- 2*0.5) gives 15.9%/84.1%:
                           priors$prior_beta_SD_SD   <- if_null_then_set_to(priors$prior_beta_SD_SD,   
-                                                                           rep(1.0*mult, 2))
+                                                                           rep(0.5*mult, 2))
                           ##
                           ## Set default priors for the between-study corr matricex for beta ("beta_L_Omega") and "raw_scale_L_Omega"):
                           ##
@@ -212,7 +215,7 @@ R_fn_set_priors_MA <- function(   priors,
                           ##
                           ## Set default priors for the cutpoints (using Dirichlet ** priors ** (not model) on the "Induced-Dirichlet" ordinal probs):
                           ##
-                          if (model_parameterisation %in% c("HSROC", "R&G", "Gatsonis")) {
+                          if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
                             priors$prior_dirichlet_alpha <- if_null_then_set_to(priors$prior_dirichlet_alpha, 
                                                                                 rep(1.0, n_cat))
                           } else { 
@@ -226,13 +229,16 @@ R_fn_set_priors_MA <- function(   priors,
                               ##
                               ## Set default priors for the cutpoints  (using Dirichlet ** between-study model ** (not priors) on the "Induced-Dirichlet" ordinal probs):
                               ##
-                          if (model_parameterisation %in% c("HSROC", "R&G", "Gatsonis")) {
+                          if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
                             
                                 priors$prior_dirichlet_alpha <- if_null_then_set_to( priors$prior_dirichlet_alpha, 
                                                                                      rep(1.0, n_thr + 1))
                                 ##
                                 priors$prior_kappa_mean   <-  if_null_then_set_to( priors$prior_kappa_mean, 
                                                                                            log(100))
+                                ##
+                                priors$prior_kappa_dof   <- if_null_then_set_to( priors$prior_kappa_dof, 3)
+                                priors$prior_kappa_df <- priors$prior_kappa_dof
                                 ##
                                 priors$prior_kappa_SD   <-  if_null_then_set_to( priors$prior_kappa_SD, 
                                                                                  1.0)
@@ -247,15 +253,18 @@ R_fn_set_priors_MA <- function(   priors,
                                                                                    list(prior_dirichlet_alpha, prior_dirichlet_alpha))
                                 ##
                                 priors$prior_kappa_mean   <- if_null_then_set_to(  priors$prior_kappa_mean, 
-                                                                                           c(log(200), log(50)))
+                                                                                           c(log(100), log(100)))
                                 ##
                                 priors$prior_kappa_SD   <- if_null_then_set_to(  priors$prior_kappa_SD, 
                                                                                    c(1.0, 1.0))
                                 ##
+                                priors$prior_kappa_dof   <- if_null_then_set_to(  priors$prior_kappa_dof, 
+                                                                                 c(3, 3))
+                                priors$prior_kappa_df <- priors$prior_kappa_dof
+                                ##
                                 priors$kappa_lb <- if_null_then_set_to( priors$kappa_lb, 
                                                                         0.001)
                                 ##
-                                
                                 
                           }
                   }

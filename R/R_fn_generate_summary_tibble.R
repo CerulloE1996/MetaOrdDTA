@@ -41,7 +41,7 @@ generate_summary_tibble <- function(n_threads = NULL,
                                             n_Rhat = NA,
                                             check.names = FALSE)
               
-              # # Effective Sample Size (ESS) and Rhat - using the fast custom RcppParallel fn "BayesMVP::Rcpp_compute_MCMC_diagnostics()"
+              # # Effective Sample Size (ESS) and Rhat - using the fast custom RcppParallel fn "BayesMVPsim::Rcpp_compute_MCMC_diagnostics()"
               posterior_draws_as_std_vec_of_mats <- list()
               ##
               # n_iter <- dim(reformatted_trace)[2]
@@ -65,29 +65,29 @@ generate_summary_tibble <- function(n_threads = NULL,
               if (n_params < n_threads) { n_threads = n_params }
 
               ## Compute summary stats using custom Rcpp/C++ functions:
-              outs <-  (BayesMVP:::Rcpp_compute_chain_stats(   posterior_draws_as_std_vec_of_mats,
+              outs <-  (BayesMVPsim:::Rcpp_compute_chain_stats(   posterior_draws_as_std_vec_of_mats,
                                                     stat_type = "mean",
                                                     n_threads = n_threads))
               means_between_chains <- outs$statistics[, 1]
               ##
-              outs <-  (BayesMVP:::Rcpp_compute_chain_stats(   posterior_draws_as_std_vec_of_mats,
+              outs <-  (BayesMVPsim:::Rcpp_compute_chain_stats(   posterior_draws_as_std_vec_of_mats,
                                                     stat_type = "sd",
                                                     n_threads = n_threads))
               SDs_between_chains <- outs$statistics[, 1]
               ##
-              outs <-  (BayesMVP:::Rcpp_compute_chain_stats(   posterior_draws_as_std_vec_of_mats,
+              outs <-  (BayesMVPsim:::Rcpp_compute_chain_stats(   posterior_draws_as_std_vec_of_mats,
                                                     stat_type = "quantiles",
                                                     n_threads = n_threads))
               quantiles_between_chains <- outs$statistics
           
               #### Compute Effective Sample Size (ESS) and Rhat using custom Rcpp/C++ functions
-              outs <-  (BayesMVP:::Rcpp_compute_MCMC_diagnostics(  posterior_draws_as_std_vec_of_mats,
+              outs <-  (BayesMVPsim:::Rcpp_compute_MCMC_diagnostics(  posterior_draws_as_std_vec_of_mats,
                                                         diagnostic = "split_ESS",
                                                         n_threads = n_threads))
               ess_vec <- outs$diagnostics[, 1]
               # ess_tail_vec <- outs$diagnostics[, 2]
 
-              outs <-  (BayesMVP:::Rcpp_compute_MCMC_diagnostics(  posterior_draws_as_std_vec_of_mats,
+              outs <-  (BayesMVPsim:::Rcpp_compute_MCMC_diagnostics(  posterior_draws_as_std_vec_of_mats,
                                                         diagnostic = "split_rhat",
                                                         n_threads = n_threads))
               rhat_vec <- outs$diagnostics[, 1]

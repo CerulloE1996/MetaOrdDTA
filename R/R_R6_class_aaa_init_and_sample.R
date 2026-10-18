@@ -1,6 +1,4 @@
 
-require(R6)
-
 #' @title MetaOrdDTA Model Class
 #' @description R6 Class for MetaOrdDTA model initialization and sampling.
 #'
@@ -108,13 +106,16 @@ require(R6)
 #' 
 #'
 #' @export
-MetaOrd_model <- R6Class("MetaOrd_model",
+MetaOrd_model <- R6::R6Class("MetaOrd_model",
                     
               public = list(
                     ##
                     ## -------------------------  Store all "important" parameters as class members / define them first:
                     ##
                     debugging = NULL,
+                    ##
+                    baseline_outs_MR = NULL,
+                    pairwise_comparisons_MR = NULL,
                     ##
                     ## ----  Core / internal objects (NOT user-inputted)
                     ##
@@ -209,11 +210,16 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                     ##
                     advanced_model_options = list(
                         model_parameterisation = NULL,
+                        ##
                         random_thresholds = NULL,
                         Dirichlet_random_effects_type = NULL,
+                        ##
                         box_cox = NULL,
                         softplus = NULL,
-                        custom_file_name = NULL
+                        custom_file_name = NULL,
+                        ##
+                        compound_symmetry = NULL,
+                        hetero_sigma = NULL
                     ),
                     ##
                     ## ---- other "advanced" user-inputted options (e.g. C++ compiler flags - OPTIONAL - user-inputted element-by-element)
@@ -301,30 +307,32 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                     ##
                     initialize = function(  debugging = FALSE,
                                             ##
-                                            x = self$x,
+                                            x, ## Mandatory
                                             ##
-                                            intercept_only = self$intercept_only,
+                                            intercept_only, ## Mandatory
                                             cov_data = self$cov_data,
                                             ##
                                             indicator_index_test_in_study = self$indicator_index_test_in_study,
                                             ##
                                             network = NULL,
-                                            cts = NULL,
-                                            prior_only = NULL,
+                                            compound_symmetry = NULL,
+                                            hetero_sigma = NULL,
+                                            ##
+                                            prior_only = FALSE,
                                             ##
                                             ## "Advanced" options for ordinal models ONLY:
                                             ##
-                                            model_parameterisation = NULL,
+                                            model_parameterisation, ## Mandatory
                                             random_thresholds = NULL,
                                             Dirichlet_random_effects_type = NULL,
                                             ##
                                             ## "Advanced" options for cts (i.e., Jones) models ONLY:
                                             ##
-                                            box_cox = NULL,
+                                            box_cox = NULL, ## only for "Jones" model
                                             ##
                                             ## "Advanced" options for ALL models:
                                             ##
-                                            softplus = NULL,
+                                            softplus = FALSE, ## exp() is default (for cutpoints and also scale parameters for "Jones" model)
                                             ##
                                             priors = NULL,
                                             ##
@@ -354,6 +362,44 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                       
                               # message(("aaa_class_hello_1"))
                               ##
+                              if (model_parameterisation %in% c("Jones", "jones")) {
+                                
+                                      cts <- TRUE
+                                      random_thresholds <- FALSE
+                                      Dirichlet_random_effects_type <- "none"
+                                      ##
+                                      if (is.null(box_cox)) { 
+                                        warning("box_cox not specificed - setting to TRUE")
+                                        box_cox <- TRUE
+                                      }
+                                    
+                              } else  {
+                                
+                                    cts <- FALSE
+                                    box_cox <- FALSE
+                                    ##
+                                    if (is.null(random_thresholds)) { 
+                                      warning("random_thresholds not specificed - setting to FALSE")
+                                      random_thresholds <- FALSE
+                                    }
+                                    ##
+                                    if (random_thresholds == TRUE) {
+                                      if (is.null(Dirichlet_random_effects_type)) { 
+                                        warning("Dirichlet_random_effects_type not specificed - setting to 'kappa' (recommended)")
+                                        Dirichlet_random_effects_type <- "kappa"
+                                      }
+                                    }
+                                    ##
+                                    if (grepl("ord_biv|ordinal_biv|biv|Xu|O-", model_parameterisation, ignore.case = TRUE)) {
+                                      
+                                    } else if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
+                                      
+                                    } else { 
+                                      stop("Invalid 'model_parameterisation' selected, must be one of: 'Jones', 'ord_biv', or 'ord_HSROC'")
+                                    }
+                                    
+                              }
+                              ##
                               ## ---- Store important parameters as class members:
                               ##
                               self$debugging <- debugging
@@ -381,6 +427,9 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                               self$advanced_model_options$box_cox  <- box_cox
                               self$advanced_model_options$softplus <- softplus
                               self$advanced_model_options$custom_file_name <- custom_file_name
+                              ##
+                              self$advanced_model_options$compound_symmetry <- compound_symmetry
+                              self$advanced_model_options$hetero_sigma <- hetero_sigma
                               ##
                               ## ---- make INTERNAL "other_advanced_options" list:
                               ##
@@ -486,15 +535,21 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                         ##
                                         indicator_index_test_in_study = self$indicator_index_test_in_study,
                                         ##
-                                        cts = self$basic_model_options$cts,
+                                        # cts = self$basic_model_options$cts,
+                                        ##
                                         network = self$basic_model_options$network,
+                                        compound_symmetry =  self$advanced_model_options$compound_symmetry,
+                                        hetero_sigma =  self$advanced_model_options$hetero_sigma,
+                                        ##
                                         prior_only = self$basic_model_options$prior_only,
                                         ##
                                         model_parameterisation        = self$advanced_model_options$model_parameterisation,
                                         random_thresholds             = self$advanced_model_options$random_thresholds,
                                         Dirichlet_random_effects_type = self$advanced_model_options$Dirichlet_random_effects_type,
+                                        ##
                                         box_cox  = self$advanced_model_options$box_cox,
                                         softplus = self$advanced_model_options$softplus,
+                                        ##
                                         custom_file_name = self$advanced_model_options$custom_file_name,
                                         ##
                                         priors = self$priors,
@@ -508,15 +563,58 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                         seed          = NULL,
                                         n_superchains = NULL,
                                         n_chains = self$MCMC_params$n_chains,
-                                        n_burnin      = 500,
+                                        n_burnin      = 1000,
                                         n_iter        = 1000,
                                         adapt_delta   = 0.80,
                                         max_treedepth = 10,
                                         metric_shape  = "diag_e",
                                         ##
-                                        cmdstanr_args = list()
+                                        cmdstanr_args = list(),
+                                        ##
+                                        ## (algorithm = "NicoStan": sampled with NicoStan, with the NicoStan
+                                        ##  version of the model whose likelihood and priors use NicoSIMD's
+                                        ##  fused AVX functions; NicoStan_args: any other arguments of
+                                        ##  NicoStan's $sample(), e.g. list(adapt_delta = 0.80))
+                                        NicoStan_args = list()
                                         ) {
-                      
+                                
+                                if (model_parameterisation %in% c("Jones", "jones")) {
+                                        
+                                        cts <- TRUE
+                                        random_thresholds <- FALSE
+                                        Dirichlet_random_effects_type <- "none"
+                                        ##
+                                        if (is.null(box_cox)) { 
+                                          warning("box_cox not specificed - setting to TRUE")
+                                          box_cox <- TRUE
+                                        }
+                                  
+                                } else  {
+                                        
+                                        cts <- FALSE
+                                        box_cox <- FALSE
+                                        ##
+                                        if (is.null(random_thresholds)) { 
+                                          warning("random_thresholds not specificed - setting to FALSE")
+                                          random_thresholds <- FALSE
+                                        }
+                                        ##
+                                        if (random_thresholds == TRUE) {
+                                          if (is.null(Dirichlet_random_effects_type)) { 
+                                            warning("Dirichlet_random_effects_type not specificed - setting to 'kappa' (recommended)")
+                                            Dirichlet_random_effects_type <- "kappa"
+                                          }
+                                        }
+                                        ##
+                                        if (grepl("ord_biv|ordinal_biv|biv|Xu|O-", model_parameterisation, ignore.case = TRUE)) {
+                                          
+                                        } else if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
+                                          
+                                        } else { 
+                                          stop("Invalid 'model_parameterisation' selected, must be one of: 'Jones', 'ord_biv', or 'ord_HSROC'")
+                                        }
+                                  
+                                }
                                 ##
                                 ## ---- Validate initialization:
                                 ##
@@ -573,6 +671,8 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                     if (!identical(self$advanced_model_options$box_cox, box_cox))   { self$advanced_model_options$box_cox  <- box_cox  ; params_same <- 0 }
                                     if (!identical(self$advanced_model_options$softplus, softplus)) { self$advanced_model_options$softplus <- softplus ; params_same <- 0 }
                                     if (!identical(self$advanced_model_options$custom_file_name, custom_file_name)) { self$advanced_model_options$custom_file_name <- custom_file_name ; params_same <- 0 }
+                                    if (!identical(self$advanced_model_options$compound_symmetry, compound_symmetry)) { self$advanced_model_options$compound_symmetry <- compound_symmetry ; params_same <- 0 }
+                                    if (!identical(self$advanced_model_options$hetero_sigma, hetero_sigma)) { self$advanced_model_options$hetero_sigma <- hetero_sigma ; params_same <- 0 }
                                     ##
                                     if (!identical(self$priors, priors))         { self$priors     <- priors     ; params_same <- 0 }
                                     ##
@@ -628,7 +728,10 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                                                                                ##
                                                                                                init_lists_per_chain = self$init_lists_per_chain,
                                                                                                ##
-                                                                                               cmdstanr_args = cmdstanr_args)
+                                                                                               cmdstanr_args = cmdstanr_args,
+                                                                                               ##
+                                                                               algorithm = algorithm,
+                                                                               NicoStan_args = NicoStan_args)
 
                                 self$internal_obj <- local_model_samples_obj$internal_obj
                                 ##
@@ -640,7 +743,7 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                 ##
                                 self$init_lists_per_chain <- local_model_samples_obj$init_lists_per_chain
                                                                                      
-                                return(self)
+                                return(invisible(self))
                           
                                         
                       
@@ -685,9 +788,10 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                               stop("Model was not properly initialize")
                             }
                             ##
-                            print(paste("internal_obj = "))
-                            print(str(self$internal_obj))
-                            print(self$internal_obj)
+                            if (debugging) {
+                              message("Summarising fitted MetaOrdDTA model")
+                              str(self$internal_obj, max.level = 1L)
+                            }
                             ##
                             use_BayesMVP_for_faster_summaries <- if_null_then_set_to( use_BayesMVP_for_faster_summaries, 
                                                                                       MetaOrdDTA:::check_if_BayesMVP_R_pkg_installed(TRUE, FALSE))
@@ -1026,31 +1130,28 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                    ##
                    ## --------- Extract Params from summary tibble's
                    ##
-                   #'@param debugging ...
                    #'@param params ...
+                   #'@param debugging ...
                    #'@param tibble ...
                    #'@param condition ...
                    #'@param combine ...
                    #'@return Extract params
-                   extract_params = function( debugging = FALSE,
-                                              params,
+                   extract_params = function( params,
+                                              debugging = FALSE,
                                               tibble = NULL,
                                               condition = "exact_match",
                                               combine = TRUE
                    ) {
                      
                                if (is.null(self$internal_obj)) {
-                                 stop("No model samples object ('internal_obj') available")
-                               }
-                               if (is.null(self$internal_obj)) {
-                                 stop("No model summary + trace object ('internal_obj') available")
+                                 stop("No model object ('internal_obj') available")
                                }
                                ##
                                if (debugging) {
                                  cat("Summary object structure:\n")
                                  str(self$internal_obj)
                                }
-                     
+                               ##
                                if (is.null(tibble)) { 
                                    tibble_main <- self$internal_obj$summaries$summary_tibbles$summary_tibble_main_params
                                    tibble_tp   <- self$internal_obj$summaries$summary_tibbles$summary_tibble_transformed_parameters
@@ -1058,8 +1159,6 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                    ##
                                    tibble <- rbind(tibble_main, tibble_tp, tibble_gq)
                                }
-                     
-                               
                                ##
                                outs <- MetaOrdDTA:::extract_params_from_tibble_batch(   debugging = debugging,
                                                                                         tibble = tibble,
@@ -1074,24 +1173,72 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                    ## --------- Run full K-fold cross-validation
                    ##
                    #'@param debugging ...
-                   #'@param params ...
-                   #'@param tibble ...
-                   #'@param condition ...
-                   #'@param combine ...
+                   #'@param seed ...
+                   #'@param K ...
+                   #'
+                   make_folds_k_fold_CV = function(  debugging = FALSE,
+                                                     seed,
+                                                     K
+                                                  
+                   ) {
+                     
+                               set.seed(seed, kind = "Mersenne-Twister")
+                               ##
+                               network <- self$basic_model_options$network
+                               n_studies <- self$internal_obj$outs_data$stan_data_list$n_studies
+                               indicator_index_test_in_study <- self$indicator_index_test_in_study
+                               ##
+                               fold_assignments <- create_folds(
+                                 indicator_index_test_in_study = indicator_index_test_in_study,
+                                 K = K,
+                                 seed = seed,
+                                 network = network,
+                                 n_studies = n_studies
+                               )
+                               ## Inspect folds:
+                               print(table(fold_assignments))
+                               for (k in 1:K) {
+                                 cat("Fold", k, ":", which(fold_assignments == k), "\n")
+                               }
+                               ##
+                               return(fold_assignments)
+                           
+                   },
+                   ##
+                   ## --------- Run full K-fold cross-validation
+                   ##
+                   #'@param debugging ...
+                   #'@param K ...
+                   #'@param n_burnin ...
+                   #'@param n_iter ...
+                   #'@param n_chains ...
+                   #'@param adapt_delta ...
+                   #'@param max_treedepth ...
+                   #'@param parallel ...
+                   #'@param n_workers ...
+                   #'@param output_dir ...
+                   #'@param use_BayesMVP_for_faster_summaries ...
                    #'@return Extract params
+                   #'
                    run_k_fold_CV = function(  debugging = FALSE,
                                               ##
-                                              K = 10,
+                                              seed,
+                                              fold_assignments = NULL,
                                               ##
-                                              n_burnin = self$MCMC_params$n_burnin,
-                                              n_iter = self$MCMC_params$n_iter,
-                                              n_chains = self$MCMC_params$n_chains,
-                                              adapt_delta = self$MCMC_params$adapt_delta,
-                                              max_treedepth = self$MCMC_params$max_treedepth,
+                                              cmdstanr_args = NULL,
                                               ##
-                                              parallel = "auto",
+                                              init_lists_per_chain = NULL,
+                                              priors = self$priors,
+                                              ##
+                                              n_burnin = 1000,
+                                              n_iter = 1000,
+                                              n_chains = NULL,
+                                              adapt_delta = 0.80,
+                                              max_treedepth = 10,
+                                              ##
+                                              parallel = NULL,
                                               n_workers = NULL,
-                                              output_dir = "cv_results",
+                                              output_dir = metaorddta_output_path("cv_results"),
                                               ##
                                               use_BayesMVP_for_faster_summaries = NULL
                    ) {
@@ -1099,35 +1246,94 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                if (is.null(self$internal_obj)) {
                                  stop("No model samples object ('internal_obj') available")
                                }
-                               use_BayesMVP_for_faster_summaries <- if_null_then_set_to( use_BayesMVP_for_faster_summaries, 
-                                                                                         MetaOrdDTA:::check_if_BayesMVP_R_pkg_installed(TRUE, FALSE))
-                               ##
+                               use_BayesMVP_for_faster_summaries <- if_null_then_set_to( 
+                                                                    use_BayesMVP_for_faster_summaries, 
+                                                                    MetaOrdDTA:::check_if_BayesMVP_R_pkg_installed(TRUE, FALSE))
                                ##
                                model_prep_obj <- self
                                stan_data_list <- self$internal_obj$outs_data$stan_data_list
                                ##
-                               outs <- MetaOrdDTA:::R_fn_run_kfold_cv_auto(  debugging = debugging,
-                                                                             ##
-                                                                             K = K,
-                                                                             ##
-                                                                             model_prep_obj = model_prep_obj,
-                                                                             ##
-                                                                             stan_data_list = stan_data_list,
-                                                                             ##
-                                                                             priors = self$priors,
-                                                                             init_lists_per_chain = self$init_lists_per_chain,
-                                                                             ##
-                                                                             n_burnin = n_burnin,
-                                                                             n_iter = n_iter,
-                                                                             n_chains = n_chains,
-                                                                             adapt_delta = adapt_delta,
-                                                                             max_treedepth = max_treedepth,
-                                                                             ##
-                                                                             parallel = parallel,
-                                                                             n_workers = n_workers,
-                                                                             output_dir = output_dir,
-                                                                             ##
-                                                                             use_BayesMVP_for_faster_summaries = use_BayesMVP_for_faster_summaries)
+                               if (is.null(fold_assignments)) { 
+                                 stop("Please run the '$make_folds_k_fold_CV()' R6 class method to make folds before running K-fold CV")
+                               }
+                               ##
+                               K <- length(unique(fold_assignments))
+                               ##
+                               if (is.null(n_chains)) { 
+                                 n_chains <- 2
+                               }
+                               if (is.null(init_lists_per_chain)) {
+                                 init_lists_per_chain <- self$init_lists_per_chain
+                               }
+                               init_lists_per_chain <- resize_init_list(
+                                 init_lists_per_chain = init_lists_per_chain,
+                                 n_chains_new = n_chains
+                               )
+                               ##
+                               ## ---- Decide whether to use parallel version:
+                               ##
+                               if (is.null(parallel)) {
+                                 # Use parallel if we have enough cores for at least 2 workers
+                                 available_cores <- parallel::detectCores()
+                                 potential_workers <- floor(available_cores / n_chains)
+                                 use_parallel <- potential_workers >= 2 && K >= 4
+                               } else {
+                                 use_parallel <- parallel
+                               }
+                               ##
+                               if (use_parallel) {
+                                 cat("Using PARALLEL k-fold CV\n")
+                                 outs <- R_fn_run_kfold_cv_parallel(   debugging = debugging,
+                                                                       ##
+                                                                       seed = seed,
+                                                                       K = K,
+                                                                       fold_assignments = fold_assignments,
+                                                                       ##
+                                                                       model_prep_obj = model_prep_obj,
+                                                                       stan_data_list = stan_data_list,
+                                                                       ##
+                                                                       cmdstanr_args = cmdstanr_args,
+                                                                       ##
+                                                                       priors = priors,
+                                                                       init_lists_per_chain = init_lists_per_chain,
+                                                                       ##
+                                                                       n_burnin = n_burnin,
+                                                                       n_iter = n_iter,
+                                                                       n_chains = n_chains,
+                                                                       adapt_delta = adapt_delta,
+                                                                       max_treedepth = max_treedepth,
+                                                                       ##
+                                                                       n_workers = n_workers,
+                                                                       output_dir = output_dir,
+                                                                       ##
+                                                                       use_BayesMVP_for_faster_summaries = use_BayesMVP_for_faster_summaries)
+                               } else { 
+                                 cat("Using SEQUENTIAL k-fold CV\n")
+                                 outs <- R_fn_run_kfold_cv(    debugging = debugging,
+                                                               ##
+                                                               seed = seed,
+                                                               K = K,
+                                                               fold_assignments = fold_assignments,
+                                                               ##
+                                                               model_prep_obj = model_prep_obj,
+                                                               stan_data_list = stan_data_list,
+                                                               ##
+                                                               cmdstanr_args = cmdstanr_args,
+                                                               ##
+                                                               priors = priors,
+                                                               init_lists_per_chain = init_lists_per_chain,
+                                                               ##
+                                                               n_burnin = n_burnin,
+                                                               n_iter = n_iter,
+                                                               n_chains = n_chains,
+                                                               adapt_delta = adapt_delta,
+                                                               max_treedepth = max_treedepth,
+                                                               ##
+                                                               output_dir = output_dir,
+                                                               ##
+                                                               use_BayesMVP_for_faster_summaries = use_BayesMVP_for_faster_summaries)
+                               }
+                               
                                ##
                                return(outs)
                      
@@ -1135,24 +1341,45 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                    ##
                    ## --------- Test accuracy-specific plots method: sROC plot (w/ confidence + prediction regions/curves):
                    ##
+                   #'@param debugging ...
+                   #'@param test_names ...
+                   #'@param relevant_thresholds ...
                    #'@param df_true ... 
-                   #'@param conf_region_colour ...
-                   #'@param pred_region_colour ...
+                   #'@param layout ...
+                   #'@param separate_sROC_settings ...
+                   #'@param by_test_sROC_settings ...
+                   #'@param by_scenario_sROC_settings ...
+                   #'@param by_test_grid_sROC_settings ...
+                   #'@param by_scenario_grid_sROC_settings ...
+                   #'@param by_test_grid_separate_sROC_settings ...
+                   #'@param by_scenario_grid_separate_sROC_settings ...
+                   #'@param aesthetic_mapping ...
                    #'@return sROC plot(s).
                    #'
-                   plot_sROC = function( new_cov_data = NULL,
-                                         debugging = FALSE,
+                   plot_sROC = function( debugging = FALSE,
+                                         ##
+                                         test_names = NULL,
+                                         relevant_thresholds = NULL,
+                                         ##
                                          df_true = NULL,
-                                         conf_region_colour = "blue", 
-                                         pred_region_colour = "green",
-                                         test_names = NULL
+                                         ##
+                                         ## ---- SOME of these args are for MR-only:
+                                         ##
+                                         layout = c("separate", "by_test", "by_scenario", "grid", "grid_separate"),
+                                         ##
+                                         separate_sROC_settings = NULL,
+                                         by_test_sROC_settings = NULL,
+                                         by_scenario_sROC_settings = NULL, ## this is also used for non-MR
+                                         by_test_grid_sROC_settings = NULL,
+                                         by_scenario_grid_sROC_settings = NULL,
+                                         by_test_grid_separate_sROC_settings = NULL,
+                                         by_scenario_grid_separate_sROC_settings = NULL, ## this is also used for non-MR
+                                         ##
+                                         aesthetic_mapping = NULL
                    ) {
                      
                                if (is.null(self$internal_obj)) {
                                  stop("No model samples object ('internal_obj') available")
-                               }
-                               if (is.null(self$internal_obj)) {
-                                 stop("No model summary + trace object ('internal_obj') available")
                                }
                                # ##
                                if (debugging) {
@@ -1177,50 +1404,288 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                n_covariates <- self$internal_obj$outs_data$stan_data_list$n_covariates_max
                                print(paste("n_covariates = ", n_covariates))
                                ##
-                               if (n_covariates == 1) {
-                                 covariates <- FALSE
-                               } else {
-                                 covariates <- TRUE
+                               if (n_covariates == 1) {  # No covariates - create simple baseline
+                                       
+                                       covariates <- FALSE
+                                       use_MR_scenarios <- FALSE
+                                       ##
+                                       baseline_case_nd <- baseline_case_d <- list()
+                                       for (t in 1:n_index_tests) {
+                                         tn <- ifelse(!is.null(test_names), test_names[t], paste0("Test", t))
+                                         baseline_case_nd[[tn]] <- 1
+                                         baseline_case_d[[tn]] <- 1
+                                       }
+                                       ##
+                                       scenario_results <- R_fn_compute_MR_multiple_scenarios(
+                                                           model_prep_obj = self,
+                                                           model_summary_and_trace_obj = self,
+                                                           baseline_case_nd_list = list("Baseline (no covariates)" = baseline_case_nd),
+                                                           baseline_case_d_list = list("Baseline (no covariates)" = baseline_case_d),
+                                                           scenario_names = "Baseline (no covariates)",
+                                                           test_names = test_names,
+                                                           compute_comparisons = FALSE,
+                                                           save_results = FALSE,
+                                                           parallel = FALSE)
+                                     
+                                 
+                               } else {   ## Meta-regression - MUST use stored scenarios
+                                     
+                                       covariates <- TRUE
+                                       use_MR_scenarios <- TRUE
+                                       ##
+                                       if (is.null(self$baseline_outs_MR)) {
+                                         stop("No MR scenarios computed. Run '$recompute_baseline()' first, 
+                                              then try running '$extract_AUC()' again.")
+                                       }
+                                       ##
+                                       scenario_results <- self$baseline_outs_MR
+                                   
                                }
                                ##
-                               if (covariates) { 
-                                     if (is.null(new_cov_data)) { 
-                                       stop("You must supply 'new_cov_data' (an R list containing 'baseline_case_nd' and 
-                                            'baseline_case_d' for Xu/bivariate model or Jones model, or an R list 
-                                            containing 'baseline_case' for R&G model")
-                                     }
-                                     stan_functions_directory <- self$internal_obj$outs_stan_compile$stan_functions_directory
-                                     stan_model_file_path     <- self$internal_obj$outs_stan_compile$stan_model_file_pat
-                                     stan_data_list           <- self$internal_obj$outs_data$stan_data_list
-                                     ##
-                                     stan_mod_samples <- self$internal_obj$outs_stan_sampling$stan_mod_samples
-                                     ##
-                                     stan_mod_samples_to_use <- R_fn_GQ_covariates_NMA(  new_cov_data = new_cov_data,
-                                                                                         stan_mod_samples = stan_mod_samples,
-                                                                                         stan_data_list = stan_data_list,
-                                                                                         stan_model_file_path = stan_model_file_path,
-                                                                                         stan_functions_directory = stan_functions_directory)
-                               } else { 
-                                     stan_mod_samples_to_use <- self$internal_obj$outs_stan_sampling$stan_mod_samples
-                               }
+                               combined_data <- combine_sroc_data_scenarios(scenario_results)
                                ##
-                               sROC_plot_outs <- sROC_plot_fn(    stan_model_file_name = self$internal_obj$outs_stan_model_name$stan_model_file_name,
-                                                                  stan_mod_samples     = stan_mod_samples_to_use,
-                                                                  ##
-                                                                  test_names = test_names,
-                                                                  # covariates = covariates,
-                                                                  # new_cov_data = new_cov_data,
-                                                                  ##
-                                                                  df_true = df_true,
-                                                                  ##
-                                                                  conf_region_colour = conf_region_colour,
-                                                                  pred_region_colour = pred_region_colour,
-                                                                  ##
-                                                                  n_index_tests = n_index_tests,
-                                                                  n_thr = n_thr)
+                               plots <- create_sROC_plots_flexible(
+                                 combined_data = combined_data,
+                                 ##
+                                 test_names = test_names,
+                                 relevant_thresholds = relevant_thresholds,
+                                 ##
+                                 layout = layout,
+                                 ##
+                                 by_test_sROC_settings = by_test_sROC_settings,
+                                 by_scenario_sROC_settings = by_scenario_sROC_settings,
+                                 separate_sROC_settings = separate_sROC_settings,
+                                 by_test_grid_sROC_settings = by_test_grid_sROC_settings,
+                                 by_scenario_grid_sROC_settings = by_scenario_grid_sROC_settings,
+                                 by_test_grid_separate_sROC_settings = by_test_grid_separate_sROC_settings,
+                                 by_scenario_grid_separate_sROC_settings = by_scenario_grid_separate_sROC_settings)
                                ##
-                               return(sROC_plot_outs)
+                               return(plots)
                      
+                   },
+                   ##
+                   ## --------- Test accuracy-specific plots method: Accuracy (Se/Sp) vs. threshold plots
+                   ##
+                   #'@param debugging ...
+                   #'@param test_names ...
+                   #'@param relevant_thresholds ...
+                   #'@param plot_type ...
+                   #'@param df_true ... 
+                   #'@param new_cov_data ...
+                   #'@param layout ...
+                   #'@param separate_threshold_settings ...
+                   #'@param by_test_threshold_settings ...
+                   #'@param by_scenario_threshold_settings ...
+                   #'@param by_test_grid_threshold_settings ...
+                   #'@param by_scenario_grid_threshold_settings ...
+                   #'@param by_test_grid_separate_threshold_settings ...
+                   #'@param by_scenario_grid_separate_threshold_settings ...
+                   #'@param aesthetic_mapping ...
+                   #'@param show_actual_thresholds ...
+                   #'@return Accuracy vs. threshold plot(s).
+                   plot_threshold = function( debugging = FALSE,
+                                         ##
+                                         test_names = NULL,
+                                         relevant_thresholds = NULL,
+                                         ##
+                                         plot_type = c("Se", "Sp", "both"),
+                                         ##
+                                         df_true = NULL,
+                                         ##
+                                         ## ---- SOME of these args are for MR-only:
+                                         ##
+                                         new_cov_data = NULL,
+                                         layout = c("separate", "by_test", "by_scenario", "grid", "grid_separate"),
+                                         ##
+                                         separate_threshold_settings = NULL,
+                                         by_test_threshold_settings = NULL,
+                                         by_scenario_threshold_settings = NULL, ## this is also used for non-MR
+                                         by_test_grid_threshold_settings = NULL,
+                                         by_scenario_grid_threshold_settings = NULL,
+                                         by_test_grid_separate_threshold_settings = NULL,
+                                         by_scenario_grid_separate_threshold_settings = NULL, ## this is also used for non-MR
+                                         ##
+                                         aesthetic_mapping = NULL,
+                                         show_actual_thresholds = FALSE
+                   ) { 
+                     
+                             if (is.null(self$internal_obj)) {
+                               stop("No model samples object ('internal_obj') available")
+                             }
+                             # ##
+                             if (debugging) {
+                               cat("Summary object structure:\n")
+                               str(self$internal_obj)
+                             }
+                             ##
+                             network <- self$basic_model_options$network
+                             ##
+                             if (network) { 
+                               n_index_tests <- self$internal_obj$outs_data$stan_data_list$n_index_tests
+                               print(paste("n_index_tests = ", n_index_tests))
+                               ##
+                               n_thr         <- self$internal_obj$outs_data$stan_data_list$n_thr
+                               print(paste("n_thr = ", n_thr))
+                               ##
+                             } else { 
+                               n_index_tests <- 1     ## dummy arg - needed for compatability / R6 class
+                               n_thr         <- NULL  ## dummy arg - needed for compatability / R6 class
+                             }
+                             ##
+                             n_covariates <- self$internal_obj$outs_data$stan_data_list$n_covariates_max
+                             print(paste("n_covariates = ", n_covariates))
+                             ##
+                             if (n_covariates == 1) {  # No covariates - create simple baseline
+                                     
+                                     covariates <- FALSE
+                                     use_MR_scenarios <- FALSE
+                                     ##
+                                     baseline_case_nd <- baseline_case_d <- list()
+                                     for (t in 1:n_index_tests) {
+                                       tn <- ifelse(!is.null(test_names), test_names[t], paste0("Test", t))
+                                       baseline_case_nd[[tn]] <- 1
+                                       baseline_case_d[[tn]] <- 1
+                                     }
+                                     ##
+                                     scenario_results <- R_fn_compute_MR_multiple_scenarios(
+                                       model_prep_obj = self,
+                                       model_summary_and_trace_obj = self,
+                                       baseline_case_nd_list = list("Baseline (no covariates)" = baseline_case_nd),
+                                       baseline_case_d_list = list("Baseline (no covariates)" = baseline_case_d),
+                                       scenario_names = "Baseline (no covariates)",
+                                       test_names = test_names,
+                                       compute_comparisons = FALSE,
+                                       save_results = FALSE,
+                                       parallel = FALSE)
+                               
+                               
+                             } else {   ## Meta-regression - MUST use stored scenarios
+                               
+                                     covariates <- TRUE
+                                     use_MR_scenarios <- TRUE
+                                     ##
+                                     if (is.null(self$baseline_outs_MR)) {
+                                       stop("No MR scenarios computed. Run '$recompute_baseline()' first, 
+                                                    then try running '$extract_AUC()' again.")
+                                     }
+                                     ##
+                                     scenario_results <- self$baseline_outs_MR
+                               
+                             }
+                             ##
+                             # Convert to combined data format
+                             combined_data <- extract_threshold_data_scenarios(scenario_results)
+                             ##
+                             plots <- create_threshold_plots_flexible(
+                               combined_data = combined_data,
+                               ##
+                               test_names = test_names,
+                               relevant_thresholds = relevant_thresholds,
+                               ##
+                               plot_type = plot_type,
+                               layout = layout,
+                               ##
+                               separate_threshold_settings = separate_threshold_settings,
+                               by_test_threshold_settings = by_test_threshold_settings,
+                               by_scenario_threshold_settings = by_scenario_threshold_settings,
+                               by_test_grid_threshold_settings = by_test_grid_threshold_settings,
+                               by_scenario_grid_threshold_settings = by_scenario_grid_threshold_settings,
+                               by_test_grid_separate_threshold_settings = by_test_grid_separate_threshold_settings,
+                               by_scenario_grid_separate_threshold_settings = by_scenario_grid_separate_threshold_settings,
+                               ##
+                               aesthetic_mapping = aesthetic_mapping,
+                               ##
+                               show_actual_thresholds = show_actual_thresholds)
+                             ##
+                             return(plots)
+                             
+                   },
+                   ##
+                   ## --------- Test accuracy-specific plots method: Accuracy (Se/Sp) vs. threshold plots
+                   ##
+                   #'@param debugging ...
+                   #'@param comparison_type ...
+                   #'@param test_names ...
+                   #'@param relevant_thresholds ...
+                   #'@param baseline_plot_settings ...
+                   #'@param metareg_plot_settings ...
+                   #'@param aesthetic_mapping ...
+                   #'@return Accuracy vs. threshold plot(s).
+                   plot_pairwise = function(  debugging = FALSE,
+                                              ##
+                                              comparison_type = "both",
+                                              ##
+                                              test_names = NULL,
+                                              relevant_thresholds = NULL,
+                                              ##
+                                              baseline_plot_settings = NULL, ## NON-MR-only
+                                              metareg_plot_settings = NULL, ## MR-only
+                                              ##
+                                              aesthetic_mapping = NULL
+                   ) { 
+                             
+                             if (is.null(self$internal_obj)) {
+                               stop("No model samples object ('internal_obj') available")
+                             }
+                             ##
+                             if (debugging) {
+                               cat("Summary object structure:\n")
+                               str(self$internal_obj)
+                             }
+                             ##
+                             network <- self$basic_model_options$network
+                             ##
+                             if (network) { 
+                               n_index_tests <- self$internal_obj$outs_data$stan_data_list$n_index_tests
+                               print(paste("n_index_tests = ", n_index_tests))
+                               n_thr <- self$internal_obj$outs_data$stan_data_list$n_thr
+                               print(paste("n_thr = ", n_thr))
+                             } else { 
+                               n_index_tests <- 1
+                               n_thr <- NULL
+                             }
+                             ##
+                             n_covariates <- self$internal_obj$outs_data$stan_data_list$n_covariates_max
+                             print(paste("n_covariates = ", n_covariates))
+                             ##
+                             ## ---- Extract comparisons
+                             ##
+                             if (n_covariates == 1) {   # No covariates - extract directly
+                               
+                                     covariates <- FALSE
+                                     tibble_comp <- self$extract_NMA_comparisons(test_names = test_names)
+                               
+                             } else { # Meta-regression - use STORED comparisons
+                               
+                                     covariates <- TRUE
+                                     
+                                     if (is.null(self$pairwise_comparisons_MR)) {
+                                       stop("No pairwise comparisons computed. Run '$compute_pairwise_comparisons()' first.")
+                                     }
+                                     
+                                     # Just retrieve the stored comparisons - don't recompute!
+                                     all_comparisons <- list()
+                                     for (scenario_name in names(self$pairwise_comparisons_MR)) {
+                                       comps <- self$pairwise_comparisons_MR[[scenario_name]]
+                                       comps$scenario <- scenario_name
+                                       all_comparisons[[scenario_name]] <- comps
+                                     }
+                                     tibble_comp <- bind_rows(all_comparisons)
+                                     
+                             }
+                             ##
+                             ## ---- Call the unified plotting function:
+                             ##
+                             plots <-  plot_pairwise_differences(
+                                       tibble_comp = tibble_comp,
+                                       comparison_type = comparison_type,
+                                       test_names = test_names,
+                                       relevant_thresholds = relevant_thresholds,
+                                       baseline_plot_settings = baseline_plot_settings,
+                                       metareg_plot_settings = metareg_plot_settings)
+                             ##
+                             return(plots)
+                             
                    },
                    ##
                    ## --------- Extract NMA-specific COMPARISONS summaries: Se/Sp diffs + ratio's
@@ -1229,78 +1694,77 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                    #'@param test_names ...
                    #'@return NMA comparisons summary
                    #'
-                   extract_NMA_comparisons = function( new_cov_data = NULL,
-                                                       debugging = FALSE,
-                                                       test_names = NULL
+                   extract_NMA_comparisons = function( debugging = FALSE,
+                                                       test_names = NULL,
+                                                       MR_scenario = NULL
                    ) {
                      
-                               if (is.null(self$internal_obj)) {
-                                 stop("No model samples object ('internal_obj') available")
-                               }
-                               if (is.null(self$internal_obj)) {
-                                 stop("No model summary + trace object ('internal_obj') available")
-                               }
-                               if (debugging) {
-                                 cat("Summary object structure:\n")
-                                 str(self$internal_obj)
-                               }
-                               ##
-                               network <- self$basic_model_options$network
-                               ##
-                               if (network) { 
-                                 n_index_tests <- self$internal_obj$outs_data$stan_data_list$n_index_tests
-                                 print(paste("n_index_tests = ", n_index_tests))
-                                 ##
-                                 n_thr         <- self$internal_obj$outs_data$stan_data_list$n_thr
-                                 print(paste("n_thr = ", n_thr))
-                                 ##
-                               } else { 
-                                 n_index_tests <- 1     ## dummy arg - needed for compatability / R6 class
-                                 n_thr         <- NULL  ## dummy arg - needed for compatability / R6 class
-                               }
-                               ##
-                               n_covariates <- self$internal_obj$outs_data$stan_data_list$n_covariates_max
-                               print(paste("n_covariates = ", n_covariates))
-                               ##
-                               if (n_covariates == 1) {
-                                 covariates <- FALSE
-                               } else {
-                                 covariates <- TRUE
-                               }
-                               ##
-                               if (covariates) { 
-                                   if (is.null(new_cov_data)) { 
-                                     stop("You must supply 'new_cov_data' (an R list containing 'baseline_case_nd' and 
-                                              'baseline_case_d' for Xu/bivariate model or Jones model, or an R list 
-                                              containing 'baseline_case' for R&G model")
-                                   }
-                                   stan_functions_directory <- self$internal_obj$outs_stan_compile$stan_functions_directory
-                                   stan_model_file_path     <- self$internal_obj$outs_stan_compile$stan_model_file_pat
-                                   stan_data_list           <- self$internal_obj$outs_data$stan_data_list
-                                   ##
-                                   stan_mod_samples <- self$internal_obj$outs_stan_sampling$stan_mod_samples
-                                   ##
-                                   stan_mod_samples_to_use <- R_fn_GQ_covariates_NMA(  new_cov_data = new_cov_data,
-                                                                                       stan_mod_samples = stan_mod_samples,
-                                                                                       stan_data_list = stan_data_list,
-                                                                                       stan_model_file_path = stan_model_file_path,
-                                                                                       stan_functions_directory = stan_functions_directory)
-                                   ##
-                                   trace_gq <- stan_mod_samples_to_use$draws()
-                               } else { 
-                                   stan_mod_samples_to_use <- self$internal_obj$outs_stan_sampling$stan_mod_samples
-                                   ##
-                                   ##
-                                   trace_gq <- self$internal_obj$traces$traces_as_arrays$trace_gq
-                               }
-                               ##
-                               ##
-                               # Use fast Rcpp version
-                               outs <-  MetaOrdDTA:::R_fn_using_Rcpp_compute_NMA_comparisons_posthoc(  trace_gq = trace_gq,
-                                                                                                       n_thr = n_thr,
-                                                                                                       test_names = test_names)
-                               ##
-                               return(outs)
+                             if (is.null(self$internal_obj)) {
+                               stop("No model samples object ('internal_obj') available")
+                             }
+                             ##
+                             if (debugging) {
+                               cat("Summary object structure:\n")
+                               str(self$internal_obj)
+                             }
+                             ##
+                             network <- self$basic_model_options$network
+                             ##
+                             if (network) { 
+                               n_index_tests <- self$internal_obj$outs_data$stan_data_list$n_index_tests
+                               print(paste("n_index_tests = ", n_index_tests))
+                               n_thr <- self$internal_obj$outs_data$stan_data_list$n_thr
+                               print(paste("n_thr = ", n_thr))
+                             } else { 
+                               n_index_tests <- 1
+                               n_thr <- NULL
+                             }
+                             ##
+                             n_covariates <- self$internal_obj$outs_data$stan_data_list$n_covariates_max
+                             print(paste("n_covariates = ", n_covariates))
+                             ##
+                             if (n_covariates == 1) {
+                               covariates <- FALSE
+                             } else {
+                               covariates <- TRUE
+                             }
+                             ##
+                             if (covariates) { 
+                               
+                                     if (is.null(MR_scenario)) { 
+                                       stop("You must supply 'MR_scenario' for meta-regression models")
+                                     }
+                                     
+                                     # Convert scenario to baseline_case format (same as recompute_baseline does)
+                                     baseline_vec <- c(1, unlist(MR_scenario))
+                                     baseline_case_nd <- rep(list(baseline_vec), length(test_names))
+                                     baseline_case_d <- rep(list(baseline_vec), length(test_names))
+                                     
+                                     stan_mod_samples_to_use <- R_fn_GQ_covariates_NMA(
+                                       baseline_case_nd = baseline_case_nd,
+                                       baseline_case_d = baseline_case_d,
+                                       model_summary_and_trace_obj = self,
+                                       model_prep_obj = self
+                                     )
+                                     
+                                     trace_gq <- stan_mod_samples_to_use$draws()
+                               
+                             } else { 
+                               
+                                     stan_mod_samples_to_use <- self$internal_obj$outs_stan_sampling$stan_mod_samples
+                                     trace_gq <- self$internal_obj$traces$traces_as_arrays$trace_gq
+                                     
+                             }
+                             ##
+                             ## ---- Use fast Rcpp fn:
+                             ##
+                             outs <- MetaOrdDTA:::R_fn_using_Rcpp_compute_NMA_comparisons_posthoc(
+                               trace_gq = trace_gq,
+                               n_thr = n_thr,
+                               test_names = test_names
+                             )
+                             ##
+                             return(outs)
                      
                    },
                    ##
@@ -1308,11 +1772,12 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                    ##
                    #'@param debugging ...
                    #'@param test_names ...
+                   #'@param new_cov_data ...
                    #'@return NMA performance metrics (e.g., DOR) summary
                    #'
-                   extract_NMA_performance = function( new_cov_data = NULL,
-                                                       debugging = FALSE,
-                                                       test_names = NULL
+                   extract_NMA_performance = function( debugging = FALSE,
+                                                       test_names = NULL,
+                                                       new_cov_data = NULL
                    ) {
                      
                                if (is.null(self$internal_obj)) {
@@ -1356,17 +1821,12 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                                         'baseline_case_d' for Xu/bivariate model or Jones model, or an R list 
                                                         containing 'baseline_case' for R&G model")
                                  }
-                                 stan_functions_directory <- self$internal_obj$outs_stan_compile$stan_functions_directory
-                                 stan_model_file_path     <- self$internal_obj$outs_stan_compile$stan_model_file_pat
-                                 stan_data_list           <- self$internal_obj$outs_data$stan_data_list
-                                 ##
-                                 stan_mod_samples <- self$internal_obj$outs_stan_sampling$stan_mod_samples
-                                 ##
-                                 stan_mod_samples_to_use <- R_fn_GQ_covariates_NMA(  new_cov_data = new_cov_data,
-                                                                                     stan_mod_samples = stan_mod_samples,
-                                                                                     stan_data_list = stan_data_list,
-                                                                                     stan_model_file_path = stan_model_file_path,
-                                                                                     stan_functions_directory = stan_functions_directory)
+                                 stan_mod_samples_to_use <- R_fn_GQ_covariates_NMA(
+                                   baseline_case_nd = new_cov_data$baseline_case_nd,
+                                   baseline_case_d = new_cov_data$baseline_case_d,
+                                   model_summary_and_trace_obj = self,
+                                   model_prep_obj = self
+                                 )
                                  ##
                                  trace_gq <- stan_mod_samples_to_use$draws()
                                } else { 
@@ -1383,17 +1843,202 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                      
                    },
                    ##
-                   ## --------- Extract NMA-specific AUC summaries
+                   ## --------- Meta-regression only: recompute statistics (Se/Sp/AUC) for new baseline:
                    ##
                    #'@param debugging ...
                    #'@param test_names ...
-                   #'@return NMA AUC summary
+                   #'@param MR_scenarios ...
+                   #'@param use_probit_link ..
+                   #'@return new_baseline_outs
                    #'
-                   extract_AUC = function( new_cov_data = NULL,
-                                           debugging = FALSE,
-                                           test_names = NULL,
-                                           use_BayesMVP_for_faster_summaries = NULL,
-                                           compute_nested_rhat = FALSE
+                   recompute_baseline = function(  debugging = FALSE,
+                                                   test_names,
+                                                   MR_scenarios = NULL,
+                                                   use_probit_link = TRUE
+                   ) {
+                             
+                               if (debugging) {
+                                 cat("Summary object structure:\n")
+                                 str(self$internal_obj)
+                               }
+                               if (is.null(MR_scenarios)) { 
+                                 stop("Must provide the R list 'MR_scenarios'")
+                               }
+                               ##
+                               network <- self$basic_model_options$network
+                               print(paste("network = ", network))
+                               ##
+                               if (network) { 
+                                 n_index_tests <- self$internal_obj$outs_data$stan_data_list$n_index_tests
+                                 print(paste("n_index_tests = ", n_index_tests))
+                                 ##
+                                 n_thr         <- self$internal_obj$outs_data$stan_data_list$n_thr
+                                 print(paste("n_thr = ", n_thr))
+                                 ##
+                               } else { 
+                                 n_index_tests <- 1     ## dummy arg - needed for compatability / R6 class
+                                 n_thr         <- NULL  ## dummy arg - needed for compatability / R6 class
+                               }
+                               ##
+                               n_covariates <- self$internal_obj$outs_data$stan_data_list$n_covariates_max
+                               print(paste("n_covariates = ", n_covariates))
+                               ##
+                               if (n_covariates == 1) {
+                                 stop("The 'recompute_baseline' R6 method only works for meta-regression models!")
+                               }
+                               ## ---- If MR_scenarios provided, loop through them:
+                               if ((!is.null(MR_scenarios)) && (n_covariates > 1)) {
+                                   
+                                     baseline_outs_list <- list()
+                                     
+                                     for (k in 1:length(MR_scenarios)) {
+                                       
+                                           baseline_vec_k <- c(1, unlist(MR_scenarios[[k]]))
+                                           baseline_case_nd_k <- rep(list(baseline_vec_k), length(test_names))
+                                           baseline_case_d_k <- rep(list(baseline_vec_k), length(test_names))
+                                             
+                                           baseline_outs_list[[k]] <- R_fn_using_Rcpp_compute_MR_Se_Sp_AUC_baseline(
+                                                                                 model_prep_obj = self,
+                                                                                 model_summary_and_trace_obj = self,
+                                                                                 baseline_case_nd = baseline_case_nd_k,
+                                                                                 baseline_case_d = baseline_case_d_k,
+                                                                                 use_probit_link = use_probit_link,
+                                                                                 test_names = test_names)
+                                           ##
+                                           # ADD THIS: Store the original scenario definition
+                                           baseline_outs_list[[k]]$original_scenario <- MR_scenarios[[k]]
+                                         
+                                     }
+                                     
+                                     names(baseline_outs_list) <- names(MR_scenarios)
+                                     self$baseline_outs_MR <- baseline_outs_list  # Store for extract_AUC
+                                     ##
+                                     return(baseline_outs_list)
+                            
+                               } 
+                               
+                   },
+                   ##
+                   ## --------- Meta-regression only: recompute statistics (Se/Sp/AUC) for new baseline:
+                   ##
+                   #'@param debugging ...
+                   #'@param test_names ...
+                   #'@param MR_scenarios ...
+                   #'@param use_probit_link ..
+                   #'@return new_baseline_outs
+                   #'
+                   compute_pairwise_comparisons = function(debugging = FALSE, 
+                                                           test_names,
+                                                           MR_scenarios = NULL,
+                                                           recompute_baseline = TRUE,
+                                                           use_probit_link = TRUE
+                   ) {
+                     
+                             n_covariates <- self$internal_obj$outs_data$stan_data_list$n_covariates_max
+                             ##
+                             if (n_covariates == 1) {
+                               stop("Only works for meta-regression models!")
+                             }
+                             ##
+                             n_thr <- self$internal_obj$outs_data$stan_data_list$n_thr
+                             ##
+                             if (recompute_baseline) {  ## OPTION 1: User provides MR_scenarios - compute fresh
+                               
+                                     if (is.null(MR_scenarios)) { 
+                                       stop("If recompute_baseline == TRUE, you must provide 'MR_scenarios' R list")
+                                     }
+                                     ##
+                                     if (debugging) cat("Computing Se/Sp arrays fresh from MR_scenarios...\n")
+                                     ##
+                                     Se_Sp_list <- list()
+                                     ##
+                                     for (k in 1:length(MR_scenarios)) {
+                                       baseline_vec_k <- c(1, unlist(MR_scenarios[[k]]))
+                                       baseline_case_nd_k <- rep(list(baseline_vec_k), length(test_names))
+                                       baseline_case_d_k <- rep(list(baseline_vec_k), length(test_names))
+                                       
+                                       Se_Sp_list[[k]] <- R_fn_using_Rcpp_compute_MR_Se_Sp_AUC_baseline(
+                                         model_prep_obj = self,
+                                         model_summary_and_trace_obj = self,
+                                         baseline_case_nd = baseline_case_nd_k,
+                                         baseline_case_d = baseline_case_d_k,
+                                         use_probit_link = use_probit_link,
+                                         test_names = test_names
+                                       )
+                                     }
+                                     names(Se_Sp_list) <- names(MR_scenarios)
+                        
+                             } else if (!is.null(self$baseline_outs_MR)) { ## OPTION 2: Use stored results from recompute_baseline
+                               
+                                     if (debugging) cat("Using stored Se/Sp arrays from recompute_baseline...\n")
+                                     Se_Sp_list <- self$baseline_outs_MR
+                             
+                             } else { ## ERROR: Neither option available
+                               
+                                     stop("Must either provide 'MR_scenarios' OR run 'recompute_baseline()' first")
+                               
+                             }
+                             ## ---- Now compute pairwise comparisons from the Se/Sp arrays (SHARED CODE)
+                             pairwise_comparisons_list <- list()
+                             ##
+                             for (k in 1:length(Se_Sp_list)) {
+                                     
+                                     Se_baseline <- Se_Sp_list[[k]]$Se_baseline
+                                     Sp_baseline <- Se_Sp_list[[k]]$Sp_baseline
+                                     array_dims <- as.integer(dim(Se_baseline))
+                                     
+                                     # Call Rcpp function
+                                     rcpp_result <- MetaOrdDTA:::Rcpp_compute_NMA_comparisons_from_arrays(
+                                       Se_array = Se_baseline,
+                                       Sp_array = Sp_baseline,
+                                       array_dims = array_dims,
+                                       n_thr = n_thr
+                                     )
+                                     
+                                     # Add metadata - CRITICAL for plotting!
+                                     comp_metadata <- generate_comparison_metadata(n_thr, test_names)
+                                     
+                                     # Combine into tibble
+                                     pairwise_comparisons_list[[k]] <- tibble(cbind(comp_metadata,
+                                                                                    rcpp_result$summaries))
+                               
+                             }
+                             
+                             
+                             # # Now compute pairwise comparisons from the Se/Sp arrays
+                             # pairwise_comparisons_list <- list()
+                             # 
+                             # for (k in 1:length(Se_Sp_list)) {
+                             #         
+                             #         Se_baseline <- Se_Sp_list[[k]]$Se_baseline
+                             #         Sp_baseline <- Se_Sp_list[[k]]$Sp_baseline
+                             #         array_dims <- as.integer(dim(Se_baseline))
+                             #         
+                             #         pairwise_comparisons_list[[k]] <- MetaOrdDTA:::Rcpp_compute_NMA_comparisons_from_arrays(
+                             #           Se_array = Se_baseline,
+                             #           Sp_array = Sp_baseline,
+                             #           array_dims = array_dims,
+                             #           n_thr = n_thr)
+                             #  
+                             # }
+                             
+                             names(pairwise_comparisons_list) <- names(Se_Sp_list)
+                             self$pairwise_comparisons_MR <- pairwise_comparisons_list
+                             
+                             return(pairwise_comparisons_list)
+                     
+                   },
+                   ##
+                   ## --------- Extract AUC summaries:
+                   ##
+                   #'@param debugging ...
+                   #'@param test_names ...
+                   #'@param use_BayesMVP_for_faster_summaries ...
+                   #'@return AUC summary
+                   #'
+                   extract_AUC = function( debugging = FALSE,
+                                           test_names,
+                                           use_BayesMVP_for_faster_summaries = NULL
                    ) {
                      
                                if (is.null(self$internal_obj)) {
@@ -1409,6 +2054,7 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                }
                                ##
                                network <- self$basic_model_options$network
+                               print(paste("network = ", network))
                                ##
                                if (network) { 
                                  n_index_tests <- self$internal_obj$outs_data$stan_data_list$n_index_tests
@@ -1427,72 +2073,114 @@ MetaOrd_model <- R6Class("MetaOrd_model",
                                ##
                                if (n_covariates == 1) {
                                  covariates <- FALSE
+                                 use_MR_scenarios <- FALSE
                                } else {
                                  covariates <- TRUE
+                                 use_MR_scenarios <- TRUE
+                                 if (is.null(self$baseline_outs_MR)) {
+                                   stop("No MR scenarios computed. Run compute_MR_scenarios() first, then try running '$extract_AUC()' again.")
+                                 }
                                }
                                # ##
                                if (covariates) { 
+                                         
+                                               # Extract AUC from all stored scenarios
+                                               outs_AUC <- list()
+                                               outs_AUC$scenarios <- names(self$baseline_outs_MR)
+                                               outs_AUC$auc_by_scenario <- lapply(self$baseline_outs_MR, function(x) x$AUC_summary)
+                                               outs_AUC$auc_pred_by_scenario <- lapply(self$baseline_outs_MR, function(x) x$AUC_pred_summary)
+                                               outs_AUC$auc_diff_by_scenario <- lapply(self$baseline_outs_MR, function(x) x$AUC_diff_summary)
                                  
-                                       if (is.null(new_cov_data)) { 
-                                         stop("You must supply 'new_cov_data' (an R list containing 'baseline_case_nd' and 
-                                                                        'baseline_case_d' for Xu/bivariate model or Jones model, or an R list 
-                                                                        containing 'baseline_case' for R&G model")
-                                       }
-                                       stan_functions_directory <- self$internal_obj$outs_stan_compile$stan_functions_directory
-                                       stan_model_file_path     <- self$internal_obj$outs_stan_compile$stan_model_file_pat
-                                       stan_data_list           <- self$internal_obj$outs_data$stan_data_list
-                                       ##
-                                       stan_mod_samples <- self$internal_obj$outs_stan_sampling$stan_mod_samples
-                                       ##
-                                       stan_mod_samples_to_use <- R_fn_GQ_covariates_NMA(  new_cov_data = new_cov_data,
-                                                                                           stan_mod_samples = stan_mod_samples,
-                                                                                           stan_data_list = stan_data_list,
-                                                                                           stan_model_file_path = stan_model_file_path,
-                                                                                           stan_functions_directory = stan_functions_directory)
-                                       ##
-                                       trace_gq <- stan_mod_samples_to_use$draws()
-                                       ##
-                                       use_BayesMVP_for_faster_summaries <- if_null_then_set_to( use_BayesMVP_for_faster_summaries, 
-                                                                                                 MetaOrdDTA:::check_if_BayesMVP_R_pkg_installed(TRUE, FALSE))
-                                       ##
-                                       n_cores <- round(parallel::detectCores() / 2)
-                                       iter_dim <- 1
-                                       chain_dim <- 2
-                                       names_gq <- dimnames(trace_gq)[[3]]
-                                       ##
-                                       if (use_BayesMVP_for_faster_summaries == TRUE) {
-                                      
-                                             n_chains <- dim(trace_gq)[2]
-                                             n_superchains <- MetaOrdDTA:::if_null_then_set_to(n_superchains, n_chains)
-                                             ##
-                                             tibble_gq <- generate_summary_tibble( n_threads = n_cores,
-                                                                                   input_array = trace_gq,
-                                                                                   iter_dim = iter_dim,
-                                                                                   chain_dim = chain_dim,
-                                                                                   param_names = names_gq,
-                                                                                   compute_nested_rhat = compute_nested_rhat,
-                                                                                   n_superchains = n_superchains)
-                                         
-                                       } else {  
-                                             
-                                             tibble_gq <- MetaOrdDTA:::R_fn_compute_cmdstanr_summary_tibble( stan_fitted_model = stan_fitted_model, 
-                                                                                                             variables_vec =  names_gq)
-                                         
-                                       }
-                                           
-                               } else { 
-                                       stan_mod_samples_to_use <- self$internal_obj$outs_stan_sampling$stan_mod_samples
-                                       ##
-                                       # trace_gq <- self$internal_obj$traces$traces_as_arrays$trace_gq
-                                       tibble_gq <- self$internal_obj$summaries$summary_tibbles$summary_tibble_generated_quantities
+                               } else {  ## No covariates case
+                                 
+                                         tibble_gq <- self$internal_obj$summaries$summary_tibbles$summary_tibble_generated_quantities
+                                         ##
+                                         outs_AUC <- R_fn_extract_NMA_AUC_summary( tibble_gq = tibble_gq,
+                                                                                   network = network,
+                                                                                   n_thr = n_thr,
+                                                                                   test_names = test_names)
+                                 
+                                 
                                }
                                ##
-                               outs <- MetaOrdDTA:::R_fn_extract_NMA_AUC_summary(   tibble_gq = tibble_gq,
-                                                                                    network = network,
-                                                                                    n_thr = n_thr,
-                                                                                    test_names = test_names)
+                               outs <- list(outs_AUC = outs_AUC)
                                ##
                                return(outs)
+                     
+                   },
+                   ##
+                   ## --------- Extract Se, Sp summaries:
+                   ##
+                   #'@param debugging ...
+                   #'@param test_names ...
+                   #'@param use_BayesMVP_for_faster_summaries ...
+                   #'@return Se/Sp summary
+                   #'
+                   extract_MR_Se_Sp = function( debugging = FALSE,
+                                                test_names,
+                                                use_BayesMVP_for_faster_summaries = NULL
+                   ) {
+                     
+                     if (is.null(self$internal_obj)) {
+                       stop("No model samples object ('internal_obj') available")
+                     }
+                     if (is.null(self$internal_obj)) {
+                       stop("No model summary + trace object ('internal_obj') available")
+                     }
+                     ##
+                     if (debugging) {
+                       cat("Summary object structure:\n")
+                       str(self$internal_obj)
+                     }
+                     ##
+                     network <- self$basic_model_options$network
+                     print(paste("network = ", network))
+                     ##
+                     if (network) { 
+                       n_index_tests <- self$internal_obj$outs_data$stan_data_list$n_index_tests
+                       print(paste("n_index_tests = ", n_index_tests))
+                       ##
+                       n_thr         <- self$internal_obj$outs_data$stan_data_list$n_thr
+                       print(paste("n_thr = ", n_thr))
+                       ##
+                     } else { 
+                       n_index_tests <- 1     ## dummy arg - needed for compatability / R6 class
+                       n_thr         <- NULL  ## dummy arg - needed for compatability / R6 class
+                     }
+                     ##
+                     n_covariates <- self$internal_obj$outs_data$stan_data_list$n_covariates_max
+                     print(paste("n_covariates = ", n_covariates))
+                     ##
+                     if (n_covariates == 1) {
+                       covariates <- FALSE
+                       use_MR_scenarios <- FALSE
+                     } else {
+                       covariates <- TRUE
+                       use_MR_scenarios <- TRUE
+                       if (is.null(self$baseline_outs_MR)) {
+                         stop("No MR scenarios computed. Run compute_MR_scenarios() first, then try running '$extract_AUC()' again.")
+                       }
+                     }
+                     # ##
+                     if (covariates) { 
+                           
+                           # Extract AUC from all stored scenarios
+                           outs_Se_Sp <- list()
+                           outs_Se_Sp$scenarios <- names(self$baseline_outs_MR)
+                           outs_Se_Sp$Se_by_scenario <- lapply(self$baseline_outs_MR, function(x) x$Se_summaries)
+                           outs_Se_Sp$Sp_by_scenario <- lapply(self$baseline_outs_MR, function(x) x$Sp_summaries)
+                           outs_Se_Sp$Se_pred_by_scenario <- lapply(self$baseline_outs_MR, function(x) x$Se_pred_summaries)
+                           outs_Se_Sp$Sp_pred_by_scenario <- lapply(self$baseline_outs_MR, function(x) x$Sp_pred_summaries)
+                       
+                     } else {  ## No covariates case
+                       
+                          stop("This function is only relevant for meta-regression")
+                       
+                     }
+                     ##
+                     outs <- list(outs_Se_Sp = outs_Se_Sp)
+                     ##
+                     return(outs)
                      
                    }
                    
@@ -1504,12 +2192,6 @@ MetaOrd_model <- R6Class("MetaOrd_model",
 
 )
 )
-
-
-
-
-
-
 
 
 

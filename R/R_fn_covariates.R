@@ -1,169 +1,121 @@
 
 
 
-#' compute_equivalent_ESS
-#' @export
-compute_equivalent_ESS <- function(N, 
-                                   N_new, 
-                                   ESS_observed, 
-                                   scaling_powers = c(0.33, 0.5, 1.0)) {
-  
-        # For each scaling assumption, compute equivalent ESS
-        # posterior_SD ∝ 1/N^power
-        # So SD_new/SD_old = (N/N_new)^power
-        
-        equivalent_ESS <- numeric(length(scaling_powers))
-        
-        for (i in seq_along(scaling_powers)) {
-          power <- scaling_powers[i]
-          
-          # Ratio of posterior SDs
-          SD_ratio <- (N / N_new)^power
-          
-          # For equal MC error: ESS_new = ESS_old * SD_ratio^2
-          equivalent_ESS[i] <- ESS_observed * SD_ratio^2
-        }
-        
-        # Create nice output
-        cat(sprintf("Original: N = %d studies, ESS = %.0f\n", N, ESS_observed))
-        cat(sprintf("New:      N = %d studies\n", N_new))
-        cat("\nEquivalent ESS for same MC error:\n")
-        cat(sprintf("  Conservative (SD ∝ 1/N^0.33): ESS ≈ %.0f\n", equivalent_ESS[1]))
-        cat(sprintf("  Typical      (SD ∝ 1/N^0.50): ESS ≈ %.0f\n", equivalent_ESS[2]))
-        cat(sprintf("  Optimistic   (SD ∝ 1/N^1.00): ESS ≈ %.0f\n", equivalent_ESS[3]))
-        cat(sprintf("\nRange: %.0f - %.0f\n", min(equivalent_ESS), max(equivalent_ESS)))
-        
-        # Return invisibly for programmatic use
-        invisible(list(
-          N = N,
-          N_new = N_new,
-          ESS_observed = ESS_observed,
-          equivalent_ESS = equivalent_ESS,
-          range = c(min = min(equivalent_ESS), max = max(equivalent_ESS))
-        ))
-        
-}
-
-
-#' validate_and_extrapolate_ESS
-#' @export
-validate_and_extrapolate_ESS <- function(N1, 
-                                         ESS1,
-                                         N2, 
-                                         ESS2,
-                                         N_target) {
-        # Estimate scaling power
-        p <- log(ESS2/ESS1) / (2*log(N1/N2))
-        
-        # Extrapolate
-        ESS_target <- ESS1 * (N1/N_target)^(2*p)
-        
-        cat(sprintf("Observed scaling: SD ∝ 1/N^%.2f\n", p))
-        cat(sprintf("Target ESS for N=%d: %.0f\n", N_target, ESS_target))
-        
-        # Add safety margin
-        cat(sprintf("With 20%% safety margin: %.0f\n", ESS_target * 0.8))
-        
-        return(list(p = p,
-                    ESS_target = ESS_target))
-  
-}
-# If SD ∝ 1/N^p, then from N=500 to N=2500:
-# ESS should scale by (500/2500)^(2p) = (1/5)^(2p)
-##
-# So if you observe ESS_500 = X and ESS_2500 = Y:
-# p = log(Y/X) / (2*log(5))
-##
-# Then for N=10,000:
-# ESS_10000 = ESS_500 * (500/10000)^(2p)
-##
-# For N=25,000:
-# ESS_25000 = ESS_500 * (500/25000)^(2p)
-
 
 
 
 #' subset_X_covariates
 #' @export
-subset_X_covariates <- function(X, 
-                                covariates_to_keep) {
+subset_X_covariates <- function( X, 
+                                 covariates_to_keep) {
   
-        # Get dimensions from X structure
-        n_classes <- length(X)
-        n_tests <- length(X[[1]])
+      # Get dimensions from X structure
+      n_classes <- length(X)
+      n_tests <- length(X[[1]])
         
-        # Create output with same structure
-        X_subset <- list()
+      # Create output with same structure
+      X_subset <- list()
         
-        # Loop through disease classes
-        for (c in 1:n_classes) {
-          X_subset[[c]] <- list()
+      # Loop through disease classes
+      for (c in 1:n_classes) {
           
+          X_subset[[c]] <- list()
+            
           # Loop through tests
           for (t in 1:n_tests) {
-            # Get current matrix
-            X_mat <- X[[c]][[t]]
             
-            # Subset columns by name in the specified order
-            # This handles the case where some matrices might be all zeros
-            if (sum(X_mat[,1]) > 0) {  # Check if any non-missing data
-              X_subset[[c]][[t]] <- X_mat[, covariates_to_keep, drop = FALSE]
-            } else {
-              # For all-zero matrices, create zero matrix with right columns
-              X_subset[[c]][[t]] <- matrix(0, 
-                                           nrow = nrow(X_mat), 
-                                           ncol = length(covariates_to_keep))
-              colnames(X_subset[[c]][[t]]) <- covariates_to_keep
-            }
+                # Get current matrix
+                X_mat <- X[[c]][[t]]
+                
+                # Subset columns by name in the specified order
+                # This handles the case where some matrices might be all zeros
+                if (sum(X_mat[,1]) > 0) {  # Check if any non-missing data
+                  X_subset[[c]][[t]] <- X_mat[, covariates_to_keep, drop = FALSE]
+                } else {
+                  # For all-zero matrices, create zero matrix with right columns
+                  X_subset[[c]][[t]] <- matrix(0, 
+                                               nrow = nrow(X_mat), 
+                                               ncol = length(covariates_to_keep))
+                  colnames(X_subset[[c]][[t]]) <- covariates_to_keep
+                }
+              
           }
-        }
         
-        return(X_subset)
-  
+      }
+
+      return(X_subset)
+      
 }
 
 
 
 
 
-#' R_fn_map_beta_coefficients
+#' map_beta_coefficients
 #' @export 
-R_fn_map_beta_coefficients <- function( beta_tibble, 
-                                        covariate_names = NULL,
-                                        test_names = NULL,
-                                        min_magnitude = 0.125,
-                                        borderline_threshold = 0.10,
-                                        show_borderline = TRUE
-) {  # How close to 0 for "borderline"
-  
+map_beta_coefficients <- function( beta_tibble, 
+                                   covariate_names = NULL,
+                                   test_names = NULL,
+                                   min_magnitude = 0.125,
+                                   borderline_threshold = 0.10,
+                                   show_borderline = TRUE
+) {
+
       alpha <- 0.05
       
       library(tidyverse)
-      
+
       # Extract indices from parameter names
       beta_tibble <- beta_tibble %>%
         mutate(
           # Extract indices using regex
-          test_idx = as.numeric(str_extract(parameter, "(?<=\\[)\\d+(?=,)")),
-          class_idx = as.numeric(str_extract(parameter, "(?<=,)\\d+(?=,)")),
-          cov_idx = as.numeric(str_extract(parameter, "(?<=,)\\d+(?=\\])")),
-          
+          test_idx = as.numeric(str_extract(variable, "(?<=\\[)\\d+(?=,)")),
+          class_idx = as.numeric(str_extract(variable, "(?<=,)\\d+(?=,)")),
+          cov_idx = as.numeric(str_extract(variable, "(?<=,)\\d+(?=\\])")),
+
           # Determine significance at 95% level (using available columns)
           is_significant = !(`2.5%` <= 0 & `97.5%` >= 0),
-          
+
           # Borderline: CI comes within threshold of excluding 0
           distance_to_zero = pmin(abs(`2.5%`), abs(`97.5%`)),
           is_borderline = !is_significant & distance_to_zero <= borderline_threshold,
-          
+
           # Check magnitude
-          has_min_magnitude = abs(`50%`) >= min_magnitude,
-          
+          has_min_magnitude = abs(median) >= min_magnitude,
+
           # Combined criteria
           meets_criteria = is_significant | (is_borderline & has_min_magnitude),
-          
+
           # Add CI width for precision assessment
           ci_width = `97.5%` - `2.5%`
         )
+      
+        
+        # # Extract indices from parameter names
+        # beta_tibble <- beta_tibble %>%
+        #   mutate(
+        #     # Extract indices using regex
+        #     test_idx = as.numeric(str_extract(variable, "(?<=\\[)\\d+(?=,)")),
+        #     class_idx = as.numeric(str_extract(variable, "(?<=,)\\d+(?=,)")),
+        #     cov_idx = as.numeric(str_extract(variable, "(?<=,)\\d+(?=\\])")),
+        #     
+        #     # Determine significance at 95% level (using available columns)
+        #     is_significant = !(q5 <= 0 & q95 >= 0),
+        #     
+        #     # Borderline: CI comes within threshold of excluding 0
+        #     distance_to_zero = pmin(abs(q5), abs(q95)),
+        #     is_borderline = !is_significant & distance_to_zero <= borderline_threshold,
+        #     
+        #     # Check magnitude
+        #     has_min_magnitude = abs(median) >= min_magnitude,
+        #     
+        #     # Combined criteria
+        #     meets_criteria = is_significant | (is_borderline & has_min_magnitude),
+        #     
+        #     # Add CI width for precision assessment
+        #     ci_width = q95 - q5
+        #   )
+        
         
         # Determine dimensions
         n_tests <- max(beta_tibble$test_idx)
@@ -213,15 +165,22 @@ R_fn_map_beta_coefficients <- function( beta_tibble,
         
         # Fill arrays
         for (i in 1:nrow(beta_tibble)) {
-          t_idx <- beta_tibble$test_idx[i]
-          c_idx <- beta_tibble$class_idx[i]
-          j_idx <- beta_tibble$cov_idx[i]
+              
+              t_idx <- beta_tibble$test_idx[i]
+              c_idx <- beta_tibble$class_idx[i]
+              j_idx <- beta_tibble$cov_idx[i]
+              
+              # coef_array[t_idx, c_idx, j_idx] <- beta_tibble$`50%`[i]
+              ci_lower_array[t_idx, c_idx, j_idx] <- beta_tibble$`2.5%`[i]
+              ci_upper_array[t_idx, c_idx, j_idx] <- beta_tibble$`97.5%`[i]
+              ##
+              coef_array[t_idx, c_idx, j_idx] <- beta_tibble$median[i]
+              # ci_lower_array[t_idx, c_idx, j_idx] <- beta_tibble$q5[i]
+              # ci_upper_array[t_idx, c_idx, j_idx] <- beta_tibble$q95[i]
+              ##
+              signif_array[t_idx, c_idx, j_idx] <- beta_tibble$is_significant[i]
+              meets_criteria_array[t_idx, c_idx, j_idx] <- beta_tibble$meets_criteria[i]
           
-          coef_array[t_idx, c_idx, j_idx] <- beta_tibble$`50%`[i]
-          ci_lower_array[t_idx, c_idx, j_idx] <- beta_tibble$`2.5%`[i]
-          ci_upper_array[t_idx, c_idx, j_idx] <- beta_tibble$`97.5%`[i]
-          signif_array[t_idx, c_idx, j_idx] <- beta_tibble$is_significant[i]
-          meets_criteria_array[t_idx, c_idx, j_idx] <- beta_tibble$meets_criteria[i]
         }
         
         results$coefficients <- coef_array
@@ -272,9 +231,9 @@ R_fn_map_beta_coefficients <- function( beta_tibble,
               cat(sprintf("  - %s, %s: β = %.3f [%.3f, %.3f]\n",
                           sig_effects$class_name[i],
                           sig_effects$covariate_name[i],
-                          sig_effects$`50%`[i],
-                          sig_effects$`2.5%`[i],
-                          sig_effects$`97.5%`[i]))
+                          sig_effects$median[i],
+                          sig_effects$q5[i],
+                          sig_effects$q95[i]))
             }
           }
         }
@@ -294,9 +253,9 @@ R_fn_map_beta_coefficients <- function( beta_tibble,
               cat(sprintf("  - %s, %s: β = %.3f [%.3f, %.3f]\n",
                           sig_cov_data$test_name[i],
                           sig_cov_data$class_name[i],
-                          sig_cov_data$`50%`[i],
-                          sig_cov_data$`2.5%`[i],
-                          sig_cov_data$`97.5%`[i]))
+                          sig_cov_data$median[i],
+                          sig_cov_data$q5[i],
+                          sig_cov_data$q95[i]))
             }
           }
         }
@@ -308,7 +267,7 @@ R_fn_map_beta_coefficients <- function( beta_tibble,
           
           large_nonsig <- beta_tibble %>%
             filter(has_min_magnitude & !is_significant & is_borderline & covariate_name != "intercept") %>%
-            arrange(desc(abs(`50%`)))
+            arrange(desc(abs(median)))
           
           if (nrow(large_nonsig) > 0) {
             for (i in 1:min(nrow(large_nonsig), 10)) {  # Show top 10
@@ -316,9 +275,9 @@ R_fn_map_beta_coefficients <- function( beta_tibble,
                           large_nonsig$test_name[i],
                           large_nonsig$class_name[i],
                           large_nonsig$covariate_name[i],
-                          large_nonsig$`50%`[i],
-                          large_nonsig$`2.5%`[i],
-                          large_nonsig$`97.5%`[i]))
+                          large_nonsig$median[i],
+                          large_nonsig$q5[i],
+                          large_nonsig$q95[i]))
             }
           } else {
             cat("None\n")
@@ -746,8 +705,18 @@ R_fn_get_covariate_info_MA <- function(  intercept_only,
             
             if (is.null(X)) { ## i.e. intercept-only 
                     
-                    if (model_parameterisation %in% c("Jones", "Xu")) { ## For Xu or Jones -based models
-                            
+                    if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
+                      
+                            X_t <- matrix(1.0, nrow = n_studies, ncol = 1)
+                            cov_info_list$X <- X_t
+                            ##
+                            cov_info_list$baseline_case  <- 1
+                            cov_info_list$n_covariates   <- 1
+                            cov_info_list$n_covariates_max <- 1
+                      
+                      
+                    } else {   ## For Xu or Jones -based models
+                      
                             cov_info_list$n_covariates_nd  <- 1
                             cov_info_list$n_covariates_d   <- 1
                             cov_info_list$n_covariates_max <- 1
@@ -763,21 +732,19 @@ R_fn_get_covariate_info_MA <- function(  intercept_only,
                             cov_info_list$baseline_case_nd <- 1
                             cov_info_list$baseline_case_d  <- 1
                       
-                    } else {  ## ---- For R&G / HSROC-based models
-                            
-                            X_t <- matrix(1.0, nrow = n_studies, ncol = 1)
-                            cov_info_list$X <- X_t
-                            ##
-                            cov_info_list$baseline_case  <- 1
-                            cov_info_list$n_covariates   <- 1
-                            cov_info_list$n_covariates_max <- 1
                       
                     }
                     
             } else {  ## i.e. if covariates
-              
-                    if (model_parameterisation %in% c("Jones", "Xu")) { ## For Xu or Jones -based models
+                    
+                    if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
                       
+                            cov_info_list$X <- X
+                            cov_info_list$n_covariates  <-  ncol(X)
+                      
+                      
+                    } else {   ## For Xu or Jones -based models
+                            
                             cov_info_list$X_nd <- X[[1]] ## n_studies x n_covariates_nd matrix
                             cov_info_list$n_covariates_nd <- ncol(cov_info_list$X_nd)
                             ##
@@ -786,10 +753,6 @@ R_fn_get_covariate_info_MA <- function(  intercept_only,
                             ##
                             cov_info_list$n_covariates_max <- max(cov_info_list$n_covariates_nd, cov_info_list$n_covariates_d)
                       
-                    } else if (length(X) == 1) { ## For R&G / HSROC-based models
-                            
-                            cov_info_list$X <- X
-                            cov_info_list$n_covariates  <-  ncol(X)
                       
                     }
               
@@ -829,69 +792,69 @@ R_fn_get_covariate_info_NMA <- function( intercept_only,
             
             if (is.null(X)) { ## i.e. intercept-only 
               
-                    if (model_parameterisation %in% c("Jones", "Xu")) { ## For Xu or Jones -based models
-                      
-                            cov_info_list$n_covariates_nd <- rep(1, n_index_tests)
-                            cov_info_list$n_covariates_d  <- rep(1, n_index_tests)
-                            cov_info_list$n_covariates_max <- 1
-                            ##
-                            X_nd_t <- matrix(1.0, nrow = n_studies, ncol = 1)
-                            cov_info_list$X_nd <- rep(list(X_nd_t), n_index_tests)
-                            ##
-                            X_d_t <- matrix(1.0, nrow = n_studies, ncol = 1)
-                            cov_info_list$X_d <- rep(list(X_d_t), n_index_tests)
-                            ##
-                            cov_info_list$X <- list(cov_info_list$X_nd, cov_info_list$X_d)
-                            ##
-                            cov_info_list$baseline_case_nd <- rep(list(1), n_index_tests)
-                            cov_info_list$baseline_case_d  <- rep(list(1), n_index_tests)
-                      
-                    } else {  ## ---- For R&G / HSROC-based models
-                      
-                            X_t <- matrix(1.0, nrow = n_studies, ncol = 1)
-                            cov_info_list$X <- rep(list(X_t), n_index_tests)
-                            ##
-                            cov_info_list$baseline_case  <- rep(list(1), n_index_tests)
-                            cov_info_list$n_covariates   <- rep(1, n_index_tests)
-                            cov_info_list$n_covariates_max <- 1
-                            
-                    }
+                  if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
+                    
+                          X_t <- matrix(1.0, nrow = n_studies, ncol = 1)
+                          cov_info_list$X <- rep(list(X_t), n_index_tests)
+                          ##
+                          cov_info_list$baseline_case  <- rep(list(1), n_index_tests)
+                          cov_info_list$n_covariates   <- rep(1, n_index_tests)
+                          cov_info_list$n_covariates_max <- 1
+                          
+                  } else {   ## For Xu or Jones -based models
+                          
+                          cov_info_list$n_covariates_nd <- rep(1, n_index_tests)
+                          cov_info_list$n_covariates_d  <- rep(1, n_index_tests)
+                          cov_info_list$n_covariates_max <- 1
+                          ##
+                          X_nd_t <- matrix(1.0, nrow = n_studies, ncol = 1)
+                          cov_info_list$X_nd <- rep(list(X_nd_t), n_index_tests)
+                          ##
+                          X_d_t <- matrix(1.0, nrow = n_studies, ncol = 1)
+                          cov_info_list$X_d <- rep(list(X_d_t), n_index_tests)
+                          ##
+                          cov_info_list$X <- list(cov_info_list$X_nd, cov_info_list$X_d)
+                          ##
+                          cov_info_list$baseline_case_nd <- rep(list(1), n_index_tests)
+                          cov_info_list$baseline_case_d  <- rep(list(1), n_index_tests)
+                    
+                  }
               
             } else { ## i.e. if covariates
               
-                    if (model_parameterisation %in% c("Jones", "Xu")) { ## For Xu or Jones -based models
-                      
-                            cov_info_list$X_nd <- X[[1]] ## n_studies x n_covariates_nd matrix
-                            cov_info_list$X_d  <- X[[2]] ## n_studies x n_covariates_nd matrix
-                            cov_info_list$X <- X
-                            ##
-                            cov_info_list$n_covariates_nd <- c()
-                            cov_info_list$n_covariates_d  <- c()
-                            ##
-                            for (t in 1:n_index_tests) {
-                              cov_info_list$n_covariates_nd[t] <- ncol(cov_info_list$X_nd[[t]])
-                              cov_info_list$n_covariates_d[t]  <- ncol(cov_info_list$X_d[[t]])
-                            }
-                            ##
-                            cov_info_list$n_covariates_max <- max(max(cov_info_list$n_covariates_nd), max(cov_info_list$n_covariates_d))
-                      
-                    } else if (length(X) == 1) { ## For R&G / HSROC-based models
-                      
-                            cov_info_list$X <- X
-                            cov_info_list$n_covariates  <-  c() ##  ncol(X)
-                            ##
-                            for (t in 1:n_index_tests) {
-                              cov_info_list$n_covariates[t] <- ncol(X[[t]])
-                            }
-                            ##
-                            cov_info_list$n_covariates_max <- max(cov_info_list$n_covariates)
-                      
-                    }
+                  if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
+                          
+                          cov_info_list$X <- X
+                          cov_info_list$n_covariates  <-  c() ##  ncol(X)
+                          ##
+                          for (t in 1:n_index_tests) {
+                            cov_info_list$n_covariates[t] <- ncol(X[[t]])
+                          }
+                          ##
+                          cov_info_list$n_covariates_max <- max(cov_info_list$n_covariates)
+                    
+                  } else {   ## For Xu or Jones -based models
+                    
+                          cov_info_list$X_nd <- X[[1]] ## n_studies x n_covariates_nd matrix
+                          cov_info_list$X_d  <- X[[2]] ## n_studies x n_covariates_nd matrix
+                          cov_info_list$X <- X
+                          ##
+                          cov_info_list$n_covariates_nd <- c()
+                          cov_info_list$n_covariates_d  <- c()
+                          ##
+                          for (t in 1:n_index_tests) {
+                            cov_info_list$n_covariates_nd[t] <- ncol(cov_info_list$X_nd[[t]])
+                            cov_info_list$n_covariates_d[t]  <- ncol(cov_info_list$X_d[[t]])
+                          }
+                          ##
+                          cov_info_list$n_covariates_max <- max(max(cov_info_list$n_covariates_nd), max(cov_info_list$n_covariates_d))
+                    
+                  }
               
             }
             
             return(cov_info_list)
-  
+
 }
 
 
@@ -1197,9 +1160,9 @@ R_fn_pad_covariate_matrices <- function( X_list,
 
 
 
-#' R_fn_expand_covariates_to_all_studies
+#' expand_covariates_to_all_studies
 #' @export
-R_fn_expand_covariates_to_all_studies <- function(X, 
+expand_covariates_to_all_studies <- function(X, 
                                              indicator_index_test_in_study, 
                                              study_mappings = NULL,
                                              missing_value = 0 ## 0 won't contribute to Xbeta/lp
@@ -1315,364 +1278,813 @@ R_fn_expand_covariates_to_all_studies <- function(X,
 }
 
 
+#
 
 
-#' R_fn_create_subsetted_covariates_for_tests
+
+
+
+
+ 
+#' process_covs
 #' @export
-R_fn_create_subsetted_covariates_for_tests <- function(cov_data, 
-                                                  test_data_list, 
-                                                  test_names, 
-                                                  continuous_covs, 
-                                                  binary_covs, 
-                                                  categorical_covs,
-                                                  center_cts,
-                                                  scale_cts
-) {
-
-              # First, prepare the full covariate matrix
-              require(dplyr)
+process_covs <- function(covs, 
+                         n_tests) {
   
-              n_tests <- length(test_data_list)
-              n_studies_per_test <- numeric(n_tests)
+      if (is.null(covs)) return(rep(list(NULL), n_tests))
+      if (!is.list(covs)) {
+        # Single vector -> use for all tests
+        return(rep(list(covs), n_tests))
+      } else if (length(covs) == n_tests) {
+        # Already per-test
+        return(covs)
+      } else {
+        stop("Covariate list length must match n_tests")
+      }
+  
+}
+
+
+#' process_covariates_for_group
+#' @export
+process_covariates_for_group <- function(cov_data,
+                                         test_studies, 
+                                         continuous, 
+                                         binary, 
+                                         categorical,
+                                         all_categorical_levels
+) {
+        # Filter and prepare data
+        # cov_data_clean <- cov_data %>%
+        #   filter(Study %in% test_studies) %>%
+        #   distinct(Study, .keep_all = TRUE) %>%
+        #   arrange(Study)
+        
+        cov_data_clean <- cov_data %>%
+          distinct(Study, .keep_all = TRUE) %>%
+          arrange(Study)
+        
+        # Convert missing to 999
+        for (col in names(cov_data_clean)) {
+          if (col != "Study") {
+            if (is.numeric(cov_data_clean[[col]])) {
+              cov_data_clean[[col]][is.na(cov_data_clean[[col]])] <- 999
+              cov_data_clean[[col]][is.nan(cov_data_clean[[col]])] <- 999
+              cov_data_clean[[col]][is.infinite(cov_data_clean[[col]])] <- 999
+            } else {
+              cov_data_clean[[col]][is.na(cov_data_clean[[col]])] <- 999
+              cov_data_clean[[col]][cov_data_clean[[col]] == ""] <- 999
+            }
+          }
+        }
+        
+        # Create design matrix with intercept
+        design_matrix <- data.frame(intercept = rep(1, nrow(cov_data_clean)))
+        
+        # Process continuous variables
+        for (var in continuous) {
+          if (var %in% names(cov_data_clean)) {
+            var_values <- as.numeric(cov_data_clean[[var]])
+            
+            # Handle 999 as missing (instead of NA median imputation)
+            missing_idx <- which(var_values == 999)
+            if (length(missing_idx) > 0) {
+              var_values[missing_idx] <- 999 # Set to 999, Stan will estimate
+              cat("Note:", length(missing_idx), "missing values (999) in", var, "will be estimated by Stan\n")
+            }
+            design_matrix[[var]] <- var_values
+          }
+        }
+        
+        # Process binary variables
+        for (var in binary) {
+          if (var %in% names(cov_data_clean)) {
+            var_values <- cov_data_clean[[var]]
+            
+            # First convert any YES/NO strings to 1/0
+            var_values <- ifelse(toupper(as.character(var_values)) %in% c("YES", "1"), 1,
+                                 ifelse(toupper(as.character(var_values)) %in% c("NO", "0"), 0,
+                                        var_values))  # Keep 999 as is
+            
+            # Now handle 999s
+            if (any(var_values == 999, na.rm = TRUE)) {
+              # Replace 999 with 0 in main variable
+              design_matrix[[var]] <- ifelse(var_values == 999, 0, var_values)
+              # Add missing indicator
+              design_matrix[[paste0(var, "_missing")]] <- as.numeric(var_values == 999)
+              cat("Note: Missing values (999) in", var, "coded as separate indicator\n")
+            } else {
+              # No missing values - just use as is
+              design_matrix[[var]] <- var_values
+            }
+          }
+        }
+        
+        # Process categorical variables - handle 999 DURING dummy creation
+        if (!is.null(categorical) && length(categorical) > 0) {
+          
+          for (var in categorical) {
+            if (var %in% names(cov_data_clean)) {
+              cat_values <- cov_data_clean[[var]]
               
-              # Get all unique studies across all tests
-              all_studies <- sort(unique(unlist(lapply(test_data_list, function(x) unique(x$Study)))))
+              # Check if there are any 999s
+              has_missing <- any(cat_values == 999, na.rm = TRUE)
               
-              # Prepare covariate data - one row per study
-              cov_data_clean <- cov_data %>%
-                filter(Study %in% all_studies) %>%
-                distinct(Study, .keep_all = TRUE) %>%
-                arrange(Study)
-              
-              # Create the full design matrix (same as before)
-              design_matrix <- data.frame(intercept = rep(1, nrow(cov_data_clean)))
-              
-              # Process continuous variables
-              for (var in continuous_covs) {
-                if (var %in% names(cov_data_clean)) {
-                  var_values <- as.numeric(cov_data_clean[[var]])
-                  # Handle missing values
-                  median_val <- median(var_values, na.rm = TRUE)
-                  var_values[is.na(var_values)] <- median_val
-                  design_matrix[[var]] <- var_values
+              # Get ALL levels from all_categorical_levels
+              if (var %in% names(all_categorical_levels)) {
+                unique_levels <- factor(all_categorical_levels[[var]])
+              } else {
+                # This shouldn't happen but fallback just in case
+                unique_levels <- unique(cat_values[cat_values != 999])
+                if (!is.factor(unique_levels)) {
+                  unique_levels <- factor(unique_levels)
                 }
               }
               
-              # Process binary variables
-              for (var in binary_covs) {
-                if (var %in% names(cov_data_clean)) {
-                  var_values <- cov_data_clean[[var]]
-                  var_values <- ifelse(toupper(as.character(var_values)) %in% c("YES", "1") | var_values == 1, 1, 0)
-                  design_matrix[[var]] <- var_values
+              # Create dummies for each level (except reference)
+              n_levels <- length(levels(unique_levels))
+              if (n_levels > 1) {
+                for (i in 2:n_levels) {
+                  level_name <- levels(unique_levels)[i]
+                  dummy_name <- paste0(var, "_", level_name)
+                  # When original is 999, dummy gets 0
+                  design_matrix[[dummy_name]] <- ifelse(cat_values == 999, 0,
+                                                        as.numeric(cat_values == level_name))
                 }
               }
               
-              # Process categorical variables
-              if (!is.null(categorical_covs) && length(categorical_covs) > 0) {
-                for (var in categorical_covs) {
-                  if (var %in% names(cov_data_clean)) {
-                    cat_values <- cov_data_clean[[var]]
-                    if (!is.factor(cat_values)) {
-                      cat_values <- factor(cat_values)
-                    }
-                    n_levels <- length(levels(cat_values))
-                    if (n_levels > 1) {
-                      for (i in 2:n_levels) {
-                        level_name <- levels(cat_values)[i]
-                        dummy_name <- paste0(var, "_", level_name)
-                        design_matrix[[dummy_name]] <- as.numeric(cat_values == level_name)
+              # Add missing indicator if needed
+              if (has_missing) {
+                design_matrix[[paste0(var, "_miss")]] <- as.numeric(cat_values == 999)
+              }
+            }
+          }
+        }
+        
+        # Convert to matrix and return
+        X_mat <- as.matrix(design_matrix)
+        storage.mode(X_mat) <- "numeric"
+        
+        return(X_mat)
+  
+}
+
+
+
+
+
+#' create_subsetted_covariates_for_tests
+#' @export
+create_subsetted_covariates_for_tests <- function(     cov_data,
+                                                       indicator_index_test_in_study, 
+                                                       test_names, 
+                                                       continuous_covs,
+                                                       binary_covs,
+                                                       categorical_covs,
+                                                       center_and_scale_cts) {
+          require(dplyr)
+          
+          # Handle single test (non-NMA) case
+          if (is.vector(indicator_index_test_in_study)) {
+            indicator_index_test_in_study <- matrix(indicator_index_test_in_study, ncol = 1)
+          }
+          
+          n_tests <- ncol(indicator_index_test_in_study)
+          n_max_studies <- nrow(indicator_index_test_in_study)
+          
+          # PARSE INPUT into standardized format
+          if (is.data.frame(cov_data)) {
+            cov_data_nd <- rep(list(cov_data), n_tests)
+            cov_data_d <- rep(list(cov_data), n_tests)
+          } else if (is.list(cov_data)) {
+            if (length(cov_data) == 2 && is.list(cov_data[[1]])) {
+              cov_data_nd <- cov_data[[1]]
+              cov_data_d <- cov_data[[2]]
+            } else if (length(cov_data) == n_tests && is.data.frame(cov_data[[1]])) {
+              cov_data_nd <- cov_data
+              cov_data_d <- cov_data
+            } else {
+              stop("Invalid cov_data format")
+            }
+          } else {
+            stop("cov_data must be tibble or list")
+          }
+          
+          continuous_per_test <- process_covs(continuous_covs, n_tests)
+          binary_per_test <- process_covs(binary_covs, n_tests)
+          categorical_per_test <- process_covs(categorical_covs, n_tests)
+          
+          # Collect ALL categorical levels across ALL tests for SHARED covariates
+          all_categorical_levels <- list()
+          all_categorical_vars <- unique(unlist(categorical_per_test))
+          
+          for (var in all_categorical_vars[!is.null(all_categorical_vars)]) {
+            all_vals <- c()
+            
+            for (t in 1:n_tests) {
+              if (!is.null(cov_data_nd[[t]]) && var %in% names(cov_data_nd[[t]])) {
+                vals <- cov_data_nd[[t]][[var]]
+                all_vals <- c(all_vals, vals[vals != 999 & !is.na(vals)])
+              }
+              if (!is.null(cov_data_d[[t]]) && var %in% names(cov_data_d[[t]])) {
+                vals <- cov_data_d[[t]][[var]]
+                all_vals <- c(all_vals, vals[vals != 999 & !is.na(vals)])
+              }
+            }
+            
+            if (length(all_vals) > 0) {
+              all_categorical_levels[[var]] <- sort(unique(all_vals))
+            }
+          }
+          
+          print("DEBUG - Categorical levels collected:")
+          print(all_categorical_levels)
+          
+          # Process each test
+          X_nd_list <- list()
+          X_d_list <- list()
+          n_studies_per_test <- numeric(n_tests)
+          study_mappings_per_test <- list()
+ 
+          
+          # for (t in 1:n_tests) {
+          #   studies_in_test <- which(indicator_index_test_in_study[, t] == 1)
+          #   n_studies_per_test[t] <- length(studies_in_test)
+          #   
+          #   study_mappings_per_test[[t]] <- data.frame(
+          #     original_study = studies_in_test,
+          #     new_row_index = 1:length(studies_in_test)
+          #   )
+          #   
+          #   # Process ND
+          #   X_nd_list[[t]] <- process_covariates_for_group(
+          #     cov_data_nd[[t]],
+          #     studies_in_test,
+          #     continuous_per_test[[t]],
+          #     binary_per_test[[t]],
+          #     categorical_per_test[[t]],
+          #     all_categorical_levels  # Passed internally
+          #   )
+          #   
+          #   # Process D  
+          #   X_d_list[[t]] <- process_covariates_for_group(
+          #     cov_data_d[[t]],
+          #     studies_in_test,
+          #     continuous_per_test[[t]],
+          #     binary_per_test[[t]],
+          #     categorical_per_test[[t]],
+          #     all_categorical_levels  # Passed internally
+          #   )
+          # }
+          
+          
+          for (t in 1:n_tests) {
+            # Get the actual number of studies in this test's data
+            n_studies_this_test <- nrow(cov_data_nd[[t]])
+            n_studies_per_test[t] <- n_studies_this_test
+            
+            # Don't need test_studies anymore - just pass NULL
+            X_nd_list[[t]] <- process_covariates_for_group(
+              cov_data_nd[[t]],
+              NULL,  # Don't need this anymore
+              continuous_per_test[[t]],
+              binary_per_test[[t]],
+              categorical_per_test[[t]],
+              all_categorical_levels
+            )
+            
+            # Same for D
+            X_d_list[[t]] <- process_covariates_for_group(
+              cov_data_d[[t]],
+              NULL,  # Don't need this anymore
+              continuous_per_test[[t]],
+              binary_per_test[[t]],
+              categorical_per_test[[t]],
+              all_categorical_levels
+            )
+          }
+
+          
+          # Get dimensions
+          n_covariates_nd <- sapply(X_nd_list, ncol)
+          n_covariates_d <- sapply(X_d_list, ncol)
+          n_covariates_max <- max(c(n_covariates_nd, n_covariates_d))
+          
+          # Create baseline vectors
+          baseline_vec <- rep(0, n_covariates_max)
+          baseline_vec[1] <- 1  # intercept
+          
+          baseline_case_nd <- rep(list(baseline_vec), n_tests)
+          baseline_case_d <- rep(list(baseline_vec), n_tests)
+          
+          # Center and scale continuous variables
+          if (center_and_scale_cts) {
+            all_continuous_vars <- unique(unlist(continuous_per_test))
+            
+            for (var in all_continuous_vars[!is.null(all_continuous_vars)]) {
+              # Collect all NON-MISSING values across all tests
+              all_values <- c()
+              for (t in 1:n_tests) {
+                col_idx <- which(colnames(X_nd_list[[t]]) == var)
+                if (length(col_idx) > 0) {
+                  vals <- X_nd_list[[t]][, col_idx]
+                  all_values <- c(all_values, vals[vals != 999])
+                }
+                col_idx <- which(colnames(X_d_list[[t]]) == var)
+                if (length(col_idx) > 0) {
+                  vals <- X_d_list[[t]][, col_idx]
+                  all_values <- c(all_values, vals[vals != 999])
+                }
+              }
+              
+              if (length(all_values) > 0) {
+                global_mean <- mean(all_values)
+                global_sd <- sd(all_values)
+                
+                # Apply scaling but KEEP 999s as 999
+                for (t in 1:n_tests) {
+                  # ND
+                  col_idx <- which(colnames(X_nd_list[[t]]) == var)
+                  if (length(col_idx) > 0) {
+                    vals <- X_nd_list[[t]][, col_idx]
+                    non_missing <- vals != 999
+                    vals[non_missing] <- (vals[non_missing] - global_mean) / global_sd
+                    X_nd_list[[t]][, col_idx] <- vals
+                  }
+                  
+                  # D
+                  col_idx <- which(colnames(X_d_list[[t]]) == var)
+                  if (length(col_idx) > 0) {
+                    vals <- X_d_list[[t]][, col_idx]
+                    non_missing <- vals != 999
+                    vals[non_missing] <- (vals[non_missing] - global_mean) / global_sd
+                    X_d_list[[t]][, col_idx] <- vals
+                  }
+                }
+              }
+            }
+          }
+          
+          # Print summary
+          cat("\n=== Covariate Preparation Summary ===\n")
+          cat("Total studies:", n_max_studies, "\n")
+          cat("Studies per test:", n_studies_per_test, "\n")
+          cat("Max covariates:", n_covariates_max, "\n")
+          
+          return(list(
+            n_studies = n_max_studies,
+            n_index_tests = n_tests,
+            n_covariates_nd = n_covariates_nd,
+            n_covariates_d = n_covariates_d,
+            n_covariates_max = n_covariates_max,
+            X_nd = X_nd_list,
+            X_d = X_d_list,
+            baseline_case_nd = baseline_case_nd,
+            baseline_case_d = baseline_case_d,
+            indicator_index_test_in_study = indicator_index_test_in_study,
+            study_mappings_per_test = study_mappings_per_test,
+            n_studies_per_test = n_studies_per_test,
+            continuous_covs = continuous_per_test,
+            binary_covs = binary_per_test,
+            categorical_covs = categorical_per_test
+          ))
+  
+}
+
+
+
+
+
+
+
+
+#' prepare_NMA_data
+#' @export
+prepare_NMA_data <- function(test_data_list, 
+                             test_names = NULL,
+                             max_scores = NULL
+) {
+  
+        n_index_tests <- length(test_data_list)
+        
+        # Auto-detect test names if not provided
+        if (is.null(test_names)) {
+          test_names <- names(test_data_list)
+          if (is.null(test_names)) test_names <- paste0("Test_", 1:n_index_tests)
+        }
+        
+        min_scores <- rep(0, n_index_tests) ## MUST be zero!
+        # Default score ranges if not provided
+        if (is.null(max_scores)) {
+          # You'll need to specify these or detect them from data
+          stop("max_scores must be provided")
+        }
+        
+        # Get unique studies per test
+        study_ids_by_test <- lapply(test_data_list, function(x) unique(x$Study))
+        all_study_ids <- sort(unique(unlist(study_ids_by_test)))
+        n_studies <- length(all_study_ids)
+        
+        # Create indicator matrix
+        indicator_matrix <- matrix(0, nrow = n_studies, ncol = n_index_tests)
+        study_id_to_row <- setNames(1:n_studies, all_study_ids)
+        
+        for (t in 1:n_index_tests) {
+          for (s in study_ids_by_test[[t]]) {
+            row_idx <- study_id_to_row[as.character(s)]
+            indicator_matrix[row_idx, t] <- 1
+          }
+        }
+        
+        # Initialize x arrays
+        x <- list()
+        n_thr <- numeric(n_index_tests)
+        
+        for (t in 1:n_index_tests) {
+          # Transform data
+          data_transformed <- transform_questionnaire_data_by_disease(
+            data = test_data_list[[t]],
+            min_score = min_scores[t],
+            max_score = max_scores[t]
+          )
+          
+          n_thr[t] <- ncol(data_transformed$diseased) - 1
+          
+          # Convert to integers
+          x_nd <- convert_to_integers_simple(data_transformed$nondiseased)
+          x_d <- convert_to_integers_simple(data_transformed$diseased)
+          
+          # Initialize matrices
+          x[[t]] <- list(
+            matrix(-1, nrow = n_studies, ncol = n_thr[t] + 1),
+            matrix(-1, nrow = n_studies, ncol = n_thr[t] + 1)
+          )
+          
+          # Fill in data
+          unique_studies <- unique(test_data_list[[t]]$Study)
+          for (s_local in 1:length(unique_studies)) {
+            study_id <- unique_studies[s_local]
+            s_row <- study_id_to_row[as.character(study_id)]
+            
+            x[[t]][[1]][s_row, ] <- x_nd[s_local, ]
+            x[[t]][[2]][s_row, ] <- x_d[s_local, ]
+          }
+        }
+        
+        # Return clean list
+        list(
+          n_studies = n_studies,
+          n_index_tests = n_index_tests,
+          n_thr = n_thr,
+          n_cat = n_thr + 1,
+          n_thr_max = max(n_thr),
+          n_cat_max = max(n_thr + 1),
+          n_studies_per_test = sapply(study_ids_by_test, length),
+          x = x,
+          indicator_index_test_in_study = indicator_matrix,
+          test_names = test_names
+        )
+  
+}
+
+
+
+
+
+
+#' prepare_covariate_data
+#' @export
+prepare_covariate_data <- function(X, 
+                                   indicator_matrix, 
+                                   n_index_tests, 
+                                   baseline_case = NULL) {
+  
+        n_covariates <- ncol(X[[1]][[1]])
+        
+        # Expand covariates to all studies if needed
+        X_expanded <- MetaOrdDTA:::expand_covariates_to_all_studies(
+          X, 
+          indicator_index_test_in_study = indicator_matrix
+        )
+        
+        # Create baseline if not provided
+        if (is.null(baseline_case)) {
+          baseline_case <- rep(0, n_covariates)
+          baseline_case[1] <- 1  # Intercept
+        }
+        
+        list(
+          X = X_expanded,
+          baseline_case_nd = rep(list(baseline_case), n_index_tests),
+          baseline_case_d = rep(list(baseline_case), n_index_tests)
+        )
+  
+}
+
+
+
+
+
+#' validate_X_matrices
+#' @export
+validate_X_matrices <- function(X, 
+                                tolerance = 1e-10,
+                                test_specific_covs = NULL,
+                                indicator_index_test_in_study = NULL,
+                                is_X_expanded = NULL
+) {
+        
+        cat("=== VALIDATING X MATRICES ===\n\n")
+        
+        n_disease_groups <- length(X)
+        n_tests <- length(X[[1]])
+        
+        cat("Structure check:\n")
+        cat("- Disease groups:", n_disease_groups, "\n")
+        cat("- Tests:", n_tests, "\n")
+        
+        # Require explicit specification if indicator provided
+        if (!is.null(indicator_index_test_in_study) && is.null(is_X_expanded)) {
+          stop("When indicator_index_test_in_study is provided, you must specify is_X_expanded=TRUE or FALSE")
+        }
+        
+        if (!is.null(is_X_expanded)) {
+          cat("- Format:", ifelse(is_X_expanded, "EXPANDED", "NON-EXPANDED"), "\n")
+        }
+        cat("\n")
+        
+
+        # Check dimensions
+        cat("Dimensions per test:\n")
+        for (t in 1:n_tests) {
+          n_rows_nd <- nrow(X[[1]][[t]])
+          n_cols_nd <- ncol(X[[1]][[t]])
+          n_rows_d <- nrow(X[[2]][[t]])
+          n_cols_d <- ncol(X[[2]][[t]])
+          
+          cat("  Test", t, ": ND =", n_rows_nd, "x", n_cols_nd, 
+              ", D =", n_rows_d, "x", n_cols_d, "\n")
+          
+          if (n_rows_nd != n_rows_d || n_cols_nd != n_cols_d) {
+            cat("    ⚠️ WARNING: ND and D dimensions differ!\n")
+          }
+        }
+        
+        covariate_names <- colnames(X[[1]][[1]])
+        cat("\nCovariate names:", paste(covariate_names, collapse = ", "), "\n\n")
+        
+        # Check ND vs D
+        cat("=== Checking ND vs D consistency within tests ===\n")
+        nd_d_match <- TRUE
+        for (t in 1:n_tests) {
+          max_diff <- max(abs(X[[1]][[t]] - X[[2]][[t]]))
+          if (max_diff > tolerance) {
+            cat("  ❌ Test", t, ": ND and D differ (max diff =", max_diff, ")\n")
+            nd_d_match <- FALSE
+          } else {
+            cat("  ✓ Test", t, ": ND and D identical\n")
+          }
+        }
+        
+        # Check cross-test consistency if indicator provided
+        if (!is.null(indicator_index_test_in_study)) {
+          
+                cat("\n=== Checking cross-test consistency for shared studies ===\n")
+                
+                # Derive study mappings from indicator
+                study_mappings <- list()
+                for (t in 1:n_tests) {
+                  study_mappings[[t]] <- which(indicator_index_test_in_study[, t] == 1)
+                }
+                
+                # Determine covariate types
+                if (is.null(test_specific_covs)) {
+                  test_specific_covs <- character(0)
+                }
+                study_level_covs <- setdiff(covariate_names, c("intercept", test_specific_covs))
+                
+                cat("Test-specific covariates (allowed to vary):", 
+                    ifelse(length(test_specific_covs) > 0, 
+                           paste(test_specific_covs, collapse = ", "), 
+                           "none"), "\n")
+                cat("Study-level covariates (must be consistent):", 
+                    ifelse(length(study_level_covs) > 0,
+                           paste(study_level_covs, collapse = ", "),
+                           "none"), "\n\n")
+                
+                # Find studies in multiple tests
+                all_studies <- 1:nrow(indicator_index_test_in_study)
+                cross_test_valid <- TRUE
+                
+                for (study_id in all_studies) {
+                  tests_with_study <- which(indicator_index_test_in_study[study_id, ] == 1)
+                  
+                  if (length(tests_with_study) > 1) {
+                    # This study appears in multiple tests
+                    for (cov in study_level_covs) {
+                      ref_test <- tests_with_study[1]
+                      
+                      if (is_X_expanded) {
+                        # Expanded: study_id IS the row number
+                        ref_val <- X[[1]][[ref_test]][study_id, cov]
+                        
+                        for (t in tests_with_study[-1]) {
+                          test_val <- X[[1]][[t]][study_id, cov]
+                          
+                          if (abs(ref_val - test_val) > tolerance) {
+                            cat("  ❌ Study", study_id, ", Covariate '", cov, 
+                                "': Test", ref_test, "=", ref_val, 
+                                ", Test", t, "=", test_val, "\n")
+                            cross_test_valid <- FALSE
+                          }
+                        }
+                      } else {
+                        # Non-expanded: need to find which row this study is
+                        # Build study mappings once outside the loop
+                        if (!exists("study_mappings")) {
+                          study_mappings <- list()
+                          for (t in 1:n_tests) {
+                            study_mappings[[t]] <- which(indicator_index_test_in_study[, t] == 1)
+                          }
+                        }
+                        
+                        ref_row <- which(study_mappings[[ref_test]] == study_id)
+                        ref_val <- X[[1]][[ref_test]][ref_row, cov]
+                        
+                        for (t in tests_with_study[-1]) {
+                          test_row <- which(study_mappings[[t]] == study_id)
+                          test_val <- X[[1]][[t]][test_row, cov]
+                          
+                          if (abs(ref_val - test_val) > tolerance) {
+                            cat("  ❌ Study", study_id, ", Covariate '", cov, 
+                                "': Test", ref_test, "=", ref_val, 
+                                ", Test", t, "=", test_val, "\n")
+                            cross_test_valid <- FALSE
+                          }
+                        }
                       }
                     }
                   }
                 }
-              }
-              
-              # Convert to numeric matrix
-              full_X_mat <- as.matrix(design_matrix)
-              storage.mode(full_X_mat) <- "numeric"
-              
-              # Now create SUBSETTED matrices for each test
-              X_nd_list <- list()
-              X_d_list <- list()
-              study_mappings_per_test <- list()
-              
-              for (t in 1:n_tests) {
-                    # Get unique studies for this test
-                    test_studies <- sort(unique(test_data_list[[t]]$Study))
-                    n_studies_per_test[t] <- length(test_studies)
-                    
-                    # Find which rows in cov_data_clean correspond to these studies
-                    study_indices <- which(cov_data_clean$Study %in% test_studies)
-                    
-                    # Create mapping of original study numbers to row indices for this test
-                    study_mapping <- data.frame(
-                      original_study = test_studies,
-                      new_row_index = 1:length(test_studies)
-                    )
-                    study_mappings_per_test[[t]] <- study_mapping
-                    
-                    # Subset the covariate matrix
-                    X_subset <- full_X_mat[study_indices, , drop = FALSE]
-                    
-                    # Store in lists
-                    X_nd_list[[t]] <- X_subset
-                    X_d_list[[t]] <- X_subset
-                    
-                    cat("\nTest", t, "(", test_names[t], "):\n")
-                    cat("  Studies included:", test_studies, "\n")
-                    cat("  Number of studies:", nrow(X_subset), "\n")
-                    cat("  Covariate dimensions:", dim(X_subset), "\n")
-              }
-              
-              # Get max dimensions
-              n_covariates_max <- ncol(full_X_mat)
-              n_covariates_nd <- rep(n_covariates_max, length(test_data_list))
-              n_covariates_d <- rep(n_covariates_max, length(test_data_list))
-              
-              # Create baseline vectors
-              baseline_vec <- rep(0, n_covariates_max)
-              baseline_vec[1] <- 1  # intercept
-              
-              baseline_case_nd <- list()
-              baseline_case_d <- list()
-              for (t in 1:length(test_data_list)) {
-                baseline_case_nd[[t]] <- baseline_vec
-                baseline_case_d[[t]] <- baseline_vec
-              }
-              
-              # Create indicator matrix (still needed for Stan to know which tests exist)
-              n_max_studies <- max(unlist(lapply(test_data_list, function(x) max(x$Study))))
-              indicator_index_test_in_study <- matrix(0, nrow = n_max_studies, ncol = length(test_data_list))
-              
-              for (t in 1:length(test_data_list)) {
-                test_studies <- unique(test_data_list[[t]]$Study)
-                indicator_index_test_in_study[test_studies, t] <- 1
-              }
-              
-              # Print summary
-              cat("\n=== Covariate Preparation Summary ===\n")
-              cat("Total unique studies across all tests:", length(all_studies), "\n")
-              cat("Studies per test:", n_studies_per_test, "\n")
-              cat("Number of covariates (including dummies):", n_covariates_max, "\n")
-              cat("Covariate names:", paste(colnames(full_X_mat), collapse = ", "), "\n")
-              
-              # Center the original data before using it
-              if (center_cts) {
-                # First, calculate global mean and SD across ALL tests
-                for (var in continuous_covs) {
-                  # Collect all values across all tests
-                  all_values <- c()
-                  for (t in 1:n_tests) {
-                    col_idx <- which(colnames(X_nd_list[[t]]) == var)
-                    if (length(col_idx) > 0) {
-                      all_values <- c(all_values, X_nd_list[[t]][, col_idx])
-                    }
-                  }
-                  
-                  # Calculate global mean and SD
-                  global_mean <- mean(all_values, na.rm = TRUE)
-                  global_sd <- sd(all_values, na.rm = TRUE)
-                  
-                  # Now apply the SAME scaling to all tests
-                  for (t in 1:n_tests) {
-                    col_idx <- which(colnames(X_nd_list[[t]]) == var)
-                    if (length(col_idx) > 0) {
-                      X_nd_list[[t]][, col_idx] <- (X_nd_list[[t]][, col_idx] - global_mean) / global_sd
-                      X_d_list[[t]][, col_idx] <- (X_d_list[[t]][, col_idx] - global_mean) / global_sd
-                    }
-                  }
+                
+                if (cross_test_valid && length(study_level_covs) > 0) {
+                  cat("  ✓ All study-level covariates consistent across tests\n")
                 }
-              }
-              
-              # 
-              # ## pad X's as Stan doesn't support ragged arrays (eventhough it should as C++....):
-              # X_nd_list <- R_fn_pad_covariate_matrices(X_nd_list)
-              # X_d_list  <- R_fn_pad_covariate_matrices(X_d_list)
-
-              return(list(
-                n_studies = n_max_studies,  # This is the max study number, not count
-                n_index_tests = length(test_data_list),
-                n_covariates_nd = n_covariates_nd,
-                n_covariates_d = n_covariates_d,
-                n_covariates_max = n_covariates_max,
-                X_nd = X_nd_list,  # Each element is subsetted to match the studies in that test
-                X_d = X_d_list,    # Each element is subsetted to match the studies in that test
-                baseline_case_nd = baseline_case_nd,
-                baseline_case_d = baseline_case_d,
-                indicator_index_test_in_study = indicator_index_test_in_study,
-                ##
-                study_mappings_per_test = study_mappings_per_test,
-                n_studies_per_test = n_studies_per_test,
-                ##
-                covariate_names = colnames(full_X_mat),
-                ##
-                continuous_covs = continuous_covs, 
-                binary_covs = binary_covs, 
-                categorical_covs = categorical_covs
-              ))
+                
+        }
+        
+        return(nd_d_match)
   
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-validate_X_matrices <- function(X, 
-                                tolerance = 1e-10) {
-  
-          cat("=== VALIDATING X MATRICES ===\n\n")
-          
-          # Basic structure checks
-          if (!is.list(X) || length(X) != 2) {
-            stop("X must be a list of length 2 (for non-diseased and diseased)")
-          }
-          
-          n_disease_groups <- length(X)
-          n_tests <- length(X[[1]])
-          
-          if (length(X[[2]]) != n_tests) {
-            stop("X[[1]] and X[[2]] must have same number of tests")
-          }
-          
-          # Get dimensions
-          n_studies <- nrow(X[[1]][[1]])
-          n_covariates <- ncol(X[[1]][[1]])
-          covariate_names <- colnames(X[[1]][[1]])
-          
-          cat("Structure check:\n")
-          cat("- Disease groups:", n_disease_groups, "\n")
-          cat("- Tests:", n_tests, "\n")
-          cat("- Studies:", n_studies, "\n")
-          cat("- Covariates:", n_covariates, "\n")
-          cat("- Covariate names:", paste(covariate_names, collapse = ", "), "\n\n")
-          
-          # Check dimensions consistency
-          cat("Checking dimensions consistency...\n")
-          for (dg in 1:2) {
-            for (test in 1:n_tests) {
-              if (nrow(X[[dg]][[test]]) != n_studies) {
-                stop(sprintf("Inconsistent n_studies: DG %d, Test %d has %d rows, expected %d", 
-                             dg, test, nrow(X[[dg]][[test]]), n_studies))
-              }
-              if (ncol(X[[dg]][[test]]) != n_covariates) {
-                stop(sprintf("Inconsistent n_covariates: DG %d, Test %d has %d cols, expected %d", 
-                             dg, test, ncol(X[[dg]][[test]]), n_covariates))
-              }
-            }
-          }
-          cat("✓ All dimensions consistent\n\n")
-          
-          # CRITICAL CHECK: Study-level covariates must be identical across tests
-          cat("Checking study-level covariate consistency...\n")
-          
-          all_valid <- TRUE
-          inconsistent_studies <- c()
-          inconsistent_covariates <- c()
-          
-          for (study in 1:n_studies) {
-            # Get reference values from first non-zero occurrence
-            reference_vals <- NULL
-            reference_test <- NULL
-            
-            # Find first test where this study has data (intercept != 0)
-            for (test in 1:n_tests) {
-              if (X[[1]][[test]][study, "intercept"] != 0) {
-                reference_vals <- X[[1]][[test]][study, ]
-                reference_test <- test
-                break
-              }
-            }
-            
-            # If no reference found, study doesn't appear in any test
-            if (is.null(reference_vals)) next
-            
-            # Check consistency across all other tests
-            for (test in 1:n_tests) {
-              # Skip if study not in this test
-              if (X[[1]][[test]][study, "intercept"] == 0) next
-              
-              # Compare with reference
-              for (cov in covariate_names) {
-                # Check both disease groups
-                for (dg in 1:2) {
-                  val_ref <- reference_vals[cov]
-                  val_test <- X[[dg]][[test]][study, cov]
-                  
-                  if (abs(val_ref - val_test) > tolerance) {
-                    all_valid <- FALSE
-                    inconsistent_studies <- c(inconsistent_studies, study)
-                    inconsistent_covariates <- c(inconsistent_covariates, cov)
-                    
-                    cat(sprintf("  ❌ Study %d, Covariate '%s': Test %d = %.6f, Test %d = %.6f (diff = %.6f)\n",
-                                study, cov, reference_test, val_ref, test, val_test, 
-                                abs(val_ref - val_test)))
-                  }
-                }
-              }
-            }
-          }
-          
-          if (all_valid) {
-            cat("✓ All study-level covariates are consistent across tests!\n\n")
-          } else {
-            cat("\n❌ VALIDATION FAILED!\n")
-            cat("Inconsistent studies:", unique(inconsistent_studies), "\n")
-            cat("Inconsistent covariates:", unique(inconsistent_covariates), "\n\n")
-          }
-          
-          # Additional check: Are diseased and non-diseased X matrices identical?
-          cat("Checking if diseased and non-diseased X matrices are identical...\n")
-          matrices_identical <- TRUE
-          for (test in 1:n_tests) {
-            if (!identical(X[[1]][[test]], X[[2]][[test]])) {
-              matrices_identical <- FALSE
-              cat(sprintf("  Test %d: Diseased and non-diseased differ\n", test))
-            }
-          }
-          
-          if (matrices_identical) {
-            cat("✓ Diseased and non-diseased X matrices are identical (as expected)\n\n")
-          }
-          
-          # Summary statistics
-          cat("Summary statistics:\n")
-          for (cov in covariate_names) {
-            if (cov != "intercept") {
-              # Collect all non-zero values
-              all_vals <- c()
-              for (test in 1:n_tests) {
-                vals <- X[[1]][[test]][X[[1]][[test]][, "intercept"] != 0, cov]
-                all_vals <- c(all_vals, vals)
-              }
-              
-              if (length(unique(all_vals)) <= 10) {
-                cat(sprintf("  %s: %d unique values: %s\n", 
-                            cov, length(unique(all_vals)), 
-                            paste(sort(unique(all_vals)), collapse = ", ")))
-              } else {
-                cat(sprintf("  %s: mean = %.3f, sd = %.3f, range = [%.3f, %.3f]\n",
-                            cov, mean(all_vals), sd(all_vals), 
-                            min(all_vals), max(all_vals)))
-              }
-            }
-          }
-          
-          return(all_valid)
-  
-}
-
- 
-
-
+# validate_X_matrices <- function(X, 
+#                                 tolerance = 1e-10) {
+#   
+#           cat("=== VALIDATING X MATRICES ===\n\n")
+#           
+#           # Basic structure checks
+#           if (!is.list(X) || length(X) != 2) {
+#             stop("X must be a list of length 2 (for non-diseased and diseased)")
+#           }
+#           
+#           n_disease_groups <- length(X)
+#           n_tests <- length(X[[1]])
+#           
+#           if (length(X[[2]]) != n_tests) {
+#             stop("X[[1]] and X[[2]] must have same number of tests")
+#           }
+#           
+#           # Get dimensions
+#           n_studies <- nrow(X[[1]][[1]])
+#           n_covariates <- ncol(X[[1]][[1]])
+#           covariate_names <- colnames(X[[1]][[1]])
+#           
+#           cat("Structure check:\n")
+#           cat("- Disease groups:", n_disease_groups, "\n")
+#           cat("- Tests:", n_tests, "\n")
+#           cat("- Studies:", n_studies, "\n")
+#           cat("- Covariates:", n_covariates, "\n")
+#           cat("- Covariate names:", paste(covariate_names, collapse = ", "), "\n\n")
+#           
+#           # Check dimensions consistency
+#           cat("Checking dimensions consistency...\n")
+#           for (dg in 1:2) {
+#             for (test in 1:n_tests) {
+#               if (nrow(X[[dg]][[test]]) != n_studies) {
+#                 stop(sprintf("Inconsistent n_studies: DG %d, Test %d has %d rows, expected %d", 
+#                              dg, test, nrow(X[[dg]][[test]]), n_studies))
+#               }
+#               if (ncol(X[[dg]][[test]]) != n_covariates) {
+#                 stop(sprintf("Inconsistent n_covariates: DG %d, Test %d has %d cols, expected %d", 
+#                              dg, test, ncol(X[[dg]][[test]]), n_covariates))
+#               }
+#             }
+#           }
+#           cat("✓ All dimensions consistent\n\n")
+#           
+#           # CRITICAL CHECK: Study-level covariates must be identical across tests
+#           cat("Checking study-level covariate consistency...\n")
+#           
+#           all_valid <- TRUE
+#           inconsistent_studies <- c()
+#           inconsistent_covariates <- c()
+#           
+#           for (study in 1:n_studies) {
+#             # Get reference values from first non-zero occurrence
+#             reference_vals <- NULL
+#             reference_test <- NULL
+#             
+#             # Find first test where this study has data (intercept != 0)
+#             for (test in 1:n_tests) {
+#               if (X[[1]][[test]][study, "intercept"] != 0) {
+#                 reference_vals <- X[[1]][[test]][study, ]
+#                 reference_test <- test
+#                 break
+#               }
+#             }
+#             
+#             # If no reference found, study doesn't appear in any test
+#             if (is.null(reference_vals)) next
+#             
+#             # Check consistency across all other tests
+#             for (test in 1:n_tests) {
+#               # Skip if study not in this test
+#               if (X[[1]][[test]][study, "intercept"] == 0) next
+#               
+#               # Compare with reference
+#               for (cov in covariate_names) {
+#                 # Check both disease groups
+#                 for (dg in 1:2) {
+#                   val_ref <- reference_vals[cov]
+#                   val_test <- X[[dg]][[test]][study, cov]
+#                   
+#                   if (abs(val_ref - val_test) > tolerance) {
+#                     all_valid <- FALSE
+#                     inconsistent_studies <- c(inconsistent_studies, study)
+#                     inconsistent_covariates <- c(inconsistent_covariates, cov)
+#                     
+#                     cat(sprintf("  ❌ Study %d, Covariate '%s': Test %d = %.6f, Test %d = %.6f (diff = %.6f)\n",
+#                                 study, cov, reference_test, val_ref, test, val_test, 
+#                                 abs(val_ref - val_test)))
+#                   }
+#                 }
+#               }
+#             }
+#           }
+#           
+#           if (all_valid) {
+#             cat("✓ All study-level covariates are consistent across tests!\n\n")
+#           } else {
+#             cat("\n❌ VALIDATION FAILED!\n")
+#             cat("Inconsistent studies:", unique(inconsistent_studies), "\n")
+#             cat("Inconsistent covariates:", unique(inconsistent_covariates), "\n\n")
+#           }
+#           
+#           # Additional check: Are diseased and non-diseased X matrices identical?
+#           cat("Checking if diseased and non-diseased X matrices are identical...\n")
+#           matrices_identical <- TRUE
+#           for (test in 1:n_tests) {
+#             if (!identical(X[[1]][[test]], X[[2]][[test]])) {
+#               matrices_identical <- FALSE
+#               cat(sprintf("  Test %d: Diseased and non-diseased differ\n", test))
+#             }
+#           }
+#           
+#           if (matrices_identical) {
+#             cat("✓ Diseased and non-diseased X matrices are identical (as expected)\n\n")
+#           }
+#           
+#           # Summary statistics
+#           cat("Summary statistics:\n")
+#           for (cov in covariate_names) {
+#             if (cov != "intercept") {
+#               # Collect all non-zero values
+#               all_vals <- c()
+#               for (test in 1:n_tests) {
+#                 vals <- X[[1]][[test]][X[[1]][[test]][, "intercept"] != 0, cov]
+#                 all_vals <- c(all_vals, vals)
+#               }
+#               
+#               if (length(unique(all_vals)) <= 10) {
+#                 cat(sprintf("  %s: %d unique values: %s\n", 
+#                             cov, length(unique(all_vals)), 
+#                             paste(sort(unique(all_vals)), collapse = ", ")))
+#               } else {
+#                 cat(sprintf("  %s: mean = %.3f, sd = %.3f, range = [%.3f, %.3f]\n",
+#                             cov, mean(all_vals), sd(all_vals), 
+#                             min(all_vals), max(all_vals)))
+#               }
+#             }
+#           }
+#           
+#           return(all_valid)
+#   
+# }
+# 
+#  
+# 
+# 
 
 
 

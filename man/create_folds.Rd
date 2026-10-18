@@ -5,7 +5,7 @@
 \title{Stratified sampling by test availability
 create_folds}
 \usage{
-create_folds(study_test_matrix, K, seed)
+create_folds(indicator_index_test_in_study, K, seed, network, n_studies)
 }
 \description{
 Stratified sampling by test availability

@@ -1,6 +1,81 @@
 
 
 
+#' @export
+summarise_beta_mu <- function(beta_mu, 
+                              test_names = c("GAD-2", "GAD-7", "HADS", "BAI", 
+                                             "OASIS", "STAI_S", "STAI_T", "PROMIS"),
+                              covariate_names,  # e.g., c("intercept", "SCID", "Structured")
+                              magnitude_threshold = 0.25,
+                              skip_intercept = TRUE) {
+  
+          # Parse beta_mu indices
+          parsed <- beta_mu %>%
+            mutate(
+              # Extract indices from variable name like "beta_mu[1,2,3]"
+              indices = str_extract(variable, "\\[.*\\]"),
+              test_idx = as.integer(str_extract(str_extract(indices, "\\[\\d+"), "\\d+")),
+              ds_idx = as.integer(str_extract(str_extract(indices, ",\\d+,"), "\\d+")),
+              cov_idx = as.integer(str_extract(str_extract(indices, ",\\d+\\]"), "\\d+"))
+            ) %>%
+            mutate(
+              test = test_names[test_idx],
+              disease_status = ifelse(ds_idx == 1, "ND (Sp)", "D (Se)"),
+              covariate = covariate_names[cov_idx],
+              # Check significance (95% CI excludes 0)
+              significant = (`2.5%` > 0 | `97.5%` < 0),
+              # Check large magnitude
+              large_magnitude = abs(mean) >= magnitude_threshold,
+              # Direction
+              direction = case_when(
+                mean > 0 ~ "+",
+                mean < 0 ~ "-",
+                TRUE ~ "0"
+              )
+            )
+          
+          # Skip intercept if requested
+          if (skip_intercept) {
+            parsed <- parsed %>% filter(cov_idx > 1)
+          }
+          
+          # Filter to significant OR large magnitude
+          notable <- parsed %>%
+            filter(significant | large_magnitude) %>%
+            arrange(covariate, disease_status, test) %>%
+            select(test, disease_status, covariate, mean, `2.5%`, `97.5%`, 
+                   significant, large_magnitude, direction)
+          
+          # Print summary
+          cat("\n========== STATISTICALLY SIGNIFICANT EFFECTS (95% CI excludes 0) ==========\n\n")
+          sig_only <- parsed %>% filter(significant)
+          if (nrow(sig_only) > 0) {
+            sig_only %>%
+              arrange(covariate, disease_status, test) %>%
+              select(test, disease_status, covariate, mean, `2.5%`, `97.5%`, direction) %>%
+              print(n = 100)
+          } else {
+            cat("None\n")
+          }
+          
+          cat("\n\n========== LARGE MAGNITUDE ('PRACTICALLY SIGNIFICANT'), BUT NOT STATISTICALLY SIGNIFICANT (|β| ≥",
+              magnitude_threshold, ") ==========\n\n")
+          large_only <- parsed %>% filter(large_magnitude & !significant)
+          if (nrow(large_only) > 0) {
+            large_only %>%
+              arrange(covariate, disease_status, test) %>%
+              select(test, disease_status, covariate, mean, `2.5%`, `97.5%`, direction) %>%
+              print(n = 100)
+          } else {
+            cat("None\n")
+          }
+          
+          # Return full parsed tibble invisibly
+          invisible(parsed)
+  
+}
+
+
 
 #' quick_kappa_prior
 #' @export
@@ -30,43 +105,43 @@ quick_kappa_prior <- function(log_mean = 0,
         cat(sprintf("SD:       %.3f\n", sd(kappa_samples)))
         cat(sprintf("Median:   %.3f\n", kappa_q_vals[5]))
         ##
-        cat(sprintf("99%% CI:   [%.3f, %.3f]\n", kappa_q_vals[1], kappa_q_vals[9]))
+        # cat(sprintf("99%% CI:   [%.3f, %.3f]\n", kappa_q_vals[1], kappa_q_vals[9]))
         cat(sprintf("95%% CI:   [%.3f, %.3f]\n", kappa_q_vals[2], kappa_q_vals[8]))
         cat(sprintf("90%% CI:   [%.3f, %.3f]\n", kappa_q_vals[3], kappa_q_vals[7]))
         cat(sprintf("IQR:      [%.3f, %.3f]\n",  kappa_q_vals[4], kappa_q_vals[6]))
         
-        cat("\nProbabilities:\n")
-        cat(sprintf("P(κ < 0.5):  %.1f%%\n", mean(kappa_samples < 0.5) * 100))
-        cat(sprintf("P(κ > 1):    %.1f%%\n", mean(kappa_samples > 1) * 100))
-        cat(sprintf("P(κ > 2):    %.1f%%\n", mean(kappa_samples > 2) * 100))
-        cat(sprintf("P(κ > 3):    %.1f%%\n", mean(kappa_samples > 3) * 100))
+        # cat("\nProbabilities:\n")
+        # cat(sprintf("P(κ < 0.5):  %.1f%%\n", mean(kappa_samples < 0.5) * 100))
+        # cat(sprintf("P(κ > 1):    %.1f%%\n", mean(kappa_samples > 1) * 100))
+        # cat(sprintf("P(κ > 2):    %.1f%%\n", mean(kappa_samples > 2) * 100))
+        # cat(sprintf("P(κ > 3):    %.1f%%\n", mean(kappa_samples > 3) * 100))
         
-        # Quick plot on kappa scale only
-        log_x <- seq(log(0.01), log(10), length.out = 500)
-        kappa <- exp(log_x)
-        log_dens <- dt((log_x - log_mean)/log_sd, df = df)/log_sd
-        kappa_dens <- log_dens / kappa
-        
-        plot(kappa, kappa_dens, type = "l", lwd = 3, col = "darkblue",
-             main = sprintf("Kappa prior (df=%g)", df),
-             xlab = "κ (kappa)", ylab = "Density",
-             xlim = c(0, 5), ylim = c(0, max(kappa_dens[kappa < 5])))
-        
-        # Add reference lines
-        abline(v = 1, lty = 2, col = "red", lwd = 2)
-        abline(v = kappa_q_vals[c(2, 5, 8)], lty = c(3, 1, 3), 
-               col = c("gray40", "black", "gray40"), lwd = c(1, 2, 1))
-        
-        # Add labels
-        text(1, max(kappa_dens[kappa < 5]) * 0.9, "κ=1", col = "red", pos = 4)
-        text(kappa_q_vals[4], max(kappa_dens[kappa < 5]) * 0.8, 
-             sprintf("Median=%.2f", kappa_q_vals[5]), pos = 4)
-        
-        # Add shaded 95% CI
-        kappa_ci <- kappa[kappa >= kappa_q_vals[2] & kappa <= kappa_q_vals[8]]
-        dens_ci <- kappa_dens[kappa >= kappa_q_vals[2] & kappa <= kappa_q_vals[8]]
-        polygon(c(kappa_ci, rev(kappa_ci)), c(dens_ci, rep(0, length(dens_ci))),
-                col = rgb(0, 0, 1, 0.2), border = NA)
+        # # Quick plot on kappa scale only
+        # log_x <- seq(log(0.01), log(10), length.out = 500)
+        # kappa <- exp(log_x)
+        # log_dens <- dt((log_x - log_mean)/log_sd, df = df)/log_sd
+        # kappa_dens <- log_dens / kappa
+        # 
+        # plot(kappa, kappa_dens, type = "l", lwd = 3, col = "darkblue",
+        #      main = sprintf("Kappa prior (df=%g)", df),
+        #      xlab = "κ (kappa)", ylab = "Density",
+        #      xlim = c(0, 5), ylim = c(0, max(kappa_dens[kappa < 5])))
+        # 
+        # # Add reference lines
+        # abline(v = 1, lty = 2, col = "red", lwd = 2)
+        # abline(v = kappa_q_vals[c(2, 5, 8)], lty = c(3, 1, 3), 
+        #        col = c("gray40", "black", "gray40"), lwd = c(1, 2, 1))
+        # 
+        # # Add labels
+        # text(1, max(kappa_dens[kappa < 5]) * 0.9, "κ=1", col = "red", pos = 4)
+        # text(kappa_q_vals[4], max(kappa_dens[kappa < 5]) * 0.8, 
+        #      sprintf("Median=%.2f", kappa_q_vals[5]), pos = 4)
+        # 
+        # # Add shaded 95% CI
+        # kappa_ci <- kappa[kappa >= kappa_q_vals[2] & kappa <= kappa_q_vals[8]]
+        # dens_ci <- kappa_dens[kappa >= kappa_q_vals[2] & kappa <= kappa_q_vals[8]]
+        # polygon(c(kappa_ci, rev(kappa_ci)), c(dens_ci, rep(0, length(dens_ci))),
+        #         col = rgb(0, 0, 1, 0.2), border = NA)
         
         invisible(kappa_q_vals)
 }
@@ -87,7 +162,7 @@ compare_kappa_dofs <- function(log_mean = 0,
         
             cat("\nComparing kappa priors with different DOF\n")
             cat(sprintf("Prior: log(κ) ~ t(df, location=%.2f, scale=%.2f)\n", log_mean, log_sd))
-            cat("=" * 65, "\n")
+            # cat("=" * 65, "\n")
             
             results <- data.frame()
             
@@ -306,6 +381,144 @@ induced_Dirichlet_ppc_plot <- function(
 #                            df = 15)
 # # 
 # 
+
+
+
+assess_interval_data_recovery <- function(x_matrix, 
+                                          study_names = NULL) {
+  
+        # x_matrix: matrix with studies as rows, thresholds as columns
+        # values are cumulative counts, -1 indicates missing
+        
+        n_studies <- nrow(x_matrix)
+        n_thresholds <- ncol(x_matrix) - 1  # First col is study ID
+        
+        if(is.null(study_names)) {
+          study_names <- x_matrix[, 1]
+        }
+        
+        # Remove study ID column if present
+        if(ncol(x_matrix) > n_thresholds) {
+          counts <- x_matrix[, -1]
+        } else {
+          counts <- x_matrix
+        }
+        
+        # Initialize results
+        results <- list()
+        
+        # For each study
+        for(s in 1:n_studies) {
+          study_counts <- counts[s, ]
+          n_intervals <- length(study_counts) - 1
+          
+          # Track which intervals are recoverable
+          intervals_recoverable <- rep(FALSE, n_intervals)
+          interval_values <- rep(NA, n_intervals)
+          
+          for(i in 1:n_intervals) {
+            # Can only compute interval if both consecutive cumulative counts exist
+            if(study_counts[i] != -1 && study_counts[i+1] != -1) {
+              intervals_recoverable[i] <- TRUE
+              interval_values[i] <- study_counts[i] - study_counts[i+1]
+            }
+          }
+          
+          results[[s]] <- list(
+            study_id = study_names[s],
+            cumulative_missing = sum(study_counts == -1),
+            cumulative_available = sum(study_counts != -1),
+            intervals_recoverable = sum(intervals_recoverable),
+            intervals_missing = sum(!intervals_recoverable),
+            interval_recovery_rate = mean(intervals_recoverable),
+            interval_values = interval_values,
+            recoverable_positions = which(intervals_recoverable)
+          )
+        }
+        
+        # Overall summary
+        total_cumulative_data_points <- nrow(counts) * ncol(counts) ##  n_studies * length(counts[1,])
+        total_cumulative_missing <- sum(counts == -1)
+        total_interval_data_points <- n_studies * n_intervals
+        total_intervals_recoverable <- sum(sapply(results, function(x) x$intervals_recoverable))
+        ##
+        interval_missing_rate = 1 - (total_intervals_recoverable / total_interval_data_points)
+        cumulative_missing_rate = total_cumulative_missing / total_cumulative_data_points
+        
+        summary_stats <- list(
+          cumulative_missing_rate = cumulative_missing_rate,
+          interval_missing_rate = interval_missing_rate,
+          cumulative_missing_pct = 100 * total_cumulative_missing / total_cumulative_data_points,
+          interval_missing_pct = 100 * (1 - total_intervals_recoverable / total_interval_data_points),
+          data_loss_amplification = (1 - total_intervals_recoverable / total_interval_data_points) / 
+            (total_cumulative_missing / total_cumulative_data_points),
+          data_loss_difference = cumulative_missing_rate - interval_missing_rate
+        )
+        
+        return(list(
+          by_study = results,
+          summary = summary_stats
+        ))
+  
+}
+
+
+# More detailed comparison function
+compare_data_approaches <- function(diseased_data, 
+                                    nondiseased_data) {
+  
+  dis_recovery <- assess_interval_data_recovery(diseased_data)
+  nondis_recovery <- assess_interval_data_recovery(nondiseased_data)
+  
+  cat("=== DATA RECOVERY COMPARISON ===\n\n")
+  cat("CUMULATIVE DATA (Binomial Factorization Approach):\n")
+  cat(sprintf("  Diseased missing rate: %.1f%%\n", dis_recovery$summary$cumulative_missing_pct))
+  cat(sprintf("  Non-diseased missing rate: %.1f%%\n", nondis_recovery$summary$cumulative_missing_pct))
+  cat(sprintf("  Overall missing rate: %.1f%%\n", 
+              mean(c(dis_recovery$summary$cumulative_missing_pct, 
+                     nondis_recovery$summary$cumulative_missing_pct))))
+  
+  cat("\nINTERVAL DATA (LC-MVP Approach):\n")
+  cat(sprintf("  Diseased missing rate: %.1f%%\n", dis_recovery$summary$interval_missing_pct))
+  cat(sprintf("  Non-diseased missing rate: %.1f%%\n", nondis_recovery$summary$interval_missing_pct))
+  cat(sprintf("  Overall missing rate: %.1f%%\n",
+              mean(c(dis_recovery$summary$interval_missing_pct,
+                     nondis_recovery$summary$interval_missing_pct))))
+  
+  cat("\nDATA LOSS AMPLIFICATION:\n")
+  cat(sprintf("  Diseased: %.2fx more missing data\n", dis_recovery$summary$data_loss_amplification))
+  cat(sprintf("  Non-diseased: %.2fx more missing data\n", nondis_recovery$summary$data_loss_amplification))
+  
+  # Study-level breakdown
+  cat("\n=== STUDY-LEVEL BREAKDOWN ===\n")
+  worst_studies <- which(sapply(dis_recovery$by_study, 
+                                function(x) x$interval_recovery_rate) < 0.3)
+  if(length(worst_studies) > 0) {
+    cat("\nStudies with <30% interval recovery:\n")
+    for(s in worst_studies) {
+      cat(sprintf("  Study %d: Only %d/%d intervals recoverable (%.1f%%)\n",
+                  dis_recovery$by_study[[s]]$study_id,
+                  dis_recovery$by_study[[s]]$intervals_recoverable,
+                  dis_recovery$by_study[[s]]$intervals_recoverable + 
+                    dis_recovery$by_study[[s]]$intervals_missing,
+                  100 * dis_recovery$by_study[[s]]$interval_recovery_rate))
+    }
+  }
+  
+  return(list(diseased = dis_recovery, 
+              nondiseased = nondis_recovery))
+  
+}
+
+
+
+
+
+
+
+
+
+
 
 
 

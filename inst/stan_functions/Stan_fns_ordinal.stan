@@ -326,11 +326,6 @@ real induced_dirichlet_lpdf( vector c,
 }
 
 
-
-
-
-
-
 ////
 //// Convert from cumul_probs -> ord_probs:
 ////
@@ -413,7 +408,7 @@ row_vector ord_probs_to_cumul_probs(row_vector ord_probs) {
 
 
 ////
-//// Convert from cumul_probs -> ord_probs (row-vector overload):
+//// Convert from cumul_probs -> C (w/ induced dirichlet):
 ////
 vector ID_cumul_probs_to_C( vector cumul_probs, 
                             int use_probit_link) {
@@ -1101,3 +1096,57 @@ array[] matrix map_latent_cumul_to_random_hetero_C( array[] matrix C,
 
 
 
+////
+//// ---------------------------------------------------------------------------------------
+//// The induced-Dirichlet log density of a set of ordered cutpoints C (at the latent location 0) with every category
+//// probability on the LOG scale (Stan's std_normal_lcdf / std_normal_lccdf with their log-scale tails, or
+//// log_inv_logit / log1m_inv_logit, and log_diff_exp), no clamps: the same values as induced_dirichlet_given_C_lpdf
+//// of the category probabilities of C wherever those are representable, and a finite log density (or -inf for two
+//// equal cutpoints) where Phi(C_k) - Phi(C_(k-1)) rounds to 0 in double precision, which made dirichlet_lpdf throw.
+//// The same calculation as NicoSIMD's nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf, for plain Stan math
+//// models (so that the plain and the AVX versions of a model compute the same thing):
+////     log p_1 = log F(C_1),  log p_(K+1) = log(1 - F(C_K)),
+////     log p_k = log_diff_exp(log F(C_k), log F(C_(k-1)))                 (C_(k-1) < 0),
+////             = log_diff_exp(log(1 - F(C_(k-1))), log(1 - F(C_k)))       (C_(k-1) >= 0).
+////
+real induced_dirichlet_given_C_on_the_log_scale_lpdf(vector C,
+                                                     vector alpha,
+                                                     int use_probit_link) {
+
+        int n_thr = num_elements(C);
+        vector[n_thr] log_F;
+        vector[n_thr] log_S;
+        if (use_probit_link == 1) {
+          for (k in 1:n_thr) {
+            log_F[k] = std_normal_lcdf(C[k] |);
+            log_S[k] = std_normal_lccdf(C[k] |);
+          }
+        } else {
+          log_F = log_inv_logit(C);
+          log_S = log1m_inv_logit(C);
+        }
+        vector[n_thr + 1] log_p;
+        log_p[1] = log_F[1];
+        log_p[n_thr + 1] = log_S[n_thr];
+        for (k in 2:n_thr) {
+          log_p[k] = (C[k - 1] >= 0) ? log_diff_exp(log_S[k - 1], log_S[k]) : log_diff_exp(log_F[k], log_F[k - 1]);
+        }
+        real log_prob = lgamma(sum(alpha)) - sum(lgamma(alpha));
+        for (j in 1:(n_thr + 1)) {
+          if (alpha[j] != 1.0) log_prob += (alpha[j] - 1.0) * log_p[j];
+        }
+        if (use_probit_link == 1) log_prob += std_normal_lpdf(C);
+        else                      log_prob += sum(log_F + log_S);
+        return log_prob;
+
+}
+////
+//// Row-vector overload:
+////
+real induced_dirichlet_given_C_on_the_log_scale_lpdf(row_vector C,
+                                                     vector alpha,
+                                                     int use_probit_link) {
+
+        return induced_dirichlet_given_C_on_the_log_scale_lpdf(to_vector(C) | alpha, use_probit_link);
+
+}

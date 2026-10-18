@@ -9,6 +9,7 @@ simulate_covariates_preserving_missingness_FIXED(
   n_studies,
   indicator_index_test_in_study,
   covariates_same_between_classes = NULL,
+  test_specific_covariates = NULL,
   add_noise = TRUE,
   noise_sd_prop = 0.25,
   flip_prob = 0.15

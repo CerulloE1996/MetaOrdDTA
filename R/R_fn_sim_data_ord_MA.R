@@ -29,7 +29,7 @@ SD_approx_ID_ord_prob_to_C_probit <- function(mean_C_cutpoint_scale,
 
 
 
-# Use this in your simulation
+# Use this in the simulation
 generate_ordered_thresholds_delta_method <- function(mean_cutpoints, 
                                                      SD_prob_scale_vec,
                                                      use_probit_link = TRUE) {
@@ -588,23 +588,30 @@ R_fn_sim_data_ord_MA <- function(  seed = 123,
                     #                                                       use_probit_link =  TRUE,
                     #                                                       base_correlation =  0.50)
                     ##
-                    thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
-                      alpha_vec =  true_mean_GAD_2_params_list$Ord_bivariate$alpha_nd,
-                      use_probit_link =  TRUE)
-                    thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
-                      alpha_vec =  true_mean_GAD_2_params_list$Ord_bivariate$alpha_d,
-                      use_probit_link =  TRUE)
+                    # thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
+                    #   alpha_vec =  true_mean_GAD_2_params_list$Ord_bivariate$alpha_nd,
+                    #   use_probit_link =  TRUE)
+                    # thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
+                    #   alpha_vec =  true_mean_GAD_2_params_list$Ord_bivariate$alpha_d,
+                    #   use_probit_link =  TRUE)
+                    ##
+                    thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- true_mean_GAD_2_params_list$Ord_bivariate$C_nd
+                    thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]]  <- true_mean_GAD_2_params_list$Ord_bivariate$C_d
                     ##
                     ##
                     ## ---- BAI (test #3):
                     ##
                     t <- 3
-                    thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
-                                                                                      alpha_vec =  true_mean_BAI_params_list$Ord_bivariate$alpha_nd,
-                                                                                      use_probit_link =  TRUE)
-                    thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]] <-  generate_ordered_thresholds_induced_dirichlet(
-                                                                                      alpha_vec =  true_mean_BAI_params_list$Ord_bivariate$alpha_d,
-                                                                                      use_probit_link =  TRUE)
+                    ##
+                    # thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
+                    #                                                                   alpha_vec =  true_mean_BAI_params_list$Ord_bivariate$alpha_nd,
+                    #                                                                   use_probit_link =  TRUE)
+                    # thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]] <-  generate_ordered_thresholds_induced_dirichlet(
+                    #                                                                   alpha_vec =  true_mean_BAI_params_list$Ord_bivariate$alpha_d,
+                    #                                                                   use_probit_link =  TRUE)
+                    ##
+                    thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- true_mean_BAI_params_list$Ord_bivariate$C_nd
+                    thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]]  <- true_mean_BAI_params_list$Ord_bivariate$C_d
                     ##
                     ## ---- HADS (test #4):
                     ##
@@ -620,12 +627,15 @@ R_fn_sim_data_ord_MA <- function(  seed = 123,
                     #                                                                   use_probit_link =  TRUE,
                     #                                                                   base_correlation =  0.50)
                     ##
-                    thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
-                      alpha_vec =  true_mean_HADS_params_list$Ord_bivariate$alpha_nd,
-                      use_probit_link =  TRUE)
-                    thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
-                      alpha_vec =  true_mean_HADS_params_list$Ord_bivariate$alpha_d,
-                      use_probit_link =  TRUE)
+                    # thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
+                    #   alpha_vec =  true_mean_HADS_params_list$Ord_bivariate$alpha_nd,
+                    #   use_probit_link =  TRUE)
+                    # thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
+                    #   alpha_vec =  true_mean_HADS_params_list$Ord_bivariate$alpha_d,
+                    #   use_probit_link =  TRUE)
+                    ##
+                    thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- true_mean_HADS_params_list$Ord_bivariate$C_nd
+                    thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]]  <- true_mean_HADS_params_list$Ord_bivariate$C_d
                     ##
                     ## ---- GAD-7 (test #5):
                     ##
@@ -641,12 +651,15 @@ R_fn_sim_data_ord_MA <- function(  seed = 123,
                     #                                                                   use_probit_link =  TRUE,
                     #                                                                   base_correlation =  0.50)
                     ##
-                    thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
-                      alpha_vec =  true_mean_GAD_7_params_list$Ord_bivariate$alpha_nd,
-                      use_probit_link =  TRUE)
-                    thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
-                      alpha_vec =  true_mean_GAD_7_params_list$Ord_bivariate$alpha_d,
-                      use_probit_link =  TRUE)
+                    # thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
+                    #   alpha_vec =  true_mean_GAD_7_params_list$Ord_bivariate$alpha_nd,
+                    #   use_probit_link =  TRUE)
+                    # thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
+                    #   alpha_vec =  true_mean_GAD_7_params_list$Ord_bivariate$alpha_d,
+                    #   use_probit_link =  TRUE)
+                    ##
+                    thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- true_mean_GAD_7_params_list$Ord_bivariate$C_nd
+                    thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]]  <- true_mean_GAD_7_params_list$Ord_bivariate$C_d
                     ##
                     for (t in 2:n_tests) {
                             ##
@@ -700,14 +713,6 @@ R_fn_sim_data_ord_MA <- function(  seed = 123,
                       rho1 <- 0.2
                     }
                     ##
-                    # ## Set up correlation matrices:
-                    # Omega_highly_varied <- matrix(c(1,     rho1,  rho1,     rho1,     rho1,
-                    #                                 rho1,  1.00,  0.50,     0.20,     0.10,
-                    #                                 rho1,  0.50,  1.00,     0.40,     0.40,
-                    #                                 rho1,  0.20,  0.40,     1.00,     0.70,
-                    #                                 rho1,  0.10,  0.40,     0.70,     1.00),
-                    #                               nrow = n_tests,
-                    #                               ncol = n_tests)
                     ## Set up correlation matrices:
                     Omega_highly_varied <- matrix(c(1,     rho1,  rho1,     rho1,     rho1,
                                                     rho1,  1.00,  0,     0,     0,

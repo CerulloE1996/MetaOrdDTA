@@ -4,7 +4,7 @@
 \alias{R_fn_extract_NMA_AUC_summary}
 \title{R_fn_extract_NMA_AUC_summary}
 \usage{
-R_fn_extract_NMA_AUC_summary(tibble_gq, n_thr, test_names = NULL)
+R_fn_extract_NMA_AUC_summary(tibble_gq, network, n_thr, test_names = NULL)
 }
 \description{
 R_fn_extract_NMA_AUC_summary

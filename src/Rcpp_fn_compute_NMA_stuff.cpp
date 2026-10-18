@@ -256,56 +256,56 @@ List Rcpp_compute_Se_Sp_baseline_loop(
                                 // Process ALL thresholds up to n_thr_max
                                 for (int k = 0; k < n_thr_max; k++) {
                                   
-                                      // Always check if this threshold should exist for this test
-                                      if (k < n_thr_t) {
+                                    // Always check if this threshold should exist for this test
+                                    if (k < n_thr_t) {
+                                      
+                                        // This threshold SHOULD exist for this test
+                                        std::string C_nd_name = C_param_name + "[1," + std::to_string(t+1) + "," + std::to_string(k+1) + "]";
+                                        std::string C_d_name = C_param_name + "[2," + std::to_string(t+1) + "," + std::to_string(k+1) + "]";
                                         
-                                            // This threshold SHOULD exist for this test
-                                            std::string C_nd_name = C_param_name + "[1," + std::to_string(t+1) + "," + std::to_string(k+1) + "]";
-                                            std::string C_d_name = C_param_name + "[2," + std::to_string(t+1) + "," + std::to_string(k+1) + "]";
-                                            
-                                            auto it_nd = C_map.find(C_nd_name);
-                                            auto it_d = C_map.find(C_d_name);
-                                            
-                                            if (it_nd != C_map.end() && it_d != C_map.end()) {
+                                        auto it_nd = C_map.find(C_nd_name);
+                                        auto it_d = C_map.find(C_d_name);
+                                        
+                                        if (it_nd != C_map.end() && it_d != C_map.end()) {
+                                          
+                                              // Found the C values - compute Se/Sp
+                                              double C_nd = get_3d_value(trace_C_flat, iter, chain, it_nd->second,
+                                                                         n_iter, n_chains, C_dims[2]);
+                                              double C_d = get_3d_value(trace_C_flat, iter, chain, it_d->second,
+                                                                        n_iter, n_chains, C_dims[2]);
                                               
-                                                  // Found the C values - compute Se/Sp
-                                                  double C_nd = get_3d_value(trace_C_flat, iter, chain, it_nd->second,
-                                                                             n_iter, n_chains, C_dims[2]);
-                                                  double C_d = get_3d_value(trace_C_flat, iter, chain, it_d->second,
-                                                                            n_iter, n_chains, C_dims[2]);
-                                                  
-                                                  // Compute probabilities
-                                                  double Fp_val, Se_val;
-                                                  
-                                                  if (use_probit_link) {
-                                                    Fp_val = R::pnorm(-(C_nd - Xbeta_baseline_nd), 0.0, 1.0, 1, 0);
-                                                    Se_val = R::pnorm(-(C_d - Xbeta_baseline_d), 0.0, 1.0, 1, 0);
-                                                  } else {
-                                                    double logit_nd = -(C_nd - Xbeta_baseline_nd);
-                                                    double logit_d = -(C_d - Xbeta_baseline_d);
-                                                    Fp_val = 1.0 / (1.0 + exp(-logit_nd));
-                                                    Se_val = 1.0 / (1.0 + exp(-logit_d));
-                                                  }
-                                                  
-                                                  // Store results at the correct position [iter, chain, t, k]
-                                                  set_4d_value(Fp_baseline, iter, chain, t, k, 
-                                                               n_iter, n_chains, n_index_tests, n_thr_max, Fp_val);
-                                                  set_4d_value(Se_baseline, iter, chain, t, k,
-                                                               n_iter, n_chains, n_index_tests, n_thr_max, Se_val);
-                                                  set_4d_value(Sp_baseline, iter, chain, t, k,
-                                                               n_iter, n_chains, n_index_tests, n_thr_max, 1.0 - Fp_val);
-                                                  
-                                            } else {
-                                                  // C values not found - this might be a problem!
-                                                  // Log this for debugging
-                                                  if (iter == 0 && chain == 0) {
-                                                    Rcout << "Warning: Expected C values not found for test " << t+1 
-                                                          << ", threshold " << k+1 << "\n";
-                                                  }
-                                            }
-                                        
-                                      }
-                                      // If k >= n_thr_t, the values remain -1 as initialized
+                                              // Compute probabilities
+                                              double Fp_val, Se_val;
+                                              
+                                              if (use_probit_link) {
+                                                Fp_val = R::pnorm(-(C_nd - Xbeta_baseline_nd), 0.0, 1.0, 1, 0);
+                                                Se_val = R::pnorm(-(C_d - Xbeta_baseline_d), 0.0, 1.0, 1, 0);
+                                              } else {
+                                                double logit_nd = -(C_nd - Xbeta_baseline_nd);
+                                                double logit_d = -(C_d - Xbeta_baseline_d);
+                                                Fp_val = 1.0 / (1.0 + exp(-logit_nd));
+                                                Se_val = 1.0 / (1.0 + exp(-logit_d));
+                                              }
+                                              
+                                              // Store results at the correct position [iter, chain, t, k]
+                                              set_4d_value(Fp_baseline, iter, chain, t, k, 
+                                                           n_iter, n_chains, n_index_tests, n_thr_max, Fp_val);
+                                              set_4d_value(Se_baseline, iter, chain, t, k,
+                                                           n_iter, n_chains, n_index_tests, n_thr_max, Se_val);
+                                              set_4d_value(Sp_baseline, iter, chain, t, k,
+                                                           n_iter, n_chains, n_index_tests, n_thr_max, 1.0 - Fp_val);
+                                              
+                                        } else {
+                                              // C values not found - this might be a problem!
+                                              // Log this for debugging
+                                              if (iter == 0 && chain == 0) {
+                                                Rcout << "Warning: Expected C values not found for test " << t+1 
+                                                      << ", threshold " << k+1 << "\n";
+                                              }
+                                        }
+                                      
+                                    }
+                                    // If k >= n_thr_t, the values remain -1 as initialized
                            
                             }
                       }

@@ -1,8 +1,6 @@
 
 
 
- 
-# 
 
 # Helper to handle NULL values
 `%||%` <- function(x, y) if (is.null(x)) y else x
@@ -21,167 +19,200 @@ simulate_covariates_preserving_missingness_FIXED <- function(original_X,
                                                              n_studies,
                                                              indicator_index_test_in_study,
                                                              covariates_same_between_classes = NULL,
+                                                             test_specific_covariates = NULL,  # NEW: specify which covs vary by test
                                                              add_noise = TRUE,
                                                              noise_sd_prop = 0.25,
                                                              flip_prob = 0.15) {
   
-          n_classes <- length(original_X)
-          n_tests <- length(original_X[[1]])
-          
-          # Auto-detect number of covariates
-          n_covariates <- ncol(original_X[[1]][[1]])
-          
-          # If not specified, assume all covariates same across disease
-          if (is.null(covariates_same_between_classes)) {
-            covariates_same_between_classes <- rep(TRUE, n_covariates)
-          }
-          
-          # Auto-detect covariate types by examining the data
-          covariate_types <- character(n_covariates)
-          
-          for (col in 1:n_covariates) {
-            # Collect all non-zero values across all tests/classes
-            all_values <- c()
-            for (c in 1:n_classes) {
-              for (t in 1:n_tests) {
-                col_vals <- original_X[[c]][[t]][, col]
-                # Get non-missing values (assuming 0 in intercept column means missing)
-                if (col == 1) {  # Intercept column
-                  non_missing_rows <- which(col_vals == 1)
-                } else {
-                  non_missing_rows <- which(original_X[[c]][[t]][, 1] == 1)  # Where intercept = 1
-                }
-                if (length(non_missing_rows) > 0) {
-                  all_values <- c(all_values, col_vals[non_missing_rows])
-                }
-              }
-            }
-            
-            # Determine type
-            unique_vals <- unique(all_values)
-            if (length(unique_vals) == 0) {
-              covariate_types[col] <- "unknown"
-            } else if (all(unique_vals %in% c(0, 1))) {
-              covariate_types[col] <- "binary"
-            } else {
-              covariate_types[col] <- "continuous"
-            }
-          }
-          
-          cat("Detected covariate types:\n")
-          for (i in 1:n_covariates) {
-            cat(sprintf("  Column %d (%s): %s\n", 
-                        i, 
-                        colnames(original_X[[1]][[1]])[i], 
-                        covariate_types[i]))
-          }
-          
-          # Identify available rows per test
-          available_rows_per_test <- list()
-          for (t in 1:n_tests) {
-            # Rows where intercept = 1 (indicating non-missing)
-            available_rows_per_test[[t]] <- which(original_X[[1]][[t]][, 1] == 1)
-          }
-          
-          # ========== HERE'S THE FIX: Sample ONE row per study ==========
-          sampled_row_per_study <- rep(NA, n_studies)
-          
-          # For each study, sample from rows that are available in ALL its tests
-          for (s in 1:n_studies) {
-            # Which tests does this study have?
-            tests_for_study <- which(indicator_index_test_in_study[s, ])
-            
-            if (length(tests_for_study) > 0) {
-              # Find rows available in ALL tests for this study
-              common_available_rows <- available_rows_per_test[[tests_for_study[1]]]
-              
-              if (length(tests_for_study) > 1) {
-                for (t in tests_for_study[-1]) {
-                  common_available_rows <- intersect(common_available_rows, available_rows_per_test[[t]])
-                }
-              }
-              
-              # Sample ONE row for this study
-              if (length(common_available_rows) > 0) {
-                sampled_row_per_study[s] <- sample(common_available_rows, 1)
-              } else {
-                warning(sprintf("No common available rows for study %d across tests %s", 
-                                s, paste(tests_for_study, collapse=", ")))
-              }
-            }
-          }
-          
-          # Initialize output
-          simulated_X <- list()
-          
-          # Fill in data
-          for (c in 1:n_classes) {
-            simulated_X[[c]] <- list()
-            
-            for (t in 1:n_tests) {
-              # Initialize with zeros
-              X_simulated <- matrix(0, nrow = n_studies, ncol = n_covariates)
-              colnames(X_simulated) <- colnames(original_X[[c]][[t]])
-              
-              # Fill in data
-              studies_with_this_test <- which(indicator_index_test_in_study[, t])
-              
-              for (s in studies_with_this_test) {
-                if (!is.na(sampled_row_per_study[s])) {
-                  # Use the SAME row for this study across ALL tests
-                  row_to_copy <- sampled_row_per_study[s]
-                  X_simulated[s, ] <- original_X[[c]][[t]][row_to_copy, ]
-                  
-                  # Add noise only once (when c=1) and only if the row is valid
-                  if (add_noise && c == 1 && X_simulated[s, 1] == 1) {
-                    
-                    # Process each covariate based on its type
-                    for (col in 2:n_covariates) {  # Skip intercept
-                      
-                      if (covariate_types[col] == "continuous") {
-                        # Get all non-zero values for this column to calculate SD
-                        col_values <- original_X[[c]][[t]][available_rows_per_test[[t]], col]
-                        if (length(col_values) > 1 && sd(col_values) > 0) {
-                          noise_sd <- noise_sd_prop * sd(col_values)
-                          X_simulated[s, col] <- X_simulated[s, col] + rnorm(1, 0, noise_sd)
-                        }
-                        
-                      } else if (covariate_types[col] == "binary") {
-                        # Flip with probability
-                        if (runif(1) < flip_prob) {
-                          X_simulated[s, col] <- 1 - X_simulated[s, col]
-                        }
-                      }
-                      # Unknown types are left as-is
-                    }
-                  }
-                }
-              }
-              
-              simulated_X[[c]][[t]] <- X_simulated
-            }
-          }
-          
-          # Copy from class 1 to class 2 for covariates that should be same
-          if (!all(covariates_same_between_classes)) {
-            for (t in 1:n_tests) {
-              studies_with_this_test <- which(indicator_index_test_in_study[, t])
-              for (s in studies_with_this_test) {
-                for (col in 1:n_covariates) {
-                  if (covariates_same_between_classes[col]) {
-                    simulated_X[[2]][[t]][s, col] <- simulated_X[[1]][[t]][s, col]
-                  }
-                }
-              }
-            }
-          } else {
-            # All same - just copy everything
-            simulated_X[[2]] <- simulated_X[[1]]
-          }
-          
-          return(simulated_X)
+  n_classes <- length(original_X)
+  n_tests <- length(original_X[[1]])
+  n_covariates <- ncol(original_X[[1]][[1]])
   
+  # Get covariate names
+  cov_names <- colnames(original_X[[1]][[1]])
+  
+  # If not specified, assume all covariates same across disease classes
+  if (is.null(covariates_same_between_classes)) {
+    covariates_same_between_classes <- rep(TRUE, n_covariates)
+  }
+  
+  # Determine which covariates are test-specific
+  if (is.null(test_specific_covariates)) {
+    # Default: only intercept is guaranteed study-level
+    test_specific_mask <- rep(FALSE, n_covariates)
+    test_specific_mask[1] <- FALSE  # Intercept is always study-level
+  } else {
+    # Create mask for test-specific covariates
+    test_specific_mask <- cov_names %in% test_specific_covariates
+  }
+  
+  # Auto-detect covariate types
+  covariate_types <- character(n_covariates)
+  for (col in 1:n_covariates) {
+    
+      all_values <- c()
+      for (c in 1:n_classes) {
+          for (t in 1:n_tests) {
+            col_vals <- original_X[[c]][[t]][, col]
+            non_missing_rows <- which(original_X[[c]][[t]][, 1] == 1)
+            if (length(non_missing_rows) > 0) {
+              all_values <- c(all_values, col_vals[non_missing_rows])
+            }
+          }
+      }
+      
+      unique_vals <- unique(all_values)
+      if (length(unique_vals) == 0) {
+        covariate_types[col] <- "unknown"
+      } else if (all(unique_vals %in% c(0, 1))) {
+        covariate_types[col] <- "binary"
+      } else {
+        covariate_types[col] <- "continuous"
+      }
+      
+  }
+  
+  # Identify available rows per test
+  available_rows_per_test <- list()
+  for (t in 1:n_tests) {
+    available_rows_per_test[[t]] <- which(original_X[[1]][[t]][, 1] == 1)
+  }
+  
+  # Sample rows and extract base values
+  sampled_row_per_study <- rep(NA, n_studies)
+  base_study_level_values <- matrix(NA, nrow = n_studies, ncol = n_covariates)
+  noise_decisions <- list()
+  
+  for (s in 1:n_studies) {
+    tests_for_study <- which(indicator_index_test_in_study[s, ])
+    
+    if (length(tests_for_study) > 0) {
+      # # Find common available rows
+      # common_available_rows <- available_rows_per_test[[tests_for_study[1]]]
+      
+      common_available_rows <- NULL
+      for (t_idx in tests_for_study) {
+        rows_with_data <- which(original_X[[1]][[t_idx]][, 1] == 1)
+        if (is.null(common_available_rows)) {
+          common_available_rows <- rows_with_data
+        } else {
+          common_available_rows <- intersect(common_available_rows, rows_with_data)
+        }
+      }
+      
+      # if (length(tests_for_study) > 1) {
+      #   for (t in tests_for_study[-1]) {
+      #     common_available_rows <- intersect(common_available_rows, available_rows_per_test[[t]])
+      #   }
+      # }
+      
+      if (length(common_available_rows) > 0) {
+        
+        sampled_row_per_study[s] <- sample(common_available_rows, 1)
+        
+        # Extract ALL values first
+        first_test <- tests_for_study[1]
+        base_row <- sampled_row_per_study[s]
+        base_study_level_values[s, ] <- original_X[[1]][[first_test]][base_row, ]
+        
+        
+        # sampled_row_per_study[s] <- sample(common_available_rows, 1)
+        # 
+        # # Extract study-level values from FIRST available test (arbitrary but consistent)
+        # first_test <- tests_for_study[1]
+        # base_row <- sampled_row_per_study[s]
+        # 
+        # for (col in 1:n_covariates) {
+        #   if (!test_specific_mask[col]) {
+        #     # Study-level covariate - use consistent value
+        #     base_study_level_values[s, col] <- original_X[[1]][[first_test]][base_row, col]
+        #   }
+        # }
+        
+        # Pre-generate noise decisions (once per study)
+        if (add_noise) {
+          noise_decisions[[s]] <- list()
+          for (col in 2:n_covariates) {
+            if (!test_specific_mask[col]) {  # Only add noise to study-level covariates
+              if (covariate_types[col] == "continuous") {
+                col_values <- original_X[[1]][[first_test]][available_rows_per_test[[first_test]], col]
+                if (length(col_values) > 1 && sd(col_values) > 0) {
+                  noise_sd <- noise_sd_prop * sd(col_values)
+                  noise_decisions[[s]][[col]] <- list(type = "continuous", value = rnorm(1, 0, noise_sd))
+                }
+              } else if (covariate_types[col] == "binary") {
+                noise_decisions[[s]][[col]] <- list(type = "binary", flip = runif(1) < flip_prob)
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  # Build simulated X matrices
+  simulated_X <- list()
+  
+  for (c in 1:n_classes) {
+    simulated_X[[c]] <- list()
+    
+    for (t in 1:n_tests) {
+      X_simulated <- matrix(0, nrow = n_studies, ncol = n_covariates)
+      colnames(X_simulated) <- colnames(original_X[[c]][[t]])
+      
+      studies_with_this_test <- which(indicator_index_test_in_study[, t])
+      
+      for (s in studies_with_this_test) {
+        if (!is.na(sampled_row_per_study[s])) {
+          row_to_copy <- sampled_row_per_study[s]
+          
+          # Start with study-level values
+          X_simulated[s, ] <- base_study_level_values[s, ]
+          
+          # Override with test-specific values
+          for (col in 1:n_covariates) {
+            if (test_specific_mask[col]) {
+              X_simulated[s, col] <- original_X[[c]][[t]][row_to_copy, col]
+            }
+          }
+          
+          # Apply noise to study-level covariates (only for c=1)
+          if (add_noise && c == 1 && !is.null(noise_decisions[[s]])) {
+            for (col in names(noise_decisions[[s]])) {
+              col_idx <- as.numeric(col)
+              if (noise_decisions[[s]][[col]]$type == "continuous") {
+                X_simulated[s, col_idx] <- X_simulated[s, col_idx] + noise_decisions[[s]][[col]]$value
+              } else if (noise_decisions[[s]][[col]]$type == "binary" && noise_decisions[[s]][[col]]$flip) {
+                X_simulated[s, col_idx] <- 1 - X_simulated[s, col_idx]
+              }
+            }
+          }
+        }
+      }
+      
+      simulated_X[[c]][[t]] <- X_simulated
+    }
+  }
+  
+  # Handle class consistency
+  if (!all(covariates_same_between_classes)) {
+    for (t in 1:n_tests) {
+      studies_with_this_test <- which(indicator_index_test_in_study[, t])
+      for (s in studies_with_this_test) {
+        for (col in 1:n_covariates) {
+          if (covariates_same_between_classes[col]) {
+            simulated_X[[2]][[t]][s, col] <- simulated_X[[1]][[t]][s, col]
+          }
+        }
+      }
+    }
+  } else {
+    simulated_X[[2]] <- simulated_X[[1]]
+  }
+  
+  return(simulated_X)
 }
+
 
 
 
@@ -291,10 +322,10 @@ R_fn_sim_NMA_data_with_covariates_varying <- function(  seed = 123,
           indicator_test_in_study[, 1] <- TRUE
           
           # Correct test indices:
-          # Column 2 = GAD-2 (Test1 in your output)
-          # Column 3 = GAD-7 (Test2 in your output)
-          # Column 4 = HADS (Test3 in your output)
-          # Column 5 = BAI (Test4 in your output)
+          # Column 2 = GAD-2 (Test1 in the output)
+          # Column 3 = GAD-7 (Test2 in the output)
+          # Column 4 = HADS (Test3 in the output)
+          # Column 5 = BAI (Test4 in the output)
          
          
           # ========== Extract real test patterns ==========
@@ -674,11 +705,12 @@ R_fn_sim_NMA_data_with_covariates_varying <- function(  seed = 123,
                                                            n_studies = n_studies, 
                                                            indicator_index_test_in_study = indicator_index_test_in_study, 
                                                            covariates_same_between_classes = rep(TRUE, covariate_settings$n_covariates),
+                                                           test_specific_covariates = c("logit_prev_GAD"),  # Only this varies by test
                                                            add_noise = FALSE,
                                                            noise_sd_prop = 0.0,
                                                            flip_prob = 0.0)
           
-          X_mat <- MetaOrdDTA:::R_fn_expand_covariates_to_all_studies( 
+          X_mat <- MetaOrdDTA:::expand_covariates_to_all_studies( 
                                 X = X_mat,
                                 indicator_index_test_in_study = indicator_index_test_in_study)
           ##

@@ -140,7 +140,7 @@ R_fn_prep_MA_data <- function(  x,
     stan_data_list$x <- rearranged$x
     stan_data_list$cutpoint_index <- rearranged$cutpoint_index
     ##
-    # After creating your list of matrices, convert to 3D array:
+    # After creating the list of matrices, convert to 3D array:
     x_array <- array(NA, dim = c(2, n_studies, n_thr + 1))
     for (c in 1:2) {
       x_array[c, , ] <- as.integer(stan_data_list$x[[c]])
@@ -155,7 +155,7 @@ R_fn_prep_MA_data <- function(  x,
     stan_data_list$cutpoint_index <- cutpoint_index_array
     ##
     ##
-    stan_data_list$cts_thr_values    <- seq(from = 1, to = n_thr, by = 1)
+    # stan_data_list$cts_thr_values    <- seq(from = -2.0, to = +2.0, length = n_thr)
     ##
     # stan_data_list$box_cox <-  if_null_then_set_to(box_cox, default_box_cox(cts)[[1]])
     # stan_data_list$softplus <- if_null_then_set_to(softplus, default_softplus()[[1]])

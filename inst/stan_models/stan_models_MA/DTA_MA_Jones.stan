@@ -129,9 +129,33 @@ transformed parameters {
         ////
         //// ---- Compute (global) cutpoints using either log or box-cox transform:
         //// 
-        array[2] vector[n_thr] C;
-        C[1] = ((box_cox == 0) ? log(cts_thr_values) : fn_Stan_box_cox(cts_thr_values, lambda[1]));  
-        C[2] = ((box_cox == 0) ? log(cts_thr_values) : fn_Stan_box_cox(cts_thr_values, lambda[2]));
+        array[2] vector[n_thr] C_raw;  // Unconstrained Box-Cox output
+        array[2] vector[n_thr] C;      // Scaled to [-2, +2]
+        C_raw[1] = ((box_cox == 0) ? log(cts_thr_values) : fn_Stan_box_cox(cts_thr_values, lambda[1]));  
+        C_raw[2] = ((box_cox == 0) ? log(cts_thr_values) : fn_Stan_box_cox(cts_thr_values, lambda[2]));
+        ////
+        // Step 1: Shift to positive if needed
+        real min_thr = min(cts_thr_values);
+        real shift = min_thr <= 0 ? abs(min_thr) + 1.0 : 0.0;
+        vector[n_thr] cts_thr_shifted = cts_thr_values + shift;
+        
+        // Step 2: Apply Box-Cox
+        C_raw[1] = fn_Stan_box_cox(cts_thr_shifted, lambda[1]);  
+        C_raw[2] = fn_Stan_box_cox(cts_thr_shifted, lambda[2]);
+        
+        // Step 3: Scale to [-2, +2] range
+        for (c in 1:2) {
+            real C_min = min(C_raw[c]);
+            real C_max = max(C_raw[c]);
+            real C_range = C_max - C_min;
+            
+            if (C_range > 0) {
+                // Linear rescaling: map [C_min, C_max] → [-2, +2]
+                C[c] = -2.0 + 4.0 * (C_raw[c] - C_min) / C_range;
+            } else {
+                C[c] = rep_vector(0.0, n_thr);  // All same value → center at 0
+            }
+        }
         ////
         //// ---- Study-level random effects (after Cholesky decomposition):
         ////
@@ -212,7 +236,7 @@ generated quantities {
           corr_matrix[2] raw_scale_Omega = multiply_lower_tri_self_transpose(raw_scale_L_Omega);
           ////
           matrix[2, 2] beta_Sigma      = multiply_lower_tri_self_transpose(beta_L_Sigma);
-          matrix[2, 2] raw_scale_Sigma = multiply_lower_tri_self_transpose(raw_scale_L_Sigma);
+          matrix[2, 2] raw_scale_Sigma = multiply_lower_tri_self_transpose(raw_scale_L_Sigma); 
           ////
           //// ---- Calculate summary accuracy - "baseline" covariate values:
           ////  
@@ -261,13 +285,13 @@ generated quantities {
           ////
           vector[n_studies] log_lik_study = rep_vector(0.0, n_studies);
           ////
-          matrix[n_studies, n_thr] fp; // global
-          matrix[n_studies, n_thr] sp; // global
-          matrix[n_studies, n_thr] se; // global
-          ////
-          vector[n_studies] deviance_nd; // global
-          vector[n_studies] deviance_d;  // global
-          vector[n_studies] deviance;    // global
+          // matrix[n_studies, n_thr] fp; // global
+          // matrix[n_studies, n_thr] sp; // global
+          // matrix[n_studies, n_thr] se; // global
+          // ////
+          // vector[n_studies] deviance_nd; // global
+          // vector[n_studies] deviance_d;  // global
+          // vector[n_studies] deviance;    // global
           {
               array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_to_fixed_hetero_C(
                                                               C, Xbeta, Xscale, n_studies, 
@@ -294,28 +318,28 @@ generated quantities {
               array[2] matrix[n_studies, n_thr] cond_prob = outs[2];
               array[2] matrix[n_studies, n_thr] surv_prob = outs[3];
               ////
-              fp = surv_prob[1];
-              sp = 1.0 - fp;
-              se = surv_prob[2];
-              ////
-              //// ---- Model fit (deviance):
-              ////
-              array[4] matrix[n_studies, n_thr] outs_model_fit = compute_deviance(
-                                                                 cond_prob, n_thr, n_studies, 
-                                                                 x_2, n, n_obs_cutpoints);
-              ////
-              matrix[n_studies, n_thr] x_hat_nd = outs_model_fit[1];
-              matrix[n_studies, n_thr] dev_nd   = outs_model_fit[2];
-              matrix[n_studies, n_thr] x_hat_d  = outs_model_fit[3];
-              matrix[n_studies, n_thr] dev_d    = outs_model_fit[4];
-              ////
-              for (s in 1:n_studies) {
-                  for (k in 1:to_int(n_obs_cutpoints[s])) {
-                     deviance_nd[s] += dev_nd[s, k];
-                     deviance_d[s]  += dev_d[s, k];
-                  }
-                  deviance[s] = deviance_nd[s] + deviance_d[s];
-              }
+              // fp = surv_prob[1];
+              // sp = 1.0 - fp;
+              // se = surv_prob[2];
+              // ////
+              // //// ---- Model fit (deviance):
+              // ////
+              // array[4] matrix[n_studies, n_thr] outs_model_fit = compute_deviance(
+              //                                                    cond_prob, n_thr, n_studies, 
+              //                                                    x_2, n, n_obs_cutpoints);
+              // ////
+              // matrix[n_studies, n_thr] x_hat_nd = outs_model_fit[1];
+              // matrix[n_studies, n_thr] dev_nd   = outs_model_fit[2];
+              // matrix[n_studies, n_thr] x_hat_d  = outs_model_fit[3];
+              // matrix[n_studies, n_thr] dev_d    = outs_model_fit[4];
+              // ////
+              // for (s in 1:n_studies) {
+              //     for (k in 1:to_int(n_obs_cutpoints[s])) {
+              //        deviance_nd[s] += dev_nd[s, k];
+              //        deviance_d[s]  += dev_d[s, k];
+              //     }
+              //     deviance[s] = deviance_nd[s] + deviance_d[s];
+              // }
           }
 }
 
