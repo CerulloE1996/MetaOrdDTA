@@ -14,7 +14,7 @@ get_simulation_config <- function() {
     N_per_study_mean = 500,
     
     # Model configurations
-    model_parameterisations = c("Jones", "Xu", "Bivariate", "R&G")
+    model_parameterisations = c("Jones", "ord_bivariate", "Bivariate", "R&G")
     
     # # Prior configurations
     # alpha_pi_options = c("one", "flat", "custom"),
@@ -62,12 +62,12 @@ create_scenario_matrix <- function(config) {
           !(model_parameterisation == "Jones" & !box_cox),
           !(model_parameterisation == "Jones" & random_thresholds),
           !(model_parameterisation == "Bivariate" & random_thresholds),
-          !(random_thresholds & !(model_parameterisation %in% c("Xu", "R&G")))
+          !(random_thresholds & !(model_parameterisation %in% c("ord_bivariate", "R&G")))
         ) %>%
         mutate(
           scenario_id = row_number(),
           Dirichlet_random_effects_type = case_when(
-            random_thresholds & model_parameterisation == "Xu" ~ "kappa",
+            random_thresholds & model_parameterisation == "ord_bivariate" ~ "kappa",
             random_thresholds & model_parameterisation == "R&G" ~ "kappa",
             TRUE ~ "fixed"
           )

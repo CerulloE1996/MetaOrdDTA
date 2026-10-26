@@ -2,9 +2,9 @@
 ## ==== make_the_simulated_NMA_DTA_data_of_the_NicoStan_worked_example.R =========================================
 ##
 ## ---- PRIVATE (never copied into NicoStan): the simulated network meta-analysis (NMA) data of NicoStan's worked
-##      example 4 (MetaOrdDTA's NMA-DTA model with Xu's fixed cutpoints), made with MetaOrdDTA's own simulator,
+##      example 4 (MetaOrdDTA's NMA-DTA model with ord_bivariate's fixed cutpoints), made with MetaOrdDTA's own simulator,
 ##      R_fn_sim_NMA_data_with_covariates_varying() (R/R_fn_sim_data_ord_NMA.R), in exactly the flow and with
-##      exactly the settings of inst/examples/NMA_example_main.R (Xu, fixed cutpoints, N_per_study_mean = 500,
+##      exactly the settings of inst/examples/NMA_example_main.R (ord_bivariate, fixed cutpoints, N_per_study_mean = 500,
 ##      N_per_study_SD = 500, missing thresholds, true_Mean_prev = 0.25, true_SD_probit_prev = 0.25, seed 1,
 ##      the covariate DGM MR_model_5), through inst/examples/NMA_missing_thr_prep_data_v2.R.
 ## ---- The simulator reads the real data of Klaus et al. (CONFIDENTIAL) for its design only: the patterns of
@@ -26,7 +26,7 @@
                                 paste0("simulated_network_meta_analysis_of_four_ordinal_screening_tests_with_",
                                        "missing_thresholds.rds"))
       ##
-      model_parameterisation <-  "Xu"
+      model_parameterisation <-  "ord_bivariate"
       box_cox <-  FALSE
       cts <-  FALSE
       random_thresholds <-  FALSE

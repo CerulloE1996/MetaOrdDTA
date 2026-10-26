@@ -173,7 +173,7 @@ model {
             ////
             //// ---- Get the cutpoint index (k) to map "latent_surv[c][s, cut_i]" to correct cutpoint "C[k]":
             ////
-            real scale = 1.0; // since using "Xu-like"" param.
+            real scale = 1.0; // since using "ord_bivariate-like"" param.
             array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_prob_to_fixed_hetero_C(C, beta, scale, n_studies, n_obs_cutpoints, cutpoint_index);
             target += compute_log_lik_binomial_fact_lp(latent_surv, use_probit_link, x_2, n, N_total, n_obs_cutpoints);
         }
@@ -214,7 +214,7 @@ generated quantities {
           vector[n_studies] deviance_d;  // global
           vector[n_studies] deviance;    // global
           {
-              real scale = 1.0; // since using "Xu-like"" param.
+              real scale = 1.0; // since using "ord_bivariate-like"" param.
               array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_prob_to_fixed_hetero_C(C, beta, scale, n_studies, n_obs_cutpoints, cutpoint_index);
               ////
               array[3, 2] matrix[n_studies, n_thr] outs = compute_log_lik_binomial_fact_data(latent_surv, use_probit_link, x_2, n, N_total, n_obs_cutpoints);

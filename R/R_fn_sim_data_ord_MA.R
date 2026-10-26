@@ -259,7 +259,7 @@ R_fn_sim_data_ord_MA <- function(  seed = 123,
             ##
             ## ---- GAD-2 parameters: ----------------------------------------------------------------------------------------------------------------------
 ##
-            ## (from fitting Xu-Rand-Kappa model to REAL GAD-2 MA Klaus data (w/o imputing missing threhsolds - "-1"'s).)
+            ## (from fitting ord_biv-Rand-Kappa model to REAL GAD-2 MA Klaus data (w/o imputing missing threhsolds - "-1"'s).)
             ##
             ##
             true_mean_GAD_2_params_list <- list()
@@ -316,7 +316,7 @@ R_fn_sim_data_ord_MA <- function(  seed = 123,
             ##
             ## ---- HADS parameters: ----------------------------------------------------------------------------------------------------------------------
 ##
-            ## (from fitting Xu-Rand-Kappa model to REAL HADS MA Klaus data (w/o imputing missing threhsolds - "-1"'s).)
+            ## (from fitting ord_biv-Rand-Kappa model to REAL HADS MA Klaus data (w/o imputing missing threhsolds - "-1"'s).)
             ##
             true_mean_HADS_params_list <- list()
             ##
@@ -354,7 +354,7 @@ R_fn_sim_data_ord_MA <- function(  seed = 123,
             ##
             ## ---- BAI parameters: ----------------------------------------------------------------------------------------------------------------------
 ##
-            ## (from fitting Xu-Rand-Kappa model to BAI HADS MA Klaus data (w/o imputing missing threhsolds - "-1"'s).)
+            ## (from fitting ord_biv-Rand-Kappa model to BAI HADS MA Klaus data (w/o imputing missing threhsolds - "-1"'s).)
             ##
             true_mean_BAI_params_list <- list()
             ##

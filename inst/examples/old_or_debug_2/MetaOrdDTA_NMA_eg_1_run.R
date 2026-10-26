@@ -89,7 +89,7 @@ devtools::install(local_pkg_dir,
 
 
 {
-  model_parameterisation = "Xu"
+  model_parameterisation = "ord_bivariate"
   box_cox <- FALSE
   cts <- FALSE
   ##
@@ -109,7 +109,7 @@ devtools::install(local_pkg_dir,
 
 
 {
-  model_parameterisation = "Xu"
+  model_parameterisation = "ord_bivariate"
   box_cox <- FALSE
   cts <- FALSE
   ##
@@ -223,9 +223,9 @@ alpha_pi <- "weak_info"
   scale_ALL_bs_SDs_by <- 0.50
   ##
    bs_het_C_nd_prob_scale <- 0.001      ; bs_het_C_d_prob_scale <- 0.001
-  # bs_het_C_nd_prob_scale <- 0.03932276 ; bs_het_C_d_prob_scale <- 0.07712564 ## ---- based on "alpha" Xu model fitted to real GAD-2 data
+  # bs_het_C_nd_prob_scale <- 0.03932276 ; bs_het_C_d_prob_scale <- 0.07712564 ## ---- based on "alpha" ord_bivariate model fitted to real GAD-2 data
   ##
-  bivariate_locations_nd_bs_het_SD <- 0.45 ; bivariate_locations_d_bs_het_SD <- 0.60 ## ---- based on "alpha" Xu model fitted to real GAD-2 data
+  bivariate_locations_nd_bs_het_SD <- 0.45 ; bivariate_locations_d_bs_het_SD <- 0.60 ## ---- based on "alpha" ord_bivariate model fitted to real GAD-2 data
   ######## bivariate_locations_nd_bs_het_SD <- 0.25 ; bivariate_locations_d_bs_het_SD <- 0.40  ## ---- made up / arbitrary (ish)
   
 }
@@ -353,7 +353,7 @@ if (n_studies < 50) {
 
 
 
-# file_name <- "DTA_MA_Xu_FIXEDthr_daig_J.stan"
+# file_name <- "DTA_MA_ord_biv_FIXEDthr_daig_J.stan"
 ##
 # use_custom_file <- TRUE
 use_custom_file <- FALSE

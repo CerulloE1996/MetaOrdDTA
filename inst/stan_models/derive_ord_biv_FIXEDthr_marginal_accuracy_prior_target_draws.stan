@@ -1,5 +1,5 @@
 ////
-//// ---- Marginal accuracy likelihood under the native Xu fixed-cutpoint prior:
+//// ---- Marginal accuracy likelihood under the native ord_bivariate fixed-cutpoint prior:
 ////
 //// The integration bank holds paired cutpoint draws of each class from the native likelihood-off model. The
 //// location of each class is integrated analytically; the Dirichlet concentrations of the cutpoints are
@@ -21,7 +21,7 @@ functions {
                                                                     real beta_mean,
                                                                     real beta_SD);
 
-    real fn_Xu_fixed_accuracy_partial_sum(array[] int target_index_slice,
+    real fn_ord_biv_fixed_accuracy_partial_sum(array[] int target_index_slice,
                                           int start,
                                           int end,
                                           data array[] int target_status,
@@ -220,7 +220,7 @@ transformed parameters {
 
 model {
 
-    target += reduce_sum(fn_Xu_fixed_accuracy_partial_sum,
+    target += reduce_sum(fn_ord_biv_fixed_accuracy_partial_sum,
                          target_indices,
                          target_grain_size,
                          target_status,

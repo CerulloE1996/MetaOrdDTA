@@ -1,5 +1,5 @@
-//// DTA_NMA_Nyaga_Xu_FIXEDthr_NicoStan_fused_AVX.stan
-//// The same model as MetaOrdDTA's DTA_NMA_Nyaga_Xu_FIXEDthr.stan (unchanged; its replaced lines kept here,
+//// DTA_NMA_Nyaga_ord_biv_FIXEDthr_NicoStan_fused_AVX.stan
+//// The same model as MetaOrdDTA's DTA_NMA_Nyaga_ord_biv_FIXEDthr.stan (unchanged; its replaced lines kept here,
 //// commented out), for NicoStan with NicoSIMD's AVX functions (MetaOrdDTA's NicoStan option; one file for AVX2
 //// and AVX-512): the likelihood of every reported cutpoint of every test, study and class in ONE autodiff node
 //// (NicoSIMD's general nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf, the same node

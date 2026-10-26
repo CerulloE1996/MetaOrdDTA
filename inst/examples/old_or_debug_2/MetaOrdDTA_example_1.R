@@ -125,14 +125,14 @@ x <- readRDS(file.path(local_pkg_dir, "inst", "examples", "MetaOrdDTA_example_da
 n_studies <- nrow(x[[1]])
 n_thr <- ncol(x[[1]])
 ##
-inits_for_Xu_fixed_thr_model <- list(beta_mu = c(-1, +1),
+inits_for_ord_biv_fixed_thr_model <- list(beta_mu = c(-1, +1),
                                      beta_SD = c(0.01, 0.01),
                                      beta_z = array(0.01, dim = c(2, n_studies)),
                                      C_raw_vec = rep(-2.0, n_thr))
 ##
 n_chains <- ifelse(parallel::detectCores() > 32, 64, 16)
 ##
-init_lists_per_chain <- replicate(n_chains, inits_for_Xu_fixed_thr_model, simplify = FALSE) ## li (inits_for_Xu_fixed_thr_model, n_chains)
+init_lists_per_chain <- replicate(n_chains, inits_for_ord_biv_fixed_thr_model, simplify = FALSE) ## li (inits_for_ord_biv_fixed_thr_model, n_chains)
 ##
 ## model_parameterisation <- "R&G"
 ##
@@ -145,12 +145,12 @@ model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(  x = x,
                                                   softplus = TRUE,
                                                   ##
                                                   ##
-                                                  model_parameterisation = "Xu", 
+                                                  model_parameterisation = "ord_bivariate", 
                                                   random_thresholds = FALSE,
                                                   Dirichlet_random_effects_type = "none",
                                                   ##
-                                                  init_lists_per_chain = inits_for_Xu_fixed_thr_model)
-inits_for_Xu_fixed_thr_model
+                                                  init_lists_per_chain = inits_for_ord_biv_fixed_thr_model)
+inits_for_ord_biv_fixed_thr_model
 
 
 
@@ -191,7 +191,7 @@ model_samples_obj <-  model_prep_obj$sample( n_iter = 5,
                                              ##
                                              n_chains = n_chains,
                                              ##
-                                             init_lists_per_chain = inits_for_Xu_fixed_thr_model)
+                                             init_lists_per_chain = inits_for_ord_biv_fixed_thr_model)
 ##
 # str(model_samples_obj)
 ##

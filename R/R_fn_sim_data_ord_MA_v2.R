@@ -257,7 +257,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
           # ##
           # ## ---- GAD-2: --------------------------------------------------------------------------------------------------------------------
           # ##
-          # ## ---- Xu_random_C:
+          # ## ---- ord_biv_random_C:
           # ##
           # round(mean(c(true_mean_GAD_2_params_list$Ord_bivariate$C_nd_SD_prob_scale)), 4) ## 0.036
           # round(mean(c(true_mean_GAD_2_params_list$Ord_bivariate$C_d_SD_prob_scale)),  4) ## 0.068
@@ -269,7 +269,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
           # ## ---- HADS: ---------------------------------------------------------------------------------------------------------------------
           # ##
           # ##
-          # ## ---- Xu_random_C:
+          # ## ---- ord_biv_random_C:
           # ##
           # round(mean(c(true_mean_HADS_params_list$Ord_bivariate$C_nd_SD_prob_scale)), 4) ## 0.0104
           # round(mean(c(true_mean_HADS_params_list$Ord_bivariate$C_d_SD_prob_scale)),  4) ## 0.0108
@@ -280,7 +280,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
           # ## 
           # ## ---- BAI: ----------------------------------------------------------------------------------------------------------------------
           # ##
-          # ## ---- Xu_random_C:
+          # ## ---- ord_biv_random_C:
           # ##
           # round(mean(c(true_mean_BAI_params_list$Ord_bivariate$C_nd_SD_prob_scale)), 4)  ## 0.0045
           # round(mean(c(true_mean_BAI_params_list$Ord_bivariate$C_d_SD_prob_scale)),  4)  ## 0.0026
@@ -295,11 +295,11 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
             ##
             ## ---- GAD-2 parameters: ----------------------------------------------------------------------------------------------------------------------
 ##
-            ## ---- (from fitting Xu-Rand-Kappa model to REAL GAD-2 MA Klaus data (w/o imputing missing threhsolds - "-1"'s).)
+            ## ---- (from fitting ord_biv-Rand-Kappa model to REAL GAD-2 MA Klaus data (w/o imputing missing threhsolds - "-1"'s).)
             ##
             true_mean_GAD_2_params_list <- list()
             ##
-            if (DGM == "Xu_random_C") {
+            if (DGM == "ord_biv_random_C") {
               
                   true_mean_GAD_2_params_list$Ord_bivariate$beta_mu   <- c(-0.762, 0.197)
                   true_mean_GAD_2_params_list$Ord_bivariate$beta_SD   <- c(0.339, 0.561)*reduction_factor
@@ -316,7 +316,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   true_mean_GAD_2_params_list$Ord_bivariate$alpha_d           <- c(2.03021, 2.755295, 5.821855, 
                                                                                    3.763645, 4.173785, 2.400225, 2.800985) / (reduction_factor^2)
                 
-            } else if (DGM == "Xu_fixed_C") {
+            } else if (DGM == "ord_biv_fixed_C") {
                 
                   true_mean_GAD_2_params_list$Ord_bivariate$beta_mu <- c(-0.987, 0.157)
                   true_mean_GAD_2_params_list$Ord_bivariate$beta_SD <- c(0.389, 0.668)*reduction_factor
@@ -363,7 +363,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
             ##
             true_mean_GAD_7_params_list <- list()
             # ##
-            # if (DGM == "Xu_random_C") {
+            # if (DGM == "ord_biv_random_C") {
                 true_mean_GAD_7_params_list$Ord_bivariate$beta_mu <- c(-1.41, -0.283)
                 true_mean_GAD_7_params_list$Ord_bivariate$beta_SD <- c(0.488, 0.674)*reduction_factor
                 true_mean_GAD_7_params_list$Ord_bivariate$beta_corr <- 0.307
@@ -396,11 +396,11 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
             ##
             ## ---- HADS parameters: ----------------------------------------------------------------------------------------------------------------------
 ##
-            ## (from fitting Xu-Rand-Kappa model to REAL HADS MA Klaus data (w/o imputing missing threhsolds - "-1"'s).)
+            ## (from fitting ord_biv-Rand-Kappa model to REAL HADS MA Klaus data (w/o imputing missing threhsolds - "-1"'s).)
             ##
             true_mean_HADS_params_list <- list()
             ##
-            if (DGM == "Xu_random_C") {
+            if (DGM == "ord_biv_random_C") {
               
                   true_mean_HADS_params_list$Ord_bivariate$beta_mu <- c(-0.644, 0.0866)
                   true_mean_HADS_params_list$Ord_bivariate$beta_SD <- c(0.233,  0.392)*reduction_factor
@@ -432,7 +432,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                                                                                        21.18535, 16.4624, 9.543875, 6.33563, 5.19942, 5.683845, 2.03261, 
                                                                                        10.6996) / (reduction_factor^2)
             
-            } else if (DGM == "Xu_fixed_C") {
+            } else if (DGM == "ord_biv_fixed_C") {
                  
                   true_mean_HADS_params_list$Ord_bivariate$beta_mu <- c(-1.13, 0.136)
                   true_mean_HADS_params_list$Ord_bivariate$beta_SD <- c(0.248, 0.423)*reduction_factor
@@ -509,11 +509,11 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
             ##
             ## ---- BAI parameters: ----------------------------------------------------------------------------------------------------------------------
 ##
-            ## (from fitting Xu-Rand-Kappa model to BAI HADS MA Klaus data (w/o imputing missing threhsolds - "-1"'s).)
+            ## (from fitting ord_biv-Rand-Kappa model to BAI HADS MA Klaus data (w/o imputing missing threhsolds - "-1"'s).)
             ##
             true_mean_BAI_params_list <- list()
             ##
-            if (DGM == "Xu_random_C") {
+            if (DGM == "ord_biv_random_C") {
               
                   true_mean_BAI_params_list$Ord_bivariate$beta_mu <- c(-1.51, -0.347)
                   true_mean_BAI_params_list$Ord_bivariate$beta_SD <- c(0.373,  0.250)*reduction_factor
@@ -585,7 +585,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                                                                                     8.0716, 8.64498, 8.12516, 8.99806, 8.50395, 8.33532, 19.12505, 
                                                                                     33.42485) / (reduction_factor^2)
             
-            } else if (DGM == "Xu_fixed_C") {
+            } else if (DGM == "ord_biv_fixed_C") {
                   
                   true_mean_BAI_params_list$Ord_bivariate$beta_mu <- c(-1.49, -0.358)
                   true_mean_BAI_params_list$Ord_bivariate$beta_SD <- c(0.385, 0.268)*reduction_factor
@@ -698,7 +698,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
           # } else {
           # 
           # }
-          if (DGM %in% c("Xu_fixed_C", "Xu_random_C")) {
+          if (DGM %in% c("ord_biv_fixed_C", "ord_biv_random_C")) {
                   
                   # Set bivariate locations
                   beta_mu_nd <- c(-100, -1, -1, -1, -1)
@@ -918,7 +918,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                     ##
                     t <- 2
                     ##
-                    if (DGM == "Xu_random_C") {
+                    if (DGM == "ord_biv_random_C") {
                       
                           thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
                                                                                             alpha_vec =  true_mean_GAD_2_params_list$Ord_bivariate$alpha_nd,
@@ -927,7 +927,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                                                                                             alpha_vec =  true_mean_GAD_2_params_list$Ord_bivariate$alpha_d,
                                                                                             use_probit_link =  TRUE)
                       
-                    } else if (DGM == "Xu_fixed_C") { 
+                    } else if (DGM == "ord_biv_fixed_C") { 
                       
                           thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- true_mean_GAD_2_params_list$Ord_bivariate$C_nd
                           thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]]  <- true_mean_GAD_2_params_list$Ord_bivariate$C_d
@@ -951,7 +951,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                     ##
                     t <- 3
                     ##
-                    if (DGM == "Xu_random_C") {
+                    if (DGM == "ord_biv_random_C") {
                       
                           thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
                                                                                             alpha_vec =  true_mean_BAI_params_list$Ord_bivariate$alpha_nd,
@@ -960,7 +960,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                                                                                             alpha_vec =  true_mean_BAI_params_list$Ord_bivariate$alpha_d,
                                                                                             use_probit_link =  TRUE)
                           
-                    } else if (DGM == "Xu_fixed_C") { 
+                    } else if (DGM == "ord_biv_fixed_C") { 
                       
                           thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- true_mean_BAI_params_list$Ord_bivariate$C_nd
                           thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]]  <- true_mean_BAI_params_list$Ord_bivariate$C_d
@@ -983,7 +983,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                     ##
                     t <- 4
                     ##
-                    if (DGM == "Xu_random_C") {
+                    if (DGM == "ord_biv_random_C") {
                       
                           thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
                                                                                             alpha_vec =  true_mean_HADS_params_list$Ord_bivariate$alpha_nd,
@@ -992,7 +992,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                                                                                             alpha_vec =  true_mean_HADS_params_list$Ord_bivariate$alpha_d,
                                                                                             use_probit_link =  TRUE)
                       
-                    } else if (DGM == "Xu_fixed_C") {
+                    } else if (DGM == "ord_biv_fixed_C") {
                       
                           thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- true_mean_HADS_params_list$Ord_bivariate$C_nd
                           thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]]  <- true_mean_HADS_params_list$Ord_bivariate$C_d
@@ -1015,7 +1015,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                     ##
                     t <- 5
                     ##
-                    # if (DGM == "Xu_random_C") {
+                    # if (DGM == "ord_biv_random_C") {
                           ##
                           thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet(
                                                                                             alpha_vec =  true_mean_GAD_7_params_list$Ord_bivariate$alpha_nd,
@@ -1024,7 +1024,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                                                                                             alpha_vec =  true_mean_GAD_7_params_list$Ord_bivariate$alpha_d,
                                                                                             use_probit_link =  TRUE)
                       
-                    # } else if (DGM == "Xu_fixed_C") {
+                    # } else if (DGM == "ord_biv_fixed_C") {
                     #       
                     #       thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- true_mean_GAD_7_params_list$Ord_bivariate$C_nd
                     #       thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]]  <- true_mean_GAD_7_params_list$Ord_bivariate$C_d
@@ -1054,7 +1054,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                     }
                     ##
                     # Generate study-specific parameters
-                    if (DGM %in% c("Xu_random_C", "Xu_fixed_C")) {
+                    if (DGM %in% c("ord_biv_random_C", "ord_biv_fixed_C")) {
                       
                             Sigma_bs_list <- list()
                             ##
@@ -1320,7 +1320,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
           # ## ---- GAD-2 (test #2):
           # ##
           # t <- 2
-          # if (DGM == "Xu_random_C") { 
+          # if (DGM == "ord_biv_random_C") { 
           #   
           #       Mean_of_thr_for_all_tests_array_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet_sample(
           #                                                                     n_samples = 1000,
@@ -1329,7 +1329,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
           #                                                                     n_samples = 1000,
           #                                                                     alpha_vec =  true_mean_GAD_2_params_list$Ord_bivariate$alpha_d)
           #   
-          # } else if (DGM == "Xu_fixed_C") {
+          # } else if (DGM == "ord_biv_fixed_C") {
           #   
           #       Mean_of_thr_for_all_tests_array_nd[t, 1:n_thr_per_test[t]] <-  true_mean_GAD_2_params_list$Ord_bivariate$C_nd
           #       Mean_of_thr_for_all_tests_array_d[t, 1:n_thr_per_test[t]]  <-  true_mean_GAD_2_params_list$Ord_bivariate$C_d
@@ -1341,7 +1341,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
           # ## ---- BAI (test #3):
           # ##
           # t <- 3
-          # if (DGM == "Xu_random_C") { 
+          # if (DGM == "ord_biv_random_C") { 
           #   
           #       Mean_of_thr_for_all_tests_array_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet_sample(
           #                                                                     n_samples = 1000,
@@ -1350,7 +1350,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
           #                                                                     n_samples = 1000,
           #                                                                     alpha_vec =  true_mean_BAI_params_list$Ord_bivariate$alpha_d)
           #   
-          # } else if (DGM == "Xu_fixed_C") {
+          # } else if (DGM == "ord_biv_fixed_C") {
           #   
           #       Mean_of_thr_for_all_tests_array_nd[t, 1:n_thr_per_test[t]] <-  true_mean_BAI_params_list$Ord_bivariate$C_nd
           #       Mean_of_thr_for_all_tests_array_d[t, 1:n_thr_per_test[t]]  <-  true_mean_BAI_params_list$Ord_bivariate$C_d
@@ -1364,7 +1364,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
           # ## ---- HADS (test #4):
           # ##
           # t <- 4
-          # if (DGM == "Xu_random_C") { 
+          # if (DGM == "ord_biv_random_C") { 
           #   
           #       Mean_of_thr_for_all_tests_array_nd[t, 1:n_thr_per_test[t]] <- generate_ordered_thresholds_induced_dirichlet_sample(
           #                                                                     n_samples = 1000,
@@ -1373,7 +1373,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
           #                                                                     n_samples = 1000,
           #                                                                     alpha_vec =  true_mean_HADS_params_list$Ord_bivariate$alpha_d)
           #   
-          # } else if (DGM == "Xu_fixed_C") {
+          # } else if (DGM == "ord_biv_fixed_C") {
           #       
           #       Mean_of_thr_for_all_tests_array_nd[t, 1:n_thr_per_test[t]] <-  true_mean_HADS_params_list$Ord_bivariate$C_nd
           #       Mean_of_thr_for_all_tests_array_d[t, 1:n_thr_per_test[t]]  <-  true_mean_HADS_params_list$Ord_bivariate$C_d

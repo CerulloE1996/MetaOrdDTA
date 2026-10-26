@@ -17,7 +17,7 @@
 #' over).
 #'
 #' @param name_of_the_model The model's name without ".stan", e.g. "DTA_MA_ord_biv_FIXEDthr".
-#' @param model_parameterisation "Xu", "ordinal_HSROC" (or the older "R&G"), "Jones", "Bivariate" or "NMA"
+#' @param model_parameterisation "ord_bivariate", "ordinal_HSROC" (or the older "R&G"), "Jones", "Bivariate" or "NMA"
 #'   (used in the message of a model whose families are not known).
 #' @param random_thresholds TRUE for the random-cutpoint models, FALSE for the fixed-cutpoint ones.
 #' @return A character vector of parameter family names, or NULL for a model whose families are not known (then

@@ -112,8 +112,8 @@ create_RMSE_plot <- function(  data,
                          DGM = function(x) {
                            case_when(
                              x == "Jones"        ~ "DGM: Jones",
-                             x == "Xu_fixed_C"   ~ "DGM: Ord-Biv-FC",
-                             x == "Xu_random_C"  ~ "DGM: Ord-Biv-RC", 
+                             x == "ord_biv_fixed_C"   ~ "DGM: Ord-Biv-FC",
+                             x == "ord_biv_random_C"  ~ "DGM: Ord-Biv-RC", 
                              x == "R&G_random_C" ~ "DGM: Ord-HSROC-RC",
                              TRUE ~ x
                            )
@@ -240,8 +240,8 @@ create_bias_plot <- function(  data,
                        DGM = function(x) {
                          case_when(
                            x == "Jones"        ~ "DGM: Jones",
-                           x == "Xu_fixed_C"   ~ "DGM: Ord-Biv-FC",
-                           x == "Xu_random_C"  ~ "DGM: Ord-Biv-RC", 
+                           x == "ord_biv_fixed_C"   ~ "DGM: Ord-Biv-FC",
+                           x == "ord_biv_random_C"  ~ "DGM: Ord-Biv-RC", 
                            x == "R&G_random_C" ~ "DGM: Ord-HSROC-RC",
                            TRUE ~ x
                          )
@@ -325,8 +325,8 @@ create_coverage_plot <- function(data,
                        DGM = function(x) {
                          case_when(
                            x == "Jones"        ~ "DGM: Jones",
-                           x == "Xu_fixed_C"   ~ "DGM: Ord-Biv-FC",
-                           x == "Xu_random_C"  ~ "DGM: Ord-Biv-RC",
+                           x == "ord_biv_fixed_C"   ~ "DGM: Ord-Biv-FC",
+                           x == "ord_biv_random_C"  ~ "DGM: Ord-Biv-RC",
                            x == "R&G_random_C" ~ "DGM: Ord-HSROC-RC",
                            TRUE ~ x
                          )
@@ -411,8 +411,8 @@ create_width_plot <- function(data,
                        DGM = function(x) {
                          case_when(
                            x == "Jones"        ~ "DGM: Jones",
-                           x == "Xu_fixed_C"   ~ "DGM: Ord-Biv-FC",
-                           x == "Xu_random_C"  ~ "DGM: Ord-Biv-RC",
+                           x == "ord_biv_fixed_C"   ~ "DGM: Ord-Biv-FC",
+                           x == "ord_biv_random_C"  ~ "DGM: Ord-Biv-RC",
                            x == "R&G_random_C" ~ "DGM: Ord-HSROC-RC",
                            TRUE ~ x
                          )
@@ -429,7 +429,7 @@ R_fn_edit_sim_data_tibble <- function(data_0) {
   
       data <- data_0 %>% 
         dplyr::mutate( model_parameterisation = case_when( model_parameterisation == "R&G" ~ "Ord-HSROC",
-                                                           model_parameterisation == "Xu"  ~ "Ord-Biv",
+                                                           model_parameterisation == "ord_bivariate"  ~ "Ord-Biv",
                                                            TRUE ~ model_parameterisation ))
       data
       ##
@@ -448,8 +448,8 @@ R_fn_edit_sim_data_tibble <- function(data_0) {
                                                     "Ord-HSROC-RC"))
       ##
       data$DGM <- factor(data$DGM, levels = c(  "Jones", 
-                                                "Xu_fixed_C", 
-                                                "Xu_random_C", 
+                                                "ord_biv_fixed_C", 
+                                                "ord_biv_random_C", 
                                                 "R&G_random_C"))
       
       return(data)

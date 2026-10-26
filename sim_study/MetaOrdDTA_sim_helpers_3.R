@@ -60,7 +60,7 @@ rename_files_add_red_fact <- function( directory,
           # Split: "seed_4121_test_BAI..." -> "seed_4121_" + "test_BAI..."
           parts <- strsplit(file, "test_")[[1]]
           seed_part <- parts[1]  # "seed_4121_"
-          rest_part <- parts[2]  # "BAIDGM_Xu_random_C..."
+          rest_part <- parts[2]  # "BAIDGM_ord_biv_random_C..."
 
           # Create new filename with red_fact inserted
           new_file <- paste0(seed_part,
@@ -109,13 +109,13 @@ get_true_values <- function(DGM,
 
   if (test == "GAD_2" || test == "GAD-2") {
 
-    if (DGM == "Xu_random_C") {
+    if (DGM == "ord_biv_random_C") {
 
       true_DGM_Se <- c(95.318, 85.87, 63.02, 47.236, 27.83, 15.6)/100
       true_DGM_Fp <- c(59.589, 32.905, 13.731, 7.66, 3.262, 1.429)/100
       true_DGM_Sp <- 1 - true_DGM_Fp
 
-    } else if (DGM == "Xu_fixed_C") {
+    } else if (DGM == "ord_biv_fixed_C") {
 
       true_DGM_Se <- c(94.064, 85.133, 63.202, 47.307, 27.227, 13.043)/100
       true_DGM_Fp <- c(61.364, 32.558, 12.755, 6.989, 2.867, 1.19)/100
@@ -137,7 +137,7 @@ get_true_values <- function(DGM,
 
   } else if (test == "HADS") {
 
-    if (DGM == "Xu_random_C") {
+    if (DGM == "ord_biv_random_C") {
 
       true_DGM_Se <- c(98.195, 97.838, 96.432, 95.247, 93.466, 90.61, 85.748, 80.685,
                        73.559, 63.65, 54.293, 46.918, 38.05, 28.523, 21.017, 15.068,
@@ -147,7 +147,7 @@ get_true_values <- function(DGM,
                        0.527, 0.347, 0.211, 0.139)/100
       true_DGM_Sp <- 1 - true_DGM_Fp
 
-    } else if (DGM == "Xu_fixed_C") {
+    } else if (DGM == "ord_biv_fixed_C") {
 
       # true_DGM_Se <- c(99.491, 99.247, 97.938, 96.351, 94.374, 91.498, 86.541, 81.125,
       #                  73.816, 63.739, 54.087, 46.279, 37.224, 27.342, 19.288, 12.74,
@@ -188,7 +188,7 @@ get_true_values <- function(DGM,
 
   } else if (test == "BAI") {
 
-    if (DGM == "Xu_random_C") {
+    if (DGM == "ord_biv_random_C") {
 
       true_DGM_Se <- c(98.165, 97.618, 96.739, 95.884, 93.859, 92.615, 91.362, 89.56,
                        88.148, 86.218, 85.219, 82.263, 80.332, 78.382, 74.833, 70.772,
@@ -210,7 +210,7 @@ get_true_values <- function(DGM,
       ##
       true_DGM_Sp <- 1 - true_DGM_Fp
 
-    } else if (DGM == "Xu_fixed_C") {
+    } else if (DGM == "ord_biv_fixed_C") {
 
       true_DGM_Se <- c(99.011, 98.544, 97.668, 96.81, 94.69, 93.412, 92.18, 90.283,
                        88.818, 86.889, 85.876, 82.948, 81.039, 79.021, 75.354, 71.185,
@@ -314,9 +314,9 @@ create_MetaOrd_scenarios <- function() {
       # Define all parameter combinations
       scenario_df <- expand.grid(
         index_test_MA = c("GAD_2", "HADS", "BAI"),
-        DGM = c("Xu_fixed_C", "Jones", "Xu_random_C", "R&G_random_C"),
+        DGM = c("ord_biv_fixed_C", "Jones", "ord_biv_random_C", "R&G_random_C"),
         n_studies = c(10, 50),
-        model_parameterisation = c("Jones", "Xu", "Bivariate", "R&G"),
+        model_parameterisation = c("Jones", "ord_bivariate", "Bivariate", "R&G"),
         alpha_pi = c("one", "flat", "informative", "informative_from_the_literature"),
         # box_cox = c(FALSE, TRUE),
         softplus = c(FALSE),
@@ -332,7 +332,7 @@ create_MetaOrd_scenarios <- function() {
           !((model_parameterisation %in% c("Jones", "Bivariate")) &
               (alpha_pi %in% c("informative", "informative_from_the_literature"))),
           !((model_parameterisation == "R&G") & (alpha_pi == "informative")),
-          !(DGM == "Xu_fixed_C" & (random_thresholds == TRUE)),
+          !(DGM == "ord_biv_fixed_C" & (random_thresholds == TRUE)),
           !((DGM == "Jones") & (random_thresholds == TRUE)),
           !(model_parameterisation == "Bivariate" & random_thresholds == TRUE),
           !(model_parameterisation == "R&G" & random_thresholds == FALSE),
@@ -341,7 +341,7 @@ create_MetaOrd_scenarios <- function() {
         mutate(
           scenario_id = row_number(),
           Dirichlet_random_effects_type = case_when(
-            random_thresholds & model_parameterisation == "Xu" ~ "kappa",
+            random_thresholds & model_parameterisation == "ord_bivariate" ~ "kappa",
             random_thresholds & model_parameterisation == "R&G" ~ "kappa",
             TRUE ~ "fixed"
           ),

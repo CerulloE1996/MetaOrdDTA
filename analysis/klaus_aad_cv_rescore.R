@@ -51,7 +51,7 @@ result_filename <- function(model_id, n_covariates) {
     "seed_1_K_fold_dummy_data_0n_tests_8tar_cond_AAD",
     "intercept_only_", as.integer(model_id == 0L),
     "N_covs_", n_covariates,
-    "param_Xurand_thr_FALSECS_TRUE",
+    "param_ord_bivariaterand_thr_FALSECS_TRUE",
     "prior_beta_mu_SD_0.5_0.25inform_dir_TRUE"
   )
   if (model_id != 0L) stem <- paste0(stem, "_MR_model_", model_id)

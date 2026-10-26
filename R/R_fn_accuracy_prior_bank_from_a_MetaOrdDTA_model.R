@@ -54,7 +54,7 @@ fn_accuracy_prior_bank_from_a_MetaOrdDTA_model <- function(model_samples_obj,
 
     metadata_to_model_code <- c(
         DTA_MA_ord_biv_FIXEDthr_model = "DTA_MA_ord_biv_FIXEDthr",
-        DTA_MA_Xu_FIXEDthr_model = "DTA_MA_ord_biv_FIXEDthr",
+        DTA_MA_ord_biv_FIXEDthr_model = "DTA_MA_ord_biv_FIXEDthr",
         DTA_MA_ord_HSROC_RANDthr_kappa_model = "DTA_MA_ord_HSROC_RANDthr_kappa",
         DTA_MA_Gat_RANDthr_kappa_model = "DTA_MA_ord_HSROC_RANDthr_kappa",
         DTA_MA_Jones_model = "DTA_MA_Jones"
@@ -76,7 +76,7 @@ fn_accuracy_prior_bank_from_a_MetaOrdDTA_model <- function(model_samples_obj,
     }
 
     legacy_source_to_current <- c(
-        DTA_MA_Xu_FIXEDthr.stan = "DTA_MA_ord_biv_FIXEDthr.stan",
+        DTA_MA_ord_biv_FIXEDthr.stan = "DTA_MA_ord_biv_FIXEDthr.stan",
         DTA_MA_Gat_RANDthr_kappa.stan = "DTA_MA_ord_HSROC_RANDthr_kappa.stan"
     )
     recorded_basename <- basename(recorded_model_file)

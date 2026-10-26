@@ -178,7 +178,7 @@ n_sims <- 5
 
 
 
-file_name <- "DTA_MA_Xu_FIXEDthr_daig_J.stan"
+file_name <- "DTA_MA_ord_biv_FIXEDthr_daig_J.stan"
 ##
 # use_custom_file <- TRUE
 use_custom_file <- FALSE
@@ -202,7 +202,7 @@ use_custom_file <- FALSE
 }
 
 {
-  model_parameterisation = "Xu"
+  model_parameterisation = "ord_bivariate"
   box_cox <- FALSE
   cts <- FALSE
   random_thresholds <-  FALSE
@@ -232,7 +232,7 @@ use_custom_file <- FALSE
 }
 # 
 {
-  model_parameterisation = "Xu"
+  model_parameterisation = "ord_bivariate"
   box_cox <- FALSE
   cts <- FALSE
   random_thresholds <-  TRUE
@@ -422,7 +422,7 @@ for (kk in 1:n_chains) {
   #                                      seq(from = -2.0, to = 2.0, length = n_thr))
 }
 
-if (model_parameterisation == "Xu") {
+if (model_parameterisation == "ord_bivariate") {
       
           for (kk in 1:n_chains) {
                 

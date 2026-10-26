@@ -244,7 +244,7 @@ R_fn_set_inits_NMA <- function(    inits,
                     #         
                     # }
                           
-                  } else if (grepl("ord_biv|ordinal_biv|biv|Xu|O-", model_parameterisation, ignore.case = TRUE)) {
+                  } else if (grepl("ord_biv|ordinal_biv|biv|O-", model_parameterisation, ignore.case = TRUE)) {
                     
                         ##
                         ## Set default inits for the locations ("beta"):

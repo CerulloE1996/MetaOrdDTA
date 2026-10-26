@@ -241,7 +241,7 @@ generated quantities {
           vector[n_studies] deviance_d;  // global
           vector[n_studies] deviance;    // global
           {
-              real scale = 1.0; // since using "Xu-like"" param.
+              real scale = 1.0; // since using "ord_bivariate-like"" param.
               array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_prob_to_random_C(C, n_thr, locations, scales, n_studies, n_obs_cutpoints, cutpoint_index);
               ////
               array[3, 2] matrix[n_studies, n_thr] outs = compute_log_lik_binomial_fact_data(latent_surv, use_probit_link, x_2, n, N_total, n_obs_cutpoints);

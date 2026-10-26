@@ -628,7 +628,7 @@ generated quantities {
       vector[n_studies] deviance_d;  // global
       vector[n_studies] deviance;    // global
       {
-          real scale = 1.0; // since using "Xu-like"" param.
+          real scale = 1.0; // since using "ord_bivariate-like"" param.
           array[2] matrix[n_studies, n_thr] latent_surv = nico_map_latent_surv_prob_to_fixed_C_HSROC(
                                                           C, Xlocations, Xscale, n_studies, 
                                                           n_obs_cutpoints, cutpoint_index);

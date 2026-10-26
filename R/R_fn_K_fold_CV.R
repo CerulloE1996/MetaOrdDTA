@@ -600,12 +600,12 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
         parallel::clusterEvalQ(cl, {
           if (identical(algorithm, "Stan")) library(cmdstanr) ## (cmdstanr only for Stan folds)
           library(MetaOrdDTA)
-          library(posterior)
           library(dplyr)
           library(stringr)
         })
         ##
         k <- 2
+        `%dopar%` <- foreach::`%dopar%` ## needed when this file is sourced
         ##
         # Run folds in parallel
         fold_results_list <- foreach::foreach(k = 1:K,
@@ -613,7 +613,6 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
                                      # .export = ls(envir = asNamespace("MetaOrdDTA")),
                                      .packages = c("MetaOrdDTA",
                                                    if (identical(algorithm, "Stan")) "cmdstanr",
-                                                   "posterior",
                                                    "dplyr",
                                                    "stringr"),
                                      .errorhandling = "pass") %dopar% {
@@ -631,7 +630,6 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
                                                      ## Load required packages
                                                      require(MetaOrdDTA)
                                                      if (identical(algorithm, "Stan")) require(cmdstanr)
-                                                     require(posterior)
                                                      require(dplyr)
                                                      ##
                                                      if (use_BayesMVP_for_faster_summaries) { 

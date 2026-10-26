@@ -209,13 +209,13 @@ init_lists_per_chain <- NULL
 #       
 #       custom_file_name <- "DTA_MA_Gat_RANDthr_kappa.stan"
 #       
-#     } else if ((model_parameterisation == "Xu") && (random_thresholds == FALSE)) {
+#     } else if ((model_parameterisation == "ord_bivariate") && (random_thresholds == FALSE)) {
 #       
-#       custom_file_name <- "DTA_MA_Xu_FIXEDthr.stan"
+#       custom_file_name <- "DTA_MA_ord_biv_FIXEDthr.stan"
 #       
-#     } else if ((model_parameterisation == "Xu") && (random_thresholds == TRUE)) {
+#     } else if ((model_parameterisation == "ord_bivariate") && (random_thresholds == TRUE)) {
 #       
-#       custom_file_name <- "DTA_MA_Xu_RANDthr_kappa.stan"
+#       custom_file_name <- "DTA_MA_ord_biv_RANDthr_kappa.stan"
 #       
 #     } else if ((model_parameterisation == "Jones"))  {
 #       
@@ -341,7 +341,7 @@ model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(
         
               prior_dirichlet_alpha <- rep(1.0, n_thr + 1)
               ##
-              if (model_parameterisation == "Xu") {
+              if (model_parameterisation == "ord_bivariate") {
                 priors$prior_dirichlet_alpha <- list( prior_dirichlet_alpha, prior_dirichlet_alpha)
               } else {
                 priors$prior_dirichlet_alpha <- prior_dirichlet_alpha
@@ -351,7 +351,7 @@ model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(
 
               prior_dirichlet_alpha <- rep(2.0, n_thr + 1)
               ##
-              if (model_parameterisation == "Xu") {
+              if (model_parameterisation == "ord_bivariate") {
                  priors$prior_dirichlet_alpha <- list( prior_dirichlet_alpha, prior_dirichlet_alpha)
               } else {
                  priors$prior_dirichlet_alpha <- prior_dirichlet_alpha
@@ -359,7 +359,7 @@ model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(
 
       } else {
 
-              if (model_parameterisation == "Xu") {
+              if (model_parameterisation == "ord_bivariate") {
 
                         alpha_priors_outs <- MetaOrdDTA:::generate_dual_ordinal_dirichlet_priors(n_cat = n_thr + 1,
                                                                                     nd_peak = 0.15,

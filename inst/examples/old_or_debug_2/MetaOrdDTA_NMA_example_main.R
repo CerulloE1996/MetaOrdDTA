@@ -96,7 +96,7 @@ rm(list = ls())
 
 
 {
-  model_parameterisation = "Xu"
+  model_parameterisation = "ord_bivariate"
   box_cox <- FALSE
   cts <- FALSE
   ##
@@ -106,7 +106,7 @@ rm(list = ls())
 
 
 # {
-#   model_parameterisation = "Xu"
+#   model_parameterisation = "ord_bivariate"
 #   box_cox <- FALSE
 #   cts <- FALSE
 #   ##
@@ -205,9 +205,9 @@ rm(list = ls())
     scale_ALL_bs_SDs_by <- 0.50
     ##
     bs_het_C_nd_prob_scale <- 0.001      ; bs_het_C_d_prob_scale <- 0.001
-    # bs_het_C_nd_prob_scale <- 0.03932276 ; bs_het_C_d_prob_scale <- 0.07712564 ## ---- based on "alpha" Xu model fitted to real GAD-2 data
+    # bs_het_C_nd_prob_scale <- 0.03932276 ; bs_het_C_d_prob_scale <- 0.07712564 ## ---- based on "alpha" ord_bivariate model fitted to real GAD-2 data
     ##
-    bivariate_locations_nd_bs_het_SD <- 0.45 ; bivariate_locations_d_bs_het_SD <- 0.60 ## ---- based on "alpha" Xu model fitted to real GAD-2 data
+    bivariate_locations_nd_bs_het_SD <- 0.45 ; bivariate_locations_d_bs_het_SD <- 0.60 ## ---- based on "alpha" ord_bivariate model fitted to real GAD-2 data
     ######## bivariate_locations_nd_bs_het_SD <- 0.25 ; bivariate_locations_d_bs_het_SD <- 0.40  ## ---- made up / arbitrary (ish)
     
   }
@@ -280,7 +280,7 @@ rm(list = ls())
   
   
   
-  # file_name <- "DTA_MA_Xu_FIXEDthr_daig_J.stan"
+  # file_name <- "DTA_MA_ord_biv_FIXEDthr_daig_J.stan"
   ##
   # use_custom_file <- TRUE
   use_custom_file <- FALSE
@@ -857,13 +857,13 @@ check_X_column_order(real_data$cov_data$X)
 # 
 # ##
 # cts <- box_cox <- softplus <- FALSE
-# custom_file_name <- NULL ##  "DTA_NMA_Nyaga_Xu_RANDthr_kappa.stan"
+# custom_file_name <- NULL ##  "DTA_NMA_Nyaga_ord_biv_RANDthr_kappa.stan"
 # # ##
-# model_parameterisation <- "Xu"
+# model_parameterisation <- "ord_bivariate"
 # Dirichlet_random_effects_type <- "kappa"
 # random_thresholds <- TRUE
 # ##
-# # model_parameterisation <- "Xu"
+# # model_parameterisation <- "ord_bivariate"
 # # Dirichlet_random_effects_type <- "fixed"
 # # random_thresholds <- FALSE
 # ##
@@ -1074,7 +1074,7 @@ dummy_data <- 1
 ##
 Baseline_Model_best <- readRDS(
   file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-            "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
+            "seed_1_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
 ##
 # model_summary_and_trace_obj_DUMMY <- Model_dummy$model_summary_and_trace_obj
 ##
@@ -1240,17 +1240,17 @@ fold_assignments <- Baseline_Model_best$model_summary_and_trace_obj$make_folds_k
 # init_lists_per_chain <- BayesMVPsim:::remove_duplicates_by_name(init_lists_per_chain)
 
 ##
-Model_Xu_fixed_thr <- readRDS(
+Model_ord_biv_fixed_thr <- readRDS(
   file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-            "seed_1_MA_only_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_FALSE_applied_results.RDS"))
-model_summary_and_trace_obj <- Model_Xu_fixed_thr$model_summary_and_trace_obj
-model_prep_obj <- Model_Xu_fixed_thr$model_prep_obj
+            "seed_1_MA_only_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_FALSE_applied_results.RDS"))
+model_summary_and_trace_obj <- Model_ord_biv_fixed_thr$model_summary_and_trace_obj
+model_prep_obj <- Model_ord_biv_fixed_thr$model_prep_obj
 ##
-Model_Xu_rand_thr <- readRDS(
+Model_ord_biv_rand_thr <- readRDS(
   file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-            "seed_123_MA_only_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_TRUE_applied_results.RDS"))
-model_summary_and_trace_obj <- Model_Xu_rand_thr$model_summary_and_trace_obj
-model_prep_obj <- Model_Xu_rand_thr$model_prep_obj
+            "seed_123_MA_only_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_TRUE_applied_results.RDS"))
+model_summary_and_trace_obj <- Model_ord_biv_rand_thr$model_summary_and_trace_obj
+model_prep_obj <- Model_ord_biv_rand_thr$model_prep_obj
 ##
 ##
 ##
@@ -1264,7 +1264,7 @@ fold_assignments <- create_folds(  indicator_index_test_in_study = NULL,
 ##
 ## ---- Run k-fold:
 # ##
-# Model_Xu_fixed_thr$model_summary_and_trace_obj$run_k_fold_CV( seed = 123,
+# Model_ord_biv_fixed_thr$model_summary_and_trace_obj$run_k_fold_CV( seed = 123,
 #                                                                fold_assignments = fold_assignments,
 #                                                                ##
 #                                                                # priors = priors,
@@ -1443,9 +1443,9 @@ gc() ; gc()
 
 
 kfold_Model_A <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-                                   "seed_123_MA_only_K_fold_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_FALSE_applied_results.RDS"))
+                                   "seed_123_MA_only_K_fold_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_FALSE_applied_results.RDS"))
 kfold_Model_B <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-                                   "seed_123_MA_only_K_fold_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_TRUE_applied_results.RDS"))
+                                   "seed_123_MA_only_K_fold_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_TRUE_applied_results.RDS"))
 ##
 kfold_results_list <- list(
   kfold_Model_A,
@@ -1490,13 +1490,13 @@ summarise_model_comparison_k_fold_CV(comparison)
 
 ## Note: accidently saved these w/ hetero_sigma = 1, eventhough it's 0 (+ redundant now anyway as removed from Stan models).
 kfold_Model_A <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-                                   "seed_1_K_fold_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
+                                   "seed_1_K_fold_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
 kfold_Model_B <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-                                   "seed_1_K_fold_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_FALSECS_0het_sigma_0_applied_results.RDS"))
+                                   "seed_1_K_fold_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_FALSECS_0het_sigma_0_applied_results.RDS"))
 kfold_Model_C <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-                                   "seed_1_K_fold_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_TRUECS_1het_sigma_0_applied_results.RDS"))
+                                   "seed_1_K_fold_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_TRUECS_1het_sigma_0_applied_results.RDS"))
 kfold_Model_D <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-                                   "seed_1_K_fold_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_TRUECS_0het_sigma_0_applied_results.RDS"))
+                                   "seed_1_K_fold_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_TRUECS_0het_sigma_0_applied_results.RDS"))
 
 
 kfold_results_list <- list(
@@ -1591,40 +1591,40 @@ make_latex_table_k_fold_CV(comparison)
 ## ---- Meta-regression k-fold:
 ##
 kfold_MR_Model_1 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-                                      "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_2param_Xurand_thr_FALSECS_1het_sigma_0_MR_model_1_applied_results.RDS"))
+                                      "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_2param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_MR_model_1_applied_results.RDS"))
 kfold_MR_Model_2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-                                      "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_3param_Xurand_thr_FALSECS_1het_sigma_0_MR_model_2_applied_results.RDS"))
+                                      "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_3param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_MR_model_2_applied_results.RDS"))
 kfold_MR_Model_3 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-                                      "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_3param_Xurand_thr_FALSECS_1het_sigma_0_MR_model_3_applied_results.RDS"))
+                                      "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_3param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_MR_model_3_applied_results.RDS"))
 kfold_MR_Model_4 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-                                      "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_2param_Xurand_thr_FALSECS_1het_sigma_0_MR_model_4_applied_results.RDS"))
+                                      "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_2param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_MR_model_4_applied_results.RDS"))
 ##
 kfold_MR_Model_5_FULL <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-                                           "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_7param_Xurand_thr_FALSECS_1het_sigma_0_MR_model_5_applied_results.RDS"))
+                                           "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_7param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_MR_model_5_applied_results.RDS"))
 # kfold_MR_Model_5_FULL_wo_RoB <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-#                                            "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_6param_Xurand_thr_FALSECS_1het_sigma_0_MR_model_5_applied_results.RDS"))
+#                                            "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_6param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_MR_model_5_applied_results.RDS"))
 ##
 kfold_MR_Model_6 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-                                      "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_4param_Xurand_thr_FALSECS_1het_sigma_0_MR_model_6_applied_results.RDS"))
+                                      "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_4param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_MR_model_6_applied_results.RDS"))
 kfold_MR_Model_7 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-                                      "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_4param_Xurand_thr_FALSECS_1het_sigma_0_MR_model_7_applied_results.RDS"))
+                                      "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_4param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_MR_model_7_applied_results.RDS"))
 kfold_MR_Model_8 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-                                      "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_3param_Xurand_thr_FALSECS_1het_sigma_0_MR_model_8_applied_results.RDS"))
+                                      "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_3param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_MR_model_8_applied_results.RDS"))
 kfold_MR_Model_9 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-                                      "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_5param_Xurand_thr_FALSECS_1het_sigma_0_MR_model_9_applied_results.RDS"))
+                                      "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_5param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_MR_model_9_applied_results.RDS"))
 kfold_MR_Model_10 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-                                       "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_4param_Xurand_thr_FALSECS_1het_sigma_0_MR_model_10_applied_results.RDS"))
+                                       "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_4param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_MR_model_10_applied_results.RDS"))
 kfold_MR_Model_11 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-                                       "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_4param_Xurand_thr_FALSECS_1het_sigma_0_MR_model_11_applied_results.RDS"))
+                                       "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_4param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_MR_model_11_applied_results.RDS"))
 ##
 kfold_MR_Model_12 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-                                       "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_6param_Xurand_thr_FALSECS_1het_sigma_0_MR_model_12_applied_results.RDS"))
+                                       "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_6param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_MR_model_12_applied_results.RDS"))
 kfold_MR_Model_13 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-                                       "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_5param_Xurand_thr_FALSECS_1het_sigma_0_MR_model_13_applied_results.RDS"))
+                                       "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_5param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_MR_model_13_applied_results.RDS"))
 kfold_MR_Model_14 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-                                       "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_5param_Xurand_thr_FALSECS_1het_sigma_0_MR_model_14_applied_results.RDS"))
+                                       "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_5param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_MR_model_14_applied_results.RDS"))
 kfold_MR_Model_15 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-                                       "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_6param_Xurand_thr_FALSECS_1het_sigma_0_MR_model_15_applied_results.RDS"))
+                                       "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_6param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_MR_model_15_applied_results.RDS"))
 
 
 
@@ -2091,19 +2091,19 @@ R_fn_map_beta_coefficients(beta_tibble = beta_mu,
 
 # Model_A <- readRDS(file.path(
 #            MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-#            "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
+#            "seed_1_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
 # ##
 # Model_B <- readRDS(file.path(
 #            MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-#            "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_FALSECS_0het_sigma_0_applied_results.RDS"))
+#            "seed_1_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_FALSECS_0het_sigma_0_applied_results.RDS"))
 # ##
 # Model_C <- readRDS(file.path(
 #            MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-#            "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_TRUECS_1het_sigma_0_applied_results.RDS"))
+#            "seed_1_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_TRUECS_1het_sigma_0_applied_results.RDS"))
 # ##
 # Model_D <- readRDS(file.path(
 #            MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-#            "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_TRUECS_0het_sigma_0_applied_results.RDS"))
+#            "seed_1_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_TRUECS_0het_sigma_0_applied_results.RDS"))
 ##
 
 # ##
@@ -2111,7 +2111,7 @@ R_fn_map_beta_coefficients(beta_tibble = beta_mu,
 # ##
 # Model_E <- readRDS(file.path(
 #            MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-#            "seed_1_dummy_data_1intercept_only_0N_covs_7param_Xurand_thr_TRUECS_0het_sigma_0_applied_results.RDS"))
+#            "seed_1_dummy_data_1intercept_only_0N_covs_7param_ord_bivariaterand_thr_TRUECS_0het_sigma_0_applied_results.RDS"))
 ##
 # model_summary_and_trace_obj <- load_list$model_summary_and_trace_obj
 # str(trace_gq)
@@ -2300,7 +2300,7 @@ priors$compound_symmetry
 
 Model_RAND <- readRDS(
   file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-            "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_TRUECS_0het_sigma_0_applied_results.RDS"))
+            "seed_1_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_TRUECS_0het_sigma_0_applied_results.RDS"))
 
 
 
@@ -2313,7 +2313,7 @@ model_prep_obj <- Model_RAND$model_prep_obj
 ##
 Model_dummy <- readRDS(
   file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-            "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
+            "seed_1_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
 
 model_summary_and_trace_obj_DUMMY <- Model_dummy$model_summary_and_trace_obj
 
@@ -2333,7 +2333,7 @@ test_names <- c("GAD-2", "GAD-7", "HADS", "BAI")
 
 Model_real <- readRDS(
   file.path(MetaOrdDTA::metaorddta_output_path("application_results_real_data"),
-            "seed_1_dummy_data_0intercept_only_1N_covs_1param_Xurand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
+            "seed_1_dummy_data_0intercept_only_1N_covs_1param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
 
 model_summary_and_trace_obj_REAL <- Model_real$model_summary_and_trace_obj
 
@@ -2524,7 +2524,7 @@ summarise
 ##
 MR_Model_dummy <- readRDS(
   file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-            "seed_1_dummy_data_1intercept_only_0N_covs_4param_Xurand_thr_FALSECS_1het_sigma_0_MR_model_6_applied_results.RDS"))
+            "seed_1_dummy_data_1intercept_only_0N_covs_4param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_MR_model_6_applied_results.RDS"))
 
 model_summary_and_trace_obj_META_REG_DUMMY <- MR_Model_dummy$model_summary_and_trace_obj
  
@@ -2811,7 +2811,7 @@ cat(outs_latex)
 ##
 Model_dummy <- readRDS(
   file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-            "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
+            "seed_1_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
 
 model_summary_and_trace_obj_DUMMY <- Model_dummy$model_summary_and_trace_obj
 
