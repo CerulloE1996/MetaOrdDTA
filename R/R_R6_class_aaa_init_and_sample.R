@@ -293,7 +293,7 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                     ##
                     #'@param priors See class documentation for details.
                     ##
-                    #'@param model_parameterisation See class documentation for details.
+                    #'@param model_parameterisation Use \code{"ord_biv"}, \code{"ord_HSROC"}, or \code{"Jones"}.
                     #'@param random_thresholds See class documentation for details.
                     #'@param Dirichlet_random_effects_type See class documentation for details.
                     ##
@@ -569,7 +569,13 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                         max_treedepth = 10,
                                         metric_shape  = "diag_e",
                                         ##
-                                        cmdstanr_args = list()
+                                        cmdstanr_args = list(),
+                                        ##
+                                        ## (algorithm = "NicoStan": sampled with NicoStan, with the NicoStan
+                                        ##  version of the model whose likelihood and priors use NicoSIMD's
+                                        ##  fused AVX functions; NicoStan_args: any other arguments of
+                                        ##  NicoStan's $sample(), e.g. list(adapt_delta = 0.80))
+                                        NicoStan_args = list()
                                         ) {
                                 
                                 if (model_parameterisation %in% c("Jones", "jones")) {
@@ -722,7 +728,10 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                                                                                ##
                                                                                                init_lists_per_chain = self$init_lists_per_chain,
                                                                                                ##
-                                                                                               cmdstanr_args = cmdstanr_args)
+                                                                                               cmdstanr_args = cmdstanr_args,
+                                                                                               ##
+                                                                               algorithm = algorithm,
+                                                                               NicoStan_args = NicoStan_args)
 
                                 self$internal_obj <- local_model_samples_obj$internal_obj
                                 ##
@@ -1209,6 +1218,8 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                    #'@param n_workers ...
                    #'@param output_dir ...
                    #'@param use_BayesMVP_for_faster_summaries ...
+                   #'@param algorithm "Stan" (cmdstanr) or "NicoStan" (each fold with NicoStan, as in $sample)
+                   #'@param NicoStan_args ... (as in $sample)
                    #'@return Extract params
                    #'
                    run_k_fold_CV = function(  debugging = FALSE,
@@ -1231,7 +1242,10 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                               n_workers = NULL,
                                               output_dir = metaorddta_output_path("cv_results"),
                                               ##
-                                              use_BayesMVP_for_faster_summaries = NULL
+                                              use_BayesMVP_for_faster_summaries = NULL,
+                                              ##
+                                              algorithm = "Stan",
+                                              NicoStan_args = list()
                    ) {
                      
                                if (is.null(self$internal_obj)) {
@@ -1271,6 +1285,10 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                } else {
                                  use_parallel <- parallel
                                }
+                               ## (NicoStan folds run through the parallel function, with n_workers = 1 for one at a time)
+                               if (identical(algorithm, "NicoStan")) {
+                                 use_parallel <- TRUE
+                               }
                                ##
                                if (use_parallel) {
                                  cat("Using PARALLEL k-fold CV\n")
@@ -1297,7 +1315,10 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                                                        n_workers = n_workers,
                                                                        output_dir = output_dir,
                                                                        ##
-                                                                       use_BayesMVP_for_faster_summaries = use_BayesMVP_for_faster_summaries)
+                                                                       use_BayesMVP_for_faster_summaries = use_BayesMVP_for_faster_summaries,
+                                                                       ##
+                                                                       algorithm = algorithm,
+                                                                       NicoStan_args = NicoStan_args)
                                } else { 
                                  cat("Using SEQUENTIAL k-fold CV\n")
                                  outs <- R_fn_run_kfold_cv(    debugging = debugging,
@@ -1808,9 +1829,9 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                ##
                                if (covariates) { 
                                  if (is.null(new_cov_data)) { 
-                                   stop("You must supply 'new_cov_data' (an R list containing 'baseline_case_nd' and 
-                                                        'baseline_case_d' for Xu/bivariate model or Jones model, or an R list 
-                                                        containing 'baseline_case' for R&G model")
+                                   stop(paste0("Supply 'new_cov_data' as an R list with 'baseline_case_nd' and ",
+                                               "'baseline_case_d' for ord_biv or Jones, or 'baseline_case' for ",
+                                               "ord_HSROC."))
                                  }
                                  stan_mod_samples_to_use <- R_fn_GQ_covariates_NMA(
                                    baseline_case_nd = new_cov_data$baseline_case_nd,
@@ -1877,7 +1898,9 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                if (n_covariates == 1) {
                                  stop("The 'recompute_baseline' R6 method only works for meta-regression models!")
                                }
+##
                                ## ---- If MR_scenarios provided, loop through them:
+##
                                if ((!is.null(MR_scenarios)) && (n_covariates > 1)) {
                                    
                                      baseline_outs_list <- list()
@@ -2173,6 +2196,47 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                      ##
                      return(outs)
                      
+                   }
+                   ,
+                   ##
+                   ## ---- The prior predictive check of Se and Sp: the model's own Stan file sampled with its
+                   ##      likelihood switched off, the prior of Se and Sp of every test at every threshold,
+                   ##      with the cutoffs of interest of each test marked
+                   ##      (see ?run_prior_predictive_check_of_Se_and_Sp):
+                   ##
+                   run_prior_predictive_check_of_Se_and_Sp = function( priors,
+                                                                       init_lists_per_chain,
+                                                                       test_names,
+                                                                       cutoffs_of_interest_of_each_test,
+                                                                       lowest_possible_score_of_each_test,
+                                                                       n_chains,
+                                                                       n_burnin,
+                                                                       n_iter,
+                                                                       seed,
+                                                                       algorithm,
+                                                                       NicoStan_args,
+                                                                       adapt_delta,
+                                                                       max_treedepth,
+                                                                       probs,
+                                                                       show_what_the_alphas_alone_say) {
+                     ##
+                     return(MetaOrdDTA::run_prior_predictive_check_of_Se_and_Sp(
+                                  model_prep_obj = self,
+                                  priors = priors,
+                                  init_lists_per_chain = init_lists_per_chain,
+                                  test_names = test_names,
+                                  cutoffs_of_interest_of_each_test = cutoffs_of_interest_of_each_test,
+                                  lowest_possible_score_of_each_test = lowest_possible_score_of_each_test,
+                                  n_chains = n_chains,
+                                  n_burnin = n_burnin,
+                                  n_iter = n_iter,
+                                  seed = seed,
+                                  algorithm = algorithm,
+                                  NicoStan_args = NicoStan_args,
+                                  adapt_delta = adapt_delta,
+                                  max_treedepth = max_treedepth,
+                                  probs = probs,
+                                  show_what_the_alphas_alone_say = show_what_the_alphas_alone_say))
                    }
                    
   

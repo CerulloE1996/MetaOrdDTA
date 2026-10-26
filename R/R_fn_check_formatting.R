@@ -68,7 +68,7 @@ R_fn_get_possible_model_args_list <- function() {
           ##
           ## "Advanced" options for ordinal models ONLY:
           ##
-          possible_values_list$parameterisation  <- list("Xu", "Gatsonis", "Jones")
+          possible_values_list$parameterisation  <- list("ord_biv", "ord_HSROC", "Jones", "Xu", "Gatsonis")
           possible_values_list$random_thresholds <- list(TRUE, 1, FALSE, 0)
           ##
           ## "Advanced" options for cts (i.e., Jones) models ONLY:

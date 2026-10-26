@@ -55,7 +55,7 @@ default_model_parameterisation <- function(cts) {
   if (cts) { 
     model_parameterisation <- "Jones"
   } else   {
-    model_parameterisation <- "HSROC" ## ord "R&G"
+    model_parameterisation <- "ord_HSROC" ## ord_HSROC model
   }
   
   # print(paste("model_parameterisation = ", model_parameterisation))
@@ -134,7 +134,8 @@ default_box_cox <- function(cts) {
 #' @export
 default_softplus <- function() { 
 
-    softplus <- TRUE ## default is to use softplus on ALL models (instead of exp() / log-normal)
+    # softplus <- TRUE ## default is to use softplus on ALL models (instead of exp() / log-normal)
+    softplus <- FALSE ## default is to use exp() / log-normal on ALL models (instead of softplus)
     ##
     # print(paste("softplus = ", softplus))
     return(list(softplus))

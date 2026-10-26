@@ -131,14 +131,14 @@ R_fn_extract_NMA_AUC_summary <- function(tibble_gq,
         require(dplyr)
         
         # Extract raw AUC arrays from tibble_gq 
-        # (You'd need to extract the actual arrays from your Stan output)
+        # (You'd need to extract the actual arrays from the Stan output)
         # For now, assuming you can get them from the tibble_gq somehow
         
         # If you have the actual arrays available:
         # auc_summary <- create_AUC_summary_tibble(AUC_baseline, test_names)
         # auc_pred_summary <- create_AUC_summary_tibble(AUC_baseline_pred, test_names)
         
-        # Otherwise, keep your existing extraction but simplified:
+        # Otherwise, keep the existing extraction but simplified:
         auc_summary <- tibble_gq %>%
           filter(grepl("^AUC\\[", parameter)) %>%
           mutate(
@@ -348,9 +348,8 @@ R_fn_GQ_covariates_NMA <- function(baseline_case_nd,
           stan_mod_samples <- model_summary_and_trace_obj$internal_obj$outs_stan_sampling$stan_mod_samples
   
           # 
-          # stan_model_file_path <- "/home/enzocerullo/Documents/Work/PhD_work/R_packages/MetaOrdDTA/inst/stan_models/stan_models_NMA/DTA_NMA_Nyaga_Xu_RANDthr_kappa.stan"
-          # ## DTA_NMA_Nyaga_Xu_RANDthr_kappa.stan
-          # ## DTA_NMA_Nyaga_Xu_FIXEDthr_GQ.stan
+          # ## DTA_NMA_Nyaga_ord_biv_RANDthr_kappa.stan
+          # ## Stan_GQ_DTA_NMA_Nyaga_ord_biv_FIXEDthr.stan
           
           # Prepare data for GQ block
           gq_data <- stan_data_list
@@ -892,9 +891,10 @@ R_fn_using_Rcpp_compute_MR_Se_Sp_AUC_baseline <- function(  debugging = FALSE,
                                                                   n_thr_vec = n_thr, 
                                                                   var_prefix = "Fp_baseline")
           
+##
           ## ---- Compute AUC:
           ##
-          # Add this to the end of your R_fn_compute_Se_Sp_baseline function, before the return statement:
+          # Add this to the end of the R_fn_compute_Se_Sp_baseline function, before the return statement:
           
           # Compute AUC
           AUC_array <- MetaOrdDTA:::Rcpp_compute_AUC_all_samples(
@@ -1271,7 +1271,7 @@ R_fn_compute_MR_complete_new_baseline_analysis_v2 <- function( debugging = FALSE
 #             n_thr = n_thr,
 #             n_covariates_nd = n_covariates_nd,
 #             n_covariates_d = n_covariates_d,
-#             use_probit_link = TRUE  # Adjust based on your model
+#             use_probit_link = TRUE  # Adjust based on the model
 #           )
 #           
 #           # Format output
@@ -1374,7 +1374,7 @@ R_fn_using_Rcpp_compute_NMA_comparisons_posthoc <- function( trace_gq,
         require(Rcpp)
         require(dplyr)
         
-        # Source the C++ code (or have it in your package src/)
+        # Source the C++ code (or have it in the package src/)
         # sourceCpp("nma_comparisons.cpp")
         
         # Pre-compute indices
@@ -1440,7 +1440,7 @@ R_fn_using_Rcpp_compute_NMA_performance_posthoc <- function(trace_gq,
           require(Rcpp)
           require(dplyr)
           
-          # Source the C++ code (or have it in your package src/)
+          # Source the C++ code (or have it in the package src/)
           # sourceCpp("nma_comparisons.cpp")
           
           # Pre-compute indices

@@ -107,8 +107,10 @@ if (network == FALSE) {
                   X_d  <- outs_covs_subset$X_d  ## this is the real covariate data
                   X <- list(X_nd, X_d)
                   ##
-                  X <- MetaOrdDTA:::R_fn_expand_covariates_to_all_studies( X,
-                                                                           indicator_index_test_in_study = real_data$indicator_index_test_in_study)
+                  # X <- MetaOrdDTA:::R_fn_expand_covariates_to_all_studies( X,
+                  #                                                          indicator_index_test_in_study = real_data$indicator_index_test_in_study)
+                  X <- MetaOrdDTA:::expand_covariates_to_all_studies( X,
+                                                                      indicator_index_test_in_study = real_data$indicator_index_test_in_study)
                   real_data$cov_data$X <- X
                   original_cov_data <- list(X = X)
                   ##

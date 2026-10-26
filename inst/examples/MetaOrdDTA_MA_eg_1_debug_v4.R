@@ -24,7 +24,7 @@ run_single_simulation <- function(start_sim_index,
         list2env(sim_config, environment())
         list2env(model_config, environment())
         
-        # # Get the base directory (where your main script is)
+        # # Get the base directory containing the main script
         # if (exists("local_pkg_dir")) {
         #   base_dir <- local_pkg_dir
         # } else {
@@ -264,7 +264,7 @@ init_lists_per_chain <- NULL
 # mean(X[[1]][, 2])
 
 
-# Add this before your parallel code
+# Add this before the parallel code
 Sys.setenv(CXXFLAGS = "-O3 -march=native -mtune=native -fPIC")
 Sys.setenv(CXX14FLAGS = "-O3 -march=native -mtune=native -fPIC")
 

@@ -59,6 +59,9 @@ create_summary_and_traces <- function(    package,
         n_nuisance <- 0
   }
   ##
+  ## (the sampler of the fit: "NicoStan" when MetaOrdDTA sampled with NicoStan, otherwise "Stan" (cmdstanr))
+  sampler_of_the_fit <-  if (identical(internal_obj$outs_stan_sampling$algorithm, "NicoStan")) "NicoStan" else "Stan"
+  ##
   if (is.null(use_bridgestan)) {
      if (package == "BayesMVP") {
        use_bridgestan <- TRUE
@@ -146,9 +149,27 @@ create_summary_and_traces <- function(    package,
         ##
         {
           stan_model_outputs <- list()
-          stan_model_outputs$diagnostic_summary  <- internal_obj$outs_stan_sampling$stan_mod_samples$diagnostic_summary()
-          stan_model_outputs$sampler_diagnostics <- internal_obj$outs_stan_sampling$stan_mod_samples$sampler_diagnostics()
-          stan_model_outputs$draws_array         <- internal_obj$outs_stan_sampling$stan_mod_samples$draws()
+          if (sampler_of_the_fit == "NicoStan") {
+                ##
+                ## (a NicoStan fit: its draws (iterations x chains x parameters) and its divergent transitions, as
+                ##  R_fn_sample_model_with_NicoStan returns them; NicoStan has no maximum tree depth and no E-BFMI)
+                NicoStan_summary_obj <- internal_obj$outs_stan_sampling$NicoStan_summary_obj
+                stan_model_outputs$diagnostic_summary  <- list(num_divergent     =
+                                                                     NicoStan_summary_obj$get_divergences()$n_divs,
+                                                               num_max_treedepth = NA_real_,
+                                                               ebfmi             = NA_real_)
+                stan_model_outputs$sampler_diagnostics <- NULL
+                stan_model_outputs$draws_array         <- internal_obj$outs_stan_sampling$draws_array
+                ## (the dimensions named as cmdstanr names them, which format_named_array_for_bayesplot reads)
+                names(dimnames(stan_model_outputs$draws_array)) <- c("iteration", "chain", "variable")
+                ##
+          } else {
+                ##
+                stan_model_outputs$diagnostic_summary  <- internal_obj$outs_stan_sampling$stan_mod_samples$diagnostic_summary()
+                stan_model_outputs$sampler_diagnostics <- internal_obj$outs_stan_sampling$stan_mod_samples$sampler_diagnostics()
+                stan_model_outputs$draws_array         <- internal_obj$outs_stan_sampling$stan_mod_samples$draws()
+                ##
+          }
         }
         ##
         ## Extract Stan traces:
@@ -170,14 +191,25 @@ create_summary_and_traces <- function(    package,
           {
             # stan_model_samples$stan_model
             ##
-            stan_times <- internal_obj$outs_stan_sampling$stan_mod_samples$time()
-            time_total_wo_summaries <- stan_times$total
-            ##
-            stan_times_per_chain_burnin <- stan_times$chains$warmup
-            time_burnin <- max(stan_times_per_chain_burnin)
-            ##
-            stan_times_per_chain_samp   <- stan_times$chains$sampling
-            time_sampling <- max(stan_times_per_chain_samp)
+            if (sampler_of_the_fit == "NicoStan") {
+                  ##
+                  efficiency_metrics_of_NicoStan <- NicoStan_summary_obj$get_efficiency_metrics()
+                  time_total_wo_summaries <- efficiency_metrics_of_NicoStan$time_total_MCMC
+                  time_burnin <- efficiency_metrics_of_NicoStan$time_burnin
+                  time_sampling <- efficiency_metrics_of_NicoStan$time_sampling
+                  ##
+            } else {
+                  ##
+                  stan_times <- internal_obj$outs_stan_sampling$stan_mod_samples$time()
+                  time_total_wo_summaries <- stan_times$total
+                  ##
+                  stan_times_per_chain_burnin <- stan_times$chains$warmup
+                  time_burnin <- max(stan_times_per_chain_burnin)
+                  ##
+                  stan_times_per_chain_samp   <- stan_times$chains$sampling
+                  time_sampling <- max(stan_times_per_chain_samp)
+                  ##
+            }
           }
         })
   }
@@ -706,7 +738,6 @@ create_summary_and_traces <- function(    package,
                    ##
                    try({  
                      rm(all_param_outs_trace_inc_log_lik)
-                     gc() ; gc()
                    })
                    
          } else if (use_bridgestan == FALSE) { 
@@ -725,7 +756,6 @@ create_summary_and_traces <- function(    package,
                  ##
                  try({  
                    rm(stan_draws_array_old)
-                   gc() ; gc()
                  })
                  ##
                  # message(paste("stan_draws_array = "))
@@ -756,7 +786,6 @@ create_summary_and_traces <- function(    package,
                        ##
                        try({  
                          rm(outs)
-                         gc() ; gc()
                        })
                  }
                  ##
@@ -779,7 +808,6 @@ create_summary_and_traces <- function(    package,
                        ##
                        try({  
                          rm(outs)
-                         gc() ; gc()
                        })
                  }
                  
@@ -804,7 +832,6 @@ create_summary_and_traces <- function(    package,
                        ##
                        try({  
                          rm(outs)
-                         gc() ; gc()
                        })
                  }
                  ##
@@ -826,7 +853,6 @@ create_summary_and_traces <- function(    package,
                        ##
                        try({  
                          rm(outs)
-                         gc() ; gc()
                        })
                        
                       # dimnames(stan_draws_array)[[3]]
@@ -866,7 +892,6 @@ create_summary_and_traces <- function(    package,
                        ##
                        try({  
                          rm(outs)
-                         gc() ; gc()
                        })
                  }
                  ##
@@ -897,20 +922,30 @@ create_summary_and_traces <- function(    package,
                    trace_main_3 <- MetaOrdDTA:::format_named_array_for_bayesplot(trace_main)
                    trace_main   <- trace_main_3
                    ##
+                   ## (each block formatted only when its draws exist: a block that was not computed is NULL, and
+                   ##  format_named_array_for_bayesplot() cannot permute NULL)
                    try({ 
-                     trace_tp_3 <- MetaOrdDTA:::format_named_array_for_bayesplot(trace_tp)
-                     trace_tp   <- trace_tp_3
+                     if (!is.null(trace_tp)) {
+                       trace_tp_3 <- MetaOrdDTA:::format_named_array_for_bayesplot(trace_tp)
+                       trace_tp   <- trace_tp_3
+                     }
                      ##
-                     trace_tp_wo_log_lik_3 <- MetaOrdDTA:::format_named_array_for_bayesplot(trace_tp_wo_log_lik)
-                     trace_tp_wo_log_lik   <- trace_tp_wo_log_lik_3
+                     if (!is.null(trace_tp_wo_log_lik)) {
+                       trace_tp_wo_log_lik_3 <- MetaOrdDTA:::format_named_array_for_bayesplot(trace_tp_wo_log_lik)
+                       trace_tp_wo_log_lik   <- trace_tp_wo_log_lik_3
+                     }
                    })
                    ##
                    try({ 
-                     trace_gq_3 <- MetaOrdDTA:::format_named_array_for_bayesplot(trace_gq)
-                     trace_gq   <- trace_gq_3
+                     if (!is.null(trace_gq)) {
+                       trace_gq_3 <- MetaOrdDTA:::format_named_array_for_bayesplot(trace_gq)
+                       trace_gq   <- trace_gq_3
+                     }
                      ##
-                     trace_log_lik_3 <- MetaOrdDTA:::format_named_array_for_bayesplot(trace_log_lik)
-                     trace_log_lik   <- trace_log_lik_3
+                     if (!is.null(trace_log_lik)) {
+                       trace_log_lik_3 <- MetaOrdDTA:::format_named_array_for_bayesplot(trace_log_lik)
+                       trace_log_lik   <- trace_log_lik_3
+                     }
                    })
                 
    }
@@ -962,7 +997,7 @@ create_summary_and_traces <- function(    package,
                 # names_main <- names_main
                 # trace_main
                 dimnames(trace_log_lik)
-                n_chains <- dim(trace_main_3)[3]
+                n_chains <- dim(trace_main_3)[chain_dim]
                 n_superchains <- MetaOrdDTA:::if_null_then_set_to(n_superchains, n_chains)
                 
           } else if (package == "BayesMVP") { 
@@ -972,7 +1007,21 @@ create_summary_and_traces <- function(    package,
                 
           }
           ##
-          if ((package == "BayesMVP") || (use_BayesMVP_for_faster_summaries == TRUE)) {
+          if (sampler_of_the_fit == "NicoStan") {
+
+                  ## (a NicoStan fit: NicoStan's own summary of it, made once inside $sample(), with the
+                  ##  rank-normalized split ESS (bulk, tail and SD) and the rank-normalized split R-hat)
+                  summary_tibble_main_params <- NicoStan_summary_obj$get_summary_main()
+                  ## (min ESS = min of the bulk, tail and theta-squared ESS)
+                  Min_ESS_main <-  min(na.rm = TRUE, summary_tibble_main_params$n_eff,
+                                       summary_tibble_main_params$n_eff_tail, summary_tibble_main_params$n_eff_sd)
+                  Max_rhat_main <- max(na.rm = TRUE, summary_tibble_main_params$Rhat)
+                  ##
+                  if (compute_nested_rhat == TRUE) {
+                    Max_nested_rhat_main <- max(na.rm = TRUE, summary_tibble_main_params$n_Rhat)
+                  }
+
+          } else if ((package == "BayesMVP") || (use_BayesMVP_for_faster_summaries == TRUE)) {
           
                   # str(trace_main_3)
             
@@ -985,7 +1034,9 @@ create_summary_and_traces <- function(    package,
                                                                           n_superchains = n_superchains)
                   
                   
-                  Min_ESS_main <-  min(na.rm = TRUE, summary_tibble_main_params$n_eff[1:n_main])
+                  Min_ESS_main <-  min(na.rm = TRUE, summary_tibble_main_params$n_eff[1:n_main],
+                                       summary_tibble_main_params$n_eff_tail[1:n_main],
+                                       summary_tibble_main_params$n_eff_sd[1:n_main])
                   Max_rhat_main <- max(na.rm = TRUE, summary_tibble_main_params$Rhat[1:n_main])
                   ##
                   if (compute_nested_rhat == TRUE) {
@@ -997,13 +1048,14 @@ create_summary_and_traces <- function(    package,
                   summary_tibble_main_params <- MetaOrdDTA:::R_fn_compute_cmdstanr_summary_tibble( stan_fitted_model = stan_fitted_model, 
                                                                                          variables_vec =  grouped_params$names_main)
                   ##
-                  Min_ESS_main < - round(min(na.rm = TRUE, summary_tibble_main_params$ess_bulk[1:n_main]))
-                  Max_rhat_main <- max(na.rm = TRUE, summary_tibble_main_params$rhat[1:n_main])
+                  Min_ESS_main <-  min(na.rm = TRUE, summary_tibble_main_params$n_eff[1:n_main],
+                                       summary_tibble_main_params$n_eff_tail[1:n_main],
+                                       summary_tibble_main_params$n_eff_sd[1:n_main])
+                  Max_rhat_main <- max(na.rm = TRUE, summary_tibble_main_params$Rhat[1:n_main])
             
           }
           try({  
             rm(trace_main_3)
-            gc() ; gc()
           })
           ##
           
@@ -1030,12 +1082,18 @@ create_summary_and_traces <- function(    package,
        ## trace_tp <- R_fn_remove_log_lik_from_array(trace_tp)
        #     length(names_tp_wo_log_lik)
        # n_tp_wo_log_lik
-       if ((package == "BayesMVP") || (use_BayesMVP_for_faster_summaries == TRUE)) {
+       if (sampler_of_the_fit == "NicoStan") {
+
+                   ## (NicoStan's own summary of the transformed parameters, as for the main parameters and the
+                   ##  generated quantities: the same columns in all three)
+                   summary_tibble_transformed_parameters <- NicoStan_summary_obj$get_summary_transformed()
+
+       } else if ((package == "BayesMVP") || (use_BayesMVP_for_faster_summaries == TRUE)) {
          
                    ## str(trace_tp_wo_log_lik_3)
                    
                    if (package == "MetaOrdDTA") { 
-                       n_chains <- dim(trace_tp_wo_log_lik_3)[3]
+                       n_chains <- dim(trace_tp_wo_log_lik_3)[chain_dim]
                        n_superchains <- MetaOrdDTA:::if_null_then_set_to(n_superchains, n_chains)
                    } else if (package == "BayesMVP") { 
                        n_chains <- dim(trace_tp_wo_log_lik_3)[3]
@@ -1058,7 +1116,6 @@ create_summary_and_traces <- function(    package,
        ##
        try({  
          rm(trace_tp_wo_log_lik_3)
-         gc() ; gc()
        })
        
      }
@@ -1075,10 +1132,16 @@ create_summary_and_traces <- function(    package,
      ##
      if  ((compute_generated_quantities == TRUE) && (n_gq > 0))  { 
                     
-          if ((package == "BayesMVP") || (use_BayesMVP_for_faster_summaries == TRUE)) {
+          if (sampler_of_the_fit == "NicoStan") {
+
+                        ## (NicoStan's own summary of the generated quantities, as for the main parameters)
+                        summary_tibble_generated_quantities <-
+                              NicoStan_summary_obj$get_summary_generated_quantities()
+
+          } else if ((package == "BayesMVP") || (use_BayesMVP_for_faster_summaries == TRUE)) {
             
                         if (package == "MetaOrdDTA") { 
-                            n_chains <- dim(trace_gq_3)[3]
+                            n_chains <- dim(trace_gq_3)[chain_dim]
                             n_superchains <- MetaOrdDTA:::if_null_then_set_to(n_superchains, n_chains)
                         } else if (package == "BayesMVP") {
                             n_chains <- dim(trace_gq_3)[3]
@@ -1101,7 +1164,6 @@ create_summary_and_traces <- function(    package,
        ##
        try({  
           rm(trace_gq_3)
-          gc() ; gc()
        })
        ##
                           
@@ -1164,9 +1226,9 @@ create_summary_and_traces <- function(    package,
                # str(trace_gq) ## make sure its "dims = (iter, chains, params)"
             
                if (save_trace_tibbles == TRUE) {
-                   trace_main_tibble <- dplyr::tibble(posterior::as_draws_df(trace_main))
-                   if (compute_transformed_parameters == TRUE)  trace_transformed_params_tibble   <- dplyr::tibble(posterior::as_draws_df(trace_tp_wo_log_lik))
-                   if (compute_generated_quantities == TRUE)    trace_generated_quantities_tibble <- dplyr::tibble(posterior::as_draws_df(trace_gq))
+                   trace_main_tibble <- dplyr::tibble(MetaOrdDTA:::fn_draws_data_frame_of_an_array(trace_main))
+                   if (compute_transformed_parameters == TRUE)  trace_transformed_params_tibble   <- dplyr::tibble(MetaOrdDTA:::fn_draws_data_frame_of_an_array(trace_tp_wo_log_lik))
+                   if (compute_generated_quantities == TRUE)    trace_generated_quantities_tibble <- dplyr::tibble(MetaOrdDTA:::fn_draws_data_frame_of_an_array(trace_gq))
                }
            }
          })
@@ -1293,8 +1355,21 @@ create_summary_and_traces <- function(    package,
             
                     L_main_during_burnin <- NULL
                     ##
-                    stan_HMC_info_list <- R_fn_compute_L_and_epsilon_from_stan_model( Min_ESS = Min_ESS, 
-                                                                                                   stan_fitted_model = stan_fitted_model)
+                    if (sampler_of_the_fit == "NicoStan") {
+                          ##
+                          ## (a NicoStan fit: eps and tau of the sampling from NicoStan's own summary, L = tau / eps)
+                          HMC_info_of_NicoStan <- NicoStan_summary_obj$get_HMC_info()
+                          stan_HMC_info_list <- list(out_list_sampling = list(
+                                mean_epsilon_sampling = HMC_info_of_NicoStan$eps_main,
+                                mean_tau_sampling     = HMC_info_of_NicoStan$tau_main,
+                                mean_L_sampling       = HMC_info_of_NicoStan$tau_main / HMC_info_of_NicoStan$eps_main))
+                          ##
+                    } else {
+                          ##
+                          stan_HMC_info_list <- R_fn_compute_L_and_epsilon_from_stan_model( Min_ESS = Min_ESS, 
+                                                                                                         stan_fitted_model = stan_fitted_model)
+                          ##
+                    }
                     ##
                     mean_epsilon_sampling <- stan_HMC_info_list$out_list_sampling$mean_epsilon_sampling ; mean_epsilon_sampling
                     eps <- mean_epsilon_sampling
@@ -1405,7 +1480,6 @@ create_summary_and_traces <- function(    package,
       try({  
           rm(draws_array, 
              trace_main, trace_tp, trace_tp_wo_log_lik, trace_gq, trace_log_lik)
-            gc() ; gc()
       })
       ##
       ## ---- List to store traces (as tibbles/DF's):
@@ -1619,7 +1693,6 @@ create_summary_and_traces <- function(    package,
     try(rm(traces_as_tibbles))
     try(rm(nuisance_trace))
     try({  
-      gc() ; gc()
     })
     ##
     # ### store output (optional)

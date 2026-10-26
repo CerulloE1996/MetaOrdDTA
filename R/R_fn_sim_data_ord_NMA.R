@@ -322,10 +322,10 @@ R_fn_sim_NMA_data_with_covariates_varying <- function(  seed = 123,
           indicator_test_in_study[, 1] <- TRUE
           
           # Correct test indices:
-          # Column 2 = GAD-2 (Test1 in your output)
-          # Column 3 = GAD-7 (Test2 in your output)
-          # Column 4 = HADS (Test3 in your output)
-          # Column 5 = BAI (Test4 in your output)
+          # Column 2 = GAD-2 (Test1 in the output)
+          # Column 3 = GAD-7 (Test2 in the output)
+          # Column 4 = HADS (Test3 in the output)
+          # Column 5 = BAI (Test4 in the output)
          
          
           # ========== Extract real test patterns ==========

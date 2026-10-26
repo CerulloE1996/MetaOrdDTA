@@ -7,7 +7,6 @@
 // [[Rcpp::plugins(cpp17)]]
 
 using namespace Rcpp;
-using namespace Eigen;
 
 
 
@@ -93,12 +92,16 @@ NumericVector Rcpp_compute_AUC_all_samples(NumericVector Se_array,
           // Helper to access 4D arrays
           auto get_4d_value = [](const NumericVector& arr, int i, int j, int k, int l, 
                                  int dim1, int dim2, int dim3) {
+
             return arr[i + dim1 * (j + dim2 * (k + dim3 * l))];
+
           };
           
           auto set_3d_value = [](NumericVector& arr, int i, int j, int k, 
                                  int dim1, int dim2, double value) {
+
             arr[i + dim1 * (j + dim2 * k)] = value;
+
           };
           
           // Process each iteration, chain, and test
@@ -188,12 +191,16 @@ List Rcpp_compute_Se_Sp_baseline_loop(
           // Helper to access 3D arrays
           auto get_3d_value = [](const NumericVector& arr, int i, int j, int k, 
                                  int dim1, int dim2, int dim3) {
+
             return arr[i + dim1 * (j + dim2 * k)];
+
           };
           
           auto set_4d_value = [](NumericVector& arr, int i, int j, int k, int l, 
                                  int dim1, int dim2, int dim3, int dim4, double value) {
+
             arr[i + dim1 * (j + dim2 * (k + dim3 * l))] = value;
+
           };
           
           // Setup random number generator with a seed that changes per iteration/chain
@@ -407,12 +414,16 @@ List Rcpp_compute_Se_Sp_baseline_pred_separated(
           // Helper to access 3D arrays
           auto get_3d_value = [](const NumericVector& arr, int i, int j, int k, 
                                  int dim1, int dim2, int dim3) {
+
             return arr[i + dim1 * (j + dim2 * k)];
+
           };
           
           auto set_4d_value = [](NumericVector& arr, int i, int j, int k, int l, 
                                  int dim1, int dim2, int dim3, int dim4, double value) {
+
             arr[i + dim1 * (j + dim2 * (k + dim3 * l))] = value;
+
           };
           
           // Setup random number generator
@@ -612,7 +623,9 @@ List Rcpp_fn_compute_NMA_Se_Sp_custom_baseline( Rcpp::NumericVector trace_gq_vec
           
           // Helper to access 3D array
           auto get_value = [&](int iter, int chain, int param_idx) {
+
             return trace_gq_vec[iter + n_iter * (chain + n_chains * param_idx)];
+
           };
           
           // Get beta_L_Sigma indices if needed for predictive
@@ -749,7 +762,8 @@ List Rcpp_fn_compute_NMA_Se_Sp_custom_baseline( Rcpp::NumericVector trace_gq_vec
           CharacterVector col_names = CharacterVector::create("mean", "sd", "lower", "median", "upper");
           
           // Helper to compute summaries
-          auto compute_summary_stats = [&](const VectorXd& col, NumericMatrix& out, int row) {
+          auto compute_summary_stats = [&](const Eigen::Matrix<double, -1, 1>& col, NumericMatrix& out, int row) {
+
             double mean_val = col.mean();
             double sd_val = std::sqrt((col.array() - mean_val).square().sum() / (n_samples - 1));
             
@@ -761,18 +775,19 @@ List Rcpp_fn_compute_NMA_Se_Sp_custom_baseline( Rcpp::NumericVector trace_gq_vec
             out(row, 2) = sorted_vals[static_cast<int>(n_samples * 0.025)];
             out(row, 3) = sorted_vals[static_cast<int>(n_samples * 0.5)];
             out(row, 4) = sorted_vals[static_cast<int>(n_samples * 0.975)];
+
           };
           
           for (int i = 0; i < n_total_thresh; i++) {
-            VectorXd se_col = Se_baseline.col(i);
-            VectorXd sp_col = Sp_baseline.col(i);
+            Eigen::Matrix<double, -1, 1> se_col = Se_baseline.col(i);
+            Eigen::Matrix<double, -1, 1> sp_col = Sp_baseline.col(i);
             
             compute_summary_stats(se_col, Se_summaries, i);
             compute_summary_stats(sp_col, Sp_summaries, i);
             
             if (compute_predictive) {
-              VectorXd se_pred_col = Se_baseline_pred.col(i);
-              VectorXd sp_pred_col = Sp_baseline_pred.col(i);
+              Eigen::Matrix<double, -1, 1> se_pred_col = Se_baseline_pred.col(i);
+              Eigen::Matrix<double, -1, 1> sp_pred_col = Sp_baseline_pred.col(i);
               
               compute_summary_stats(se_pred_col, Se_pred_summaries, i);
               compute_summary_stats(sp_pred_col, Sp_pred_summaries, i);
@@ -942,13 +957,13 @@ List Rcpp_fn_compute_NMA_comparisons( Rcpp::NumericVector trace_gq_vec,  // Flat
           for (int comp = 0; comp < n_comparisons; comp++) {
             
                 // Extract columns
-                VectorXd diff_Se_col = diff_Se.col(comp);
-                VectorXd diff_Sp_col = diff_Sp.col(comp);
-                VectorXd ratio_Se_col = ratio_Se.col(comp);
-                VectorXd ratio_Sp_col = ratio_Sp.col(comp);
+                Eigen::Matrix<double, -1, 1> diff_Se_col = diff_Se.col(comp);
+                Eigen::Matrix<double, -1, 1> diff_Sp_col = diff_Sp.col(comp);
+                Eigen::Matrix<double, -1, 1> ratio_Se_col = ratio_Se.col(comp);
+                Eigen::Matrix<double, -1, 1> ratio_Sp_col = ratio_Sp.col(comp);
                 
                 // Helper to compute statistics
-                auto compute_stats = [](VectorXd &vec, 
+                auto compute_stats = [](Eigen::Matrix<double, -1, 1> &vec, 
                                         int start_col, 
                                         NumericMatrix &out, 
                                         int row) {
@@ -969,7 +984,7 @@ List Rcpp_fn_compute_NMA_comparisons( Rcpp::NumericVector trace_gq_vec,  // Flat
                       } 
                       
                       // Convert to Eigen vector
-                      Map<VectorXd> clean_vec(clean_vals.data(), clean_vals.size());
+                      Eigen::Map<Eigen::Matrix<double, -1, 1>> clean_vec(clean_vals.data(), clean_vals.size());
                       
                       // Compute statistics
                       double mean_val = clean_vec.mean();
@@ -1053,7 +1068,9 @@ List Rcpp_compute_NMA_comparisons_from_arrays(
           // Helper to access 4D array
           auto get_4d_value = [](const NumericVector& arr, int i, int j, int k, int l, 
                                  int dim1, int dim2, int dim3) {
+
             return arr[i + dim1 * (j + dim2 * (k + dim3 * l))];
+
           };
           
           // Process all comparisons
@@ -1121,13 +1138,13 @@ List Rcpp_compute_NMA_comparisons_from_arrays(
           for (int comp = 0; comp < n_comparisons; comp++) {
             
             // Extract columns
-            VectorXd diff_Se_col = diff_Se.col(comp);
-            VectorXd diff_Sp_col = diff_Sp.col(comp);
-            VectorXd ratio_Se_col = ratio_Se.col(comp);
-            VectorXd ratio_Sp_col = ratio_Sp.col(comp);
+            Eigen::Matrix<double, -1, 1> diff_Se_col = diff_Se.col(comp);
+            Eigen::Matrix<double, -1, 1> diff_Sp_col = diff_Sp.col(comp);
+            Eigen::Matrix<double, -1, 1> ratio_Se_col = ratio_Se.col(comp);
+            Eigen::Matrix<double, -1, 1> ratio_Sp_col = ratio_Sp.col(comp);
             
             // Helper to compute statistics
-            auto compute_stats = [](VectorXd &vec, 
+            auto compute_stats = [](Eigen::Matrix<double, -1, 1> &vec, 
                                     int start_col, 
                                     NumericMatrix &out, 
                                     int row) {
@@ -1148,7 +1165,7 @@ List Rcpp_compute_NMA_comparisons_from_arrays(
               }
               
               // Convert to Eigen vector
-              Map<VectorXd> clean_vec(clean_vals.data(), clean_vals.size());
+              Eigen::Map<Eigen::Matrix<double, -1, 1>> clean_vec(clean_vals.data(), clean_vals.size());
               
               // Compute statistics
               double mean_val = clean_vec.mean();
@@ -1169,6 +1186,7 @@ List Rcpp_compute_NMA_comparisons_from_arrays(
               out(row, start_col + 2) = clean_vals[idx_lower];
               out(row, start_col + 3) = clean_vals[idx_median];
               out(row, start_col + 4) = clean_vals[idx_upper];
+
             };
             
             // Fill summaries
@@ -1226,7 +1244,9 @@ Rcpp::List Rcpp_fn_compute_NMA_performance( Rcpp::NumericVector trace_gq_vec,
         
         // Helper to access 3D array
         auto get_value = [&](int iter, int chain, int param_idx) {
+
           return trace_gq_vec[iter + n_iter * (chain + n_chains * param_idx)];
+
         };
         
         // Process all tests and thresholds

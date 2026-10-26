@@ -320,10 +320,10 @@ rm(list = ls())
 
 
 
-# # Check if your real data X was centered:
+# # Check if the real data X was centered:
 # mean(real_data$cov_data$X[[1]][[1]][, "logit_prev_GAD"])  # Should be ~0 if centered
 # 
-# # Check your simulated:
+# # Check the simulated:
 # mean(X[[1]][[1]][, "logit_prev_GAD"])  # Probably not 0
 # 
 
@@ -628,7 +628,7 @@ X
 # Study overlap proportion: 0.425 
 # [1] 0.425
 
-# # Check all your objects
+# # Check all the objects
 # object.size(stan_data_list)
 # object.size(priors)
 # object.size(init_lists_per_chain)
@@ -758,7 +758,7 @@ mod <- cmdstan_model(Stan_model_file_path,
                      include_paths = c(Stan_functions_path))
                      
 ##
-# ## set Stan model file path for your Stan model (replace with your path)
+# ## set Stan model file path for the Stan model (replace with the path)
 # Stan_model_file_path <- system.file("stan_models/basic_logistic.stan", package = "BayesMVPtest")
 ## make y a matrix first (matrix w/ 1 col)
 ### input N to use 
@@ -1298,7 +1298,7 @@ extract_param_latex <- function(model_or_tibble,
           # It's already a tibble
           tibble <- model_or_tibble
         } else if("model_summary_and_trace_obj" %in% names(model_or_tibble)) {
-          # It's your model structure!
+          # Model structure:
           param_parts <- strsplit(param_name, "\\[")[[1]][1]
           tibble <- model_or_tibble$model_summary_and_trace_obj$extract_params(params = param_parts)
         } else if("extract_params" %in% names(model_or_tibble)) {
@@ -1339,7 +1339,7 @@ extract_param_row <- function(model_list,
   
 }
 
-# Now your code should work:
+# Updated code:
 model_list <- list(Model_A, 
                    Model_B, 
                    Model_C, 

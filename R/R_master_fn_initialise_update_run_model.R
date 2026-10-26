@@ -31,7 +31,10 @@ initialise_update_run_model <- function(      debugging = FALSE,
                                               ##
                                               init_lists_per_chain,
                                               ##
-                                              cmdstanr_args
+                                              cmdstanr_args,
+                                              ##
+                                              algorithm,
+                                              NicoStan_args
 ) {
             
           if (basic_model_options$network) {
@@ -131,6 +134,24 @@ initialise_update_run_model <- function(      debugging = FALSE,
           ##
           stan_data_list_temp <- internal_obj$outs_data$stan_data_list
           internal_obj$outs_data$stan_data_list <- R_fn_remove_duplicates_from_list(stan_data_list_temp)
+          ##
+          ## ---- prior_only = TRUE: the model's own Stan file with its likelihood switched off (every study's
+          ##      K_fold_CV_indicator = 0), so that the draws are the model's real induced prior:
+          ##
+          if (isTRUE(as.logical(basic_model_options$prior_only))) {
+                stan_model_file_path_of_the_fit <- internal_obj$outs_stan_model_name$stan_model_file_path
+                model_reads_the_K_fold_CV_indicator <- any(grepl("K_fold_CV_indicator",
+                                                                 readLines(stan_model_file_path_of_the_fit)))
+                if (!model_reads_the_K_fold_CV_indicator) {
+                      stop(paste0("prior_only = TRUE: the Stan model ", stan_model_file_path_of_the_fit,
+                                  " has no K_fold_CV_indicator, so its likelihood cannot be switched off."))
+                }
+                n_studies_of_the_fit <- internal_obj$outs_data$n_studies
+                internal_obj$outs_data$stan_data_list$K_fold_CV_indicator <- rep(0, n_studies_of_the_fit)
+                message(paste0("prior_only = TRUE: the likelihood of all ", n_studies_of_the_fit,
+                               " studies is switched off (K_fold_CV_indicator = 0) in ",
+                               basename(stan_model_file_path_of_the_fit)))
+          }
           # internal_obj$outs_data$stan_data_list$
           # ##
           # ##
@@ -145,7 +166,7 @@ initialise_update_run_model <- function(      debugging = FALSE,
           #               init_lists_per_chain[[i]][[1]] <- NULL
           #             }
           #             
-          #             # Or give it a name if it's required by your model
+          #             # Or give it a name if it's required by the model
           #             # names(init_lists_per_chain[[i]])[1] <- "parameter_name"
           #     }
           # })
@@ -187,6 +208,8 @@ initialise_update_run_model <- function(      debugging = FALSE,
                                                 stan_data_list       = internal_obj$outs_data$stan_data_list,
                                                 stan_model_file_path = internal_obj$outs_stan_model_name$stan_model_file_path,
                                                 stan_model_obj       = internal_obj$outs_stan_compile$stan_model_obj,
+                                                stan_functions_directory =
+                                                      internal_obj$outs_stan_compile$stan_functions_directory,
                                                 n_chains             = MCMC_params$n_chains,
                                                 init_lists_per_chain = init_lists_per_chain)
           
@@ -200,6 +223,23 @@ initialise_update_run_model <- function(      debugging = FALSE,
           ##
           if (debugging) message(paste("initialise_update_run_model", "hello_there_5"))
           ##
+          ## (algorithm = "NicoStan": the NicoStan version of the model with NicoSIMD's fused AVX functions,
+          ##  sampled with NicoStan; see R_fn_sample_model_with_NicoStan.R)
+          if (identical(algorithm, "NicoStan")) {
+            internal_obj$outs_stan_sampling <- R_fn_sample_model_with_NicoStan(
+                                                     stan_data_list = internal_obj$outs_data$stan_data_list,
+                                                     stan_model_file_name =
+                                                           internal_obj$outs_stan_model_name$stan_model_file_name,
+                                                     n_chains = MCMC_params$n_chains,
+                                                     init_lists_per_chain = init_lists_per_chain,
+                                                     seed = MCMC_params$seed,
+                                                     n_burnin = MCMC_params$n_burnin,
+                                                     n_iter = MCMC_params$n_iter,
+                                                     NicoStan_args = NicoStan_args)
+          } else {
+          if (is.null(internal_obj$outs_stan_init$stan_model_obj)) {
+            stop("The Stan model has not been compiled. Recreate the model with compile = TRUE before sampling.")
+          }
           internal_obj$outs_stan_sampling <- R_fn_sample_model(
                                                      stan_data_list = internal_obj$outs_data$stan_data_list,
                                                      stan_model_obj = internal_obj$outs_stan_init$stan_model_obj,
@@ -215,6 +255,7 @@ initialise_update_run_model <- function(      debugging = FALSE,
                                                      metric_shape = MCMC_params$metric_shape,
                                                      ##
                                                      cmdstanr_args = cmdstanr_args)
+          }
 
           if (debugging) message(paste("initialise_update_run_model", "hello_there_6"))
           

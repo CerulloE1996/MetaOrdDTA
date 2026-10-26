@@ -83,6 +83,8 @@ R_fn_set_inits_MA <- function(    inits,
                                 ##
                                 inits$lambda <- if_null_then_set_to( inits$lambda, 
                                                                      rep(0.001, 2))
+                                inits$lambda_upper <- if_null_then_set_to( inits$lambda_upper,
+                                                                           rep(0.001, 2))
                                 ##
                                 ## Default inits for the between-study corr matrix ("beta_corr"):
                                 ##
@@ -94,7 +96,7 @@ R_fn_set_inits_MA <- function(    inits,
                                 inits$raw_scale_corr <- if_null_then_set_to( inits$raw_scale_corr, 
                                                                              0.5*(priors$raw_scale_corr_lb + priors$raw_scale_corr_ub))
                   
-                } else if (cts == FALSE) { ## ordinal (Xu-based or R&G-based)
+                } else if (cts == FALSE) { ## ordinal (ord_biv or ord_HSROC)
                   
                            if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
 
@@ -114,7 +116,7 @@ R_fn_set_inits_MA <- function(    inits,
                                         inits$raw_scale_z  <- if_null_then_set_to(inits$raw_scale_z, rep(0.001, n_studies))
                                         ##
                                         ## Default inits for the cutpoints and/or induced-Dirichlet parameters:
-                                        ## NOTE: these are the same whether using "R&G" or "Xu" parameterisation
+                                        ## NOTE: these are the same for ord_HSROC and ord_biv
                                         ##
                                         if (random_thresholds == FALSE) { 
                                                 ##
@@ -156,7 +158,7 @@ R_fn_set_inits_MA <- function(    inits,
                                                                             0.5*(priors$beta_corr_lb + priors$beta_corr_ub))
                                         ##
                                         ## Default inits for the cutpoints and/or induced-Dirichlet parameters:
-                                        ## NOTE: these are the same whether using "R&G" or "Xu" parameterisation
+                                        ## NOTE: these are the same for ord_HSROC and ord_biv
                                         ##
                                         if (random_thresholds == FALSE) { 
                                                 ##

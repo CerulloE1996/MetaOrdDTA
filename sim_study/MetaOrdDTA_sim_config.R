@@ -44,7 +44,7 @@ get_simulation_config <- function() {
 
 
 
-# Create scenario matrix (similar to your LC-MVP approach)
+# Create scenario matrix (similar to the LC-MVP approach)
 create_scenario_matrix <- function(config) {
       
       expand.grid(

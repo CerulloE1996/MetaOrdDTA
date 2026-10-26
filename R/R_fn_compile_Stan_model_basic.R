@@ -40,12 +40,16 @@ R_fn_compile_stan_model_basic_given_file_name <- function( stan_model_file_name,
                     stan_NMA_directory       <- file.path(stan_models_directory, "stan_models_NMA")
                     stan_NMA_prior_directory <- file.path(stan_NMA_directory, "prior_only")
                     ##
+                    ## (prior_only = TRUE runs the model's own Stan file, with its likelihood switched off in
+                    ##  initialise_update_run_model(), so the prior_only folders are no longer used)
                     if (network == TRUE) {
-                      if (prior_only) stan_directory_to_use <-  stan_NMA_prior_directory
-                      else            stan_directory_to_use <-  stan_NMA_directory
+                      # if (prior_only) stan_directory_to_use <-  stan_NMA_prior_directory
+                      # else            stan_directory_to_use <-  stan_NMA_directory
+                      stan_directory_to_use <-  stan_NMA_directory
                     } else {
-                      if (prior_only) stan_directory_to_use <-  stan_MA_prior_directory
-                      else            stan_directory_to_use <-  stan_MA_directory
+                      # if (prior_only) stan_directory_to_use <-  stan_MA_prior_directory
+                      # else            stan_directory_to_use <-  stan_MA_directory
+                      stan_directory_to_use <-  stan_MA_directory
                     }
                     
                     stan_model_file_path <-  file.path(stan_directory_to_use, stan_model_file_name)
@@ -63,12 +67,16 @@ R_fn_compile_stan_model_basic_given_file_name <- function( stan_model_file_name,
                     stan_NMA_directory       <- file.path(stan_models_directory, "stan_models_NMA")
                     stan_NMA_prior_directory <- file.path(stan_NMA_directory, "prior_only")
                     ##
+                    ## (prior_only = TRUE runs the model's own Stan file, with its likelihood switched off in
+                    ##  initialise_update_run_model(), so the prior_only folders are no longer used)
                     if (network == TRUE) {
-                      if (prior_only) stan_directory_to_use <-  stan_NMA_prior_directory
-                      else            stan_directory_to_use <-  stan_NMA_directory
+                      # if (prior_only) stan_directory_to_use <-  stan_NMA_prior_directory
+                      # else            stan_directory_to_use <-  stan_NMA_directory
+                      stan_directory_to_use <-  stan_NMA_directory
                     } else {
-                      if (prior_only) stan_directory_to_use <-  stan_MA_prior_directory
-                      else            stan_directory_to_use <-  stan_MA_directory
+                      # if (prior_only) stan_directory_to_use <-  stan_MA_prior_directory
+                      # else            stan_directory_to_use <-  stan_MA_directory
+                      stan_directory_to_use <-  stan_MA_directory
                     }
                     
                     stan_model_file_path <-  file.path(stan_directory_to_use, stan_model_file_name)

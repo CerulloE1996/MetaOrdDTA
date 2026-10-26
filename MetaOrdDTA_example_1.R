@@ -94,6 +94,7 @@ model_samples_obj <-  model_prep_obj$sample( n_iter = 5,
 # str(model_samples_obj)
 ##
 ## ----  Summarise + output results: --------------------------------------------------
+##
 # ##
 # # 
 # # # initial_object <- self$initial_object
@@ -441,6 +442,7 @@ density_plots$Se[[1]] # Se - 1st (and only) panel
 density_plots$Sp[[1]] # Sp - 1st (and only) panel
 ##
 ## ---- Test-accuracy specific plots: --------------------------------------------------------------------------
+##
 ## ---- (e.g., sROC curves, confidence and prediction regions, etc):
 ##
 ## ---------------------BOOKMARK - PUT SROC AND OTHER TEST-ACCURACY PLOTS HERE ---------------------------------
@@ -554,7 +556,7 @@ Min_ESS_per_grad <- model_efficiency_metrics$Min_ESS_per_grad_sampling ; Min_ESS
 grad_evals_per_sec <- model_efficiency_metrics$grad_evals_per_sec ; grad_evals_per_sec
 
 ## extract the "time to X ESS" - these are very useful for knowing how long to
-##  run your model for. 
+##  run the model for.
 est_time_to_100_ESS <- model_efficiency_metrics$est_time_to_100_ESS_inc_summaries ; est_time_to_100_ESS
 est_time_to_1000_ESS <- model_efficiency_metrics$est_time_to_1000_ESS_inc_summaries ; est_time_to_1000_ESS
 est_time_to_10000_ESS <- model_efficiency_metrics$est_time_to_10000_ESS_inc_summaries; est_time_to_10000_ESS

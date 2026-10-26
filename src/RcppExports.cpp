@@ -12,8 +12,15 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // Rcpp_compute_AUC_single
-double Rcpp_compute_AUC_single(NumericVector se_vec, NumericVector sp_vec, int n_thr, double missing_value_marker);
-RcppExport SEXP _MetaOrdDTA_Rcpp_compute_AUC_single(SEXP se_vecSEXP, SEXP sp_vecSEXP, SEXP n_thrSEXP, SEXP missing_value_markerSEXP) {
+double Rcpp_compute_AUC_single(NumericVector se_vec,
+                               NumericVector sp_vec,
+                               int n_thr,
+                               double missing_value_marker);
+RcppExport SEXP _MetaOrdDTA_Rcpp_compute_AUC_single(SEXP se_vecSEXP,
+                                                    SEXP sp_vecSEXP,
+                                                    SEXP n_thrSEXP,
+                                                    SEXP missing_value_markerSEXP) {
+
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -24,10 +31,20 @@ BEGIN_RCPP
     rcpp_result_gen = Rcpp::wrap(Rcpp_compute_AUC_single(se_vec, sp_vec, n_thr, missing_value_marker));
     return rcpp_result_gen;
 END_RCPP
+
 }
 // Rcpp_compute_AUC_all_samples
-NumericVector Rcpp_compute_AUC_all_samples(NumericVector Se_array, NumericVector Sp_array, IntegerVector array_dims, IntegerVector n_thr, double missing_value_marker);
-RcppExport SEXP _MetaOrdDTA_Rcpp_compute_AUC_all_samples(SEXP Se_arraySEXP, SEXP Sp_arraySEXP, SEXP array_dimsSEXP, SEXP n_thrSEXP, SEXP missing_value_markerSEXP) {
+NumericVector Rcpp_compute_AUC_all_samples(NumericVector Se_array,
+                                           NumericVector Sp_array,
+                                           IntegerVector array_dims,
+                                           IntegerVector n_thr,
+                                           double missing_value_marker);
+RcppExport SEXP _MetaOrdDTA_Rcpp_compute_AUC_all_samples(SEXP Se_arraySEXP,
+                                                         SEXP Sp_arraySEXP,
+                                                         SEXP array_dimsSEXP,
+                                                         SEXP n_thrSEXP,
+                                                         SEXP missing_value_markerSEXP) {
+
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -39,10 +56,40 @@ BEGIN_RCPP
     rcpp_result_gen = Rcpp::wrap(Rcpp_compute_AUC_all_samples(Se_array, Sp_array, array_dims, n_thr, missing_value_marker));
     return rcpp_result_gen;
 END_RCPP
+
 }
 // Rcpp_compute_Se_Sp_baseline_loop
-List Rcpp_compute_Se_Sp_baseline_loop(NumericVector trace_beta_mu_flat, IntegerVector beta_mu_dims, NumericVector trace_C_flat, IntegerVector C_dims, CharacterVector beta_mu_names, CharacterVector C_names, List baseline_case_nd, List baseline_case_d, IntegerVector n_covariates_nd, IntegerVector n_covariates_d, IntegerVector n_thr, int n_index_tests, int n_thr_max, std::string C_param_name, bool use_probit_link);
-RcppExport SEXP _MetaOrdDTA_Rcpp_compute_Se_Sp_baseline_loop(SEXP trace_beta_mu_flatSEXP, SEXP beta_mu_dimsSEXP, SEXP trace_C_flatSEXP, SEXP C_dimsSEXP, SEXP beta_mu_namesSEXP, SEXP C_namesSEXP, SEXP baseline_case_ndSEXP, SEXP baseline_case_dSEXP, SEXP n_covariates_ndSEXP, SEXP n_covariates_dSEXP, SEXP n_thrSEXP, SEXP n_index_testsSEXP, SEXP n_thr_maxSEXP, SEXP C_param_nameSEXP, SEXP use_probit_linkSEXP) {
+List Rcpp_compute_Se_Sp_baseline_loop(NumericVector trace_beta_mu_flat,
+                                      IntegerVector beta_mu_dims,
+                                      NumericVector trace_C_flat,
+                                      IntegerVector C_dims,
+                                      CharacterVector beta_mu_names,
+                                      CharacterVector C_names,
+                                      List baseline_case_nd,
+                                      List baseline_case_d,
+                                      IntegerVector n_covariates_nd,
+                                      IntegerVector n_covariates_d,
+                                      IntegerVector n_thr,
+                                      int n_index_tests,
+                                      int n_thr_max,
+                                      std::string C_param_name,
+                                      bool use_probit_link);
+RcppExport SEXP _MetaOrdDTA_Rcpp_compute_Se_Sp_baseline_loop(SEXP trace_beta_mu_flatSEXP,
+                                                             SEXP beta_mu_dimsSEXP,
+                                                             SEXP trace_C_flatSEXP,
+                                                             SEXP C_dimsSEXP,
+                                                             SEXP beta_mu_namesSEXP,
+                                                             SEXP C_namesSEXP,
+                                                             SEXP baseline_case_ndSEXP,
+                                                             SEXP baseline_case_dSEXP,
+                                                             SEXP n_covariates_ndSEXP,
+                                                             SEXP n_covariates_dSEXP,
+                                                             SEXP n_thrSEXP,
+                                                             SEXP n_index_testsSEXP,
+                                                             SEXP n_thr_maxSEXP,
+                                                             SEXP C_param_nameSEXP,
+                                                             SEXP use_probit_linkSEXP) {
+
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -64,10 +111,52 @@ BEGIN_RCPP
     rcpp_result_gen = Rcpp::wrap(Rcpp_compute_Se_Sp_baseline_loop(trace_beta_mu_flat, beta_mu_dims, trace_C_flat, C_dims, beta_mu_names, C_names, baseline_case_nd, baseline_case_d, n_covariates_nd, n_covariates_d, n_thr, n_index_tests, n_thr_max, C_param_name, use_probit_link));
     return rcpp_result_gen;
 END_RCPP
+
 }
 // Rcpp_compute_Se_Sp_baseline_pred_separated
-List Rcpp_compute_Se_Sp_baseline_pred_separated(NumericVector trace_beta_mu_flat, IntegerVector beta_mu_dims, CharacterVector beta_mu_names, NumericVector trace_beta_tau_flat, IntegerVector beta_tau_dims, CharacterVector beta_tau_names, NumericVector trace_beta_L_Sigma_flat, IntegerVector beta_L_Sigma_dims, CharacterVector beta_L_Sigma_names, NumericVector trace_C_flat, IntegerVector C_dims, CharacterVector C_names, List baseline_case_nd, List baseline_case_d, IntegerVector n_covariates_nd, IntegerVector n_covariates_d, IntegerVector n_thr, int n_index_tests, int n_thr_max, std::string C_param_name, bool use_probit_link);
-RcppExport SEXP _MetaOrdDTA_Rcpp_compute_Se_Sp_baseline_pred_separated(SEXP trace_beta_mu_flatSEXP, SEXP beta_mu_dimsSEXP, SEXP beta_mu_namesSEXP, SEXP trace_beta_tau_flatSEXP, SEXP beta_tau_dimsSEXP, SEXP beta_tau_namesSEXP, SEXP trace_beta_L_Sigma_flatSEXP, SEXP beta_L_Sigma_dimsSEXP, SEXP beta_L_Sigma_namesSEXP, SEXP trace_C_flatSEXP, SEXP C_dimsSEXP, SEXP C_namesSEXP, SEXP baseline_case_ndSEXP, SEXP baseline_case_dSEXP, SEXP n_covariates_ndSEXP, SEXP n_covariates_dSEXP, SEXP n_thrSEXP, SEXP n_index_testsSEXP, SEXP n_thr_maxSEXP, SEXP C_param_nameSEXP, SEXP use_probit_linkSEXP) {
+List Rcpp_compute_Se_Sp_baseline_pred_separated(NumericVector trace_beta_mu_flat,
+                                                IntegerVector beta_mu_dims,
+                                                CharacterVector beta_mu_names,
+                                                NumericVector trace_beta_tau_flat,
+                                                IntegerVector beta_tau_dims,
+                                                CharacterVector beta_tau_names,
+                                                NumericVector trace_beta_L_Sigma_flat,
+                                                IntegerVector beta_L_Sigma_dims,
+                                                CharacterVector beta_L_Sigma_names,
+                                                NumericVector trace_C_flat,
+                                                IntegerVector C_dims,
+                                                CharacterVector C_names,
+                                                List baseline_case_nd,
+                                                List baseline_case_d,
+                                                IntegerVector n_covariates_nd,
+                                                IntegerVector n_covariates_d,
+                                                IntegerVector n_thr,
+                                                int n_index_tests,
+                                                int n_thr_max,
+                                                std::string C_param_name,
+                                                bool use_probit_link);
+RcppExport SEXP _MetaOrdDTA_Rcpp_compute_Se_Sp_baseline_pred_separated(SEXP trace_beta_mu_flatSEXP,
+                                                                       SEXP beta_mu_dimsSEXP,
+                                                                       SEXP beta_mu_namesSEXP,
+                                                                       SEXP trace_beta_tau_flatSEXP,
+                                                                       SEXP beta_tau_dimsSEXP,
+                                                                       SEXP beta_tau_namesSEXP,
+                                                                       SEXP trace_beta_L_Sigma_flatSEXP,
+                                                                       SEXP beta_L_Sigma_dimsSEXP,
+                                                                       SEXP beta_L_Sigma_namesSEXP,
+                                                                       SEXP trace_C_flatSEXP,
+                                                                       SEXP C_dimsSEXP,
+                                                                       SEXP C_namesSEXP,
+                                                                       SEXP baseline_case_ndSEXP,
+                                                                       SEXP baseline_case_dSEXP,
+                                                                       SEXP n_covariates_ndSEXP,
+                                                                       SEXP n_covariates_dSEXP,
+                                                                       SEXP n_thrSEXP,
+                                                                       SEXP n_index_testsSEXP,
+                                                                       SEXP n_thr_maxSEXP,
+                                                                       SEXP C_param_nameSEXP,
+                                                                       SEXP use_probit_linkSEXP) {
+
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -95,10 +184,36 @@ BEGIN_RCPP
     rcpp_result_gen = Rcpp::wrap(Rcpp_compute_Se_Sp_baseline_pred_separated(trace_beta_mu_flat, beta_mu_dims, beta_mu_names, trace_beta_tau_flat, beta_tau_dims, beta_tau_names, trace_beta_L_Sigma_flat, beta_L_Sigma_dims, beta_L_Sigma_names, trace_C_flat, C_dims, C_names, baseline_case_nd, baseline_case_d, n_covariates_nd, n_covariates_d, n_thr, n_index_tests, n_thr_max, C_param_name, use_probit_link));
     return rcpp_result_gen;
 END_RCPP
+
 }
 // Rcpp_fn_compute_NMA_Se_Sp_custom_baseline
-List Rcpp_fn_compute_NMA_Se_Sp_custom_baseline(Rcpp::NumericVector trace_gq_vec, Rcpp::IntegerVector trace_dims, Rcpp::List C_array_indices, Rcpp::List baseline_case_nd, Rcpp::List baseline_case_d, Rcpp::List beta_mu_indices, Rcpp::List beta_sigma_indices, Rcpp::List beta_tau_indices, Rcpp::IntegerVector n_thr, Rcpp::IntegerVector n_covariates_nd, Rcpp::IntegerVector n_covariates_d, bool use_probit_link, bool compute_predictive);
-RcppExport SEXP _MetaOrdDTA_Rcpp_fn_compute_NMA_Se_Sp_custom_baseline(SEXP trace_gq_vecSEXP, SEXP trace_dimsSEXP, SEXP C_array_indicesSEXP, SEXP baseline_case_ndSEXP, SEXP baseline_case_dSEXP, SEXP beta_mu_indicesSEXP, SEXP beta_sigma_indicesSEXP, SEXP beta_tau_indicesSEXP, SEXP n_thrSEXP, SEXP n_covariates_ndSEXP, SEXP n_covariates_dSEXP, SEXP use_probit_linkSEXP, SEXP compute_predictiveSEXP) {
+List Rcpp_fn_compute_NMA_Se_Sp_custom_baseline(Rcpp::NumericVector trace_gq_vec,
+                                               Rcpp::IntegerVector trace_dims,
+                                               Rcpp::List C_array_indices,
+                                               Rcpp::List baseline_case_nd,
+                                               Rcpp::List baseline_case_d,
+                                               Rcpp::List beta_mu_indices,
+                                               Rcpp::List beta_sigma_indices,
+                                               Rcpp::List beta_tau_indices,
+                                               Rcpp::IntegerVector n_thr,
+                                               Rcpp::IntegerVector n_covariates_nd,
+                                               Rcpp::IntegerVector n_covariates_d,
+                                               bool use_probit_link,
+                                               bool compute_predictive);
+RcppExport SEXP _MetaOrdDTA_Rcpp_fn_compute_NMA_Se_Sp_custom_baseline(SEXP trace_gq_vecSEXP,
+                                                                      SEXP trace_dimsSEXP,
+                                                                      SEXP C_array_indicesSEXP,
+                                                                      SEXP baseline_case_ndSEXP,
+                                                                      SEXP baseline_case_dSEXP,
+                                                                      SEXP beta_mu_indicesSEXP,
+                                                                      SEXP beta_sigma_indicesSEXP,
+                                                                      SEXP beta_tau_indicesSEXP,
+                                                                      SEXP n_thrSEXP,
+                                                                      SEXP n_covariates_ndSEXP,
+                                                                      SEXP n_covariates_dSEXP,
+                                                                      SEXP use_probit_linkSEXP,
+                                                                      SEXP compute_predictiveSEXP) {
+
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -118,10 +233,20 @@ BEGIN_RCPP
     rcpp_result_gen = Rcpp::wrap(Rcpp_fn_compute_NMA_Se_Sp_custom_baseline(trace_gq_vec, trace_dims, C_array_indices, baseline_case_nd, baseline_case_d, beta_mu_indices, beta_sigma_indices, beta_tau_indices, n_thr, n_covariates_nd, n_covariates_d, use_probit_link, compute_predictive));
     return rcpp_result_gen;
 END_RCPP
+
 }
 // Rcpp_fn_compute_NMA_comparisons
-List Rcpp_fn_compute_NMA_comparisons(Rcpp::NumericVector trace_gq_vec, Rcpp::IntegerVector trace_dims, Rcpp::List Se_indices_list, Rcpp::List Sp_indices_list, Rcpp::IntegerVector n_thr);
-RcppExport SEXP _MetaOrdDTA_Rcpp_fn_compute_NMA_comparisons(SEXP trace_gq_vecSEXP, SEXP trace_dimsSEXP, SEXP Se_indices_listSEXP, SEXP Sp_indices_listSEXP, SEXP n_thrSEXP) {
+List Rcpp_fn_compute_NMA_comparisons(Rcpp::NumericVector trace_gq_vec,
+                                     Rcpp::IntegerVector trace_dims,
+                                     Rcpp::List Se_indices_list,
+                                     Rcpp::List Sp_indices_list,
+                                     Rcpp::IntegerVector n_thr);
+RcppExport SEXP _MetaOrdDTA_Rcpp_fn_compute_NMA_comparisons(SEXP trace_gq_vecSEXP,
+                                                            SEXP trace_dimsSEXP,
+                                                            SEXP Se_indices_listSEXP,
+                                                            SEXP Sp_indices_listSEXP,
+                                                            SEXP n_thrSEXP) {
+
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -133,10 +258,18 @@ BEGIN_RCPP
     rcpp_result_gen = Rcpp::wrap(Rcpp_fn_compute_NMA_comparisons(trace_gq_vec, trace_dims, Se_indices_list, Sp_indices_list, n_thr));
     return rcpp_result_gen;
 END_RCPP
+
 }
 // Rcpp_compute_NMA_comparisons_from_arrays
-List Rcpp_compute_NMA_comparisons_from_arrays(NumericVector Se_array, NumericVector Sp_array, IntegerVector array_dims, IntegerVector n_thr);
-RcppExport SEXP _MetaOrdDTA_Rcpp_compute_NMA_comparisons_from_arrays(SEXP Se_arraySEXP, SEXP Sp_arraySEXP, SEXP array_dimsSEXP, SEXP n_thrSEXP) {
+List Rcpp_compute_NMA_comparisons_from_arrays(NumericVector Se_array,
+                                              NumericVector Sp_array,
+                                              IntegerVector array_dims,
+                                              IntegerVector n_thr);
+RcppExport SEXP _MetaOrdDTA_Rcpp_compute_NMA_comparisons_from_arrays(SEXP Se_arraySEXP,
+                                                                     SEXP Sp_arraySEXP,
+                                                                     SEXP array_dimsSEXP,
+                                                                     SEXP n_thrSEXP) {
+
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -147,10 +280,20 @@ BEGIN_RCPP
     rcpp_result_gen = Rcpp::wrap(Rcpp_compute_NMA_comparisons_from_arrays(Se_array, Sp_array, array_dims, n_thr));
     return rcpp_result_gen;
 END_RCPP
+
 }
 // Rcpp_fn_compute_NMA_performance
-Rcpp::List Rcpp_fn_compute_NMA_performance(Rcpp::NumericVector trace_gq_vec, Rcpp::IntegerVector trace_dims, Rcpp::List Se_indices_list, Rcpp::List Sp_indices_list, Rcpp::IntegerVector n_thr);
-RcppExport SEXP _MetaOrdDTA_Rcpp_fn_compute_NMA_performance(SEXP trace_gq_vecSEXP, SEXP trace_dimsSEXP, SEXP Se_indices_listSEXP, SEXP Sp_indices_listSEXP, SEXP n_thrSEXP) {
+Rcpp::List Rcpp_fn_compute_NMA_performance(Rcpp::NumericVector trace_gq_vec,
+                                           Rcpp::IntegerVector trace_dims,
+                                           Rcpp::List Se_indices_list,
+                                           Rcpp::List Sp_indices_list,
+                                           Rcpp::IntegerVector n_thr);
+RcppExport SEXP _MetaOrdDTA_Rcpp_fn_compute_NMA_performance(SEXP trace_gq_vecSEXP,
+                                                            SEXP trace_dimsSEXP,
+                                                            SEXP Se_indices_listSEXP,
+                                                            SEXP Sp_indices_listSEXP,
+                                                            SEXP n_thrSEXP) {
+
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -162,21 +305,30 @@ BEGIN_RCPP
     rcpp_result_gen = Rcpp::wrap(Rcpp_fn_compute_NMA_performance(trace_gq_vec, trace_dims, Se_indices_list, Sp_indices_list, n_thr));
     return rcpp_result_gen;
 END_RCPP
+
 }
 
 static const R_CallMethodDef CallEntries[] = {
     {"_MetaOrdDTA_Rcpp_compute_AUC_single", (DL_FUNC) &_MetaOrdDTA_Rcpp_compute_AUC_single, 4},
     {"_MetaOrdDTA_Rcpp_compute_AUC_all_samples", (DL_FUNC) &_MetaOrdDTA_Rcpp_compute_AUC_all_samples, 5},
     {"_MetaOrdDTA_Rcpp_compute_Se_Sp_baseline_loop", (DL_FUNC) &_MetaOrdDTA_Rcpp_compute_Se_Sp_baseline_loop, 15},
-    {"_MetaOrdDTA_Rcpp_compute_Se_Sp_baseline_pred_separated", (DL_FUNC) &_MetaOrdDTA_Rcpp_compute_Se_Sp_baseline_pred_separated, 21},
-    {"_MetaOrdDTA_Rcpp_fn_compute_NMA_Se_Sp_custom_baseline", (DL_FUNC) &_MetaOrdDTA_Rcpp_fn_compute_NMA_Se_Sp_custom_baseline, 13},
+    {"_MetaOrdDTA_Rcpp_compute_Se_Sp_baseline_pred_separated",
+     (DL_FUNC) &_MetaOrdDTA_Rcpp_compute_Se_Sp_baseline_pred_separated,
+     21},
+    {"_MetaOrdDTA_Rcpp_fn_compute_NMA_Se_Sp_custom_baseline",
+     (DL_FUNC) &_MetaOrdDTA_Rcpp_fn_compute_NMA_Se_Sp_custom_baseline,
+     13},
     {"_MetaOrdDTA_Rcpp_fn_compute_NMA_comparisons", (DL_FUNC) &_MetaOrdDTA_Rcpp_fn_compute_NMA_comparisons, 5},
-    {"_MetaOrdDTA_Rcpp_compute_NMA_comparisons_from_arrays", (DL_FUNC) &_MetaOrdDTA_Rcpp_compute_NMA_comparisons_from_arrays, 4},
+    {"_MetaOrdDTA_Rcpp_compute_NMA_comparisons_from_arrays",
+     (DL_FUNC) &_MetaOrdDTA_Rcpp_compute_NMA_comparisons_from_arrays,
+     4},
     {"_MetaOrdDTA_Rcpp_fn_compute_NMA_performance", (DL_FUNC) &_MetaOrdDTA_Rcpp_fn_compute_NMA_performance, 5},
     {NULL, NULL, 0}
 };
 
 RcppExport void R_init_MetaOrdDTA(DllInfo *dll) {
+
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
+
 }

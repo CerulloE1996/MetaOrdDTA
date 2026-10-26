@@ -303,6 +303,7 @@ MR_pairwise_baseline_outs <- MR_Model_dummy$model_summary_and_trace_obj$compute_
                                                                                                       MR_scenarios = all_MR_scenarios)
 # str(MR_pairwise_baseline_outs$"Low GAD prev. (~6%), MINI")
 
+##
 ## ---- Then call "$plot_pairwise()":
 ##
 metareg_plot_settings <- list()
@@ -769,11 +770,11 @@ diff_data = data_screening_Se_and_Sp_GAD_2_vs_HADS
 #### ---- MR - Se/Sp diff forest plots ---------------------------------------------------------------------------------------
 ####
 
-# Example usage for your specific case:
-# First, add the group variables to your data if they don't exist
+# Example configuration:
+# First, add the group variables to the data if they don't exist
 all_comparisons_enhanced <- all_comparisons %>%
   mutate(
-    # Parse scenario names - this part is specific to your naming convention
+    # Parse scenario names - this part is specific to the naming convention
     prev_level = case_when(
       grepl("Low.*prev.", scenario) ~ "Low (6%)",
       grepl("Median.*prev.", scenario) ~ "Medium (15%)",

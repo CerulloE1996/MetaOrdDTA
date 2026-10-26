@@ -119,7 +119,7 @@ R_fn_convert_X_to_stan_array <- function(X_list) {
 ## NOTE: X =  covariates - for NMA:
 ## this is a list of 2 lists X_nd and X_d - where each list in X_nd/X_d corresponds 
 ## to an index test, and then each element - "X_d[[c]][[t]]]" - is a matrix.
-## If covs shared between 2 classes (for R&G model MUST be shared), then X is a list 
+## If covs shared between 2 classes (for the ordinal-HSROC model MUST be shared), then X is a list 
 ## of n_index_tests matrices instead.(i.e. a list of matrices, NOT a list of lists)
 
 #' R_fn_prep_NMA_data
@@ -263,7 +263,7 @@ R_fn_prep_NMA_data <- function( x,
     ##
     for (t in 1:n_index_tests) {
       
-      stan_data_list$n_obs_cutpoints[t, ] <- rowSums( stan_data_list$x[[t]][[1]][, c(-1)] != -1)
+      stan_data_list$n_obs_cutpoints[t, ] <- rowSums( stan_data_list$x[[t]][[1]][, c(-1), drop = FALSE] != -1)
       ##
       rearranged <- arrange_missing_values_paired(stan_data_list$x[[t]], 
                                                   stan_data_list$cutpoint_index[[t]])

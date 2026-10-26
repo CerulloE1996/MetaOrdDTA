@@ -241,7 +241,7 @@ Create a new "MetaOrd_model" object.
 
 \item{\code{prior_only}}{See class documentation for details.}
 
-\item{\code{model_parameterisation}}{See class documentation for details.}
+\item{\code{model_parameterisation}}{Use \code{"ord_biv"}, \code{"ord_HSROC"}, or \code{"Jones"}.}
 
 \item{\code{random_thresholds}}{See class documentation for details.}
 

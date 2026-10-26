@@ -2204,7 +2204,7 @@ extract_param_latex <- function(model_or_tibble,
           # It's already a tibble
           tibble <- model_or_tibble
         } else if("model_summary_and_trace_obj" %in% names(model_or_tibble)) {
-          # It's your model structure!
+          # Model structure:
           param_parts <- strsplit(param_name, "\\[")[[1]][1]
           tibble <- model_or_tibble$model_summary_and_trace_obj$extract_params(params = param_parts)
         } else if("extract_params" %in% names(model_or_tibble)) {
@@ -3275,7 +3275,7 @@ create_heterogeneity_comparison_table <- function(MR_model_summary_and_trace_obj
                      "%%%%")
           
           if (compound_symmetry) {
-            # CS - your original code
+            # CS - the original code
             lines <- c(lines,
                        "\\multicolumn{3}{l}{\\textit{\\textbf{Total within-test, between-study heterogeneity:}}} \\\\",
                        sprintf("$\\sigma_{total}^{(d-)}$ (all tests) & $%s$ & $%s$ \\\\",

@@ -243,7 +243,7 @@ thr_screening_all_tests = list(
 ##
 ## -------------------------------------------------------------------------------------------------------------------------------------
 ##
-# Get your comparisons
+# Get the comparisons
 # tibble_comp <- Baseline_Model_best$extract_NMA_comparisons(
 #   test_names = c("GAD-2", "GAD-7", "HADS", "BAI", "OASIS", "STAI_S", "STAI_T", "PROMIS")
 # )
@@ -319,7 +319,7 @@ subset_comp$STAI_T %>% print(n = 100)
 ##
 ## ---- "Roughly equivalent" SCREENING thresholds for all 8 tests (prioritises Se, as screening):
 ##
-# Define your screening thresholds
+# Define the screening thresholds
 # thr_screening_reference_tests <- list(
 #   "GAD-2"  = c(3),
 #   "GAD-7"  = c(8, 9, 10, 11),

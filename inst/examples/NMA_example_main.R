@@ -29,7 +29,9 @@ rm(list = ls())
           unlink(pkg_install_path, recursive = TRUE, force = TRUE)
           unlink(pkg_temp_install_path, recursive = TRUE, force = TRUE)
       }
+##
       ## -------- ACTUAL (LOCAL) INSTALL:
+##
       ## document:
       devtools::clean_dll(local_pkg_dir)
       devtools::document(local_pkg_dir)
@@ -244,10 +246,10 @@ rm(list = ls())
         source(file.path(getwd(), "inst", "examples", "thr_sim_study_helper_fns.R"))
 }
 ##
-# # Check if your real data X was centered:
+# # Check if the real data X was centered:
 # mean(real_data$cov_data$X[[1]][[1]][, "logit_prev_GAD"])  # Should be ~0 if centered
 # 
-# # Check your simulated:
+# # Check the simulated:
 # mean(X[[1]][[1]][, "logit_prev_GAD"])  # Probably not 0
 ##
 sim_index <- 1
@@ -377,12 +379,12 @@ source(file.path(getwd(), "R", "R_fn_covariates.R"))
 # which(indicator_index_test_in_study[, 4] == TRUE)  # Which studies should have test 4?
 # 
 # ifelse(sim_results$indicator_index_test_in_study, 1, 0)
-# Print column names from your real data
+# Print column names from the real data
 ##
 # 
 # print(colnames(real_data$cov_data$X[[1]][[1]]))
 # 
-# # Print column names from your simulated data  
+# # Print column names from the simulated data
 # print(colnames(X[[1]][[1]]))
 ##
 str(x)
@@ -1232,6 +1234,7 @@ sum(fold_assignments == c(3L, 5L, 1L, 4L, 4L, 5L, 2L, 1L, 3L, 3L, 3L, 2L, 1L, 2L
 
 ##
 ## ---- Run k-fold:
+##
 # ##
 # Model_Xu_fixed_thr$model_summary_and_trace_obj$run_k_fold_CV( seed = 123,
 #                                                                fold_assignments = fold_assignments,
@@ -1649,14 +1652,18 @@ model_names <- c("MR_Model_0 (intercept-only - FIXED-C + CS)",
                  # "MR_Model_FULL_wo_RoB (intercept + prev_GAD + ref_test + study_setting)", ## same as model 12
                  ##
                  ## first 2-way MR model as prev_GAD and ref_test gave best K-fold's out of univariate MR's:
+##
                  ## ---- 2-way models:
+##
                  "MR_Model_6  (intercept + prev_GAD + ref_test)",
                  "MR_Model_7  (intercept + prev_GAD + study_setting)",
                  "MR_Model_8  (intercept + prev_GAD + RoB)",
                  "MR_Model_9  (intercept + ref_test + study_setting)",
                  "MR_Model_10 (intercept + ref_test + RoB)",
                  "MR_Model_11 (intercept + study_setting + RoB)",
+##
                  ## ---- 3-way models:
+##
                  "MR_Model_12 (intercept + prev_GAD + ref_test + study_setting)",
                  "MR_Model_13 (intercept + prev_GAD + ref_test + RoB)",
                  "MR_Model_14 (intercept + prev_GAD + study_setting + RoB)",
@@ -1752,14 +1759,14 @@ make_latex_table_k_fold_CV(comparison)
 # negligible benefit. This demonstrates our methodology's ability to detect dataset-specific covariate importance."
 ##
 ##
-# You're exactly right about the real data - stop there and use intercept + reference test as your main model!
+# Main model for the real-data analysis: intercept + reference test.
 # For the dummy data, I'd recommend this strategy:
 #   Skip RoB (only 128 ELPD) and work with the 3 useful covariates:
 #   Option 1: Incremental approach (I recommend this)
 # 
 # You already have the univariate results
 # Fit one model: intercept + prev_GAD + reference_test + study_setting
-# See if it beats prev_GAD alone (which was your best univariate)
+# See if it beats prev_GAD alone (which was the best univariate)
 # 
 # My recommendation: Go with Option 1 because:
 #   
@@ -1767,7 +1774,7 @@ make_latex_table_k_fold_CV(comparison)
 # You're demonstrating the methodology, not doing exhaustive model selection
 # It mirrors what you'd do in practice: "these 3 helped, let's try them together"
 # 
-# Then for your final models:
+# Then for the final models:
 #   Real data: intercept + reference_test
 # 
 # SROC curves by reference test type
@@ -2704,6 +2711,7 @@ new_MR_baseline_outs[[k]]$Sp_pred_summaries %>% print(n=25)
 
 ##
 ## ---- AUC: Now, AFTER running "recompute_baseline", can run "$extract_AUC()": -------------------------------------------------------
+##
 ## ---- Note: No need to pass either "all_MR_scenarios" or "new_MR_baseline_outs" objects -
 ## ---- they're automatically stored internally when you run "$recompute_baseline()"
 ##
@@ -2834,10 +2842,12 @@ beta_mu <- MR_model_dummy$model_summary_and_trace_obj$extract_params(params = c(
 # test_names
 ##
 
-## --- Load "X" from your chosen meta-regression model - the columns of X must be named. 
+## --- Load "X" from the chosen meta-regression model - the columns of X must be named.
 X <- MR_model_dummy$model_summary_and_trace_obj$cov_data$X
 covariate_names <-  dimnames(X[[1]][[1]])[[2]]
+##
 ## ---- If not, either name them or enter a vector of column names, like this:
+##
 covariate_names <- c("intercept", "logit_prev_GAD", "Ref_test_clean_SCID", "Ref_test_clean_Structured")
 ##
 ## ---- Call the "map_beta_coefficients" R function:
@@ -2977,7 +2987,9 @@ outs_latex <- create_heterogeneity_comparison_table(
               MR_model_summary_and_trace_obj = MR_model_dummy$model_summary_and_trace_obj,
               Intercept_only_model_summary_and_trace_obj = Intercept_only_model_dummy$model_summary_and_trace_obj,
               compound_symmetry = TRUE)
+##
 ## ---- Print LaTeX code for table:
+##
 cat(outs_latex)
 
 

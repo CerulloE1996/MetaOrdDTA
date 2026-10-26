@@ -3,6 +3,7 @@
 #' @keywords internal
 #' @export
 R_fn_get_stan_model_file_name <- function( custom_file_name,
+                                           use_Se_Sp_prior,
                                            ##
                                            cts,
                                            network,
@@ -28,10 +29,12 @@ R_fn_get_stan_model_file_name <- function( custom_file_name,
                   ##
                   ## Now get the Stan model file name string:
                   ##
-                  if (model_parameterisation %in% c("R&G", "Gatsonis", "HSROC")) { 
-                    file_string_2 <- "Gat_"
+                  if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis",
+                            model_parameterisation,
+                            ignore.case = TRUE)) { 
+                    file_string_2 <- "ord_HSROC_"
                   } else { 
-                    file_string_2 <- "Xu_"
+                    file_string_2 <- "ord_biv_"
                   }
                   ##
                   if (random_thresholds == FALSE) { 
@@ -78,11 +81,14 @@ R_fn_get_stan_model_file_name <- function( custom_file_name,
                   
         }
         ##
-        if (prior_only) {
-          
-                  stan_model_file_name <- paste0("PO_", stan_model_file_name)
-          
-        }
+        # if (prior_only) {
+        #   
+        #         stan_model_file_name <- paste0("PO_", stan_model_file_name)
+        #   
+        # }
+        ## (prior_only = TRUE runs the model's own Stan file with its likelihood switched off - every study's
+        ##  K_fold_CV_indicator = 0, set in initialise_update_run_model() - so that the draws are the model's
+        ##  real induced prior; the PO_ files of the prior_only folders are older copies, not the model)
   
         print(paste("stan_model_file_name = ", stan_model_file_name))
         ##
@@ -92,6 +98,14 @@ R_fn_get_stan_model_file_name <- function( custom_file_name,
         
         if (!(is.null(custom_file_name))) { 
           stan_model_file_name <- custom_file_name
+        }
+        ##
+        ## The model's _Se_Sp_prior file when the user gives direct Se / Sp priors (priors$Se_Sp_prior):
+        ##
+        if (use_Se_Sp_prior == TRUE && !grepl("_Se_Sp_prior", stan_model_file_name, fixed = TRUE)) {
+          stan_model_file_name <- sub("(_NicoStan_fused_AVX)?[.]stan$",
+                                      "_Se_Sp_prior\\1.stan",
+                                      stan_model_file_name)
         }
         
         return(list(stan_model_file_name = stan_model_file_name))

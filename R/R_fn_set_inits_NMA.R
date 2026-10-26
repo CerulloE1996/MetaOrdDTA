@@ -161,7 +161,7 @@ R_fn_set_inits_NMA <- function(    inits,
             # print(paste("raw_scale_corr_ub = ", priors$raw_scale_corr_ub))
             # inits$raw_scale_corr <- if_null_then_set_to(inits$raw_scale_corr, 0.5*(priors$raw_scale_corr_lb + priors$raw_scale_corr_ub))
             
-      } else if (cts == FALSE) { ## ordinal (Xu-based or R&G-based)
+      } else if (cts == FALSE) { ## ordinal (ord_biv or ord_HSROC)
             
           if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
                         
@@ -295,7 +295,7 @@ R_fn_set_inits_NMA <- function(    inits,
                         
                         ##
                         ## Default inits for the cutpoints and/or induced-Dirichlet parameters:
-                        ## NOTE: these are the same whether using "R&G" or "Xu" parameterisation
+                        ## NOTE: these are the same for ord_HSROC and ord_biv
                         ##
                         if (random_thresholds == FALSE) { 
 

@@ -225,7 +225,9 @@ R_fn_compile_stan_advanced_given_file_name <- function( stan_model_file_name,
                     print(cmdstan_cpp_flags)
                     
                     
+##
                     ## --------- Compile Stan model: -----------------------------------------------------------------------
+##
                     print(custom_cpp_user_header_file_path)
                     ##
                     try({  

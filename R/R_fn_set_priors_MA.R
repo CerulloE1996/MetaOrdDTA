@@ -111,9 +111,9 @@ R_fn_set_priors_MA <- function(   priors,
                   ##
                   ## Set default priors for box-cox ("lamnda"):
                   ##
-                  priors$prior_boxcox_lambda_mean <- if_null_then_set_to(priors$prior_boxcox_lambda_mean, 0.0)
+                  priors$prior_boxcox_lambda_mean <- if_null_then_set_to(priors$prior_boxcox_lambda_mean, rep(0.0, 2))
                   ##
-                  priors$prior_boxcox_lambda_SD   <- if_null_then_set_to(priors$prior_boxcox_lambda_SD,   1.0)
+                  priors$prior_boxcox_lambda_SD   <- if_null_then_set_to(priors$prior_boxcox_lambda_SD,   rep(1.0, 2))
                   ##
                   ## Set default priors for the between-study corr matricex for beta ("beta_L_Omega") and "raw_scale_L_Omega"):
                   ##
@@ -135,7 +135,7 @@ R_fn_set_priors_MA <- function(   priors,
                   ##
                   if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
                     
-                          message("Configuring priors for HSROC-based (Rutter & Gatsonis) -based ordinal model")
+                          message("Configuring priors for ord_HSROC model")
                           ##
                           ## Set default priors for the locations ("beta"):
                           ##
@@ -181,7 +181,7 @@ R_fn_set_priors_MA <- function(   priors,
                           
                   } else if (grepl("ord_biv|ordinal_biv|biv|Xu|O-", model_parameterisation, ignore.case = TRUE)) {
                     
-                          message("Configuring priors for Xu et al. -based ordinal model")
+                          message("Configuring priors for ord_biv model")
                           ##
                           ## Set default priors for the locations ("beta"):
                           ##
@@ -207,7 +207,7 @@ R_fn_set_priors_MA <- function(   priors,
                   }
                   ##
                   ## Default priors for the cutpoints and/or induced-Dirichlet parameters:
-                  ## NOTE: these are the same whether using "R&G" or "Xu" parameterisation
+                  ## NOTE: these are the same for ord_HSROC and ord_biv
                   ##
                   if (random_thresholds == FALSE) { 
                     
@@ -272,6 +272,14 @@ R_fn_set_priors_MA <- function(   priors,
         }
         ##
         ## output:
+        ##
+        ##
+        ## The direct Se / Sp prior at the user's cutoffs (priors$Se_Sp_prior), if given:
+        ##
+        priors <- R_fn_set_Se_Sp_prior_MA(priors = priors,
+                                          cts = cts,
+                                          model_parameterisation = model_parameterisation,
+                                          n_thr = n_thr)
         ##
         return(priors)
         

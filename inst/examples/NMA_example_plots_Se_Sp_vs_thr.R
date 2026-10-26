@@ -252,6 +252,7 @@ outs_plots_thr$all_tests_combined_Se
 ## outs_plots_thr$panels_with_regions
 outs_plots_thr$panels_with_regions_Se
 #
+##
 ## ---- If BOTH:
 ##
 outs_plots_thr$all_tests_combined_Se_and_Sp
@@ -579,7 +580,7 @@ ggsave("DUMMY_Application_MR_threshold_3x3_BAI_w_CrI_PrI.png", plot, width = 16,
 
 
 
-# Add your specific variables AFTER
+# Add the specific variables AFTER
 combined_data_enhanced <- combined_data_threshold %>%
   mutate(
     prev_level = case_when(
@@ -1121,7 +1122,7 @@ Stan_functions_path <- model_summary_and_trace_obj_META_REG_DUMMY$internal_obj$o
 #                      include_paths = c(Stan_functions_path))
 
 ##
-# ## set Stan model file path for your Stan model (replace with your path)
+# ## set Stan model file path for the Stan model (replace with the path)
 Stan_model_file_path <- system.file("stan_models/basic_logistic.stan", package = "BayesMVPtest")
 # make y a matrix first (matrix w/ 1 col)
 ### input N to use
