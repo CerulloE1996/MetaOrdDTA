@@ -162,7 +162,7 @@ softplus <- FALSE
 
 
 {
-  model_parameterisation = "Xu"
+  model_parameterisation = "ord_bivariate"
   box_cox <- FALSE
   cts <- FALSE
   random_thresholds <-  FALSE
@@ -180,7 +180,7 @@ softplus <- FALSE
 
 
 # {
-#   model_parameterisation = "Xu"
+#   model_parameterisation = "ord_bivariate"
 #   box_cox <- FALSE
 #   cts <- FALSE
 #   random_thresholds <-  TRUE
@@ -321,7 +321,7 @@ stan_data_list
 
 
 # 
-# if (model_parameterisation == "Xu") {
+# if (model_parameterisation == "ord_bivariate") {
 #   
 #     # n_total_C_if_fixed <- 0
 #     # for (t in 1:n_index_tests) { 
@@ -524,7 +524,7 @@ model_summary_and_trace_obj$plot_sROC()
 # c(t(Se_mean_array))
 # 
 # 
-# stan_model_file_name <- "NMA_Xu"
+# stan_model_file_name <- "NMA_ord_biv"
 # model_name <- stan_model_file_name
 # 
 # tibble_NMA <- tibble(  Model = rep(model_name, n_rows_total),
@@ -820,7 +820,7 @@ sum(abs(100*df_true$Sp_true  - 100*Sp_Cerullo)) - sum(abs(100*df_true$Sp_true  -
 # model_samples_obj$outs_data$stan_data_list
 # 
 # 
-# inits_for_Xu_fixed_thr_model
+# inits_for_ord_biv_fixed_thr_model
 # 
 
 

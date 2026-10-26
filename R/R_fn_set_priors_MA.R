@@ -179,7 +179,7 @@ R_fn_set_priors_MA <- function(   priors,
                           }
                           ##
                           
-                  } else if (grepl("ord_biv|ordinal_biv|biv|Xu|O-", model_parameterisation, ignore.case = TRUE)) {
+                  } else if (grepl("ord_biv|ordinal_biv|biv|O-", model_parameterisation, ignore.case = TRUE)) {
                     
                           message("Configuring priors for ord_biv model")
                           ##

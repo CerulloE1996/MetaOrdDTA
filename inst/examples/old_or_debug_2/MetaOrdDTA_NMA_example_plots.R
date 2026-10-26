@@ -70,7 +70,7 @@ require(ggplot2)
 
 Model_RAND <- readRDS(
   file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-            "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_TRUECS_0het_sigma_0_applied_results.RDS"))
+            "seed_1_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_TRUECS_0het_sigma_0_applied_results.RDS"))
 
 
 
@@ -83,7 +83,7 @@ model_prep_obj <- Model_RAND$model_prep_obj
 ##
 Model_dummy <- readRDS(
   file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-            "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
+            "seed_1_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
 
 model_summary_and_trace_obj_DUMMY <- Model_dummy$model_summary_and_trace_obj
 
@@ -103,7 +103,7 @@ test_names <- c("GAD-2", "GAD-7", "HADS", "BAI")
 
 Model_real <- readRDS(
   file.path(MetaOrdDTA::metaorddta_output_path("application_results_real_data"),
-            "seed_1_dummy_data_0intercept_only_1N_covs_1param_Xurand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
+            "seed_1_dummy_data_0intercept_only_1N_covs_1param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
 
 model_summary_and_trace_obj_REAL <- Model_real$model_summary_and_trace_obj
 
@@ -1752,7 +1752,7 @@ summarise
 ##
 MR_Model_dummy <- readRDS(
   file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-            "seed_1_dummy_data_1intercept_only_0N_covs_4param_Xurand_thr_FALSECS_1het_sigma_0_MR_model_6_applied_results.RDS"))
+            "seed_1_dummy_data_1intercept_only_0N_covs_4param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_MR_model_6_applied_results.RDS"))
 
 model_summary_and_trace_obj_META_REG_DUMMY <- MR_Model_dummy$model_summary_and_trace_obj
  
@@ -2269,7 +2269,7 @@ cat(outs_latex)
 ##
 Model_dummy <- readRDS(
   file.path(MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-            "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
+            "seed_1_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
 
 model_summary_and_trace_obj_DUMMY <- Model_dummy$model_summary_and_trace_obj
 

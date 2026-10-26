@@ -214,7 +214,7 @@ make_array_dims_equal_Bayesplot_order <- function( input_array,
         # Create the permutation vector for aperm
         # The desired order is: Iteration, Chain, Parameter
         desired_array_dims_vec <- c(iter_dim, chain_dim, params_dim)
-        ## (already in this order: returned as it is, as aperm() copies the whole array even then)
+        ## skip aperm if already in this order (aperm copies the array even then)
         if (identical(as.integer(desired_array_dims_vec), 1:3)) return(input_array)
         
         # Use base::aperm to reorder dimensions

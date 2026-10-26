@@ -69,7 +69,7 @@ run_multiple_sims <- function(MCMC_seed,
             is_a_pop_median_model <- grepl("popmed", scenario_row$custom_file_name[[1]], fixed = TRUE)
             is_a_centred_C_model <- grepl("_centred_C_", scenario_row$custom_file_name[[1]], fixed = TRUE)
             stopifnot(all(candidate_route[1:2]), candidate_route[3] == is_a_pop_median_model,
-                      model_parameterisation %in% c("Xu", "R&G"),
+                      model_parameterisation %in% c("ord_bivariate", "R&G"),
                       isTRUE(random_thresholds), Dirichlet_random_effects_type == "kappa",
                       is.character(file_name_string), length(file_name_string) == 1,
                       !is.na(file_name_string),
@@ -147,9 +147,9 @@ run_multiple_sims <- function(MCMC_seed,
                custom_file_name <- "DTA_MA_strat_bivariate_NicoStan_fused_AVX.stan"
           }
           ## (fused AVX ord_biv / ord_HSROC models: NicoSIMD header as the user header, run on cmdstanr)
-          if (model_parameterisation %in% c("Xu", "R&G")) {
+          if (model_parameterisation %in% c("ord_bivariate", "R&G")) {
               use_custom_file  <- TRUE
-              name_of_the_model_family <- if (model_parameterisation == "Xu") "DTA_MA_ord_biv_" else
+              name_of_the_model_family <- if (model_parameterisation == "ord_bivariate") "DTA_MA_ord_biv_" else
                                           "DTA_MA_ord_HSROC_"
               custom_file_name <- paste0(name_of_the_model_family,
                                          if (random_thresholds) "RANDthr_kappa" else "FIXEDthr",
@@ -265,7 +265,7 @@ run_multiple_sims <- function(MCMC_seed,
           ##
            priors$prior_dirichlet_alpha
 
-          # if (model_parameterisation == "Xu") {
+          # if (model_parameterisation == "ord_bivariate") {
           #
           #       # priors$prior_dirichlet_alpha <- list(prior_dirichlet_alpha,
           #       #                                      prior_dirichlet_alpha)
@@ -360,14 +360,14 @@ run_multiple_sims <- function(MCMC_seed,
           ##
           # n_iter_for_4_chains <- 2500 ## --------------------------------------
           ##
-          ## ---- BAI, 10 studies, Xu_random_C: 2x the iterations of the saved fits (3000 -> 6000) ------------------------------------
+          ## ---- BAI, 10 studies, ord_biv_random_C: 2x the iterations of the saved fits (3000 -> 6000) ------------------------------------
           ##
           ## (~93-95% of fits reach min ESS 1000, from ~88-90%)
           if (test == "BAI" &&
-              DGM == "Xu_random_C" &&
+              DGM == "ord_biv_random_C" &&
               n_studies == 10 &&
               N_per_study_mean == 500 &&
-              model_parameterisation == "Xu" &&
+              model_parameterisation == "ord_bivariate" &&
               random_thresholds == TRUE &&
               alpha_pi == "one") {
 
@@ -383,7 +383,7 @@ run_multiple_sims <- function(MCMC_seed,
               DGM == "R&G_random_C" &&
               n_studies == 10 &&
               N_per_study_mean == 500 &&
-              model_parameterisation == "Xu" &&
+              model_parameterisation == "ord_bivariate" &&
               random_thresholds == TRUE &&
               alpha_pi == "one") {
 
@@ -391,14 +391,14 @@ run_multiple_sims <- function(MCMC_seed,
 
           }
           ##
-          ## ---- BAI, 50 studies, Xu_random_C: 3.5x the iterations -------------------------------------------------------------------
+          ## ---- BAI, 50 studies, ord_biv_random_C: 3.5x the iterations -------------------------------------------------------------------
           ##
           ## (the min ESS of Se / Sp over all 63 cutoffs reaches 200)
           if (test == "BAI" &&
-              DGM == "Xu_random_C" &&
+              DGM == "ord_biv_random_C" &&
               n_studies == 50 &&
               N_per_study_mean == 500 &&
-              model_parameterisation == "Xu" &&
+              model_parameterisation == "ord_bivariate" &&
               random_thresholds == TRUE &&
               alpha_pi == "one") {
 
@@ -431,7 +431,7 @@ run_multiple_sims <- function(MCMC_seed,
           ##
           if (random_thresholds == TRUE) {
                 
-                    if (model_parameterisation == "Xu") {
+                    if (model_parameterisation == "ord_bivariate") {
                         priors$prior_beta_SD_SD <- c(0.5, 0.5)
                         priors$prior_kappa_mean <- c(log(100), log(100))
                         priors$prior_kappa_SD <- c(1.0, 1.0)
@@ -453,7 +453,7 @@ run_multiple_sims <- function(MCMC_seed,
               
           }
           ##
-          if (model_parameterisation == "Xu") {
+          if (model_parameterisation == "ord_bivariate") {
             
                     priors$prior_beta_SD_SD <- c(0.5, 0.5)
                     ##
@@ -514,7 +514,7 @@ run_multiple_sims <- function(MCMC_seed,
           ## ---- The direct Se/Sp prior: type 4, N(0, 1) on probit Sp and probit Se at every cutoff ----------------------------------
           ##
           ## (the pop-median models too: with "Dirichlet" their own fields, the prior off, replace these below)
-          if (model_parameterisation %in% c("Xu", "R&G") && 
+          if (model_parameterisation %in% c("ord_bivariate", "R&G") && 
               alpha_pi == "one" && 
               # !any(candidate_route)) {
               (!any(candidate_route) || is_a_pop_median_model)) {
@@ -579,7 +579,7 @@ run_multiple_sims <- function(MCMC_seed,
                   random_thresholds      = random_thresholds)
             ##
             ##
-            interest_only_params <- if (model_parameterisation == "Xu") {
+            interest_only_params <- if (model_parameterisation == "ord_bivariate") {
               
                                               if (random_thresholds) c("beta_mu", "dirichlet_phi")
                                               else c("beta_mu", "C_raw_vec")
@@ -956,11 +956,11 @@ run_multiple_sims <- function(MCMC_seed,
           # round(mean(Se_and_Sp$range_Se), 3)
           # round(max(Se_and_Sp$range_Se), 3)
 
-          ## ---- Xu model, fixed-cutpoints:
+          ## ---- ord_bivariate model, fixed-cutpoints:
           ## 0.172 ## w/ jitte = 0.01 (or 0.1?!) (8 chains)
           ## 0.114 w/ jitter = 0.001 (8 chains) - min_ESS ~ 13,000
           ## 0.194 w/ jitter = 0.001 (4 chains) - min_ESS ~ 6500
-          ## ---- Xu model, RANDOM-cutpoint (all 4 chains):
+          ## ---- ord_bivariate model, RANDOM-cutpoint (all 4 chains):
           ## 0.172 w/ df = 5, log(100), sd = 1 kappa priors
           ## 0.13 w/ df = c(5, 3)
 

@@ -150,12 +150,12 @@ if (subset) {
 #   random_thresholds <-  FALSE
 #   Dirichlet_random_effects_type <- "none"
 #   ##
-#   inits_for_Xu_fixed_thr_model <- list(beta_mu = c(-1, +1),
+#   inits_for_ord_biv_fixed_thr_model <- list(beta_mu = c(-1, +1),
 #                                        beta_SD = c(0.01, 0.01),
 #                                        beta_z = array(0.01, dim = c(2, n_studies)),
 #                                        C_raw_vec = rep(-2.0, n_thr),
 #                                        C = seq(from = -2, to = 2, length = n_thr))
-#   init_lists_per_chain <- replicate(n_chains, inits_for_Xu_fixed_thr_model, simplify = FALSE)
+#   init_lists_per_chain <- replicate(n_chains, inits_for_ord_biv_fixed_thr_model, simplify = FALSE)
 # }
 # 
 # 
@@ -163,7 +163,7 @@ if (subset) {
 # 
 # #### ----
 # {
-#   model_parameterisation = "Xu"
+#   model_parameterisation = "ord_bivariate"
 #   ##
 #   box_cox <- FALSE
 #   cts <- FALSE
@@ -179,19 +179,19 @@ if (subset) {
 #                  prior_beta_sd_SD = c(0.5, 0.5),
 #                  prior_beta_corr_LKJ = 2.0)
 #   ##
-#   inits_for_Xu_fixed_thr_model <- list(beta_mu = c(-1, +1),
+#   inits_for_ord_biv_fixed_thr_model <- list(beta_mu = c(-1, +1),
 #                                        beta_SD = c(0.01, 0.01),
 #                                        beta_z = array(0.01, dim = c(2, n_studies)),
 #                                        C_raw_vec = rep(-2.0, n_thr),
 #                                        C = seq(from = -2, to = 2, length = n_thr))
-#   init_lists_per_chain <- replicate(n_chains, inits_for_Xu_fixed_thr_model, simplify = FALSE)
+#   init_lists_per_chain <- replicate(n_chains, inits_for_ord_biv_fixed_thr_model, simplify = FALSE)
 # }
 # 
 # 
 # 
 # #### ----
 # {
-#       model_parameterisation = "Xu"
+#       model_parameterisation = "ord_bivariate"
 #       ##
 #       box_cox <- FALSE
 #       cts <- FALSE
@@ -241,7 +241,7 @@ if (subset) {
 #       phi_raw <- generate_inits_for_raw_simplex_vec(n_thr = n_thr, seed = seed, width = 0.01)
 #       ##
 #       dirichlet_cat_means_phi <- rep( 1/(n_thr + 1), n_thr + 1)
-#       inits_for_Xu_rand_thr_model <- list( beta_mu = c(-1, +1),
+#       inits_for_ord_biv_rand_thr_model <- list( beta_mu = c(-1, +1),
 #                                            beta_SD = c(0.01, 0.01),
 #                                            beta_z = array(0.01, dim = c(2, n_studies)),
 #                                            ##
@@ -257,7 +257,7 @@ if (subset) {
 #                                            ##
 #                                            phi_raw = phi_raw
 #                                            )
-#       init_lists_per_chain <- replicate(n_chains, inits_for_Xu_rand_thr_model, simplify = FALSE)
+#       init_lists_per_chain <- replicate(n_chains, inits_for_ord_biv_rand_thr_model, simplify = FALSE)
 #       
 #       dirichlet_cat_means_phi*1000
 #       
@@ -303,7 +303,7 @@ softplus <- TRUE
 
 
 # {
-#   model_parameterisation = "Xu"
+#   model_parameterisation = "ord_bivariate"
 #   box_cox <- FALSE
 #   cts <- FALSE
 #   random_thresholds <-  FALSE
@@ -392,7 +392,7 @@ n_index_tests <- length(x[[1]])
 
 
 # 
-# if (model_parameterisation == "Xu") {
+# if (model_parameterisation == "ord_bivariate") {
 #   
 #     # n_total_C_if_fixed <- 0
 #     # for (t in 1:n_index_tests) { 
@@ -563,7 +563,7 @@ tibble_gq   %>% print(n = 1000)
 # c(t(Se_mean_array))
 # 
 # 
-# stan_model_file_name <- "NMA_Xu"
+# stan_model_file_name <- "NMA_ord_biv"
 # model_name <- stan_model_file_name
 # 
 # tibble_NMA <- tibble(  Model = rep(model_name, n_rows_total),
@@ -865,7 +865,7 @@ sum(abs(100*df_true$Sp_true  - 100*Sp_Cerullo)) - sum(abs(100*df_true$Sp_true  -
 # model_samples_obj$outs_data$stan_data_list
 # 
 # 
-# inits_for_Xu_fixed_thr_model
+# inits_for_ord_biv_fixed_thr_model
 # 
 
 debugging <- FALSE

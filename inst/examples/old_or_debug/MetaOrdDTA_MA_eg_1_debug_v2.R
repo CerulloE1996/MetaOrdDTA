@@ -168,7 +168,7 @@ softplus <- FALSE
 }
 
 # {
-#   model_parameterisation = "Xu"
+#   model_parameterisation = "ord_bivariate"
 #   box_cox <- FALSE
 #   cts <- FALSE
 #   random_thresholds <-  FALSE
@@ -198,7 +198,7 @@ softplus <- FALSE
 # }
 # 
 # {
-#   model_parameterisation = "Xu"
+#   model_parameterisation = "ord_bivariate"
 #   box_cox <- FALSE
 #   cts <- FALSE
 #   random_thresholds <-  TRUE
@@ -356,7 +356,7 @@ for (kk in 1:n_chains) {
   #                                      seq(from = -2.0, to = 2.0, length = n_thr))
 }
 
-if (model_parameterisation == "Xu") {
+if (model_parameterisation == "ord_bivariate") {
       
           for (kk in 1:n_chains) {
                 
@@ -1192,7 +1192,7 @@ dplyr::filter(tibble_all, (stringr::str_detect(parameter, "Sp_mean_overall_measu
 # # model_samples_obj$outs_data$stan_data_list
 # #
 # #
-# # inits_for_Xu_fixed_thr_model
+# # inits_for_ord_biv_fixed_thr_model
 # #
 # 
 # 

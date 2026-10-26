@@ -90,7 +90,7 @@ target_condition <- "AAD"
 Baseline_Model_best <-  readRDS(
                         file.path(MetaOrdDTA::metaorddta_output_path("application_results_real_data"),
                                   target_condition,
-                                  "seed_2_dummy_data_0n_tests_8tar_cond_AADintercept_only_1N_covs_1param_Xurand_thr_FALSECS_TRUEhet_sigma_0_applied_results.RDS"))
+                                  "seed_2_dummy_data_0n_tests_8tar_cond_AADintercept_only_1N_covs_1param_ord_bivariaterand_thr_FALSECS_TRUEhet_sigma_0_applied_results.RDS"))
 ##
 ## ---- First, extract NMA comparisons using "$extract_NMA_comparisons()" R6 class method:
 ##

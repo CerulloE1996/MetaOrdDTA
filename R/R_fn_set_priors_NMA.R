@@ -141,7 +141,7 @@ R_fn_set_priors_NMA <- function(  priors,
       
     } else if (cts == FALSE) { ## ordinal
                     ##
-                    if (grepl("ord_biv|ordinal_biv|biv|Xu|O-", model_parameterisation, ignore.case = TRUE)) {
+                    if (grepl("ord_biv|ordinal_biv|biv|O-", model_parameterisation, ignore.case = TRUE)) {
                                 ##
                                 ## ---- Set priors for the locations ("beta"):
                                 ##

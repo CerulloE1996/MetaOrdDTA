@@ -87,7 +87,7 @@ rm(list = ls())
 
 #
 {
-  model_parameterisation = "Xu"
+  model_parameterisation = "ord_bivariate"
   box_cox <- FALSE
   cts <- FALSE
   ##
@@ -97,7 +97,7 @@ rm(list = ls())
 
 
 {
-  model_parameterisation = "Xu"
+  model_parameterisation = "ord_bivariate"
   box_cox <- FALSE
   cts <- FALSE
   ##
@@ -196,9 +196,9 @@ rm(list = ls())
     scale_ALL_bs_SDs_by <- 0.50
     ##
     bs_het_C_nd_prob_scale <- 0.001      ; bs_het_C_d_prob_scale <- 0.001
-    # bs_het_C_nd_prob_scale <- 0.03932276 ; bs_het_C_d_prob_scale <- 0.07712564 ## ---- based on "alpha" Xu model fitted to real GAD-2 data
+    # bs_het_C_nd_prob_scale <- 0.03932276 ; bs_het_C_d_prob_scale <- 0.07712564 ## ---- based on "alpha" ord_bivariate model fitted to real GAD-2 data
     ##
-    bivariate_locations_nd_bs_het_SD <- 0.45 ; bivariate_locations_d_bs_het_SD <- 0.60 ## ---- based on "alpha" Xu model fitted to real GAD-2 data
+    bivariate_locations_nd_bs_het_SD <- 0.45 ; bivariate_locations_d_bs_het_SD <- 0.60 ## ---- based on "alpha" ord_bivariate model fitted to real GAD-2 data
     ######## bivariate_locations_nd_bs_het_SD <- 0.25 ; bivariate_locations_d_bs_het_SD <- 0.40  ## ---- made up / arbitrary (ish)
     
   }
@@ -271,7 +271,7 @@ rm(list = ls())
   
   
   
-  # file_name <- "DTA_MA_Xu_FIXEDthr_daig_J.stan"
+  # file_name <- "DTA_MA_ord_biv_FIXEDthr_daig_J.stan"
   ##
   # use_custom_file <- TRUE
   use_custom_file <- FALSE
@@ -1258,25 +1258,25 @@ R_fn_map_beta_coefficients(beta_tibble = beta_mu,
 
 Model_A <- readRDS(file.path(
            MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-           "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
+           "seed_1_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
 ##
 Model_B <- readRDS(file.path(
            MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-           "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_FALSECS_0het_sigma_0_applied_results.RDS"))
+           "seed_1_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_FALSECS_0het_sigma_0_applied_results.RDS"))
 ##
 Model_C <- readRDS(file.path(
            MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-           "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_TRUECS_1het_sigma_0_applied_results.RDS"))
+           "seed_1_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_TRUECS_1het_sigma_0_applied_results.RDS"))
 ##
 Model_D <- readRDS(file.path(
            MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-           "seed_1_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_TRUECS_0het_sigma_0_applied_results.RDS"))
+           "seed_1_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_TRUECS_0het_sigma_0_applied_results.RDS"))
 # ##
 # ## ---- Model w/ covariates:
 # ##
 # Model_E <- readRDS(file.path(
 #            MetaOrdDTA::metaorddta_output_path("application_results_dummy_data"),
-#            "seed_1_dummy_data_1intercept_only_0N_covs_7param_Xurand_thr_TRUECS_0het_sigma_0_applied_results.RDS"))
+#            "seed_1_dummy_data_1intercept_only_0N_covs_7param_ord_bivariaterand_thr_TRUECS_0het_sigma_0_applied_results.RDS"))
 ##
 # model_summary_and_trace_obj <- load_list$model_summary_and_trace_obj
 # str(trace_gq)
@@ -1727,7 +1727,7 @@ str(outs_kfold)
 ##
 ## ---- Model A: CS + FIXED C (DONE - 3000 iter):
 ##
-file <- readRDS(file.path(output_dir, "seed_1_K_fold_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
+file <- readRDS(file.path(output_dir, "seed_1_K_fold_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_FALSECS_1het_sigma_0_applied_results.RDS"))
 file$outs_kfold$elpd_kfold
 file$outs_kfold$se_elpd
 ##
@@ -1743,7 +1743,7 @@ file$outs_kfold$se_elpd
 ##
 ## ---- Model B: UN + FIXED C (currently running w/ 3000 iter):
 ##
-file <- readRDS(file.path(output_dir, "seed_1_K_fold_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_FALSECS_0het_sigma_0_applied_results.RDS"))
+file <- readRDS(file.path(output_dir, "seed_1_K_fold_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_FALSECS_0het_sigma_0_applied_results.RDS"))
 file$outs_kfold$elpd_kfold
 file$outs_kfold$se_elpd
 # $outs_kfold
@@ -1758,7 +1758,7 @@ file$outs_kfold$se_elpd
 ##
 ## ---- Model C: CS + RANDOM C (DONE - 3000 iter):
 ##
-file <- readRDS(file.path(output_dir, "seed_1_K_fold_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_TRUECS_1het_sigma_0_applied_results.RDS"))
+file <- readRDS(file.path(output_dir, "seed_1_K_fold_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_TRUECS_1het_sigma_0_applied_results.RDS"))
 file$outs_kfold$elpd_kfold
 file$outs_kfold$se_elpd
 ##
@@ -1774,7 +1774,7 @@ file$outs_kfold$se_elpd
 ##
 ## ---- Model D: UN + RANDOM C (DONE - 3000 iter):
 ##
-file <- readRDS(file.path(output_dir, "seed_1_K_fold_dummy_data_1intercept_only_1N_covs_1param_Xurand_thr_TRUECS_0het_sigma_0_applied_results.RDS"))
+file <- readRDS(file.path(output_dir, "seed_1_K_fold_dummy_data_1intercept_only_1N_covs_1param_ord_bivariaterand_thr_TRUECS_0het_sigma_0_applied_results.RDS"))
 file$outs_kfold$elpd_kfold
 file$outs_kfold$se_elpd
 # $outs_kfold
@@ -1792,7 +1792,7 @@ file$outs_kfold$se_elpd
 ##
 ## ----  Model E: Model D, but w/ all 4 (i.e. really 7!) covariates (currently running w/ 3000 iter):
 ##
-file <- readRDS(file.path(output_dir, "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_7param_Xurand_thr_TRUECS_0het_sigma_0_applied_results.RDS"))
+file <- readRDS(file.path(output_dir, "seed_1_K_fold_dummy_data_1intercept_only_0N_covs_7param_ord_bivariaterand_thr_TRUECS_0het_sigma_0_applied_results.RDS"))
 file$outs_kfold$elpd_kfold
 file$outs_kfold$se_elpd
 ##
@@ -1845,7 +1845,7 @@ stan_data_list <- model_prep_obj$internal_obj$outs_data$stan_data_list
 # 
 # # 
 stan_functions_directory <- c("/home/enzocerullo/Documents/Work/PhD_work/R_packages/MetaOrdDTA/inst/stan_functions")
-stan_model_file_path <- "/home/enzocerullo/Documents/Work/PhD_work/R_packages/MetaOrdDTA/inst/stan_models/stan_models_NMA/DTA_NMA_Nyaga_Xu_RANDthr_kappa.stan"
+stan_model_file_path <- "/home/enzocerullo/Documents/Work/PhD_work/R_packages/MetaOrdDTA/inst/stan_models/stan_models_NMA/DTA_NMA_Nyaga_ord_biv_RANDthr_kappa.stan"
 # # ##
 new_cov_data <- list()
 ##

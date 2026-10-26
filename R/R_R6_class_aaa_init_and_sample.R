@@ -390,7 +390,7 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                       }
                                     }
                                     ##
-                                    if (grepl("ord_biv|ordinal_biv|biv|Xu|O-", model_parameterisation, ignore.case = TRUE)) {
+                                    if (grepl("ord_biv|ordinal_biv|biv|O-", model_parameterisation, ignore.case = TRUE)) {
                                       
                                     } else if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
                                       
@@ -606,7 +606,7 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                           }
                                         }
                                         ##
-                                        if (grepl("ord_biv|ordinal_biv|biv|Xu|O-", model_parameterisation, ignore.case = TRUE)) {
+                                        if (grepl("ord_biv|ordinal_biv|biv|O-", model_parameterisation, ignore.case = TRUE)) {
                                           
                                         } else if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
                                           

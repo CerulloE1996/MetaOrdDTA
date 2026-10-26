@@ -97,7 +97,7 @@ start_sim_index <- 1
 
 
 {
-  model_parameterisation = "Xu"
+  model_parameterisation = "ord_bivariate"
   box_cox <- FALSE
   cts <- FALSE
   ##
@@ -117,7 +117,7 @@ start_sim_index <- 1
 
 
 {
-  model_parameterisation = "Xu"
+  model_parameterisation = "ord_bivariate"
   box_cox <- FALSE
   cts <- FALSE
   ##
@@ -226,13 +226,13 @@ N_per_study_SD <- N_per_study_mean
    ############# scale_ALL_bs_SDs_by <- 0.5
    ###   scale_ALL_bs_SDs_by <- 1.0
   ##
- ###   bs_het_C_nd_prob_scale <- 0.03932276 ; bs_het_C_d_prob_scale <- 0.07712564 ## ---- based on "alpha" Xu model fitted to real GAD-2 data
+ ###   bs_het_C_nd_prob_scale <- 0.03932276 ; bs_het_C_d_prob_scale <- 0.07712564 ## ---- based on "alpha" ord_bivariate model fitted to real GAD-2 data
 }
 
 
 if (index_test_MA == "GAD_2") {
         ##
-        ## ---- based on "kappa" Xu model fitted to real GAD-2 data:
+        ## ---- based on "kappa" ord_bivariate model fitted to real GAD-2 data:
         ##
         # bivariate_locations_nd_bs_het_SD <- 0.343
         # bivariate_locations_d_bs_het_SD  <- 0.553 
@@ -253,7 +253,7 @@ if (index_test_MA == "GAD_2") {
           
 } else if (index_test_MA == "HADS") {
           ##
-          ## ---- based on "kappa" Xu model fitted to real HADS data
+          ## ---- based on "kappa" ord_bivariate model fitted to real HADS data
           ##
           # bivariate_locations_nd_bs_het_SD <- 0.235
           # bivariate_locations_d_bs_het_SD  <- 0.396
@@ -275,7 +275,7 @@ if (index_test_MA == "GAD_2") {
 } else if (index_test_MA == "BAI") {
   
           ##
-          ## ---- based on "kappa" Xu model fitted to real HADS data
+          ## ---- based on "kappa" ord_bivariate model fitted to real HADS data
           ##
           # bivariate_locations_nd_bs_het_SD <- 0.235
           # bivariate_locations_d_bs_het_SD  <- 0.396
@@ -297,7 +297,7 @@ if (index_test_MA == "GAD_2") {
   
 } else if (index_test_MA == "GAD_7") {
           ##
-          ## ---- based on "kappa" Xu model fitted to real GAD-7 data:
+          ## ---- based on "kappa" ord_bivariate model fitted to real GAD-7 data:
           ##
           # bivariate_locations_nd_bs_het_SD <- 0.488
           # bivariate_locations_d_bs_het_SD  <- 0.669 
@@ -396,7 +396,7 @@ if (n_studies < 50) {
 
 
 
-# file_name <- "DTA_MA_Xu_FIXEDthr_daig_J.stan"
+# file_name <- "DTA_MA_ord_biv_FIXEDthr_daig_J.stan"
 ##
 # use_custom_file <- TRUE
 use_custom_file <- FALSE
@@ -451,7 +451,7 @@ use_custom_file <- FALSE
 #                      random_thresholds = FALSE,
 #                      Dirichlet_random_effects_type = "none"),
 #                 ##
-#                 list(model_parameterisation = "Xu", 
+#                 list(model_parameterisation = "ord_bivariate", 
 #                      start_sim_index = 16,
 #                      n_sims = 400,
 #                      box_cox = FALSE, 
@@ -469,7 +469,7 @@ use_custom_file <- FALSE
 #                      random_thresholds = FALSE,
 #                      Dirichlet_random_effects_type = "fixed"),
 #                 ##
-#                 list(model_parameterisation = "Xu",   
+#                 list(model_parameterisation = "ord_bivariate",   
 #                      start_sim_index = 16,
 #                      n_sims = 350,
 #                      box_cox = FALSE, 
@@ -528,7 +528,7 @@ use_custom_file <- FALSE
 #                      random_thresholds = FALSE,
 #                      Dirichlet_random_effects_type = "none"),
 #                 ##
-#                 list(model_parameterisation = "Xu", 
+#                 list(model_parameterisation = "ord_bivariate", 
 #                      start_sim_index = 16,
 #                      n_sims = 100,
 #                      box_cox = FALSE, 
@@ -546,7 +546,7 @@ use_custom_file <- FALSE
 #                      random_thresholds = FALSE,
 #                      Dirichlet_random_effects_type = "fixed"),
 #                 ##
-#                 list(model_parameterisation = "Xu",   
+#                 list(model_parameterisation = "ord_bivariate",   
 #                      start_sim_index = 16,
 #                      n_sims = 100,
 #                      box_cox = FALSE, 
@@ -605,7 +605,7 @@ use_custom_file <- FALSE
 #                      random_thresholds = FALSE,
 #                      Dirichlet_random_effects_type = "none"),
 #                 ##
-#                 list(model_parameterisation = "Xu", 
+#                 list(model_parameterisation = "ord_bivariate", 
 #                      start_sim_index = 16,
 #                      n_sims = 400,
 #                      box_cox = FALSE, 
@@ -623,7 +623,7 @@ use_custom_file <- FALSE
 #                      random_thresholds = FALSE,
 #                      Dirichlet_random_effects_type = "fixed"),
 #                 ##
-#                 list(model_parameterisation = "Xu",   
+#                 list(model_parameterisation = "ord_bivariate",   
 #                      start_sim_index = 16,
 #                      n_sims = 350,
 #                      box_cox = FALSE, 
@@ -684,7 +684,7 @@ use_custom_file <- FALSE
 #                random_thresholds = FALSE,
 #                Dirichlet_random_effects_type = "none"),
 #           ##
-#           list(model_parameterisation = "Xu", 
+#           list(model_parameterisation = "ord_bivariate", 
 #                start_sim_index = 51,
 #                n_sims = 1500,
 #                box_cox = FALSE, 
@@ -702,7 +702,7 @@ use_custom_file <- FALSE
 #                random_thresholds = FALSE,
 #                Dirichlet_random_effects_type = "fixed"),
 #           ##
-#           list(model_parameterisation = "Xu",   
+#           list(model_parameterisation = "ord_bivariate",   
 #                start_sim_index = 51,
 #                n_sims = 1400,
 #                box_cox = FALSE, 
@@ -762,7 +762,7 @@ use_custom_file <- FALSE
 #       #      random_thresholds = FALSE,
 #       #      Dirichlet_random_effects_type = "none"),
 #       # ##
-#       # list(model_parameterisation = "Xu", 
+#       # list(model_parameterisation = "ord_bivariate", 
 #       #      start_sim_index = 1,
 #       #      n_sims = 400,
 #       #      box_cox = FALSE, 
@@ -780,7 +780,7 @@ use_custom_file <- FALSE
 #            random_thresholds = FALSE,
 #            Dirichlet_random_effects_type = "fixed"),
 #       # ##
-#       # list(model_parameterisation = "Xu",   
+#       # list(model_parameterisation = "ord_bivariate",   
 #       #      start_sim_index = 1,
 #       #      n_sims = 400,
 #       #      box_cox = FALSE, 
@@ -840,7 +840,7 @@ use_custom_file <- FALSE
 #            random_thresholds = FALSE,
 #            Dirichlet_random_effects_type = "none"),
 #       ##
-#       list(model_parameterisation = "Xu", 
+#       list(model_parameterisation = "ord_bivariate", 
 #            start_sim_index = 51,
 #            n_sims = 1300,
 #            box_cox = FALSE, 
@@ -858,7 +858,7 @@ use_custom_file <- FALSE
 #            random_thresholds = FALSE,
 #            Dirichlet_random_effects_type = "fixed"),
 #       ##
-#       list(model_parameterisation = "Xu",   
+#       list(model_parameterisation = "ord_bivariate",   
 #            start_sim_index = 51,
 #            n_sims = 1300,
 #            box_cox = FALSE, 
@@ -1162,7 +1162,7 @@ sim_configs <- list(
   #       index_test_MA = "GAD_2",
   #       vec_index_inner = 1:6,
   #       n_studies = 10,
-  #       model_parameterisation = "Xu", 
+  #       model_parameterisation = "ord_bivariate", 
   #       alpha_pi = "one",
   #       start_sim_index = start_sim_index,
   #       n_sims = start_sim_index + 450,
@@ -1186,7 +1186,7 @@ sim_configs <- list(
   #       index_test_MA = "GAD_2",
   #       vec_index_inner = 1:6,
   #       n_studies = 10,
-  #       model_parameterisation = "Xu", 
+  #       model_parameterisation = "ord_bivariate", 
   #       alpha_pi = "one",
   #       start_sim_index = start_sim_index,
   #       n_sims = start_sim_index + 675,
@@ -1236,7 +1236,7 @@ sim_configs <- list(
         index_test_MA = "GAD_2",
         vec_index_inner = 1:6,
         n_studies = 50,
-        model_parameterisation = "Xu",
+        model_parameterisation = "ord_bivariate",
         alpha_pi = "one",
         start_sim_index = 1,
         n_sims = 50,
@@ -1260,7 +1260,7 @@ sim_configs <- list(
   #       index_test_MA = "GAD_2",
   #       vec_index_inner = 1:6,
   #       n_studies = 50,
-  #       model_parameterisation = "Xu", 
+  #       model_parameterisation = "ord_bivariate", 
   #       alpha_pi = "one",
   #       start_sim_index = start_sim_index,
   #       n_sims = start_sim_index + 70,
@@ -1310,7 +1310,7 @@ sim_configs <- list(
   #       index_test_MA = "HADS",
   #       vec_index_inner = 3:17,
   #       n_studies = 10,
-  #       model_parameterisation = "Xu", 
+  #       model_parameterisation = "ord_bivariate", 
   #       alpha_pi = "one",
   #       start_sim_index = 3000,
   #       n_sims = hello,
@@ -1334,7 +1334,7 @@ sim_configs <- list(
   #       index_test_MA = "HADS",
   #       vec_index_inner = 3:17,
   #       n_studies = 10,
-  #       model_parameterisation = "Xu", 
+  #       model_parameterisation = "ord_bivariate", 
   #       alpha_pi = "one",
   #       start_sim_index = start_sim_index,
   #       n_sims = start_sim_index + 200,
@@ -1384,7 +1384,7 @@ sim_configs <- list(
   #       index_test_MA = "HADS",
   #       vec_index_inner = 3:17,
   #       n_studies = 50,
-  #       model_parameterisation = "Xu", 
+  #       model_parameterisation = "ord_bivariate", 
   #       alpha_pi = "one",
   #       start_sim_index = 3000,
   #       n_sims = hello,
@@ -1408,7 +1408,7 @@ sim_configs <- list(
   #       index_test_MA = "HADS",
   #       vec_index_inner = 3:17,
   #       n_studies = 50,
-  #       model_parameterisation = "Xu", 
+  #       model_parameterisation = "ord_bivariate", 
   #       alpha_pi = "one",
   #       start_sim_index = 3000,
   #       n_sims = hello,
@@ -1482,7 +1482,7 @@ sim_configs <- list(
   #       index_test_MA = "BAI",
   #       vec_index_inner = 3:43,
   #       n_studies = 10,
-  #       model_parameterisation = "Xu",
+  #       model_parameterisation = "ord_bivariate",
   #       alpha_pi = "one",
   #       start_sim_index = start_sim_index,
   #       n_sims = start_sim_index + 217,
@@ -1506,7 +1506,7 @@ sim_configs <- list(
   #       index_test_MA = "BAI",
   #       vec_index_inner = 3:43,
   #       n_studies = 10,
-  #       model_parameterisation = "Xu",
+  #       model_parameterisation = "ord_bivariate",
   #       alpha_pi = "one",
   #       start_sim_index = start_sim_index,
   #       n_sims =  start_sim_index +  400,
@@ -1628,7 +1628,7 @@ sim_configs <- list(
   #       index_test_MA = "BAI",
   #       vec_index_inner = 3:43,
   #       n_studies = 50,
-  #       model_parameterisation = "Xu",
+  #       model_parameterisation = "ord_bivariate",
   #       alpha_pi = "one",
   #       start_sim_index = start_sim_index,
   #       n_sims = start_sim_index + 86,
@@ -1652,7 +1652,7 @@ sim_configs <- list(
   #       index_test_MA = "BAI",
   #       vec_index_inner = 3:43,
   #       n_studies = 50,
-  #       model_parameterisation = "Xu",
+  #       model_parameterisation = "ord_bivariate",
   #       alpha_pi = "one",
   #       start_sim_index = start_sim_index,
   #       n_sims =  start_sim_index + 100,
@@ -2057,7 +2057,7 @@ require(stringr)
  
 #  
 # param <- "Jones"
-param <- "Xu"
+param <- "ord_bivariate"
 # param <- "R&G"
 ##
 # n_studies <- 10 ; index_test_MA <- "GAD_2" ; model_parameterisation <- param ; random_thresholds <- FALSE ##  
@@ -2589,20 +2589,20 @@ complete_results_list_GAD_2_50studies_500N_Bivariate <- readRDS(file.path(MetaOr
 file_name <- "test_GAD_2N_500n_studies_50param_Jonessoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
 complete_results_list_GAD_2_50studies_500N_Jones <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
-## ---- Xu, Fixed:
+## ---- ord_bivariate, Fixed:
 ##
-file_name <- "test_GAD_2N_500n_studies_50param_Xusoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_GAD_2_50studies_500N_Xu_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
+file_name <- "test_GAD_2N_500n_studies_50param_ord_bivariatesoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
+complete_results_list_GAD_2_50studies_500N_ord_biv_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Fixed:
 ##
 file_name <- "test_GAD_2N_500n_studies_50param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_GAD_2_50studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
-# ---- Xu, Random C:
+# ---- ord_bivariate, Random C:
 #
-file_name <- "test_GAD_2N_500n_studies_50param_Xusoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_GAD_2_50studies_500N_Xu_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
+file_name <- "test_GAD_2N_500n_studies_50param_ord_bivariatesoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
+complete_results_list_GAD_2_50studies_500N_ord_biv_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
 # ---- R&G, Random C:
 #
@@ -2623,20 +2623,20 @@ complete_results_list_HADS_50studies_500N_Bivariate <- readRDS(file.path(MetaOrd
 file_name <- "test_HADSN_500n_studies_50param_Jonessoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
 complete_results_list_HADS_50studies_500N_Jones <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
-## ---- Xu, Fixed:
+## ---- ord_bivariate, Fixed:
 ##
-file_name <- "test_HADSN_500n_studies_50param_Xusoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_HADS_50studies_500N_Xu_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
+file_name <- "test_HADSN_500n_studies_50param_ord_bivariatesoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
+complete_results_list_HADS_50studies_500N_ord_biv_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Fixed:
 ##
 file_name <- "test_HADSN_500n_studies_50param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_HADS_50studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
-## ---- Xu, Random C:
+## ---- ord_bivariate, Random C:
 ##
-file_name <- "test_HADSN_500n_studies_50param_Xusoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_HADS_50studies_500N_Xu_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
+file_name <- "test_HADSN_500n_studies_50param_ord_bivariatesoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
+complete_results_list_HADS_50studies_500N_ord_biv_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
 ##
 ## ---- R&G, Random C:
@@ -2657,20 +2657,20 @@ complete_results_list_BAI_50studies_500N_Bivariate <- readRDS(file.path(MetaOrdD
 file_name <- "test_BAIN_500n_studies_50param_Jonessoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
 complete_results_list_BAI_50studies_500N_Jones <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
-## ---- Xu, Fixed:
+## ---- ord_bivariate, Fixed:
 ##
-file_name <- "test_BAIN_500n_studies_50param_Xusoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_BAI_50studies_500N_Xu_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
+file_name <- "test_BAIN_500n_studies_50param_ord_bivariatesoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
+complete_results_list_BAI_50studies_500N_ord_biv_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Fixed:
 ##
 file_name <- "test_BAIN_500n_studies_50param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_BAI_50studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
-## ---- Xu, Random C:
+## ---- ord_bivariate, Random C:
 ##
-file_name <- "test_BAIN_500n_studies_50param_Xusoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_BAI_50studies_500N_Xu_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
+file_name <- "test_BAIN_500n_studies_50param_ord_bivariatesoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
+complete_results_list_BAI_50studies_500N_ord_biv_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Random C:
 ##
@@ -2694,20 +2694,20 @@ complete_results_list_GAD_2_10studies_500N_Bivariate <- readRDS(file.path(MetaOr
 file_name <- "test_GAD_2N_500n_studies_10param_Jonessoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
 complete_results_list_GAD_2_10studies_500N_Jones <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
-## ---- Xu, Fixed:
+## ---- ord_bivariate, Fixed:
 ##
-file_name <- "test_GAD_2N_500n_studies_10param_Xusoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_GAD_2_10studies_500N_Xu_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
+file_name <- "test_GAD_2N_500n_studies_10param_ord_bivariatesoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
+complete_results_list_GAD_2_10studies_500N_ord_biv_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Fixed:
 ##
 file_name <- "test_GAD_2N_500n_studies_10param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_GAD_2_10studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
-# ---- Xu, Random C:
+# ---- ord_bivariate, Random C:
 #
-file_name <- "test_GAD_2N_500n_studies_10param_Xusoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_GAD_2_10studies_500N_Xu_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
+file_name <- "test_GAD_2N_500n_studies_10param_ord_bivariatesoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
+complete_results_list_GAD_2_10studies_500N_ord_biv_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
 # ---- R&G, Random C:
 #
@@ -2728,20 +2728,20 @@ complete_results_list_HADS_10studies_500N_Bivariate <- readRDS(file.path(MetaOrd
 file_name <- "test_HADSN_500n_studies_10param_Jonessoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
 complete_results_list_HADS_10studies_500N_Jones <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
-## ---- Xu, Fixed:
+## ---- ord_bivariate, Fixed:
 ##
-file_name <- "test_HADSN_500n_studies_10param_Xusoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_HADS_10studies_500N_Xu_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
+file_name <- "test_HADSN_500n_studies_10param_ord_bivariatesoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
+complete_results_list_HADS_10studies_500N_ord_biv_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Fixed:
 ##
 file_name <- "test_HADSN_500n_studies_10param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_HADS_10studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
-## ---- Xu, Random C:
+## ---- ord_bivariate, Random C:
 ##
-file_name <- "test_HADSN_500n_studies_10param_Xusoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_HADS_10studies_500N_Xu_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
+file_name <- "test_HADSN_500n_studies_10param_ord_bivariatesoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
+complete_results_list_HADS_10studies_500N_ord_biv_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
 ##
 ## ---- R&G, Random C:
@@ -2762,20 +2762,20 @@ complete_results_list_BAI_10studies_500N_Bivariate <- readRDS(file.path(MetaOrdD
 file_name <- "test_BAIN_500n_studies_10param_Jonessoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
 complete_results_list_BAI_10studies_500N_Jones <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
-## ---- Xu, Fixed:
+## ---- ord_bivariate, Fixed:
 ##
-file_name <- "test_BAIN_500n_studies_10param_Xusoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_BAI_10studies_500N_Xu_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
+file_name <- "test_BAIN_500n_studies_10param_ord_bivariatesoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
+complete_results_list_BAI_10studies_500N_ord_biv_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Fixed:
 ##
 file_name <- "test_BAIN_500n_studies_10param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_BAI_10studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
-## ---- Xu, Random C:
+## ---- ord_bivariate, Random C:
 ##
-file_name <- "test_BAIN_500n_studies_10param_Xusoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
-complete_results_list_BAI_10studies_500N_Xu_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
+file_name <- "test_BAIN_500n_studies_10param_ord_bivariatesoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
+complete_results_list_BAI_10studies_500N_ord_biv_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- R&G, Random C:
 ##
@@ -2789,28 +2789,28 @@ complete_results_list_BAI_10studies_500N_RG_random_alpha2 <- readRDS(file.path(M
 # ## ---- GAD-2:
 # ## 
 # model_parameterisation <- "Jones"  ; alpha_pi <- "flat" ;  n_studies <- 10 ; test <- "GAD_2" ; random_thresholds <- FALSE
-# model_parameterisation <- "Xu"     ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "GAD_2" ; random_thresholds <- FALSE
-# model_parameterisation <- "Xu"     ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "GAD_2" ; random_thresholds <- TRUE
+# model_parameterisation <- "ord_bivariate"     ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "GAD_2" ; random_thresholds <- FALSE
+# model_parameterisation <- "ord_bivariate"     ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "GAD_2" ; random_thresholds <- TRUE
 # model_parameterisation <- "R&G"    ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "GAD_2" ; random_thresholds <- FALSE
 # model_parameterisation <- "R&G"    ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "GAD_2" ; random_thresholds <- TRUE
 # ##
 # model_parameterisation <- "Jones" ; alpha_pi <- "flat" ;  n_studies <- 50 ; test <- "GAD_2" ; random_thresholds <- FALSE
-# model_parameterisation <- "Xu"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "GAD_2" ; random_thresholds <- FALSE
-# model_parameterisation <- "Xu"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "GAD_2" ; random_thresholds <- TRUE
+# model_parameterisation <- "ord_bivariate"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "GAD_2" ; random_thresholds <- FALSE
+# model_parameterisation <- "ord_bivariate"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "GAD_2" ; random_thresholds <- TRUE
 # model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "GAD_2" ; random_thresholds <- FALSE
 # model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "GAD_2" ; random_thresholds <- TRUE
 # ## 
 # ## ---- HADS:
 # ##
 # model_parameterisation <- "Jones" ; alpha_pi <- "flat" ;  n_studies <- 10 ; test <- "HADS" ; random_thresholds <- FALSE
-model_parameterisation <- "Xu"    ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "HADS" ; random_thresholds <- FALSE
-# model_parameterisation <- "Xu"    ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "HADS" ; random_thresholds <- TRUE
+model_parameterisation <- "ord_bivariate"    ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "HADS" ; random_thresholds <- FALSE
+# model_parameterisation <- "ord_bivariate"    ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "HADS" ; random_thresholds <- TRUE
 # model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "HADS" ; random_thresholds <- FALSE
 # model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "HADS" ; random_thresholds <- TRUE
 # ##
 # model_parameterisation <- "Jones" ; alpha_pi <- "flat" ;  n_studies <- 50 ; test <- "HADS" ; random_thresholds <- FALSE
-model_parameterisation <- "Xu"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "HADS" ; random_thresholds <- FALSE
-# model_parameterisation <- "Xu"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "HADS" ; random_thresholds <- TRUE
+model_parameterisation <- "ord_bivariate"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "HADS" ; random_thresholds <- FALSE
+# model_parameterisation <- "ord_bivariate"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "HADS" ; random_thresholds <- TRUE
 # model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "HADS" ; random_thresholds <- FALSE
 # model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "HADS" ; random_thresholds <- TRUE
 ## 
@@ -2818,15 +2818,15 @@ model_parameterisation <- "Xu"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test
 ##
 # model_parameterisation <- "Bivariate" ; alpha_pi <- "flat" ;  n_studies <- 10 ; test <- "BAI" ; random_thresholds <- FALSE
 # model_parameterisation <- "Jones" ; alpha_pi <- "flat" ;  n_studies <- 10 ; test <- "BAI" ; random_thresholds <- FALSE
-# model_parameterisation <- "Xu"    ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "BAI" ; random_thresholds <- FALSE
-model_parameterisation <- "Xu"    ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "BAI" ; random_thresholds <- TRUE
+# model_parameterisation <- "ord_bivariate"    ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "BAI" ; random_thresholds <- FALSE
+model_parameterisation <- "ord_bivariate"    ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "BAI" ; random_thresholds <- TRUE
 # model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "BAI" ; random_thresholds <- FALSE
 # model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "BAI" ; random_thresholds <- TRUE
 ##
 model_parameterisation <- "Bivariate" ; alpha_pi <- "flat" ;  n_studies <- 50 ; test <- "BAI" ; random_thresholds <- FALSE
 # model_parameterisation <- "Jones" ; alpha_pi <- "flat" ;  n_studies <- 50 ; test <- "BAI" ; random_thresholds <- FALSE
-# model_parameterisation <- "Xu"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "BAI" ; random_thresholds <- FALSE
-model_parameterisation <- "Xu"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "BAI" ; random_thresholds <- TRUE
+# model_parameterisation <- "ord_bivariate"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "BAI" ; random_thresholds <- FALSE
+model_parameterisation <- "ord_bivariate"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "BAI" ; random_thresholds <- TRUE
 # model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "BAI" ; random_thresholds <- FALSE
 # model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "BAI" ; random_thresholds <- TRUE
  
@@ -3000,48 +3000,48 @@ try({
 ##
 complete_results_list_GAD_2 <- list(  complete_results_list_GAD_2_10studies_500N_Bivariate,
                                       complete_results_list_GAD_2_10studies_500N_Jones,
-                                      complete_results_list_GAD_2_10studies_500N_Xu_fixed_alpha2,
+                                      complete_results_list_GAD_2_10studies_500N_ord_biv_fixed_alpha2,
                                       complete_results_list_GAD_2_10studies_500N_RG_fixed_alpha2,
-                                      complete_results_list_GAD_2_10studies_500N_Xu_random_alpha2,
+                                      complete_results_list_GAD_2_10studies_500N_ord_biv_random_alpha2,
                                       complete_results_list_GAD_2_10studies_500N_RG_random_alpha2,
                                       ##
                                       complete_results_list_GAD_2_50studies_500N_Bivariate,
                                       complete_results_list_GAD_2_50studies_500N_Jones,
-                                      complete_results_list_GAD_2_50studies_500N_Xu_fixed_alpha2,
+                                      complete_results_list_GAD_2_50studies_500N_ord_biv_fixed_alpha2,
                                       complete_results_list_GAD_2_50studies_500N_RG_fixed_alpha2,
-                                      complete_results_list_GAD_2_50studies_500N_Xu_random_alpha2,
+                                      complete_results_list_GAD_2_50studies_500N_ord_biv_random_alpha2,
                                       complete_results_list_GAD_2_50studies_500N_RG_random_alpha2)
 ##
 ##
 ##
 complete_results_list_HADS <-  list(  complete_results_list_HADS_10studies_500N_Bivariate,
                                       complete_results_list_HADS_10studies_500N_Jones,
-                                      complete_results_list_HADS_10studies_500N_Xu_fixed_alpha2,
+                                      complete_results_list_HADS_10studies_500N_ord_biv_fixed_alpha2,
                                       complete_results_list_HADS_10studies_500N_RG_fixed_alpha2,
-                                      complete_results_list_HADS_10studies_500N_Xu_random_alpha2,
+                                      complete_results_list_HADS_10studies_500N_ord_biv_random_alpha2,
                                       complete_results_list_HADS_10studies_500N_RG_random_alpha2,
                                       ##
                                       complete_results_list_HADS_50studies_500N_Bivariate,
                                       complete_results_list_HADS_50studies_500N_Jones,
-                                      complete_results_list_HADS_50studies_500N_Xu_fixed_alpha2,
+                                      complete_results_list_HADS_50studies_500N_ord_biv_fixed_alpha2,
                                       complete_results_list_HADS_50studies_500N_RG_fixed_alpha2,
-                                      complete_results_list_HADS_50studies_500N_Xu_random_alpha2,
+                                      complete_results_list_HADS_50studies_500N_ord_biv_random_alpha2,
                                       complete_results_list_HADS_50studies_500N_RG_random_alpha2)
 ##
 ##
 ##
 complete_results_list_BAI <- list(    complete_results_list_BAI_10studies_500N_Bivariate,
                                       complete_results_list_BAI_10studies_500N_Jones,
-                                      complete_results_list_BAI_10studies_500N_Xu_fixed_alpha2,
+                                      complete_results_list_BAI_10studies_500N_ord_biv_fixed_alpha2,
                                       complete_results_list_BAI_10studies_500N_RG_fixed_alpha2,
-                                      complete_results_list_BAI_10studies_500N_Xu_random_alpha2,
+                                      complete_results_list_BAI_10studies_500N_ord_biv_random_alpha2,
                                       complete_results_list_BAI_10studies_500N_RG_random_alpha2,
                                       ##
                                       complete_results_list_BAI_50studies_500N_Bivariate,
                                       complete_results_list_BAI_50studies_500N_Jones,
-                                      complete_results_list_BAI_50studies_500N_Xu_fixed_alpha2,
+                                      complete_results_list_BAI_50studies_500N_ord_biv_fixed_alpha2,
                                       complete_results_list_BAI_50studies_500N_RG_fixed_alpha2,
-                                      complete_results_list_BAI_50studies_500N_Xu_random_alpha2,
+                                      complete_results_list_BAI_50studies_500N_ord_biv_random_alpha2,
                                       complete_results_list_BAI_50studies_500N_RG_random_alpha2)
 ##
 {

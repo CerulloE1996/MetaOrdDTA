@@ -100,7 +100,7 @@ transformed parameters {
                   ////
                   //// ---- Get the cutpoint index (k) to map "latent_surv[c][s, cut_i]" to correct cutpoint "C[k]":
                   ////
-                  real scale = 1.0; // since using "Xu-like"" param.
+                  real scale = 1.0; // since using "ord_bivariate-like"" param.
                   array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_prob_to_fixed_hetero_C(C, beta, scale, n_studies, n_obs_cutpoints, cutpoint_index);
                   ////
                   //// ---- Multinomial (factorised binomial likelihood)

@@ -11,7 +11,7 @@
 #'
 #' @param name_of_the_model The model's name without ".stan", e.g. "DTA_MA_ord_biv_FIXEDthr" or
 #'   "DTA_NMA_Nyaga_ord_biv_FIXEDthr".
-#' @param model_parameterisation "Xu", "ordinal_HSROC", "Jones", "Bivariate" or "NMA" (used in the message of a model whose
+#' @param model_parameterisation "ord_bivariate", "ordinal_HSROC", "Jones", "Bivariate" or "NMA" (used in the message of a model whose
 #'   blocks are not known).
 #' @param random_thresholds TRUE for the random-cutpoint models, FALSE for the fixed-cutpoint ones.
 #' @return A character vector of nuisance block names, never NULL. A model whose blocks are not known stops, with
