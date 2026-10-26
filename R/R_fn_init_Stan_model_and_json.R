@@ -31,9 +31,7 @@ init_stan_model_external <- function( debugging = FALSE,
         ##
         validated_json_string <- paste(readLines(json_file_path), collapse="")
         jsonlite::write_json(x = validated_json_string, path = json_file_path)
-        if (is.null(stan_model_obj)) {
-          stop("The Stan model has not been compiled. Recreate the model with compile = TRUE before sampling.")
-        }
+        ## (stan_model_obj is NULL when the model is not compiled with cmdstanr, e.g. for a NicoStan fit)
 
         ## Sampling five throw-away iterations used to happen here merely to inspect
         ## the model variables. Apart from doubling work, that run could fail and
@@ -74,6 +72,7 @@ init_stan_model_external <- function( debugging = FALSE,
 R_fn_init_stan_inits_external <- function( stan_data_list, 
                                            stan_model_file_path,
                                            stan_model_obj,
+                                           stan_functions_directory,
                                            n_chains,
                                            init_lists_per_chain
 ) {
@@ -100,11 +99,33 @@ R_fn_init_stan_inits_external <- function( stan_data_list,
           {
             stan_param_names_list <- list()
             ##
-            stan_param_names_list$parameters <- names(stan_model_obj$variables()$parameters)
-            ##
-            stan_param_names_list$transformed_parameters <- names(stan_model_obj$variables()$transformed_parameters)
-            ##
-            stan_param_names_list$generated_quantities <- names(stan_model_obj$variables()$generated_quantities)
+            if (!is.null(stan_model_obj)) {
+              ##
+              stan_param_names_list$parameters <- names(stan_model_obj$variables()$parameters)
+              ##
+              stan_param_names_list$transformed_parameters <- names(stan_model_obj$variables()$transformed_parameters)
+              ##
+              stan_param_names_list$generated_quantities <- names(stan_model_obj$variables()$generated_quantities)
+              ##
+            } else {
+              ##
+              ## (no cmdstanr model, e.g. a NicoStan fit: the same names from stanc --info, which is what
+              ##  cmdstanr's $variables() reads)
+              stanc_file_path <- file.path(cmdstanr_path(), "bin", "stanc")
+              info_of_the_model <- jsonlite::fromJSON(system2(stanc_file_path,
+                                                              c("--info",
+                                                                paste0("--include-paths=", stan_functions_directory),
+                                                                stan_model_file_path),
+                                                              stdout = TRUE,
+                                                              stderr = FALSE))
+              ##
+              stan_param_names_list$parameters <- names(info_of_the_model[["parameters"]])
+              ##
+              stan_param_names_list$transformed_parameters <- names(info_of_the_model[["transformed parameters"]])
+              ##
+              stan_param_names_list$generated_quantities <- names(info_of_the_model[["generated quantities"]])
+              ##
+            }
             ##
             stan_param_names_list$all_params <- c(
               stan_param_names_list$parameters,

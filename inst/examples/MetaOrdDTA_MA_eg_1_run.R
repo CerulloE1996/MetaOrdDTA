@@ -431,7 +431,7 @@ use_custom_file <- FALSE
 #                 missing_thr = TRUE
 #               )
 #               ##
-#               # Define your model configurations
+#               # Define the model configurations
 #               model_configs <- list(
 #                 list(model_parameterisation = "Bivariate",
 #                      start_sim_index = 16,
@@ -508,7 +508,7 @@ use_custom_file <- FALSE
 #                 missing_thr = TRUE
 #               )
 #               ##
-#               # Define your model configurations
+#               # Define the model configurations
 #               model_configs <- list(
 #                 list(model_parameterisation = "Bivariate",
 #                      start_sim_index = 16,
@@ -585,7 +585,7 @@ use_custom_file <- FALSE
 #                 missing_thr = TRUE
 #               )
 #               ##
-#               # Define your model configurations
+#               # Define the model configurations
 #               model_configs <- list(
 #                 list(model_parameterisation = "Bivariate",
 #                      start_sim_index = 16,
@@ -664,7 +664,7 @@ use_custom_file <- FALSE
 #           missing_thr = TRUE
 #         )
 #         ##
-#         # Define your model configurations
+#         # Define the model configurations
 #         model_configs <- list(
 #           list(model_parameterisation = "Bivariate",
 #                start_sim_index = 51,
@@ -741,7 +741,7 @@ use_custom_file <- FALSE
 #       missing_thr = TRUE
 #     )
 #     ##
-#     # Define your model configurations
+#     # Define the model configurations
 #     model_configs <- list(
 #       # ##
 #       # list(model_parameterisation = "Bivariate",
@@ -819,7 +819,7 @@ use_custom_file <- FALSE
 #       missing_thr = TRUE
 #     )
 #     ##
-#     # Define your model configurations
+#     # Define the model configurations
 #     model_configs <- list(
 #       ##
 #       list(model_parameterisation = "Bivariate",
@@ -2609,9 +2609,11 @@ complete_results_list_GAD_2_50studies_500N_Xu_random_alpha2 <- readRDS(file.path
 file_name <- "test_GAD_2N_500n_studies_50param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_GAD_2_50studies_500N_RG_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 # ##
+##
 ## ----------- For HADS ---------------------------------------------------------------------------------------------- :
 ##
 ## ---- Bivariate:
+##
 #
 file_name <- "test_HADSN_500n_studies_50param_Bivariatesoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
 complete_results_list_HADS_50studies_500N_Bivariate <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
@@ -2636,6 +2638,7 @@ complete_results_list_HADS_50studies_500N_RG_fixed_alpha2 <- readRDS(file.path(M
 file_name <- "test_HADSN_500n_studies_50param_Xusoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_HADS_50studies_500N_Xu_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
+##
 ## ---- R&G, Random C:
 ##
 file_name <- "test_HADSN_500n_studies_50param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
@@ -2711,9 +2714,11 @@ complete_results_list_GAD_2_10studies_500N_Xu_random_alpha2 <- readRDS(file.path
 file_name <- "test_GAD_2N_500n_studies_10param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_GAD_2_10studies_500N_RG_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 # ##
+##
 ## ----------- For HADS ---------------------------------------------------------------------------------------------- :
 ##
 ## ---- Bivariate:
+##
 #
 file_name <- "test_HADSN_500n_studies_10param_Bivariatesoft_FALSErand_thr_FALSEalpha_pi_flat_complete_results_list.RDS"
 complete_results_list_HADS_10studies_500N_Bivariate <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
@@ -2738,6 +2743,7 @@ complete_results_list_HADS_10studies_500N_RG_fixed_alpha2 <- readRDS(file.path(M
 file_name <- "test_HADSN_500n_studies_10param_Xusoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_HADS_10studies_500N_Xu_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
+##
 ## ---- R&G, Random C:
 ##
 file_name <- "test_HADSN_500n_studies_10param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
@@ -3337,6 +3343,7 @@ overall_sim_data
 ##
 ##
 require(patchwork)
+##
 ## ---- Create plots for each DGM:
 ##
 # Get unique DGMs

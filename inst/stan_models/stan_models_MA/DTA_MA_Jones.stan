@@ -20,7 +20,7 @@ data {
         ////
         //// ---- Data:
         ////
-        int<lower=1> n_studies;
+        int<lower=1> n_studies;ission 
         int<lower=1> n_thr;
         array[n_studies] int n_obs_cutpoints;
         ////
@@ -55,8 +55,8 @@ data {
         //// 
         //// ---- Priors for box-cox ("lambda"):
         ////
-        real prior_boxcox_lambda_mean;
-        real prior_boxcox_lambda_SD;
+        vector[2] prior_boxcox_lambda_mean;
+        vector<lower=0.0>[2] prior_boxcox_lambda_SD;
         ////
         //// ---- Priors (and possible restrictions) for between-study correlations:
         ////  
@@ -114,7 +114,8 @@ parameters {
         real<lower=beta_corr_lb, upper=beta_corr_ub> beta_corr;  //// between-study corr (possibly restricted)
         real<lower=raw_scale_corr_lb, upper=raw_scale_corr_ub> raw_scale_corr;  //// between-study corr (possibly restricted)
         ////
-        vector<lower=-5.0, upper=5.0>[2] lambda; //// box-cox params
+        vector<lower=-5.0, upper=5.0>[2] lambda; //// box-cox params (lower half of the thresholds)
+        vector<lower=-5.0, upper=5.0>[2] lambda_upper; //// box-cox params (upper half of the thresholds)
 }
 
 
@@ -127,33 +128,25 @@ transformed parameters {
         cholesky_factor_cov[2]  beta_L_Sigma       = diag_pre_multiply(beta_SD, beta_L_Omega);
         cholesky_factor_cov[2]  raw_scale_L_Sigma  = diag_pre_multiply(raw_scale_SD, raw_scale_L_Omega);
         ////
-        //// ---- Compute (global) cutpoints using either log or box-cox transform:
-        //// 
-        array[2] vector[n_thr] C_raw;  // Unconstrained Box-Cox output
-        array[2] vector[n_thr] C;      // Scaled to [-2, +2]
-        C_raw[1] = ((box_cox == 0) ? log(cts_thr_values) : fn_Stan_box_cox(cts_thr_values, lambda[1]));  
-        C_raw[2] = ((box_cox == 0) ? log(cts_thr_values) : fn_Stan_box_cox(cts_thr_values, lambda[2]));
+        //// ---- Compute (global) cutpoints using the box-cox transform:
+        ////
+        array[2] vector[n_thr] C;
         ////
         // Step 1: Shift to positive if needed
         real min_thr = min(cts_thr_values);
         real shift = min_thr <= 0 ? abs(min_thr) + 1.0 : 0.0;
         vector[n_thr] cts_thr_shifted = cts_thr_values + shift;
-        
-        // Step 2: Apply Box-Cox
-        C_raw[1] = fn_Stan_box_cox(cts_thr_shifted, lambda[1]);  
-        C_raw[2] = fn_Stan_box_cox(cts_thr_shifted, lambda[2]);
-        
-        // Step 3: Scale to [-2, +2] range
+
+        // Step 2: Apply Box-Cox (the cutpoints themselves): lambda below the middle of the thresholds,
+        //         lambda_upper above it, joined at the middle so that the cutpoints are continuous and ordered
+        real thr_middle = 0.5 * (min(cts_thr_shifted) + max(cts_thr_shifted));
         for (c in 1:2) {
-            real C_min = min(C_raw[c]);
-            real C_max = max(C_raw[c]);
-            real C_range = C_max - C_min;
-            
-            if (C_range > 0) {
-                // Linear rescaling: map [C_min, C_max] → [-2, +2]
-                C[c] = -2.0 + 4.0 * (C_raw[c] - C_min) / C_range;
-            } else {
-                C[c] = rep_vector(0.0, n_thr);  // All same value → center at 0
+            real C_at_the_middle = fn_Stan_box_cox(thr_middle, lambda[c]);
+            for (k in 1:n_thr) {
+                C[c][k] = (cts_thr_shifted[k] <= thr_middle) ?
+                          fn_Stan_box_cox(cts_thr_shifted[k], lambda[c]) :
+                          C_at_the_middle + fn_Stan_box_cox(cts_thr_shifted[k], lambda_upper[c]) -
+                                            fn_Stan_box_cox(thr_middle, lambda_upper[c]);
             }
         }
         ////
@@ -203,6 +196,7 @@ model {
         //// ---- Prior for box-cox parameters:
         ////
         lambda ~ normal(prior_boxcox_lambda_mean, prior_boxcox_lambda_SD);
+        lambda_upper ~ normal(prior_boxcox_lambda_mean, prior_boxcox_lambda_SD);
         ////
         //// ---- Likelihood / Model:
         ////

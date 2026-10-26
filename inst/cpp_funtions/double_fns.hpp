@@ -580,15 +580,15 @@ struct is_dynamic_matrix {
 /* For a in [0.5, 4), compute a * 2**i, -250 < i < 250 */
 // Note: this function is  the same as the one in the link above, but for * double * instead of * float *.
 // not handling edge cases  - should work for a in [0.5, 2.0). 
-inline double fast_ldexp(const double a, 
+inline double nico_ldexp(const double a, 
                          const int i) {
   int64_t ia = ((uint64_t)i << 52ULL) + __double_as_int(a);
   return __int_as_double(ia);
 }
 
-/// this is the same as fast_ldexp but handles edge-cases (will have wider input range )
+/// this is the same as nico_ldexp but handles edge-cases (will have wider input range )
 /// if i is too large, splits the calc. into two steps
-inline double fast_ldexp_2(const double a, 
+inline double nico_ldexp_2(const double a, 
                            const int i) {
   // In IEEE 754 double precision format:
   // Bits 0-51:  Fraction (mantissa)
@@ -621,12 +621,12 @@ inline double fast_ldexp_2(const double a,
     // then scale by i2
     // int64_t step2 = ((uint64_t)i2 << 52ULL) + __double_as_int(mid);
     // return __int_as_double(step2);
-    return fast_ldexp(mid, i2);
+    return nico_ldexp(mid, i2);
     
   }
   
   
-  return fast_ldexp(a, i); // if doesnt exceed threshold just use 'standard' fast_ldexp()
+  return nico_ldexp(a, i); // if doesnt exceed threshold just use 'standard' nico_ldexp()
   
 }
 
@@ -638,7 +638,7 @@ inline double fast_ldexp_2(const double a,
 // Adapted from: https://stackoverflow.com/questions/48863719/fastest-implementation-of-exponential-function-using-avx
 // added (optional) extra degree(s) for poly approx (oroginal float fn had 4 degrees) - using "minimaxApprox" R package to find coefficient terms
 // R code:   minimaxApprox::minimaxApprox(fn = exp, lower = -0.346573590279972643113, upper = 0.346573590279972643113, degree = 5, basis ="Chebyshev")
-inline double fast_exp_1_wo_checks (const double x)  {
+inline double nico_exp_1_wo_checks (const double x)  {
   
   const double input = x;
   const double l2e =   (1.442695040888963387); /* log2(e) */
@@ -677,7 +677,7 @@ inline double fast_exp_1_wo_checks (const double x)  {
   p = std::fma (p, f, c8);
   p = std::fma (p, f, c9);
   
-  return fast_ldexp_2(p, i) ;
+  return nico_ldexp_2(p, i) ;
   
 }
 
@@ -692,9 +692,9 @@ inline double fast_exp_1_wo_checks (const double x)  {
 
 // see https://stackoverflow.com/questions/39587752/difference-between-ldexp1-x-and-exp2x
 // Note: this function is  the same as the one in the link above, but for * double * instead of * float *.
-inline double fast_exp_1(const double a)    {
+inline double nico_exp_1(const double a)    {
   if (std::fabs (a) < 708.4) {
-    return  fast_exp_1_wo_checks(a);
+    return  nico_exp_1_wo_checks(a);
   } else {
    // const double large =  8.98846567431157953864652595394512366808e307;
     double r = INFINITY - INFINITY; //  // this handles NaNs
@@ -714,7 +714,7 @@ inline double fast_exp_1(const double a)    {
 ///////////////////  fns - log   -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 //https://stackoverflow.com/a/65537754/9007125
-inline  double fast_log_1_wo_checks (const double a)  {
+inline  double nico_log_1_wo_checks (const double a)  {
   
         double  r,  t;
   
@@ -741,25 +741,25 @@ inline  double fast_log_1_wo_checks (const double a)  {
 }
 
 //  compute log(1+x) without losing precision for small values of x. //  see: https://www.johndcook.com/cpp_log_one_plus_x.html
-inline   double fast_log1p_1_wo_checks(const double x)   {
+inline   double nico_log1p_1_wo_checks(const double x)   {
   
-  if (fabs(x) > 1e-4)   return fast_log_1_wo_checks(1.0 + x);     // x is large enough that the obvious evaluation is OK
+  if (fabs(x) > 1e-4)   return nico_log_1_wo_checks(1.0 + x);     // x is large enough that the obvious evaluation is OK
   return (-0.5*x + 1.0)*x;     // Use Taylor approx. log(1 + x) = x - x^2/2 with error roughly x^3/3     // Since |x| < 10^-4, |x|^3 < 10^-12, relative error less than 10^-8
   
 }
 
 //  compute log(1-x) without losing precision for small values of x.
-inline   double fast_log1m_1_wo_checks(const double x)   {
+inline   double nico_log1m_1_wo_checks(const double x)   {
   
-  return fast_log1p_1_wo_checks(-x);
+  return nico_log1p_1_wo_checks(-x);
   
 }
 
 //  compute log(1+x) without losing precision for small values of x. //  see: https://www.johndcook.com/cpp_log_one_plus_x.html
-inline   double fast_log1p_exp_1_wo_checks(const double x)   {
+inline   double nico_log1p_exp_1_wo_checks(const double x)   {
   
-  if (x > 0.0) return x + fast_log1p_1_wo_checks(fast_exp_1_wo_checks(-x));
-  return fast_log1p_1_wo_checks(fast_exp_1_wo_checks(x));
+  if (x > 0.0) return x + nico_log1p_1_wo_checks(nico_exp_1_wo_checks(-x));
+  return nico_log1p_1_wo_checks(nico_exp_1_wo_checks(x));
   
 }
  
@@ -767,7 +767,7 @@ inline   double fast_log1p_exp_1_wo_checks(const double x)   {
  
 
 //https://stackoverflow.com/a/65537754/9007125 /* compute natural logarithm, maximum error 0.85089 ulps */
-inline   double fast_log_1  (const double a)  {
+inline   double nico_log_1  (const double a)  {
   
       if (!((a > 0.0) && (a < INFINITY))) {
         
@@ -778,15 +778,15 @@ inline   double fast_log_1  (const double a)  {
         
       }
       
-      return  fast_log_1_wo_checks(a);
+      return  nico_log_1_wo_checks(a);
       
 }
 
 //  compute log(1+x) without losing precision for small values of x.
 //  see: https://www.johndcook.com/cpp_log_one_plus_x.html
-inline   double fast_log1p_1(const double x)   {
+inline   double nico_log1p_1(const double x)   {
   
-  if (fabs(x) > 1e-4)   return fast_log_1(1.0 + x);     // x is large enough that the obvious evaluation is OK
+  if (fabs(x) > 1e-4)   return nico_log_1(1.0 + x);     // x is large enough that the obvious evaluation is OK
   
   if (x <= -1.0)   {
     
@@ -802,17 +802,17 @@ inline   double fast_log1p_1(const double x)   {
 }
 
 //  compute log(1-x) without losing precision for small values of x.
-inline  double fast_log1m_1(const double x)   {
+inline  double nico_log1m_1(const double x)   {
   
-  return fast_log1p_1(-x);
+  return nico_log1p_1(-x);
   
 }
 
 //  compute log(1+x) without losing precision for small values of x. //  see: https://www.johndcook.com/cpp_log_one_plus_x.html
-inline   double fast_log1p_exp_1(const double x)   {
+inline   double nico_log1p_exp_1(const double x)   {
   
-  if (x > 0.0) return x + fast_log1p_1(fast_exp_1(-x));
-  return fast_log1p_1(fast_exp_1(x));
+  if (x > 0.0) return x + nico_log1p_1(nico_exp_1(-x));
+  return nico_log1p_1(nico_exp_1(x));
   
 }
  
@@ -831,25 +831,25 @@ inline   double fast_log1p_exp_1(const double x)   {
 ///////////////////  fns - inv_logit   ----------------------------------------------------------------------------------------------------------------
 
 
-inline  double  fast_inv_logit_for_x_pos(const double x )  {
-  return     (1.0 /  (1.0 + fast_exp_1(-x)))  ;
+inline  double  nico_inv_logit_for_x_pos(const double x )  {
+  return     (1.0 /  (1.0 + nico_exp_1(-x)))  ;
 }
 
-inline  double  fast_inv_logit_for_x_neg(const double x )  {
+inline  double  nico_inv_logit_for_x_neg(const double x )  {
   const double log_eps = -18.420680743952367;
-  const double   exp_x =  fast_exp_1(x) ;
+  const double   exp_x =  nico_exp_1(x) ;
   if (x > log_eps) return  exp_x / (1.0 + exp_x);
   return  exp_x;
 }
 
-inline  double  fast_inv_logit(const double x )  {
+inline  double  nico_inv_logit(const double x )  {
   
   double val;
   
   if (x > 0.0) { 
-    val =   fast_inv_logit_for_x_pos(x);
+    val =   nico_inv_logit_for_x_pos(x);
   } else { 
-    val =  fast_inv_logit_for_x_neg(x);
+    val =  nico_inv_logit_for_x_neg(x);
   }
  
   if  ((val > 0) && (val < 1))  { 
@@ -872,28 +872,28 @@ inline  double  fast_inv_logit(const double x )  {
 
 
 
-inline  double  fast_inv_logit_for_x_pos_wo_checks(const double x )  {
-  double     exp_m_x =  fast_exp_1_wo_checks(-x) ;
+inline  double  nico_inv_logit_for_x_pos_wo_checks(const double x )  {
+  double     exp_m_x =  nico_exp_1_wo_checks(-x) ;
   return     (1.0 /  (1.0 + exp_m_x))  ;
 }
 
-inline   double  fast_inv_logit_for_x_neg_wo_checks(const double x )  {
+inline   double  nico_inv_logit_for_x_neg_wo_checks(const double x )  {
   double log_eps = -18.420680743952367;
-  double   exp_x =  fast_exp_1_wo_checks(x) ;
+  double   exp_x =  nico_exp_1_wo_checks(x) ;
   if (x > log_eps) return   exp_x / (1.0 + exp_x);
   return  exp_x;
 }
 
-inline   double  fast_inv_logit_wo_checks(const double x )  {
-  if (x > 0) return  fast_inv_logit_for_x_pos_wo_checks(x);
-  return  fast_inv_logit_for_x_neg_wo_checks(x);
+inline   double  nico_inv_logit_wo_checks(const double x )  {
+  if (x > 0) return  nico_inv_logit_for_x_pos_wo_checks(x);
+  return  nico_inv_logit_for_x_neg_wo_checks(x);
   
   double val;
   
   if (x > 0.0) { 
-    val =   fast_inv_logit_for_x_pos_wo_checks(x);
+    val =   nico_inv_logit_for_x_pos_wo_checks(x);
   } else { 
-    val =  fast_inv_logit_for_x_neg_wo_checks(x);
+    val =  nico_inv_logit_for_x_neg_wo_checks(x);
   }
   
   if  ((val > 0) && (val < 1))  { 
@@ -924,19 +924,19 @@ inline   double  fast_inv_logit_wo_checks(const double x )  {
 
 ///////////////////  fns - log_inv_logit   ----------------------------------------------------------------------------------------------------------------
 
-inline   double  fast_log_inv_logit_for_x_pos(const double x )  {
-  return    - fast_log1p_exp_1(-x);  // return    - fast_log1p_1(fast_exp_1(-x));
+inline   double  nico_log_inv_logit_for_x_pos(const double x )  {
+  return    - nico_log1p_exp_1(-x);  // return    - nico_log1p_1(nico_exp_1(-x));
 }
 
-inline   double  fast_log_inv_logit_for_x_neg(const double x )  {
+inline   double  nico_log_inv_logit_for_x_neg(const double x )  {
   const double log_eps = -18.420680743952367;
-  if (x > log_eps) return  x - fast_log1p_1(fast_exp_1(x));
+  if (x > log_eps) return  x - nico_log1p_1(nico_exp_1(x));
   return x;
 }
 
-inline   double  fast_log_inv_logit(const double x )  {
-  if (x > 0.0) return  fast_log_inv_logit_for_x_pos(x);
-  return  fast_log_inv_logit_for_x_neg(x);
+inline   double  nico_log_inv_logit(const double x )  {
+  if (x > 0.0) return  nico_log_inv_logit_for_x_pos(x);
+  return  nico_log_inv_logit_for_x_neg(x);
 }
 
  
@@ -956,19 +956,19 @@ inline   double  fast_log_inv_logit(const double x )  {
 
 
 
-inline   double  fast_log_inv_logit_for_x_pos_wo_checks(const double x )  {
-   return    - fast_log1p_exp_1_wo_checks((-x));
+inline   double  nico_log_inv_logit_for_x_pos_wo_checks(const double x )  {
+   return    - nico_log1p_exp_1_wo_checks((-x));
 }
 
-inline   double  fast_log_inv_logit_for_x_neg_wo_checks(const double x )  {
+inline   double  nico_log_inv_logit_for_x_neg_wo_checks(const double x )  {
   const double log_eps = -18.420680743952367;
-  if (x > log_eps) return x - fast_log1p_1_wo_checks(fast_exp_1_wo_checks(x));
+  if (x > log_eps) return x - nico_log1p_1_wo_checks(nico_exp_1_wo_checks(x));
   return x;
 }
 
-inline   double  fast_log_inv_logit_wo_checks(const double x )  {
-  if (x > 0.0) return  fast_log_inv_logit_for_x_pos_wo_checks(x);
-  return  fast_log_inv_logit_for_x_neg_wo_checks(x);
+inline   double  nico_log_inv_logit_wo_checks(const double x )  {
+  if (x > 0.0) return  nico_log_inv_logit_for_x_pos_wo_checks(x);
+  return  nico_log_inv_logit_for_x_neg_wo_checks(x);
 }
  
 
@@ -982,7 +982,7 @@ inline   double  fast_log_inv_logit_wo_checks(const double x )  {
 
 
 
-inline  double  fast_Phi_approx_wo_checks(const double x )  {
+inline  double  nico_Phi_approx_wo_checks(const double x )  {
   
   const double    a =       (0.07056);
   const double    b =       (1.5976);
@@ -990,7 +990,7 @@ inline  double  fast_Phi_approx_wo_checks(const double x )  {
   const double    a_x_sq_plus_b = fma(a, x_sq, b);
   const double    stuff_to_inv_logit =  x*a_x_sq_plus_b;
   
-  return    fast_inv_logit_wo_checks(stuff_to_inv_logit);
+  return    nico_inv_logit_wo_checks(stuff_to_inv_logit);
   
 }
  
@@ -999,7 +999,7 @@ inline  double  fast_Phi_approx_wo_checks(const double x )  {
  
 
 
-inline   double  fast_Phi_approx(const double x )  {
+inline   double  nico_Phi_approx(const double x )  {
   
   const double    a =       (0.07056);
   const double    b =       (1.5976);
@@ -1007,7 +1007,7 @@ inline   double  fast_Phi_approx(const double x )  {
   const double    a_x_sq_plus_b = fma(a, x_sq, b);
   const double    stuff_to_inv_logit =  x*a_x_sq_plus_b;
   
-  return    fast_inv_logit(stuff_to_inv_logit);
+  return    nico_inv_logit(stuff_to_inv_logit);
   
 }
  
@@ -1080,25 +1080,25 @@ inline Eigen::Matrix<double, -1, -1  > inv_Phi_approx_Eigen(  const Eigen::Ref<c
 
 
  
-inline  double  fast_inv_Phi_approx_wo_checks( const double x )  {
+inline  double  nico_inv_Phi_approx_wo_checks( const double x )  {
   
-  const double m_logit_p = fast_log_1_wo_checks( 1.0/x - 1.0); // log first
+  const double m_logit_p = nico_log_1_wo_checks( 1.0/x - 1.0); // log first
   const double x_i = -0.3418*m_logit_p;
-  const double asinh_stuff_div_3 =  0.33333333333333331483 * fast_log_1_wo_checks( x_i  +  std::sqrt(  fma(x_i, x_i, 1.0) ) ) ;          // now do arc_sinh part
-  const double exp_x_i = fast_exp_1_wo_checks(asinh_stuff_div_3);
+  const double asinh_stuff_div_3 =  0.33333333333333331483 * nico_log_1_wo_checks( x_i  +  std::sqrt(  fma(x_i, x_i, 1.0) ) ) ;          // now do arc_sinh part
+  const double exp_x_i = nico_exp_1_wo_checks(asinh_stuff_div_3);
   return  2.74699999999999988631 * ( ((exp_x_i*exp_x_i)  - 1.0) / exp_x_i ) ;  //   now do sinh parth part
   
 }
  
 
 
-inline  double  fast_inv_Phi_approx( const double x )  {
+inline  double  nico_inv_Phi_approx( const double x )  {
   
       if ( (x > 0) &&  (x < 1)) {
-            const double m_logit_p = fast_log_1(1.0/x - 1.0); // log first
+            const double m_logit_p = nico_log_1(1.0/x - 1.0); // log first
             const double x_i = -0.3418*m_logit_p;
-            const double asinh_stuff_div_3 =  0.33333333333333331483 * fast_log_1(x_i + std::sqrt(fma(x_i, x_i, 1.0))) ;          // now do arc_sinh part
-            const double exp_x_i = fast_exp_1(asinh_stuff_div_3);
+            const double asinh_stuff_div_3 =  0.33333333333333331483 * nico_log_1(x_i + std::sqrt(fma(x_i, x_i, 1.0))) ;          // now do arc_sinh part
+            const double exp_x_i = nico_exp_1(asinh_stuff_div_3);
             return  2.74699999999999988631 * (((exp_x_i*exp_x_i)  - 1.0) / exp_x_i) ;  //   now do sinh parth part
       }  else {
             if ((x < 0) || (x > 1)) {
@@ -1143,22 +1143,22 @@ inline    double inv_Phi_approx_from_logit_prob_std(const double logit_p) {
 
 
 // need to add citation to this (slight modification from a forum post)
-inline    double fast_inv_Phi_approx_from_logit_prob_wo_checks(const double  logit_p) {
+inline    double nico_inv_Phi_approx_from_logit_prob_wo_checks(const double  logit_p) {
   
   double x_i = 0.3418*logit_p;
-  double asinh_stuff_div_3 =  0.33333333333333331483 *  fast_log_1(x_i  +   std::sqrt(x_i*x_i + 1.0)) ;          // now do arc_sinh part
-  double exp_x_i =  fast_exp_1_wo_checks(asinh_stuff_div_3);
+  double asinh_stuff_div_3 =  0.33333333333333331483 *  nico_log_1(x_i  +   std::sqrt(x_i*x_i + 1.0)) ;          // now do arc_sinh part
+  double exp_x_i =  nico_exp_1_wo_checks(asinh_stuff_div_3);
   return  2.74699999999999988631 * ( (exp_x_i*exp_x_i  - 1.0) / exp_x_i ) ;  //   now do sinh parth part
   
 }
  
 
 // need to add citation to this (slight modification from a forum post)
-inline   double fast_inv_Phi_approx_from_logit_prob(const double  logit_p) {
+inline   double nico_inv_Phi_approx_from_logit_prob(const double  logit_p) {
   
   double x_i = 0.3418*logit_p;
-  double asinh_stuff_div_3 =  0.33333333333333331483 *  fast_log_1_wo_checks(x_i  +   std::sqrt(x_i*x_i + 1.0)) ;          // now do arc_sinh part
-  double exp_x_i =  fast_exp_1_wo_checks(asinh_stuff_div_3);
+  double asinh_stuff_div_3 =  0.33333333333333331483 *  nico_log_1_wo_checks(x_i  +   std::sqrt(x_i*x_i + 1.0)) ;          // now do arc_sinh part
+  double exp_x_i =  nico_exp_1_wo_checks(asinh_stuff_div_3);
   return  2.74699999999999988631 * ( (exp_x_i*exp_x_i  - 1.0) / exp_x_i ) ;  //   now do sinh parth part
   
 }
@@ -1181,14 +1181,14 @@ inline Eigen::Matrix<double, -1, 1>  log_Phi_approx_Stan_double( const  Eigen::M
  
  
 
-inline  double  fast_log_Phi_approx_wo_checks( const double x )  {
+inline  double  nico_log_Phi_approx_wo_checks( const double x )  {
   
  const double    a =       (0.07056);
  const double    b =       (1.5976);
  const double    x_sq = x*x;
  const double    a_x_sq_plus_b = fma(a, x_sq, b);
  const double    stuff_to_inv_logit =  x*a_x_sq_plus_b;
- return fast_log_inv_logit_wo_checks(stuff_to_inv_logit);
+ return nico_log_inv_logit_wo_checks(stuff_to_inv_logit);
  
 }
  
@@ -1200,14 +1200,14 @@ inline  double  fast_log_Phi_approx_wo_checks( const double x )  {
 
 
 /// this still has no bounds checking as it uses log_inv_logit 
-inline   double  fast_log_Phi_approx(const double x )  {
+inline   double  nico_log_Phi_approx(const double x )  {
  
       const double    a =       (0.07056);
       const double    b =       (1.5976);
       const double    x_sq = x*x;
       const double    a_x_sq_plus_b = fma(a, x_sq, b);
       const double    stuff_to_inv_logit =  x*a_x_sq_plus_b;
-      return fast_log_inv_logit(stuff_to_inv_logit);
+      return nico_log_inv_logit(stuff_to_inv_logit);
       
 }
  
@@ -1219,15 +1219,15 @@ inline   double  fast_log_Phi_approx(const double x )  {
 
 //////////////////// ------------- tanh  --------------------------------------------------------------------------------------------------------------------------------------
 
-inline   double    fast_tanh(const   double x  )   {
-  return    ( 2.0 / (1.0 + fast_exp_1(-2.0*x   )  ) - 1.0 )  ;
+inline   double    nico_tanh(const   double x  )   {
+  return    ( 2.0 / (1.0 + nico_exp_1(-2.0*x   )  ) - 1.0 )  ;
 }
  
 
 
 
-inline  double    fast_tanh_wo_checks(const   double x  )   {
-  return    ( 2.0 / (1.0 + fast_exp_1_wo_checks(-2.0*x   )  ) - 1.0 )  ;
+inline  double    nico_tanh_wo_checks(const   double x  )   {
+  return    ( 2.0 / (1.0 + nico_exp_1_wo_checks(-2.0*x   )  ) - 1.0 )  ;
 }
  
 
@@ -1247,7 +1247,7 @@ inline  double    fast_tanh_wo_checks(const   double x  )   {
 // 
 // 
 //  // see: https://math.stackexchange.com/questions/42920/efficient-and-accurate-approximation-of-error-function
-//  inline  double fast_erf_wo_checks_part_1_upper(const double a,
+//  inline  double nico_erf_wo_checks_part_1_upper(const double a,
 //                                                 const double t,
 //                                                 const double s) {
 //      double r, u;
@@ -1276,14 +1276,14 @@ inline  double    fast_tanh_wo_checks(const   double x  )   {
 //      r = fma (r, t, -6.3661844223699315e-1); // -0x1.45f2da3ae06f8p-1
 //      r = fma (r, t, -1.2837929411398119e-1); // -0x1.06ebb92d9ffa8p-3
 //      r = fma (r, t, -t);
-//      r = 1.0 - fast_exp_1(r);
+//      r = 1.0 - nico_exp_1(r);
 // 
 //      return copysign (r, a);
 // 
 //  }
 // 
 // // see: https://math.stackexchange.com/questions/42920/efficient-and-accurate-approximation-of-error-function
-// inline double fast_erf_wo_checks_part_2_lower(const double a,
+// inline double nico_erf_wo_checks_part_2_lower(const double a,
 //                                               const double t,
 //                                               const double s) {
 //     double r, u;
@@ -1307,13 +1307,13 @@ inline  double    fast_tanh_wo_checks(const   double x  )   {
 // }
 // 
 // // see: https://math.stackexchange.com/questions/42920/efficient-and-accurate-approximation-of-error-function
-// inline double fast_erf_wo_checks (const double a) {
+// inline double nico_erf_wo_checks (const double a) {
 // 
 //   double r, s, t, u;
 //   t = fabs (a);
 //   s = a * a;
-//   if (t >= 1.0)    return fast_erf_wo_checks_part_1_upper(a, t, s);
-//   else             return fast_erf_wo_checks_part_2_lower(a, t, s);
+//   if (t >= 1.0)    return nico_erf_wo_checks_part_1_upper(a, t, s);
+//   else             return nico_erf_wo_checks_part_2_lower(a, t, s);
 // 
 // }
 // 
@@ -1325,10 +1325,10 @@ inline  double    fast_tanh_wo_checks(const   double x  )   {
 // ///////////////////  fns - Phi functions   ----------------------------------------------------------------------------------------------------------------------------------------
  
  
-// inline double fast_Phi_wo_checks(const double x) {
+// inline double nico_Phi_wo_checks(const double x) {
 // 
 //    const double sqrt_2_recip = 0.707106781186547461715;
-//    return 0.5 * (1.0 + fast_erf_wo_checks(x * sqrt_2_recip));
+//    return 0.5 * (1.0 + nico_erf_wo_checks(x * sqrt_2_recip));
 // 
 // }
 //  
@@ -1336,7 +1336,7 @@ inline  double    fast_tanh_wo_checks(const   double x  )   {
 
 
 //// based on Abramowitz-Stegun polynomial approximation for Phi
-inline double fast_Phi_wo_checks(double x) {
+inline double nico_Phi_wo_checks(double x) {
   
       static const double a = 0.2316419;
       static const double b1 = 0.31938153;
@@ -1353,11 +1353,11 @@ inline double fast_Phi_wo_checks(double x) {
       
       if (x >= 0.0) {
         
-         val =  1.0 - rsqrt_2pi * fast_exp_1(-0.5 * z * z ) * poly;
+         val =  1.0 - rsqrt_2pi * nico_exp_1(-0.5 * z * z ) * poly;
         
       } else {
         
-         val = rsqrt_2pi * fast_exp_1(-0.5 * z * z) * poly;
+         val = rsqrt_2pi * nico_exp_1(-0.5 * z * z) * poly;
         
       } 
 
@@ -1376,13 +1376,13 @@ inline double fast_Phi_wo_checks(double x) {
 
 
 
-inline double fast_Phi(const double x) {
+inline double nico_Phi(const double x) {
 
     const double sqrt_2_recip = 0.707106781186547461715;
 
     if  ((x > -37.5) && (x < 8.25)) {
       
-          return  fast_Phi_wo_checks(x) ; // 0.5 * (1.0 + fast_erf_wo_checks(x * sqrt_2_recip));
+          return  nico_Phi_wo_checks(x) ; // 0.5 * (1.0 + nico_erf_wo_checks(x * sqrt_2_recip));
       
     } else if (x < -37.5) {
       
@@ -1407,7 +1407,7 @@ inline double fast_Phi(const double x) {
 // ///////////////////  fns - inverse-error functions   ----------------------------------------------------------------------------------------------------------------------------------------
 //  //  compute inverse error functions with maximum error of 2.35793 ulp  // see: https://stackoverflow.com/questions/27229371/inverse-error-function-in-c
 // 
-//  inline double fast_inv_erf_wo_checks_part_1_upper(const double a,
+//  inline double nico_inv_erf_wo_checks_part_1_upper(const double a,
 //                                                    const double t) {
 // 
 //      double p =            3.03697567e-10; //  0x1.4deb44p-32
@@ -1427,7 +1427,7 @@ inline double fast_Phi(const double x) {
 // 
 // //  compute inverse error functions with maximum error of 2.35793 ulp  // see: https://stackoverflow.com/questions/27229371/inverse-error-function-in-c
 // 
-//  inline double fast_inv_erf_wo_checks_part_2_lower(const double a,
+//  inline double nico_inv_erf_wo_checks_part_2_lower(const double a,
 //                                                    const double t) {
 // 
 //      double p =             5.43877832e-9;  //  0x1.75c000p-28
@@ -1448,13 +1448,13 @@ inline double fast_Phi(const double x) {
 // 
 // //  compute inverse error functions with maximum error of 2.35793 ulp  // see: https://stackoverflow.com/questions/27229371/inverse-error-function-in-c
 // 
-//  inline double fast_inv_erf_wo_checks(const double a) {
+//  inline double nico_inv_erf_wo_checks(const double a) {
 // 
 //   double t = fma(a, 0.0 - a, 1.0);
-//   t = fast_log_1(t);
+//   t = nico_log_1(t);
 // 
-//   if (fabs(t) > 6.125) return fast_inv_erf_wo_checks_part_1_upper(a, t);
-//   else                 return fast_inv_erf_wo_checks_part_2_lower(a, t);
+//   if (fabs(t) > 6.125) return nico_inv_erf_wo_checks_part_1_upper(a, t);
+//   else                 return nico_inv_erf_wo_checks_part_2_lower(a, t);
 // 
 // }
 // 
@@ -1464,16 +1464,16 @@ inline double fast_Phi(const double x) {
 // 
 // ///////////////////  fns - inv_Phi functions   ----------------------------------------------------------------------------------------------------------------------------------------
 // 
-// inline double fast_inv_Phi_wo_checks(const double x) {
+// inline double nico_inv_Phi_wo_checks(const double x) {
 // 
 //    const double sqrt_2 = 1.41421356237309514547;
-//    return sqrt_2 * fast_inv_erf_wo_checks(2.0*x - 1.0);
+//    return sqrt_2 * nico_inv_erf_wo_checks(2.0*x - 1.0);
 // 
 // }
 
 
 /// FMA version of the  Stan fn provided by Sean Pinkney here:  https://github.com/stan-dev/math/issues/2555 
-inline double  fast_inv_Phi_wo_checks(double p) {
+inline double  nico_inv_Phi_wo_checks(double p) {
   
   double r; 
   double val;
@@ -1510,7 +1510,7 @@ inline double  fast_inv_Phi_wo_checks(double p) {
     //// first, compute r 
     if (q > 0.0) r = 1.0 - p;
     else r = p;
-    r = stan::math::sqrt(-fast_log_1(r));
+    r = stan::math::sqrt(-nico_log_1(r));
     
     
     /// then compute val 

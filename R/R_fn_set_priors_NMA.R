@@ -12,7 +12,7 @@ R_fn_compute_n_thr_random_NMA <- function(n_thr,
                                           n_studies_per_test) { 
       
       n_thr_random <- 0
-      for (t in 1:n_index_tests) {
+      for (t in 1:length(n_thr)) {
         n_thr_random <- n_thr_random + n_thr[t]*n_studies_per_test[t]
       }
       ##

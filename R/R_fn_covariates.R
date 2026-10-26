@@ -715,7 +715,7 @@ R_fn_get_covariate_info_MA <- function(  intercept_only,
                             cov_info_list$n_covariates_max <- 1
                       
                       
-                    } else {   ## For Xu or Jones -based models
+                    } else {   ## For ord_biv or Jones models
                       
                             cov_info_list$n_covariates_nd  <- 1
                             cov_info_list$n_covariates_d   <- 1
@@ -743,7 +743,7 @@ R_fn_get_covariate_info_MA <- function(  intercept_only,
                             cov_info_list$n_covariates  <-  ncol(X)
                       
                       
-                    } else {   ## For Xu or Jones -based models
+                    } else {   ## For ord_biv or Jones models
                             
                             cov_info_list$X_nd <- X[[1]] ## n_studies x n_covariates_nd matrix
                             cov_info_list$n_covariates_nd <- ncol(cov_info_list$X_nd)
@@ -801,7 +801,7 @@ R_fn_get_covariate_info_NMA <- function( intercept_only,
                           cov_info_list$n_covariates   <- rep(1, n_index_tests)
                           cov_info_list$n_covariates_max <- 1
                           
-                  } else {   ## For Xu or Jones -based models
+                  } else {   ## For ord_biv or Jones models
                           
                           cov_info_list$n_covariates_nd <- rep(1, n_index_tests)
                           cov_info_list$n_covariates_d  <- rep(1, n_index_tests)
@@ -833,7 +833,7 @@ R_fn_get_covariate_info_NMA <- function( intercept_only,
                           ##
                           cov_info_list$n_covariates_max <- max(cov_info_list$n_covariates)
                     
-                  } else {   ## For Xu or Jones -based models
+                  } else {   ## For ord_biv or Jones models
                     
                           cov_info_list$X_nd <- X[[1]] ## n_studies x n_covariates_nd matrix
                           cov_info_list$X_d  <- X[[2]] ## n_studies x n_covariates_nd matrix

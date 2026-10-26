@@ -1214,7 +1214,7 @@ if (target_condition == "GAD") {
   }
 }
 ##
-## Build real_data structure for your needs:
+# Build the real_data structure:
 ##
 real_data <- list()
 real_data$x <- NMA_data_list$x
@@ -1296,7 +1296,7 @@ sum(X[[2]][[4]][, 4])
 # DIAGNOSTIC: Compare indicator matrices
 # ============================================================
 
-# Your Klaus indicator (full - 138 rows)
+# The Klaus indicator (full - 138 rows)
 cat("Klaus indicator dimensions:", dim(indicator_index_test_in_study), "\n")
 cat("Klaus indicator studies per test:", colSums(indicator_index_test_in_study), "\n")
 

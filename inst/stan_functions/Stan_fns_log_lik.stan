@@ -91,22 +91,27 @@ real compute_log_lik_binomial_fact_lp(    array[] matrix latent_surv,
           real log_lik = 0.0;
           for (c in 1:2) {
                 ////
-                matrix[n_studies, n_thr] surv_prob;
-                if (use_probit_link == 1) surv_prob = safe_Phi(latent_surv[c]);
-                else                      surv_prob = inv_logit(latent_surv[c]);
-                ////
-              
-                ////
-                //// ---- First compute conditional probs:
+                //// ---- First compute conditional probs (from the log survival probs, no tail cut off):
                 ////
                 for (s in 1:n_studies) {
                    if (K_fold_CV_indicator[s] == 1) {
+                       vector[n_obs_cutpoints[s]] log_surv_prob;
+                       for (k in 1:n_obs_cutpoints[s]) {
+                                  real latent = latent_surv[c][s, k];
+                                  if (use_probit_link == 1) {
+                                        log_surv_prob[k] = (latent > -30.0) ? log(Phi(latent)) :
+                                                                              std_normal_lcdf(latent);
+                                  } else {
+                                        log_surv_prob[k] = log_inv_logit(latent);
+                                  }
+                       }
+                       ////
                        vector[n_obs_cutpoints[s]] cond_prob;
                        ////
-                       cond_prob[1] = surv_prob[s, 1];
+                       cond_prob[1] = exp(log_surv_prob[1]);
                        ////
                        for (k in 2:n_obs_cutpoints[s]) {
-                                  cond_prob[k] = surv_prob[s, k] / surv_prob[s, k - 1];
+                                  cond_prob[k] = exp(log_surv_prob[k] - log_surv_prob[k - 1]);
                        }
                        ////
                        //// ---- Likelihood:
@@ -197,29 +202,32 @@ real compute_NMA_log_lik_binomial_fact_lp(    array[] matrix latent_surv,
 ) {
         
           ////
-          array[2] matrix[n_studies, n_thr] surv_prob;
           array[2] matrix[n_studies, n_thr] cond_prob;
-          ////
-          //// ---- Calculate surv  probabilities:
-          ////
-          for (c in 1:2) {
-              if (use_probit_link == 1) surv_prob[c] = safe_Phi(latent_surv[c]);
-              else                      surv_prob[c] = inv_logit(latent_surv[c]);
-          }
           ////
           //// ---- Factorised binomial Likelihood:
           ////
           real log_lik = 0.0;
           for (c in 1:2) {
                 ////
-                //// ---- First compute conditional probs:
+                //// ---- First compute conditional probs (from the log survival probs, no tail cut off):
                 ////
                 for (s in 1:n_studies) {
                    if (indicator_index_test_t_in_study[s] == 1) {
-                           cond_prob[c][s, 1] = surv_prob[c][s, 1];
+                           vector[n_obs_cutpoints[s]] log_surv_prob;
+                           for (k in 1:n_obs_cutpoints[s]) {
+                                      real latent = latent_surv[c][s, k];
+                                      if (use_probit_link == 1) {
+                                            log_surv_prob[k] = (latent > -30.0) ? log(Phi(latent)) :
+                                                                                  std_normal_lcdf(latent);
+                                      } else {
+                                            log_surv_prob[k] = log_inv_logit(latent);
+                                      }
+                           }
+                           ////
+                           cond_prob[c][s, 1] = exp(log_surv_prob[1]);
                            ////
                            for (k in 2:n_obs_cutpoints[s]) {
-                                      cond_prob[c][s, k] = surv_prob[c][s, k] / surv_prob[c][s, k - 1];
+                                      cond_prob[c][s, k] = exp(log_surv_prob[k] - log_surv_prob[k - 1]);
                            }
                    }
                 }

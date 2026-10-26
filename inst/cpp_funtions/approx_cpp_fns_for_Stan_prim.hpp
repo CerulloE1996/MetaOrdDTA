@@ -81,7 +81,7 @@ namespace math {
 inline double mvp_exp_approx(double x,
                              std::ostream* pstream__ = nullptr) {
 
-     return fast_exp_1(x);
+     return nico_exp_1(x);
 
 }
 
@@ -169,7 +169,7 @@ namespace math {
 inline double mvp_log_approx(double x,
                              std::ostream* pstream__ = nullptr) {
   
-  return fast_log_1(x);
+  return nico_log_1(x);
   
 }
 
@@ -256,7 +256,7 @@ namespace math {
 inline double mvp_log1p_approx(double x,
                                std::ostream* pstream__ = nullptr) {
   
-  return fast_log1p_1(x);
+  return nico_log1p_1(x);
   
 }
 
@@ -343,7 +343,7 @@ namespace math {
 inline double mvp_log1m_approx(double x,
                                std::ostream* pstream__ = nullptr) {
   
-  return fast_log1m_1(x);
+  return nico_log1m_1(x);
    
 }
  
@@ -424,7 +424,7 @@ namespace math {
 inline double mvp_logit_approx(double x,
                               std::ostream* pstream__ = nullptr) {
   
-  return fast_tanh(x);
+  return nico_tanh(x);
   
 }
 
@@ -516,7 +516,7 @@ namespace math {
 inline double mvp_tanh_approx(double x,
                        std::ostream* pstream__ = nullptr) {
 
-       return fast_tanh(x);
+       return nico_tanh(x);
 
 }
 
@@ -609,7 +609,7 @@ namespace math {
 inline double mvp_inv_logit(double x,
                             std::ostream* pstream__ = nullptr) {
   
-  return fast_inv_logit(x);
+  return nico_inv_logit(x);
   
 }
  
@@ -708,7 +708,7 @@ namespace math {
 inline double mvp_log_inv_logit(double x,
                                 std::ostream* pstream__ = nullptr) {
    
-  return fast_log_inv_logit(x);
+  return nico_log_inv_logit(x);
   
 } 
 
@@ -800,7 +800,7 @@ namespace math {
 inline double mvp_Phi(double x,
                       std::ostream* pstream__ = nullptr) {
 
-  return fast_Phi_wo_checks(x);
+  return nico_Phi_wo_checks(x);
 
 }
 
@@ -887,7 +887,7 @@ namespace math {
 inline double mvp_inv_Phi(double x,
                           std::ostream* pstream__ = nullptr) {
 
-  return fast_inv_Phi_wo_checks(x);
+  return nico_inv_Phi_wo_checks(x);
 
 }
 
@@ -967,7 +967,7 @@ namespace math {
 inline double mvp_Phi_approx(double x,
                              std::ostream* pstream__ = nullptr) {
 
-  return fast_Phi_approx(x);
+  return nico_Phi_approx(x);
 
 }
 
@@ -1057,7 +1057,7 @@ namespace math {
 inline double mvp_inv_Phi_approx(double x,
                                  std::ostream* pstream__ = nullptr) {
 
-  return fast_inv_Phi_approx(x);
+  return nico_inv_Phi_approx(x);
 
 }
 
@@ -1140,7 +1140,7 @@ namespace math {
  inline double mvp_inv_Phi_approx_from_logit_prob(double x,
                                   std::ostream* pstream__ = nullptr) {
 
-   return fast_inv_Phi_approx_from_logit_prob(x);
+   return nico_inv_Phi_approx_from_logit_prob(x);
 
  }
 
@@ -1228,7 +1228,7 @@ namespace math {
 inline double mvp_log_Phi_approx(double x,
                                 std::ostream* pstream__ = nullptr) {
 
-  return fast_log_Phi_approx(x);
+  return nico_log_Phi_approx(x);
 
 }
  

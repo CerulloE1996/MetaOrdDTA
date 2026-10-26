@@ -29,7 +29,9 @@
               ##
               cat("user_MetaOrdinal_dir =", user_MetaOrdinal_dir, "\n")
               
+##
               ## -------------- USER Examples dir:
+##
               user_examples_dir <- file.path(user_MetaOrdinal_dir, "examples")
               cat("user_examples_dir =", user_examples_dir, "\n")
               
@@ -65,7 +67,9 @@
               #   )
               # }
               
+##
               ## -------------- USER stan_models dir:
+##
               user_stan_models_dir <- file.path(user_MetaOrdinal_dir, "stan_models")
               cat("user_stan_models_dir =", user_stan_models_dir, "\n")
               

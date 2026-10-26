@@ -45,7 +45,7 @@ arrange_missing_values_paired <- function(x_list,
 #' @export
 R_fn_prep_MA_data <- function(  x,
                                 ##
-                                cov_data, ## covariates - for MA: this is a list of 2 matrices X_nd and X_d OR a matrix (X) if covs shared between 2 classes (for R&G model MUST be shared).  
+                                cov_data, ## covariates - for MA: this is a list of 2 matrices X_nd and X_d OR a matrix (X) if covs shared between 2 classes (for the ordinal-HSROC model MUST be shared).  
                                 intercept_only,
                                 ##
                                 model_parameterisation,
@@ -132,7 +132,7 @@ R_fn_prep_MA_data <- function(  x,
     stan_data_list$cutpoint_index <- list(cutpoint_index, 
                                            cutpoint_index)
     ##
-    stan_data_list$n_obs_cutpoints <- rowSums(stan_data_list$x[[1]][, c(-1)] != -1)
+    stan_data_list$n_obs_cutpoints <- rowSums(stan_data_list$x[[1]][, c(-1), drop = FALSE] != -1)
     ##
     rearranged <- arrange_missing_values_paired(stan_data_list$x, 
                                                 stan_data_list$cutpoint_index)
@@ -140,7 +140,7 @@ R_fn_prep_MA_data <- function(  x,
     stan_data_list$x <- rearranged$x
     stan_data_list$cutpoint_index <- rearranged$cutpoint_index
     ##
-    # After creating your list of matrices, convert to 3D array:
+    # After creating the list of matrices, convert to 3D array:
     x_array <- array(NA, dim = c(2, n_studies, n_thr + 1))
     for (c in 1:2) {
       x_array[c, , ] <- as.integer(stan_data_list$x[[c]])

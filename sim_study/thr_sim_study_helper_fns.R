@@ -946,10 +946,17 @@ compute_simulation_metrics <- function(test,
         
         # Only keep results that have credible intervals (i.e., successful runs)
         complete_results <- valid_results[sapply(valid_results, function(x) {
-          !is.null(x$Se_lower_vec) && !is.null(x$Se_upper_vec) && 
+          !is.null(x$Se_lower_vec) && !is.null(x$Se_upper_vec) &&
             length(x$Se_lower_vec) > 0 && length(x$Se_upper_vec) > 0
         })]
-        
+        ##
+        ## ---- only fits whose % of divergent transitions was checked when they were saved (the runner keeps a
+        ##      fit only when it is at most max_percent_divergent):
+        ##
+        complete_results <- complete_results[sapply(complete_results, function(x) {
+          !is.null(x$percent_divergent)
+        })]
+
         # *** NEW: Filter by ESS BEFORE main processing ***
         complete_results_high_ESS <- Filter(function(result) {
           

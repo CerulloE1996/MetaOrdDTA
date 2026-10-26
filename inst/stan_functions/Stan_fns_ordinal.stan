@@ -233,57 +233,57 @@ real induced_dirichlet_given_C_lpdf(  row_vector p_ord,
 //// NOTE: You can use this for both ind_dir PRIORS and ind_dir MODELS:
 //// NOTE: adapted from: Betancourt et al (see: https://betanalpha.github.io/assets/case_studies/ordinal_regression.html)
 ////
-real induced_dirichlet_given_rho_lpdf(  vector p_ord,
-                                        vector rho,
-                                        vector alpha) {
+// real induced_dirichlet_given_rho_lpdf(  vector p_ord,
+//                                         vector rho,
+//                                         vector alpha) {
           
-        int n_cat = num_elements(p_ord);
-        matrix[n_cat, n_cat] J = rep_matrix(0.0, n_cat, n_cat);
+//         int n_cat = num_elements(p_ord);
+//         matrix[n_cat, n_cat] J = rep_matrix(0.0, n_cat, n_cat);
          
-        //// Jacobian computation:
-        for (k in 1:n_cat) {
-                J[k, 1] = 1.0;
-        }
-        // // // for (k in 2:(n_cat - 1)) {
-        // // //    J[k, k] = +rho[k];
-        // // // }
-        // for (k in 2:n_cat) { // p_ord[k] = Phi(C_{k} - anchor) - Phi(C_{k - 1} - anchor)
-        //          J[k, k]     = - rho[k - 1];
-        //          J[k - 1, k] = + rho[k - 1];
-        // }
+//         //// Jacobian computation:
+//         for (k in 1:n_cat) {
+//                 J[k, 1] = 1.0;
+//         }
+//         // // // for (k in 2:(n_cat - 1)) {
+//         // // //    J[k, k] = +rho[k];
+//         // // // }
+//         // for (k in 2:n_cat) { // p_ord[k] = Phi(C_{k} - anchor) - Phi(C_{k - 1} - anchor)
+//         //          J[k, k]     = - rho[k - 1];
+//         //          J[k - 1, k] = + rho[k - 1];
+//         // }
                 
-        // First row (p_1 depends on c_1)
-        J[1, 2] = -rho[1];  // ∂p_1/∂c_1 = -ρ(φ-c_1)  [SIGN FLIPPED]
+//         // First row (p_1 depends on c_1)
+//         J[1, 2] = -rho[1];  // ∂p_1/∂c_1 = -ρ(φ-c_1)  [SIGN FLIPPED]
         
-        // Middle rows
-        for (k in 2:(n_cat-1)) {
-            J[k, k]     = + rho[k - 1];     // ∂p_k/∂c_{k-1} = ρ(φ-c_{k-1})  [SIGN FLIPPED] 
-            J[k, k - 1] = - rho[k];    // ∂p_k/∂c_k = -ρ(φ-c_k)  [SIGN FLIPPED]
-        }
+//         // Middle rows
+//         for (k in 2:(n_cat-1)) {
+//             J[k, k]     = + rho[k - 1];     // ∂p_k/∂c_{k-1} = ρ(φ-c_{k-1})  [SIGN FLIPPED] 
+//             J[k, k - 1] = - rho[k];    // ∂p_k/∂c_k = -ρ(φ-c_k)  [SIGN FLIPPED]
+//         }
         
-        // Last row (p_n_cat depends on c_{n_cat-1})
-        J[n_cat, n_cat] = rho[n_cat-1];  // ∂p_n_cat/∂c_{n_cat-1} = ρ(φ-c_{n_cat-1})  [SIGN FLIPPED]
+//         // Last row (p_n_cat depends on c_{n_cat-1})
+//         J[n_cat, n_cat] = rho[n_cat-1];  // ∂p_n_cat/∂c_{n_cat-1} = ρ(φ-c_{n_cat-1})  [SIGN FLIPPED]
 
-        return dirichlet_lpdf(p_ord | alpha) + log_determinant(J);
+//         return dirichlet_lpdf(p_ord | alpha) + log_determinant(J);
   
-}
-////
-//// Row-vector overload for "induced_dirichlet_given_rho_lpdf":
-////
-real induced_dirichlet_given_rho_lpdf(  row_vector p_ord,
-                                 row_vector rho,
-                                 row_vector alpha) {
+// }
+// ////
+// //// Row-vector overload for "induced_dirichlet_given_rho_lpdf":
+// ////
+// real induced_dirichlet_given_rho_lpdf(  row_vector p_ord,
+//                                  row_vector rho,
+//                                  row_vector alpha) {
           
 
-        int n_cat = num_elements(p_ord);
-        int n_thr = n_cat - 1;
-        vector[n_cat] p_ord_col_vec = to_vector(p_ord);
-        vector[n_thr] rho_col_vec   = to_vector(rho);
-        vector[n_cat] alpha_col_vec = to_vector(alpha);
+//         int n_cat = num_elements(p_ord);
+//         int n_thr = n_cat - 1;
+//         vector[n_cat] p_ord_col_vec = to_vector(p_ord);
+//         vector[n_thr] rho_col_vec   = to_vector(rho);
+//         vector[n_cat] alpha_col_vec = to_vector(alpha);
         
-        return induced_dirichlet_given_rho_lpdf(p_ord_col_vec | rho_col_vec, alpha_col_vec);
+//         return induced_dirichlet_given_rho_lpdf(p_ord_col_vec | rho_col_vec, alpha_col_vec);
   
-}
+// }
 
 
 
@@ -291,39 +291,39 @@ real induced_dirichlet_given_rho_lpdf(  row_vector p_ord,
 
 //// Induced dirichlet from Betancourt, 2019. 
 //// See https://betanalpha.github.io/assets/case_studies/ordinal_regression.html#3_cut_to_the_chase
-real induced_dirichlet_lpdf( vector c, 
-                             vector alpha, 
-                             real phi) {
+// real induced_dirichlet_lpdf( vector c, 
+//                              vector alpha, 
+//                              real phi) {
                                    
-      int K = num_elements(c) + 1;
-      vector[K - 1] anchoredcutoffs = c - phi;
+//       int K = num_elements(c) + 1;
+//       vector[K - 1] anchoredcutoffs = c - phi;
       
-      vector[K] sigma;
-      vector[K] p;
-      matrix[K, K] J = rep_matrix(0, K, K);
+//       vector[K] sigma;
+//       vector[K] p;
+//       matrix[K, K] J = rep_matrix(0, K, K);
       
-      sigma[1:(K-1)] = Phi(anchoredcutoffs); 
-      sigma[K] = 1;
+//       sigma[1:(K-1)] = Phi(anchoredcutoffs); 
+//       sigma[K] = 1;
       
-      p[1] =  sigma[1];
-      for (k in 2:(K - 1))
-        p[k] = sigma[k] - sigma[k - 1];
-      p[K] = 1 - sigma[K - 1];
+//       p[1] =  sigma[1];
+//       for (k in 2:(K - 1))
+//         p[k] = sigma[k] - sigma[k - 1];
+//       p[K] = 1 - sigma[K - 1];
       
-      // Baseline column of Jacobian
-      for (k in 1:K) J[k, 1] = 1;
+//       // Baseline column of Jacobian
+//       for (k in 1:K) J[k, 1] = 1;
       
-      // Diagonal entries of Jacobian
-      for (k in 2:K) {
-        // rho is the PDF of the latent distribution
-        real rho = exp(normal_lpdf(anchoredcutoffs[k - 1] | 0.0, 1.0)); ////  1.702 * sigma[k - 1] * (1 - sigma[k - 1]);
-        J[k, k] =  - rho;
-        J[k - 1, k] = + rho;
-      }
+//       // Diagonal entries of Jacobian
+//       for (k in 2:K) {
+//         // rho is the PDF of the latent distribution
+//         real rho = exp(normal_lpdf(anchoredcutoffs[k - 1] | 0.0, 1.0)); ////  1.702 * sigma[k - 1] * (1 - sigma[k - 1]);
+//         J[k, k] =  - rho;
+//         J[k - 1, k] = + rho;
+//       }
       
-      return dirichlet_lpdf(p | alpha) + log_determinant(J);
+//       return dirichlet_lpdf(p | alpha) + log_determinant(J);
   
-}
+// }
 
 
 ////
@@ -1096,3 +1096,57 @@ array[] matrix map_latent_cumul_to_random_hetero_C( array[] matrix C,
 
 
 
+////
+//// ---------------------------------------------------------------------------------------
+//// The induced-Dirichlet log density of a set of ordered cutpoints C (at the latent location 0) with every category
+//// probability on the LOG scale (Stan's std_normal_lcdf / std_normal_lccdf with their log-scale tails, or
+//// log_inv_logit / log1m_inv_logit, and log_diff_exp), no clamps: the same values as induced_dirichlet_given_C_lpdf
+//// of the category probabilities of C wherever those are representable, and a finite log density (or -inf for two
+//// equal cutpoints) where Phi(C_k) - Phi(C_(k-1)) rounds to 0 in double precision, which made dirichlet_lpdf throw.
+//// The same calculation as NicoSIMD's nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf, for plain Stan math
+//// models (so that the plain and the AVX versions of a model compute the same thing):
+////     log p_1 = log F(C_1),  log p_(K+1) = log(1 - F(C_K)),
+////     log p_k = log_diff_exp(log F(C_k), log F(C_(k-1)))                 (C_(k-1) < 0),
+////             = log_diff_exp(log(1 - F(C_(k-1))), log(1 - F(C_k)))       (C_(k-1) >= 0).
+////
+real induced_dirichlet_given_C_on_the_log_scale_lpdf(vector C,
+                                                     vector alpha,
+                                                     int use_probit_link) {
+
+        int n_thr = num_elements(C);
+        vector[n_thr] log_F;
+        vector[n_thr] log_S;
+        if (use_probit_link == 1) {
+          for (k in 1:n_thr) {
+            log_F[k] = std_normal_lcdf(C[k] |);
+            log_S[k] = std_normal_lccdf(C[k] |);
+          }
+        } else {
+          log_F = log_inv_logit(C);
+          log_S = log1m_inv_logit(C);
+        }
+        vector[n_thr + 1] log_p;
+        log_p[1] = log_F[1];
+        log_p[n_thr + 1] = log_S[n_thr];
+        for (k in 2:n_thr) {
+          log_p[k] = (C[k - 1] >= 0) ? log_diff_exp(log_S[k - 1], log_S[k]) : log_diff_exp(log_F[k], log_F[k - 1]);
+        }
+        real log_prob = lgamma(sum(alpha)) - sum(lgamma(alpha));
+        for (j in 1:(n_thr + 1)) {
+          if (alpha[j] != 1.0) log_prob += (alpha[j] - 1.0) * log_p[j];
+        }
+        if (use_probit_link == 1) log_prob += std_normal_lpdf(C);
+        else                      log_prob += sum(log_F + log_S);
+        return log_prob;
+
+}
+////
+//// Row-vector overload:
+////
+real induced_dirichlet_given_C_on_the_log_scale_lpdf(row_vector C,
+                                                     vector alpha,
+                                                     int use_probit_link) {
+
+        return induced_dirichlet_given_C_on_the_log_scale_lpdf(to_vector(C) | alpha, use_probit_link);
+
+}

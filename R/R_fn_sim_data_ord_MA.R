@@ -29,7 +29,7 @@ SD_approx_ID_ord_prob_to_C_probit <- function(mean_C_cutpoint_scale,
 
 
 
-# Use this in your simulation
+# Use this in the simulation
 generate_ordered_thresholds_delta_method <- function(mean_cutpoints, 
                                                      SD_prob_scale_vec,
                                                      use_probit_link = TRUE) {
@@ -258,6 +258,7 @@ R_fn_sim_data_ord_MA <- function(  seed = 123,
 
             ##
             ## ---- GAD-2 parameters: ----------------------------------------------------------------------------------------------------------------------
+##
             ## (from fitting Xu-Rand-Kappa model to REAL GAD-2 MA Klaus data (w/o imputing missing threhsolds - "-1"'s).)
             ##
             ##
@@ -314,6 +315,7 @@ R_fn_sim_data_ord_MA <- function(  seed = 123,
             true_mean_GAD_7_params_list$Ord_bivariate
             ##
             ## ---- HADS parameters: ----------------------------------------------------------------------------------------------------------------------
+##
             ## (from fitting Xu-Rand-Kappa model to REAL HADS MA Klaus data (w/o imputing missing threhsolds - "-1"'s).)
             ##
             true_mean_HADS_params_list <- list()
@@ -351,6 +353,7 @@ R_fn_sim_data_ord_MA <- function(  seed = 123,
             true_mean_HADS_params_list$Ord_bivariate
             ##
             ## ---- BAI parameters: ----------------------------------------------------------------------------------------------------------------------
+##
             ## (from fitting Xu-Rand-Kappa model to BAI HADS MA Klaus data (w/o imputing missing threhsolds - "-1"'s).)
             ##
             true_mean_BAI_params_list <- list()

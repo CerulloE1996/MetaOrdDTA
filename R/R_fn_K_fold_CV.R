@@ -371,6 +371,87 @@ R_fn_run_kfold_cv <- function(   debugging = FALSE,
 
 
 
+##
+## ---- NicoStan's summary of one fold of the K-fold CV (NicoStan or cmdstanr) ----------------------------------------------------------
+##
+#' fn_K_fold_summaries_of_a_draws_array
+#' @keywords internal
+fn_K_fold_summaries_of_a_draws_array <- function(draws_array) {
+
+        names_of_the_variables <- dimnames(draws_array)[[3]]
+        tibble_all <-  MetaOrdDTA:::generate_summary_tibble( n_threads = NULL,
+                                                             input_array = draws_array,
+                                                             iter_dim = 1,
+                                                             chain_dim = 2,
+                                                             param_names = names_of_the_variables,
+                                                             compute_nested_rhat = FALSE,
+                                                             n_superchains = NULL)
+        fn_rows_of_one_variable <-  function(name_of_the_variable) {
+
+              return(tibble_all[grepl(paste0("^", name_of_the_variable, "(\\[|$)"), tibble_all$parameter), ])
+
+        }
+        is_log_lik_study <-  grepl("^log_lik_study(\\[|$)", names_of_the_variables)
+        log_lik_study_array <-  draws_array[, , is_log_lik_study, drop = FALSE]
+        log_lik_study_tibble <-  tibble_all[is_log_lik_study, ]
+        ##
+        return(list( log_lik_study_array  = log_lik_study_array,
+                     tibble_all           = tibble_all,
+                     beta_mu              = fn_rows_of_one_variable("beta_mu"),
+                     beta_sigma           = fn_rows_of_one_variable("beta_sigma"),
+                     beta_tau             = fn_rows_of_one_variable("beta_tau"),
+                     ## (min ESS = min of the bulk, tail and theta-squared ESS)
+                     min_ESS              = min(log_lik_study_tibble$n_eff, log_lik_study_tibble$n_eff_tail,
+                                                log_lik_study_tibble$n_eff_sd, na.rm = TRUE),
+                     max_rhat             = max(log_lik_study_tibble$Rhat, na.rm = TRUE)))
+
+}
+
+
+
+
+##
+## ---- One fold of the K-fold CV sampled with NicoStan: the same outputs as a cmdstanr fold -----------------------------------------
+##
+#' R_fn_fit_one_K_fold_CV_fold_with_NicoStan
+#' @keywords internal
+R_fn_fit_one_K_fold_CV_fold_with_NicoStan  <-  function(  stan_data_list,
+                                                          stan_model_file_name,
+                                                          n_chains,
+                                                          init_lists_per_chain,
+                                                          seed,
+                                                          n_burnin,
+                                                          n_iter,
+                                                          NicoStan_args) {
+
+        ## (the transformed parameters too, e.g. beta_tau, as in a cmdstanr fold)
+        NicoStan_args$compute_transformed_parameters <-  TRUE
+        outs <-  MetaOrdDTA:::R_fn_sample_model_with_NicoStan( stan_data_list        = stan_data_list,
+                                                               stan_model_file_name  = stan_model_file_name,
+                                                               n_chains              = n_chains,
+                                                               init_lists_per_chain  = init_lists_per_chain,
+                                                               seed                  = seed,
+                                                               n_burnin              = n_burnin,
+                                                               n_iter                = n_iter,
+                                                               NicoStan_args         = NicoStan_args)
+        ## (iterations x chains x variables, with the transformed parameters and generated quantities)
+        summaries <-  fn_K_fold_summaries_of_a_draws_array(unclass(outs$draws_array))
+        ##
+        return(list( log_lik_study_array  = summaries$log_lik_study_array,
+                     tibble_all           = summaries$tibble_all,
+                     beta_mu              = summaries$beta_mu,
+                     beta_sigma           = summaries$beta_sigma,
+                     beta_tau             = summaries$beta_tau,
+                     min_ESS              = summaries$min_ESS,
+                     max_rhat             = summaries$max_rhat,
+                     divergences          = outs$divergences,
+                     seconds_of_the_fit   = outs$seconds_of_the_fit,
+                     so_file              = outs$library_used))
+
+}
+
+
+
 #' R_fn_run_kfold_cv_parallel
 #' Run k-fold cross-validation in parallel across multiple folds
 #' @importFrom foreach %dopar%
@@ -384,7 +465,7 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
                                          model_prep_obj,
                                          stan_data_list, 
                                          ##
-                                         cmdstanr_args,
+                                         cmdstanr_args = NULL, ## (Stan folds only)
                                          ##
                                          priors,
                                          init_lists_per_chain,
@@ -398,7 +479,12 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
                                          n_workers = NULL,
                                          output_dir = metaorddta_output_path("cv_results"),
                                          ##
-                                         use_BayesMVP_for_faster_summaries
+                                         use_BayesMVP_for_faster_summaries,
+                                         ##
+                                         ## ("Stan": cmdstanr; "NicoStan": each fold with NicoStan, NicoStan_args as in
+                                         ##  MetaOrd_model$sample)
+                                         algorithm = "Stan",
+                                         NicoStan_args = list()
 ) {
   
         if (!requireNamespace("doParallel", quietly = TRUE) ||
@@ -485,7 +571,15 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
         minimal_env$output_dir <- output_dir
         ##
         minimal_env$use_BayesMVP_for_faster_summaries <- use_BayesMVP_for_faster_summaries
-        minimal_env$cmdstanr_args <- if (is.null(cmdstanr_args)) list() else cmdstanr_args
+        ## (here too, as foreach also exports this function's own cmdstanr_args to the workers; NULL for NicoStan folds)
+        cmdstanr_args <- if (is.null(cmdstanr_args)) list() else cmdstanr_args
+        minimal_env$cmdstanr_args <- cmdstanr_args
+        ##
+        stopifnot(algorithm %in% c("Stan", "NicoStan"))
+        minimal_env$algorithm <- algorithm
+        minimal_env$NicoStan_args <- NicoStan_args
+        minimal_env$R_fn_fit_one_K_fold_CV_fold_with_NicoStan <- R_fn_fit_one_K_fold_CV_fold_with_NicoStan
+        minimal_env$fn_K_fold_summaries_of_a_draws_array <- fn_K_fold_summaries_of_a_draws_array
         ##
         # Set up parallel cluster
         cl <- parallel::makeCluster(n_workers, outfile = "")
@@ -504,7 +598,7 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
                                 ls(minimal_env),
                                 envir = minimal_env)
         parallel::clusterEvalQ(cl, {
-          library(cmdstanr)
+          if (identical(algorithm, "Stan")) library(cmdstanr) ## (cmdstanr only for Stan folds)
           library(MetaOrdDTA)
           library(posterior)
           library(dplyr)
@@ -514,11 +608,11 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
         k <- 2
         ##
         # Run folds in parallel
-        fold_results_list <- foreach(k = 1:K,
+        fold_results_list <- foreach::foreach(k = 1:K,
                                      .combine = 'c',
                                      # .export = ls(envir = asNamespace("MetaOrdDTA")),
                                      .packages = c("MetaOrdDTA",
-                                                   "cmdstanr", 
+                                                   if (identical(algorithm, "Stan")) "cmdstanr",
                                                    "posterior",
                                                    "dplyr",
                                                    "stringr"),
@@ -536,7 +630,7 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
                                                      ##
                                                      ## Load required packages
                                                      require(MetaOrdDTA)
-                                                     require(cmdstanr)
+                                                     if (identical(algorithm, "Stan")) require(cmdstanr)
                                                      require(posterior)
                                                      require(dplyr)
                                                      ##
@@ -566,7 +660,7 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
                                                      Sys.setenv(TMP = fold_temp_dir)
                                                      ## 
                                                      # Also set Stan-specific temp
-                                                     Sys.setenv(CMDSTAN_TEMP_DIR = fold_temp_dir)
+                                                     if (identical(algorithm, "Stan")) Sys.setenv(CMDSTAN_TEMP_DIR = fold_temp_dir)
                                                      ##
                                                      # init_lists_per_chain <- model_prep_obj$init_lists_per_chain
                                                      # # priors <- model_prep_obj$priors
@@ -637,35 +731,44 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
                                                      # ##
                                                      # final_stan_args <- modifyList(final_stan_args, cmdstanr_args)
                                                      # ##
+                                                     if (identical(algorithm, "NicoStan")) {
+                                                       ##
+                                                       ## ---- The fold sampled with NicoStan (the model's NicoStan version):
+                                                       ##
+                                                       outs_of_the_fold <- R_fn_fit_one_K_fold_CV_fold_with_NicoStan(
+                                                         stan_data_list = stan_data_list,
+                                                         stan_model_file_name =
+                                                           model_prep_obj$internal_obj$outs_stan_model_name$stan_model_file_name,
+                                                         n_chains = n_chains,
+                                                         init_lists_per_chain = init_lists_per_chain,
+                                                         seed = seed + k,
+                                                         n_burnin = n_burnin,
+                                                         n_iter = n_iter,
+                                                         NicoStan_args = NicoStan_args)
+                                                       log_lik_study_array <- outs_of_the_fold$log_lik_study_array
+                                                       tibble_all <- outs_of_the_fold$tibble_all
+                                                       beta_mu <- outs_of_the_fold$beta_mu
+                                                       beta_sigma <- outs_of_the_fold$beta_sigma
+                                                       beta_tau <- outs_of_the_fold$beta_tau
+                                                       min_ESS <- outs_of_the_fold$min_ESS
+                                                       max_rhat <- outs_of_the_fold$max_rhat
+                                                       fold_result$divergences <- outs_of_the_fold$divergences
+                                                       fold_result$seconds_of_the_fit <- outs_of_the_fold$seconds_of_the_fit
+                                                       fold_result$so_file <- outs_of_the_fold$so_file
+                                                     } else {
                                                      stan_mod_samples <- do.call(model_prep_obj$internal_obj$outs_stan_compile$stan_model_obj$sample, 
                                                                                  final_stan_args)
                                                      ##
-                                                     log_lik_study_array <- stan_mod_samples$draws(variables = c("log_lik_study"))
-                                                     str(log_lik_study_array)
-                                                     ##
-                                                     # tibble_all    <- stan_mod_samples$summary(   variables = NULL,
-                                                     #                                              default_summary_measures() )
-                                                     tibble_all <- stan_mod_samples$summary( variables = NULL,
-                                                                                             mean, median, sd, mad, rhat, ess_bulk, ess_tail,
-                                                                                             q2.5 = ~quantile2(.x, probs = 0.025),
-                                                                                             q97.5 = ~quantile2(.x, probs = 0.975))
-                                                     ##
-                                                     beta_mu    <- stan_mod_samples$summary(variables = c("beta_mu"),
-                                                                                            mean, median, sd, mad,
-                                                                                            ~quantile(.x, probs = c(0.025, 0.975)),
-                                                                                            rhat, ess_bulk, ess_tail)
-                                                     beta_sigma    <- stan_mod_samples$summary(variables = c("beta_sigma"),
-                                                                                            mean, median, sd, mad,
-                                                                                            ~quantile(.x, probs = c(0.025, 0.975)),
-                                                                                            rhat, ess_bulk, ess_tail)
-                                                     beta_tau    <- stan_mod_samples$summary(variables = c("beta_tau"),
-                                                                                            mean, median, sd, mad,
-                                                                                            ~quantile(.x, probs = c(0.025, 0.975)),
-                                                                                            rhat, ess_bulk, ess_tail)
-                                                     ##
-                                                     log_lik_study_tibble <- stan_mod_samples$summary(variables = c("log_lik_study"))
-                                                     min_ESS  <- min(log_lik_study_tibble$ess_bulk, na.rm = TRUE)
-                                                     max_rhat <- max(log_lik_study_tibble$rhat, na.rm = TRUE)
+                                                     summaries <- fn_K_fold_summaries_of_a_draws_array(
+                                                       unclass(stan_mod_samples$draws(format = "array")))
+                                                     log_lik_study_array <- summaries$log_lik_study_array
+                                                     tibble_all <- summaries$tibble_all
+                                                     beta_mu <- summaries$beta_mu
+                                                     beta_sigma <- summaries$beta_sigma
+                                                     beta_tau <- summaries$beta_tau
+                                                     min_ESS  <- summaries$min_ESS
+                                                     max_rhat <- summaries$max_rhat
+                                                     }
                                                      ##
                                                      metrics <- MetaOrdDTA:::kfold_fold_metrics(
                                                        log_lik_study_array,

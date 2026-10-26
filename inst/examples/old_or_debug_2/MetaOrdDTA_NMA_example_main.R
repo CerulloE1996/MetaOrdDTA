@@ -329,10 +329,10 @@ rm(list = ls())
 
 
 
-# # Check if your real data X was centered:
+# # Check if the real data X was centered:
 # mean(real_data$cov_data$X[[1]][[1]][, "logit_prev_GAD"])  # Should be ~0 if centered
 # 
-# # Check your simulated:
+# # Check the simulated:
 # mean(X[[1]][[1]][, "logit_prev_GAD"])  # Probably not 0
 # 
 
@@ -485,13 +485,13 @@ intercept_only <- TRUE ; MR_model <- "intercept_only"
  # which(indicator_index_test_in_study[, 4] == TRUE)  # Which studies should have test 4?
  # 
  # ifelse(sim_results$indicator_index_test_in_study, 1, 0)
- # Print column names from your real data
+ # Print column names from the real data
  
  
  # 
  # print(colnames(real_data$cov_data$X[[1]][[1]]))
  # 
- # # Print column names from your simulated data  
+ # # Print column names from the simulated data
  # print(colnames(X[[1]][[1]]))
  # 
 
@@ -1782,14 +1782,14 @@ summarize_model_comparison(comparison)
 # negligible benefit. This demonstrates our methodology's ability to detect dataset-specific covariate importance."
 ##
 ##
-# You're exactly right about the real data - stop there and use intercept + reference test as your main model!
+# Main model for the real-data analysis: intercept + reference test.
 # For the dummy data, I'd recommend this strategy:
 #   Skip RoB (only 128 ELPD) and work with the 3 useful covariates:
 #   Option 1: Incremental approach (I recommend this)
 # 
 # You already have the univariate results
 # Fit one model: intercept + prev_GAD + reference_test + study_setting
-# See if it beats prev_GAD alone (which was your best univariate)
+# See if it beats prev_GAD alone (which was the best univariate)
 # 
 # My recommendation: Go with Option 1 because:
 #   
@@ -1797,7 +1797,7 @@ summarize_model_comparison(comparison)
 # You're demonstrating the methodology, not doing exhaustive model selection
 # It mirrors what you'd do in practice: "these 3 helped, let's try them together"
 # 
-# Then for your final models:
+# Then for the final models:
 #   Real data: intercept + reference_test
 # 
 # SROC curves by reference test type

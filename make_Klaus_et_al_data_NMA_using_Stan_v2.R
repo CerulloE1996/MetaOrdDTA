@@ -550,7 +550,7 @@ require(dplyr)
     # 2. SECOND: Match studies and assign Study IDs
     test_data_list <- Klaus_fn_create_study_ids_fuzzy(test_data_list, cov_data_Klaus_3)
     
-    # 3. THIRD: Now run your Klaus functions with clean data
+    # 3. THIRD: Now run the Klaus functions with clean data
     test_prev <- Klaus_fn_get_test_prevalences(test_data_list)
     cov_data_per_test <- Klaus_fn_update_covariates(cov_data_Klaus_3, test_data_list)
     indicator_index_test_in_study <- Klaus_fn_create_indicator(cov_data_Klaus_3, test_data_list)
@@ -617,7 +617,7 @@ require(dplyr)
     # 
     # 
     # 
-    # # See what's in your test data for that duplicate study
+    # # See what's in the test data for that duplicate study
     # test_data_list[[1]] %>%
     #   filter(Author == "Djatche") %>%
     #   select(Study, Author, Cutoff, Score, prev, everything())
@@ -632,7 +632,7 @@ require(dplyr)
     #   ) %>%
     #   filter(n_prevs > 1)
     # 
-    # # What's actually in your test data?
+    # # What's actually in the test data?
     # test_data_list[[1]] %>%
     #   filter(Author == "Djatche") %>%
     #   select(Study, Author, Cutoff, TP, FP, TN, FN, prev)
@@ -1156,7 +1156,7 @@ if (all_match) cat("\nND and D matrices are identical (as expected)\n")
 # which(outs_covs_subset_MR_model_1$X_nd[[1]][, "logit_prev_GAD"] == 999)
 # 
 # 
-# # Check which studies are actually IN your test data
+# # Check which studies are actually IN the test data
 # test_1_studies <- which(indicator_index_test_in_study[, 1] == 1)
 # print(test_1_studies)
 # 
@@ -1190,7 +1190,7 @@ if (all_match) cat("\nND and D matrices are identical (as expected)\n")
 # 
 # # Check 3: Count total 999s vs expected missing
 # n_999s <- sum(outs_covs_subset_MR_model_1$X_nd[[1]][, "logit_prev_GAD"] == 999)
-# n_expected_missing <- 12  # from your query above
+# n_expected_missing <- 12  # from the query above
 # cat("Found", n_999s, "999s, expected", n_expected_missing, "\n")
 # 
 # 
@@ -1230,7 +1230,7 @@ if (all_match) cat("\nND and D matrices are identical (as expected)\n")
 # 
 # 
 # 
-# # Extract all unique study numbers from your 4 lists
+# # Extract all unique study numbers from the 4 lists
 # all_study_numbers <- unique(c(
 #   outs_covs_subset_MR_model_1$study_mappings_per_test[[1]]$original_study,
 #   outs_covs_subset_MR_model_1$study_mappings_per_test[[2]]$original_study,
@@ -1287,14 +1287,14 @@ if (all_match) cat("\nND and D matrices are identical (as expected)\n")
 # quantile(prev_GAD_vec, c(0.025, 0.10, 0.25, 0.50, 0.75, 0.90, 0.975))
 # 
 # 
-# # Your prevalence values
+# # The prevalence values
 # prev_values <- c(0.062, 0.152, 0.328)  # low, mean, high
 # 
-# # What quantiles do these correspond to in your data?
+# # What quantiles do these correspond to in the data?
 # ecdf(prev_GAD_vec)(prev_values)
 # 
 # 
-# # Or if you want to check what SD corresponds to these in your data:
+# # Or if you want to check what SD corresponds to these in the data:
 # logit_mean <- qlogis(mean(prev_GAD_vec))
 # logit_16th <- qlogis(quantile(prev_GAD_vec, 0.16))
 # logit_84th <- qlogis(quantile(prev_GAD_vec, 0.84))
@@ -1687,7 +1687,7 @@ if (target_condition == "GAD") {
   }
 }
 ##
-## Build real_data structure for your needs:
+# Build the real_data structure:
 ##
 real_data <- list()
 real_data$x <- NMA_data_list$x
@@ -1837,7 +1837,7 @@ sum(X[[2]][[4]][, 4])
 #   
 # }
 # 
-# # Use it to check all your data
+# # Use it to check all the data
 # for (t in 1:length(NMA_data_list$x)) {
 #   for (d in 1:2) {
 #     cat(sprintf("\nChecking Test %d, Disease status %d:\n", t, d))

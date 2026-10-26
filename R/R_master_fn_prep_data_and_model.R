@@ -169,6 +169,8 @@ prep_data_and_model <- function(  debugging,
           ##
           internal_obj$outs_stan_model_name  <- MetaOrdDTA:::R_fn_get_stan_model_file_name(
                                                                 custom_file_name = advanced_model_options$custom_file_name,
+                                                                use_Se_Sp_prior  = !is.null(priors[["Se_Sp_prior"]]) ||
+                                                                                   isTRUE(priors[["use_Se_Sp_prior"]] == 1),
                                                                 ##
                                                                 network    = basic_model_options$network, 
                                                                 cts        = basic_model_options$cts, 

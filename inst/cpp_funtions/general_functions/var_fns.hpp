@@ -522,14 +522,14 @@ std::vector<Eigen::Matrix<stan::math::var, -1, -1 > >   fn_convert_Eigen_vec_of_
 //     } else if (vect_type == "Stan") {
 //       return  log_sum_exp_2d_Stan_double(x);
 //     } else if (vect_type == "AVX2") {
-//       if (skip_checks == false)   return  fast_log_sum_exp_2d_AVX2_double(x);
-//       else                        return  fast_log_sum_exp_2d_AVX2_double(x);
+//       if (skip_checks == false)   return  nico_log_sum_exp_2d_AVX2_double(x);
+//       else                        return  nico_log_sum_exp_2d_AVX2_double(x);
 //     } else if (vect_type == "AVX512") {
-//       if (skip_checks == false)   return  fast_log_sum_exp_2d_AVX512_double(x);
-//       else                        return  fast_log_sum_exp_2d_AVX512_double(x);
+//       if (skip_checks == false)   return  nico_log_sum_exp_2d_AVX512_double(x);
+//       else                        return  nico_log_sum_exp_2d_AVX512_double(x);
 //     } else if (vect_type == "Loop") {
-//       //if (skip_checks == false)   return  fast_log_sum_exp_2d_double(x);
-//       // else                        return  fast_log_sum_exp_2d_double(x);
+//       //if (skip_checks == false)   return  nico_log_sum_exp_2d_double(x);
+//       // else                        return  nico_log_sum_exp_2d_double(x);
 //     } else { 
 //       std::stringstream os;
 //       os << "Invalid input argument to log_sum_exp_2d_double"  ;

@@ -11,7 +11,7 @@
 # Large kappa causes numerical instability in Stan (kappa × simplex overflows)
 # This is a real limitation of random-cutpoint models, not a bug
 # 
-# Your options:
+# Options:
 # Option 1: Drop random-cutpoint models on fixed-DGMs (RECOMMENDED)
 # Justification: 
 # - Fixed-cutpoint DGMs are unrealistic anyway (real data has heterogeneity)
@@ -500,12 +500,12 @@ create_MetaOrd_summary_3( ## ---- (Xu, Jones) > Bivariate
   metric = metric,
   rel_diff_threshold = 10)
 ##
-create_MetaOrd_summary_3( ## ---- (Xu, Xu, Jones, R&G) > Bivariate
+create_MetaOrd_summary_3( ## ---- (Xu, Xu, Jones, ordinal-HSROC) > Bivariate
   data =  filter(results_GAD_2_n_studies_10_summary, DGM == "Xu_random_C"),
   metric = metric,
   rel_diff_threshold = 10)
 ##
-create_MetaOrd_summary_3( ## ---- (Xu, Jones, R&G, Xu) > Bivariate
+create_MetaOrd_summary_3( ## ---- (Xu, Jones, ordinal-HSROC, Xu) > Bivariate
   data =  filter(results_GAD_2_n_studies_10_summary, DGM == "R&G_random_C"),
   metric = metric,
   rel_diff_threshold = 10)
@@ -522,7 +522,8 @@ create_MetaOrd_summary_3( ## ---- (Xu, Bivariate) > Jones ## ---- RMSE diff (Jon
   metric = metric,
   rel_diff_threshold = 10)
 ##
-create_MetaOrd_summary_3( ## ---- (Xu, Xu, R&G) > (Jones, Bivariate) ## ---- RMSE diff (Jones vs Xu): ~ 0.60 (0.44 for Xu-Rand vs. Jones)
+create_MetaOrd_summary_3( ## ---- (Xu, Xu, ordinal-HSROC) > (Jones, Bivariate)
+                          ## ---- RMSE diff (Jones vs Xu): ~ 0.60 (0.44 for Xu-Rand vs. Jones)
   data =  filter(results_GAD_2_n_studies_50_summary, DGM == "Xu_random_C"),
   metric = metric,
   rel_diff_threshold = 10)
@@ -895,13 +896,13 @@ create_MetaOrd_summary_3(
 # You said to split into two analyses:
 #   Analysis 1 (Main - Ordinal models only):
 #   
-#   Models: Xu, Jones, R&G (NO bivariate)
+#   Models: Xu, Jones, ordinal-HSROC (NO bivariate)
 # Thresholds: ALL thresholds (including those with 0, 1, 2 studies)
 # Purpose: Shows ordinal models' full capabilities (borrowing + interpolation)
 # 
 # Analysis 2 (Secondary - Fair comparison):
 # 
-# Models: Bivariate, Xu, Jones, R&G (ALL 4 models)
+# Models: Bivariate, Xu, Jones, ordinal-HSROC (ALL 4 models)
 # Thresholds: Only ≥3 studies per threshold
 # Purpose: Fair comparison when bivariate has adequate data
 # 

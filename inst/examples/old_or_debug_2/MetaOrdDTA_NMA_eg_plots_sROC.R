@@ -28,14 +28,14 @@ require(ggplot2)
 # negligible benefit. This demonstrates our methodology's ability to detect dataset-specific covariate importance."
 ##
 ##
-# You're exactly right about the real data - stop there and use intercept + reference test as your main model!
+# Main model for the real-data analysis: intercept + reference test.
 # For the dummy data, I'd recommend this strategy:
 #   Skip RoB (only 128 ELPD) and work with the 3 useful covariates:
 #   Option 1: Incremental approach (I recommend this)
 # 
 # You already have the univariate results
 # Fit one model: intercept + prev_GAD + reference_test + study_setting
-# See if it beats prev_GAD alone (which was your best univariate)
+# See if it beats prev_GAD alone (which was the best univariate)
 # 
 # My recommendation: Go with Option 1 because:
 #   
@@ -43,7 +43,7 @@ require(ggplot2)
 # You're demonstrating the methodology, not doing exhaustive model selection
 # It mirrors what you'd do in practice: "these 3 helped, let's try them together"
 # 
-# Then for your final models:
+# Then for the final models:
 #   Real data: intercept + reference_test
 # 
 # SROC curves by reference test type
@@ -984,7 +984,7 @@ ggsave("DUMMY_Application_MR_sROC_2x2_ALL_TESTS_ALL_SCENARIOS_custom.png",
 
 
 # 
-# # First, add the prevalence and ref test variables to your combined data
+# # First, add the prevalence and ref test variables to the combined data
 # combined_data_enhanced <- combined_data %>%
 #   mutate(
 #     prev_level = case_when(
@@ -1058,7 +1058,7 @@ ggsave("DUMMY_Application_MR_sROC_2x2_ALL_TESTS_ALL_SCENARIOS_custom.png",
 ##
 ## ---- sROC plots by scenario (3x3 panel if 9 scenarios)
 ##
-# Create your own custom grid
+# Create the custom grid
 library(patchwork)
 
 # Customize the shared legend
@@ -1099,11 +1099,11 @@ ggsave("DUMMY_Application_MR_sROC_3x3_ALL_TESTS_ALL_SCENARIOS_custom.png",
 
 
 
-# Example usage for your specific case:
-# First, add the group variables to your data if they don't exist
+# Example configuration:
+# First, add the group variables to the data if they don't exist
 all_comparisons_enhanced <- all_comparisons %>%
   mutate(
-    # Parse scenario names - this part is specific to your naming convention
+    # Parse scenario names - this part is specific to the naming convention
     prev_level = case_when(
       grepl("Low.*prev.", scenario) ~ "Low (6%)",
       grepl("Median.*prev.", scenario) ~ "Medium (15%)",
@@ -1199,7 +1199,7 @@ if ("prev_level" %in% names(combined_data)) {
 
 # 
 
-# Add your specific variables AFTER
+# Add the specific variables AFTER
 combined_data_enhanced <- combined_data %>%
   mutate(
     prev_level = case_when(
@@ -1497,7 +1497,7 @@ plots$grid_separate$`Sp_grid_separate_scenario_High GAD prev. (~33%), MINI`
 
 
 
-# # In your paper:
+# # In the paper:
 # "All plots were created using the MetaOrdDTA R package. Base plots were 
 # generated using the following R6 class methods:
 # 
@@ -1891,7 +1891,7 @@ Stan_functions_path <- model_summary_and_trace_obj_META_REG_DUMMY$internal_obj$o
 #                      include_paths = c(Stan_functions_path))
 
 ##
-# ## set Stan model file path for your Stan model (replace with your path)
+# ## set Stan model file path for the Stan model (replace with the path)
 Stan_model_file_path <- system.file("stan_models/basic_logistic.stan", package = "BayesMVPtest")
 # make y a matrix first (matrix w/ 1 col)
 ### input N to use

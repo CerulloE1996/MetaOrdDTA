@@ -17,12 +17,18 @@
 R_fn_compute_cmdstanr_summary_tibble <- function( stan_fitted_model, 
                                                   variables_vec) {
 
-      cmdstanr_summary_tibble <- stan_fitted_model$summary( variables = variables_vec,
-                                                            "mean", "sd", 
-                                                            ~ quantile(.x, probs = c(0.025,  0.50, 0.975), na.rm = TRUE), 
-                                                            "rhat" , "ess_bulk", "ess_tail") %>% print()
+      ##
+      ## ---- NicoStan's summary of a cmdstanr fit (iterations x chains x variables) -----------------------------------------------------------
+      ##
+      draws_array <- unclass(stan_fitted_model$draws(variables = variables_vec, format = "array"))
+      cmdstanr_summary_tibble <- MetaOrdDTA:::generate_summary_tibble( n_threads = NULL,
+                                                                       input_array = draws_array,
+                                                                       iter_dim = 1,
+                                                                       chain_dim = 2,
+                                                                       param_names = dimnames(draws_array)[[3]],
+                                                                       compute_nested_rhat = FALSE,
+                                                                       n_superchains = NULL)
       return(cmdstanr_summary_tibble)
-
 
 }
 

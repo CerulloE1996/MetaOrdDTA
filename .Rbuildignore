@@ -54,3 +54,4 @@
 # Local package build/check output
 ^MetaOrdDTA_[^/]+\.tar\.gz$
 ^MetaOrdDTA\.Rcheck$
+^AGENTS\.md$

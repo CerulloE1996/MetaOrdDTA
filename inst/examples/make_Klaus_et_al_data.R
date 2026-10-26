@@ -238,7 +238,7 @@ outs_covs_subset <- MetaOrdDTA:::create_subsetted_covariates_for_tests(  cov_dat
                                                                               scale_cts = TRUE)
 
 
-# # Center your original data before using it
+# # Center the original data before using it
 # for (t in 1:4) {
 #   # Center continuous variables
 #   for (var in covariate_settings$continuous_vars) {
@@ -305,7 +305,7 @@ outs_covs_subset <- MetaOrdDTA:::create_subsetted_covariates_for_tests(  cov_dat
 # mean(unique(data_HADS$N)) ; sd(unique(data_HADS$N))
 mean(unique(data_BAI$N)) ; sd(unique(data_BAI$N))
 
-# Assuming your data frame is named 'df'
+# Data frame named 'df'
 Se_Sp_summary <- compute_Se_Sp_by_cutpoint(data = data_to_use,
                                            min_score = min_score,
                                            max_score = max_score)
@@ -480,8 +480,8 @@ print(Klaus_data_list)
       
       if (model_type == "ord_bivariate") { 
         
-          stan_model_file_name <-  "DTA_MA_Xu_RANDthr_kappa.stan"
-            # stan_model_file_name <-  "DTA_MA_Xu_FIXEDthr.stan"
+          stan_model_file_name <-  "DTA_MA_ord_biv_RANDthr_kappa.stan"
+            # stan_model_file_name <-  "DTA_MA_ord_biv_FIXEDthr.stan"
         
             Klaus_data_list$prior_beta_mu_mean <- array(0.0, dim = c(2, Klaus_data_list$n_covariates_max))
             Klaus_data_list$prior_beta_mu_SD   <- array(1.0, dim = c(2, Klaus_data_list$n_covariates_max))
@@ -503,7 +503,7 @@ print(Klaus_data_list)
         
       } else if (model_type == "ord_HSROC") { 
         
-           stan_model_file_name <- "DTA_MA_Gat_RANDthr_kappa.stan"
+           stan_model_file_name <- "DTA_MA_ord_HSROC_RANDthr_kappa.stan"
            
            Klaus_data_list$prior_beta_mu_mean <- 0.0
            Klaus_data_list$prior_beta_mu_SD   <- 1.0
@@ -517,7 +517,7 @@ print(Klaus_data_list)
       
  
        #  
-       # # stan_model_file_name <- "DTA_MA_Gat_FIXEDthr.stan"
+       # # stan_model_file_name <- "DTA_MA_ord_HSROC_FIXEDthr.stan"
    
        outs <- MetaOrdDTA:::R_fn_compile_stan_model_basic_given_file_name( 
                                                                            stan_model_file_name =  stan_model_file_name,
@@ -655,7 +655,7 @@ print(Klaus_data_list)
     Klaus_data_list$use_probit_link <- 1
     
     
-    # After creating your list of matrices, convert to 3D array:
+    # After creating the list of matrices, convert to 3D array:
     x_array <- array(NA, dim = c(2, Klaus_data_list$n_studies, Klaus_data_list$n_thr + 1))
     for (c in 1:2) {
       x_array[c, , ] <- as.integer(Klaus_data_list$x[[c]])

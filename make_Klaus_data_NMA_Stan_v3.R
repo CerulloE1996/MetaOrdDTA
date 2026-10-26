@@ -57,6 +57,20 @@ rm(list = ls())
 ##
 require(MetaOrdDTA)
 require(RcppParallel)
+##
+## ---- NicoStan and NicoSIMD from the frozen library (the K-fold workers inherit R_LIBS) -----------------------------------------
+##
+frozen_library <- "/home/enzocerullo/R/frozen_library_of_the_MetaOrdDTA_sim"
+Sys.setenv(R_LIBS = frozen_library)
+.libPaths(c(frozen_library, .libPaths()))
+##
+## ---- The sampler: the K-fold is always NicoStan; the main model NicoStan or cmdstanr ("Stan"), for the z-score check -------
+##
+algorithm_of_the_main_model <- "NicoStan"
+# algorithm_of_the_main_model <- "Stan" ## (cmdstanr: the main model only)
+##
+## (the sim study's NicoStan settings, with auto_chunking = TRUE)
+source(file.path("/home/enzocerullo/Documents/Work/PhD_work/R_packages/MetaOrdDTA", "Klaus_sampler_fns.R"))
 ## require(BayesMVPtest)
 ##
 require(dplyr)
@@ -67,7 +81,7 @@ require(dplyr)
     target_condition <- "AAD"  ; n_index_tests <- 8 ## REAL analysis
     # target_condition <- "GAD"  ; n_index_tests <- 8 ## REAL analysis
     ##
-    inform_dir <- TRUE
+    inform_dir <- FALSE
     ##
     run_single_model <- FALSE
     ##
@@ -201,7 +215,7 @@ require(dplyr)
     # data_Klaus <- tibble(read.csv(file.path(Klaus_dir, "DIAQANDI NWMA database final 2025_04_23.csv"))) ## older data (used this for sim study!)
     
     ######## data_Klaus <- tibble(read.csv(file.path(Klaus_dir, "DIAQANDI NWMA database final 2025_05_28.csv")))
-    data_Klaus <- tibble(read.csv(file.path(Klaus_dir, "DIAQANDI NWMA database updated 2025_11_25_2x2_tables.csv")))
+    data_Klaus <- tibble(read.csv(file.path(Klaus_dir, "DIAQANDI NWMA database updated 2026_05_11_2x2_tables.csv")))
     data_Klaus
     
     data <- data_Klaus %>% 
@@ -383,7 +397,7 @@ require(dplyr)
     ##
     # cov_data_Klaus <- tibble(read.csv(file.path(Klaus_dir, "DIAQANDI NWMA database final 2025_05_28_descriptive_short.csv")))
     ## DIAQANDI NWMA database updated 2025_11_25_descriptive_short.csv
-    cov_data_Klaus <- tibble(read.csv(file.path(Klaus_dir, "DIAQANDI NWMA database updated 2025_11_25_descriptive_short.csv")))
+    cov_data_Klaus <- tibble(read.csv(file.path(Klaus_dir, "DIAQANDI NWMA database updated 2026_05_11_descriptive_short.csv")))
     cov_data_Klaus %>% print(width = Inf)
     ##
     unique(cov_data_Klaus$ReferenceBrookeLevis)
@@ -572,7 +586,7 @@ require(dplyr)
           arrange(Study, Cutoff)
         
         
-        # # In your data cleaning script, BEFORE Klaus_fn_create_study_ids_fuzzy,
+        # # In the data cleaning script, BEFORE Klaus_fn_create_study_ids_fuzzy,
         # # remove the definite duplicates from cov_data_Klaus_3:
         # cov_data_Klaus_3 <- cov_data_Klaus_3 %>%
         #   filter(!Study %in% c(134, 135, 136))  # Keep 137 for now until confirmed
@@ -1173,11 +1187,11 @@ cov_data <- NULL
       if (n_index_tests == 4) {
         saveRDS(object = real_data,
                 file = file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data",
-                                 paste0("real_data_4_tests", "_", "GAD")))
+                                 paste0("real_data_4_tests", "_", target_condition)))
       } else { 
         saveRDS(object = real_data,
                 file = file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data",
-                                 paste0("real_data_8_tests", "_", "GAD")))
+                                 paste0("real_data_8_tests", "_", target_condition)))
       }
 }
 ##
@@ -1615,7 +1629,10 @@ if (run_single_model) {
                       random_thresholds = random_thresholds,
                       Dirichlet_random_effects_type = Dirichlet_random_effects_type, ## only used if random cutpoints
                       ##
-                      init_lists_per_chain = NULL)
+                      init_lists_per_chain = NULL,
+                      ##
+                      ## (cmdstanr compiles only when the main model runs on cmdstanr)
+                      compile = identical(algorithm_of_the_main_model, "Stan"))
     ##
     {
       init_lists_per_chain <- model_prep_obj$init_lists_per_chain
@@ -1688,14 +1705,18 @@ if (run_single_model) {
                   }
                   ##
                   for (t in 1:n_index_tests) {
-                    priors$prior_dirichlet_alpha[[2]][t, 1:n_thr[t]] <- rep(2.0, n_thr[t])
+                    # priors$prior_dirichlet_alpha[[2]][t, 1:n_thr[t]] <- rep(2.0, n_thr[t])
+                    ## (all n_thr + 1 categories: Stan reads prior_dirichlet_alpha[c][t, 1:(n_thr + 1)])
+                    priors$prior_dirichlet_alpha[[2]][t, 1:(n_thr[t] + 1)] <- rep(2.0, n_thr[t] + 1)
                   }
               
             } else {
               
                   for (t in 1:n_index_tests) {
                     for (c in 1:2) {
-                      priors$prior_dirichlet_alpha[[c]][t, 1:n_thr[t]] <- rep(1.0, n_thr[t])
+                      # priors$prior_dirichlet_alpha[[c]][t, 1:n_thr[t]] <- rep(1.0, n_thr[t])
+                      ## (all n_thr + 1 categories: Stan reads prior_dirichlet_alpha[c][t, 1:(n_thr + 1)])
+                      priors$prior_dirichlet_alpha[[c]][t, 1:(n_thr[t] + 1)] <- rep(1.0, n_thr[t] + 1)
                     }
                   }
               
@@ -1767,12 +1788,37 @@ if (run_single_model) {
         ##
         seed <- 1
         ##
-        n_chains <- 8
-        n_burnin <- 250
-        n_iter <- 250
+        ## ---- The sim study's settings (run_MULTIPLE_MetaOrd_simulation.R lines 344-357, 409, 412, 636-640;
+        ##      more than 10 studies, ord_biv):
         ##
-        adapt_delta <- 0.65
+        n_chains <- 4
+        if (random_thresholds == TRUE) {
+             n_iter_for_4_chains <-  1000 ## 5000
+        } else {
+             n_iter_for_4_chains <-  2000 ## 1000 ## 5000
+        }
+        n_iter <- ceiling(n_iter_for_4_chains / (n_chains/4))
+        n_burnin <- 500
+        ##
+        adapt_delta <- 0.80
         max_treedepth <- 10
+        ##
+        ## (the nuisance blocks and parameter families of interest come from MetaOrdDTA itself)
+        name_of_the_NicoStan_model <- sub("(_NicoStan_fused_AVX)?\\.stan$", "_NicoStan_fused_AVX",
+                                          basename(model_prep_obj$internal_obj$outs_stan_model_name$stan_model_file_name))
+        nuisance_params <- MetaOrdDTA::fn_nuisance_params_of_a_MetaOrdDTA_model(
+                                name_of_the_model      = name_of_the_NicoStan_model,
+                                model_parameterisation = "NMA",
+                                random_thresholds      = random_thresholds)
+        interest_only_params <- MetaOrdDTA::fn_interest_only_params_of_a_MetaOrdDTA_model(
+                                name_of_the_model      = name_of_the_NicoStan_model,
+                                model_parameterisation = "NMA",
+                                random_thresholds      = random_thresholds)
+        NicoStan_args <- fn_NicoStan_args_of_the_sim_study(n_burnin = n_burnin,
+                                                           nuisance_params = nuisance_params,
+                                                           interest_only_params = interest_only_params)
+        ## (the draws also hold the transformed parameters, as a cmdstanr fit does: e.g. beta_tau)
+        NicoStan_args$compute_transformed_parameters <- TRUE
         ##
         n_chains*n_iter
         ##
@@ -1796,9 +1842,10 @@ if (run_single_model) {
           ##
           n_chains = n_chains,
           ##
-          init_lists_per_chain = init_lists_per_chain
+          init_lists_per_chain = init_lists_per_chain,
           ##
-          # cmdstanr_args = final_stan_args
+          algorithm = algorithm_of_the_main_model,
+          NicoStan_args = NicoStan_args
         )
     }
     ##
@@ -1866,12 +1913,15 @@ if (run_single_model) {
     ## log_kappa[c][t] ~ normal(0.0, 2.5) is WORSE than:  log_kappa[c][t] ~ normal(0.0, 5.0);
     ##
     ## ---- kappa[c][t] ~ normal(0.0, 5000):
+##
     ## Min_ESS(Se, Sp) = 181, Max_rhat(Se, Sp) = 1.04, Min_ESS(kappa) = 13, Max_rhat(kappa) = 1.73
     ##
     ## ---- kappa[c][t] ~ normal(0.0, 1000):
+##
     ## Min_ESS(Se, Sp) = 210, Max_rhat(Se, Sp) = 1.03, Min_ESS(kappa) = 40, Max_rhat(kappa) = 1.14
     ##
     ## ---- w/ student_t priors: log_100_100_df_5_5_sd_1_1:
+##
     ## Min_ESS(Se, Sp) = 328, Max_rhat(Se, Sp) = 1.03, Min_ESS(kappa) = 9, Max_rhat(kappa) = 3.14
 }
 # # ##
@@ -2395,8 +2445,8 @@ if (run_single_model) {
 source(file.path(getwd(), "R", "R_fns_misc.R"))
 source(file.path(getwd(), "R", "R_fn_K_fold_CV.R"))
 ##
-# inform_dir <- FALSE
-inform_dir <- TRUE
+inform_dir <- FALSE
+# inform_dir <- TRUE
 ##
 MR_model_for_real_data
 ##
@@ -2442,7 +2492,10 @@ model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(
                   random_thresholds = random_thresholds,
                   Dirichlet_random_effects_type = Dirichlet_random_effects_type, ## only used if random cutpoints
                   ##
-                  init_lists_per_chain = NULL)
+                  init_lists_per_chain = NULL,
+                  ##
+                  ## (the K-fold is NicoStan only: no cmdstanr compile)
+                  compile = FALSE)
 ##
 {
     init_lists_per_chain <- model_prep_obj$init_lists_per_chain
@@ -2523,12 +2576,16 @@ colSums(indicator_index_test_in_study)
           }
           ##
           for (t in 1:n_index_tests) { 
-             priors$prior_dirichlet_alpha[[2]][t, 1:n_thr[t]] <- rep(2.0, n_thr[t])
+             # priors$prior_dirichlet_alpha[[2]][t, 1:n_thr[t]] <- rep(2.0, n_thr[t])
+             ## (all n_thr + 1 categories: Stan reads prior_dirichlet_alpha[c][t, 1:(n_thr + 1)])
+             priors$prior_dirichlet_alpha[[2]][t, 1:(n_thr[t] + 1)] <- rep(2.0, n_thr[t] + 1)
           }
       } else {
         for (t in 1:n_index_tests) { 
           for (c in 1:2) {
-             priors$prior_dirichlet_alpha[[c]][t, 1:n_thr[t]] <- rep(1.0, n_thr[t])
+             # priors$prior_dirichlet_alpha[[c]][t, 1:n_thr[t]] <- rep(1.0, n_thr[t])
+             ## (all n_thr + 1 categories: Stan reads prior_dirichlet_alpha[c][t, 1:(n_thr + 1)])
+             priors$prior_dirichlet_alpha[[c]][t, 1:(n_thr[t] + 1)] <- rep(1.0, n_thr[t] + 1)
           }
         }
       }
@@ -2608,6 +2665,7 @@ priors$prior_beta_corr_LKJ <- if_null_then_set_to( priors$prior_beta_corr_LKJ, 2
 priors
 ##
 ## ---- Always use same seed for every model:
+##
 set.seed(123, kind = "Mersenne-Twister") # set seed kind to ensure consistency
 ##
 K <- 24
@@ -2670,19 +2728,31 @@ dput(fold_assignments)
 source(file.path(getwd(), "R", "R_fns_misc.R"))
 source(file.path(getwd(), "R", "R_fn_K_fold_CV.R"))
 ##
-n_chains <- 2
+## ---- The sim study's settings (run_MULTIPLE_MetaOrd_simulation.R lines 344-357, 409, 412, 636-640;
+##      more than 10 studies, ord_biv), every fold on NicoStan:
 ##
-if (random_thresholds == FALSE) {
-    n_burnin <- 300
-    n_iter   <- 1000 ## round(1000/n_chains)
+n_chains <- 4
+if (random_thresholds == TRUE) {
+     n_iter_for_4_chains <-  1000 ## 5000
 } else {
-    n_burnin <- 500
-    n_iter   <- 2000 ## round(2000/n_chains)
+     n_iter_for_4_chains <-  2000 ## 1000 ## 5000
 }
+n_iter <- ceiling(n_iter_for_4_chains / (n_chains/4))
+n_burnin <- 500
 ##
-n_iter <- 2*n_iter
-##
-## Make sure have 4000 total iter for random-effects, and 1000-2000 total iter for fixed:
+name_of_the_NicoStan_model <- sub("(_NicoStan_fused_AVX)?\\.stan$", "_NicoStan_fused_AVX",
+                                  basename(model_prep_obj$internal_obj$outs_stan_model_name$stan_model_file_name))
+nuisance_params <- MetaOrdDTA::fn_nuisance_params_of_a_MetaOrdDTA_model(
+                        name_of_the_model      = name_of_the_NicoStan_model,
+                        model_parameterisation = "NMA",
+                        random_thresholds      = random_thresholds)
+interest_only_params <- MetaOrdDTA::fn_interest_only_params_of_a_MetaOrdDTA_model(
+                        name_of_the_model      = name_of_the_NicoStan_model,
+                        model_parameterisation = "NMA",
+                        random_thresholds      = random_thresholds)
+NicoStan_args <- fn_NicoStan_args_of_the_sim_study(n_burnin = n_burnin,
+                                                   nuisance_params = nuisance_params,
+                                                   interest_only_params = interest_only_params)
 ##
 random_thresholds
 ##
@@ -2721,8 +2791,6 @@ try({
                                                ##
                                                fold_assignments = fold_assignments,
                                                ##
-                                               cmdstanr_args = NULL,
-                                               ##
                                                priors = priors,
                                                init_lists_per_chain = init_lists_per_chain,
                                                ##
@@ -2737,7 +2805,10 @@ try({
                                                n_workers = K,
                                                output_dir = MetaOrdDTA::metaorddta_output_path("cv_results"),
                                                ##
-                                               use_BayesMVP_for_faster_summaries = TRUE)
+                                               use_BayesMVP_for_faster_summaries = TRUE,
+                                               ##
+                                               algorithm = "NicoStan",
+                                               NicoStan_args = NicoStan_args)
     
     
     # beepr::beep(sound = 7)
