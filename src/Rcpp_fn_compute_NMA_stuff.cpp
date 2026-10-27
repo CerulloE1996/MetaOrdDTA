@@ -986,8 +986,11 @@ List Rcpp_fn_compute_NMA_comparisons( Rcpp::NumericVector trace_gq_vec,  // Flat
                       // Convert to Eigen vector
                       Eigen::Map<Eigen::Matrix<double, -1, 1>> clean_vec(clean_vals.data(), clean_vals.size());
                       
-                      // Compute statistics
-                      double mean_val = clean_vec.mean();
+                      // Compute statistics (the mean added in index order, so that it does not depend on where
+                      // clean_vals sits in memory)
+                      double mean_val = 0.0;
+                      for (const double value : clean_vals) mean_val += value;
+                      mean_val /= clean_vals.size();
                       double sd_val = std::sqrt((clean_vec.array() - mean_val).square().sum() / (clean_vals.size() - 1));
                       
                       // Sort for quantiles
@@ -1167,8 +1170,11 @@ List Rcpp_compute_NMA_comparisons_from_arrays(
               // Convert to Eigen vector
               Eigen::Map<Eigen::Matrix<double, -1, 1>> clean_vec(clean_vals.data(), clean_vals.size());
               
-              // Compute statistics
-              double mean_val = clean_vec.mean();
+              // Compute statistics (the mean added in index order, so that it does not depend on where clean_vals
+              // sits in memory)
+              double mean_val = 0.0;
+              for (const double value : clean_vals) mean_val += value;
+              mean_val /= clean_vals.size();
               double sd_val = std::sqrt((clean_vec.array() - mean_val).square().sum() / 
                                         (clean_vals.size() - 1));
               
