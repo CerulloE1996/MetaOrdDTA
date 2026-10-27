@@ -496,7 +496,7 @@ require(dplyr)
     
     {
  
-        test_data_list <- Klaus_fn_fix_prevalences(test_data_list)
+        
         
         # CRITICAL: Remove old (wrong) Study IDs before fuzzy matching
         for (i in 1:length(test_data_list)) {
@@ -508,7 +508,7 @@ require(dplyr)
         # 2. Match Study IDs (now using corrected cov_data_Klaus_3)
         test_data_list <- Klaus_fn_create_study_ids_fuzzy(test_data_list,
                                                           cov_data_Klaus_3)
-        
+        test_data_list <- Klaus_fn_fix_prevalences(test_data_list)
         
         
         
