@@ -319,7 +319,7 @@ test_vals_vec <- c("GAD_2", "HADS", "BAI") ## ----
 ##
 sampling_algorithm <- "NicoStan"
 # sampling_algorithm <- "Stan"
-##
+## 
 ## ---- Sim study type ----------------------------------------------------------------------------------------------------------------
 ##
 ## ("paper" = the sim study of the paper; "RC_ord_biv_median_vs_pop_median" = the tests and numbers of studies
@@ -351,16 +351,30 @@ stopifnot(ordinal_prior_type %in% c("Dirichlet", "Se_Sp"))
 sim_study_dir <- file.path(local_pkg_dir, "sim_study")
 ##
 {
-  ## NicoStan's folder of the sim study: "simulation_results_NicoStan_fused_AVX"
-  ## Stan's folder of the divergence test: "simulation_results_Stan_divergence_test"
-  if (sampling_algorithm == "NicoStan") { 
-    # inner_path <-  "simulation_results_NicoStan_diag_burnin_250"
-    # inner_path <-   "simulation_results_NicoStan_test_MCSE_0.5_test_2"
-    # inner_path <-   "simulation_results_NicoStan_MCSE_0.25_Se_Sp_prior_flat_1"
-      inner_path <-   "simulation_results_NicoStan_MCSE_0.25_alpha_prior_flat_1"
-  } else { 
-    inner_path <-  "simulation_results_Stan_reference_grid"
-  }
+  
+    if (sim_study_type == "paper") { 
+      
+            ## NicoStan's folder of the sim study: "simulation_results_NicoStan_fused_AVX"
+            ## Stan's folder of the divergence test: "simulation_results_Stan_divergence_test"
+            if (sampling_algorithm == "NicoStan") { 
+              # inner_path <-  "fixed_raw_C_J_simu_results_NicoStan_diag_burnin_250"
+              # inner_path <-   "fixed_raw_C_J_sim_results_NicoStan_test_MCSE_0.5_test_2"
+              # inner_path <-   "fixed_raw_C_J_sim_results_NicoStan_MCSE_0.25_Se_Sp_prior_flat_1"
+                inner_path <-   "fixed_raw_C_J_sim_results_NicoStan_MCSE_0.25_alpha_prior_flat_1"
+            } else { 
+              inner_path <-  "fixed_raw_C_J_sim_results_Stan_reference_grid"
+            }
+      
+    } else if (sim_study_type == "RC_ord_biv_median_vs_pop_median") {
+      
+            inner_path <- paste0("RC_ord_biv_med_vs_popmed_", inner_path)
+          
+    } else if (sim_study_type == "RC_ord_HSROC_median_vs_pop_median") {
+      
+            inner_path <- paste0("RC_ord_HSROC_med_vs_popmed_", inner_path)
+            
+    }
+  
 }
 ##
 ## ---- The folder of the sim study type ----------------------------------------------------------------------------------------------

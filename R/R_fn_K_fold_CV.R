@@ -434,19 +434,36 @@ R_fn_fit_one_K_fold_CV_fold_with_NicoStan  <-  function(  stan_data_list,
                                                                n_burnin              = n_burnin,
                                                                n_iter                = n_iter,
                                                                NicoStan_args         = NicoStan_args)
-        ## (iterations x chains x variables, with the transformed parameters and generated quantities)
-        summaries <-  fn_K_fold_summaries_of_a_draws_array(unclass(outs$draws_array))
+        ## (iterations x chains x variables, with the transformed parameters and generated quantities: only the
+        ##  log_lik_study draws are kept; the summary is NicoStan's own summary of the fit, not made again)
+        is_log_lik_study <-  grepl("^log_lik_study(\\[|$)", dimnames(outs$draws_array)[[3]])
+        log_lik_study_array <-  unclass(outs$draws_array[, , is_log_lik_study, drop = FALSE])
+        tibble_all <-  outs$summary_of_every_output
+        divergences <-  outs$divergences
+        seconds_of_the_fit <-  outs$seconds_of_the_fit
+        so_file <-  outs$library_used
+        ## (the fit and its draws freed before the next fold)
+        rm(outs)
+        invisible(gc(full = TRUE))
+        fn_rows_of_one_variable <-  function(name_of_the_variable) {
+
+              return(tibble_all[grepl(paste0("^", name_of_the_variable, "(\\[|$)"), tibble_all$parameter), ])
+
+        }
+        log_lik_study_tibble <-  fn_rows_of_one_variable("log_lik_study")
         ##
-        return(list( log_lik_study_array  = summaries$log_lik_study_array,
-                     tibble_all           = summaries$tibble_all,
-                     beta_mu              = summaries$beta_mu,
-                     beta_sigma           = summaries$beta_sigma,
-                     beta_tau             = summaries$beta_tau,
-                     min_ESS              = summaries$min_ESS,
-                     max_rhat             = summaries$max_rhat,
-                     divergences          = outs$divergences,
-                     seconds_of_the_fit   = outs$seconds_of_the_fit,
-                     so_file              = outs$library_used))
+        return(list( log_lik_study_array  = log_lik_study_array,
+                     tibble_all           = tibble_all,
+                     beta_mu              = fn_rows_of_one_variable("beta_mu"),
+                     beta_sigma           = fn_rows_of_one_variable("beta_sigma"),
+                     beta_tau             = fn_rows_of_one_variable("beta_tau"),
+                     ## (min ESS = min of the bulk, tail and theta-squared ESS)
+                     min_ESS              = min(log_lik_study_tibble$n_eff, log_lik_study_tibble$n_eff_tail,
+                                                log_lik_study_tibble$n_eff_sd, na.rm = TRUE),
+                     max_rhat             = max(log_lik_study_tibble$Rhat, na.rm = TRUE),
+                     divergences          = divergences,
+                     seconds_of_the_fit   = seconds_of_the_fit,
+                     so_file              = so_file))
 
 }
 

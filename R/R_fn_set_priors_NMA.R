@@ -184,12 +184,12 @@ R_fn_set_priors_NMA <- function(  priors,
                                                                                            list(mat, mat))
                                         ##
                                         ##
-                                        prior_kappa_mean_nd <- rep(log(100), n_index_tests)
-                                        prior_kappa_mean_d  <- rep(log(100), n_index_tests)
-                                        priors$prior_kappa_mean <- if_null_then_set_to( priors$prior_kappa_mean, 
+                                        prior_kappa_mean_nd <- rep(log(300), n_index_tests)
+                                        prior_kappa_mean_d  <- rep(log(300), n_index_tests)
+                                        priors$prior_kappa_mean <- if_null_then_set_to( priors$prior_kappa_mean,
                                                                                         list(prior_kappa_mean_nd, prior_kappa_mean_d))
                                         ##
-                                        prior_kappa_SD <- rep(1.0, n_index_tests)
+                                        prior_kappa_SD <- rep(0.5, n_index_tests)
                                         priors$prior_kappa_SD   <- if_null_then_set_to( priors$prior_kappa_SD, 
                                                                                         list(prior_kappa_SD, prior_kappa_SD))
                                         ##
@@ -199,8 +199,8 @@ R_fn_set_priors_NMA <- function(  priors,
                                         priors$kappa_ub <- if_null_then_set_to( priors$kappa_ub, 
                                                                                 exp(10))
                                         ##
-                                        prior_kappa_dof_nd <- 3
-                                        prior_kappa_dof_d  <- 3
+                                        prior_kappa_dof_nd <- 1000
+                                        prior_kappa_dof_d  <- 1000
                                         priors$prior_kappa_dof <- if_null_then_set_to( priors$prior_kappa_dof, 
                                                                                        list(rep(prior_kappa_dof_nd, n_index_tests), 
                                                                                             rep(prior_kappa_dof_d,  n_index_tests)))
@@ -294,11 +294,11 @@ R_fn_set_priors_NMA <- function(  priors,
                                         priors$prior_dirichlet_phi <- if_null_then_set_to( priors$prior_dirichlet_phi,
                                                                                            prior_dirichlet_phi)
                                         ##
-                                        prior_kappa_mean <- rep(log(100), n_index_tests)
+                                        prior_kappa_mean <- rep(log(300), n_index_tests)
                                         priors$prior_kappa_mean   <- if_null_then_set_to(  priors$prior_kappa_mean,
                                                                                            prior_kappa_mean)
                                         ##
-                                        prior_kappa_SD <- rep(1.0, n_index_tests)
+                                        prior_kappa_SD <- rep(0.5, n_index_tests)
                                         priors$prior_kappa_SD   <- if_null_then_set_to(  priors$prior_kappa_SD,
                                                                                          prior_kappa_SD)
                                         ##
@@ -306,7 +306,7 @@ R_fn_set_priors_NMA <- function(  priors,
                                                                                 0.001)
                                         ##
                                         priors$prior_kappa_dof <- if_null_then_set_to( priors$prior_kappa_dof, 
-                                                                                       list(rep(3, n_index_tests)))
+                                                                                       list(rep(1000, n_index_tests)))
                                         priors$prior_kappa_df <- priors$prior_kappa_dof
                                 }
                                 # 
