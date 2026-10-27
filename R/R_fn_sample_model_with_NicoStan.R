@@ -373,6 +373,9 @@ R_fn_sample_model_with_NicoStan  <-  function(  stan_data_list,
                      divergences                             = divergences,
                      summary_of_Se_baseline                  = summary_of_Se,
                      summary_of_Sp_baseline                  = summary_of_Sp,
+                     ## (NicoStan's own summary of every main parameter, transformed parameter and generated
+                     ##  quantity)
+                     summary_of_every_output                 = summary_of_every_output,
                      so_file                                 = so_file,
                      ## (the library NicoStan loaded, as NicoStan records it: e.g. the nuisance-first,
                      ##  nico_reduce_sum or AUTO-CHUNKING version)

@@ -234,14 +234,14 @@ R_fn_set_priors_MA <- function(   priors,
                                 priors$prior_dirichlet_alpha <- if_null_then_set_to( priors$prior_dirichlet_alpha, 
                                                                                      rep(1.0, n_thr + 1))
                                 ##
-                                priors$prior_kappa_mean   <-  if_null_then_set_to( priors$prior_kappa_mean, 
-                                                                                           log(100))
+                                priors$prior_kappa_mean   <-  if_null_then_set_to( priors$prior_kappa_mean,
+                                                                                           log(300))
                                 ##
-                                priors$prior_kappa_dof   <- if_null_then_set_to( priors$prior_kappa_dof, 3)
+                                priors$prior_kappa_dof   <- if_null_then_set_to( priors$prior_kappa_dof, 1000)
                                 priors$prior_kappa_df <- priors$prior_kappa_dof
                                 ##
-                                priors$prior_kappa_SD   <-  if_null_then_set_to( priors$prior_kappa_SD, 
-                                                                                 1.0)
+                                priors$prior_kappa_SD   <-  if_null_then_set_to( priors$prior_kappa_SD,
+                                                                                 0.5)
                                 ##
                                 priors$kappa_lb <- if_null_then_set_to( priors$kappa_lb, 
                                                                         0.001)
@@ -253,13 +253,13 @@ R_fn_set_priors_MA <- function(   priors,
                                                                                    list(prior_dirichlet_alpha, prior_dirichlet_alpha))
                                 ##
                                 priors$prior_kappa_mean   <- if_null_then_set_to(  priors$prior_kappa_mean, 
-                                                                                           c(log(100), log(100)))
+                                                                                           c(log(300), log(300)))
                                 ##
-                                priors$prior_kappa_SD   <- if_null_then_set_to(  priors$prior_kappa_SD, 
-                                                                                   c(1.0, 1.0))
+                                priors$prior_kappa_SD   <- if_null_then_set_to(  priors$prior_kappa_SD,
+                                                                                   c(0.5, 0.5))
                                 ##
-                                priors$prior_kappa_dof   <- if_null_then_set_to(  priors$prior_kappa_dof, 
-                                                                                 c(3, 3))
+                                priors$prior_kappa_dof   <- if_null_then_set_to(  priors$prior_kappa_dof,
+                                                                                 c(1000, 1000))
                                 priors$prior_kappa_df <- priors$prior_kappa_dof
                                 ##
                                 priors$kappa_lb <- if_null_then_set_to( priors$kappa_lb, 

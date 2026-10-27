@@ -283,16 +283,16 @@ run_multiple_sims <- function(MCMC_seed,
               if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
 
                       priors$prior_dirichlet_alpha <- rep(1.0, n_thr + 1)
-                      priors$prior_kappa_mean <- log(100)
-                      priors$prior_kappa_SD <- 1.0
+                      priors$prior_kappa_mean <- log(300)
+                      priors$prior_kappa_SD <- 0.5
                       priors$kappa_lb <- 0.001
 
               } else {
 
                       prior_dirichlet_alpha <- rep(1.0, n_thr + 1)
                       priors$prior_dirichlet_alpha <-  list(prior_dirichlet_alpha, prior_dirichlet_alpha)
-                      priors$prior_kappa_mean   <-  c(log(100), log(100))
-                      priors$prior_kappa_SD   <-  c(1.0, 1.0)
+                      priors$prior_kappa_mean   <-  c(log(300), log(300))
+                      priors$prior_kappa_SD   <-  c(0.5, 0.5)
                       priors$kappa_lb <-  0.001
 
               }
@@ -433,18 +433,18 @@ run_multiple_sims <- function(MCMC_seed,
                 
                     if (model_parameterisation == "ord_bivariate") {
                         priors$prior_beta_SD_SD <- c(0.5, 0.5)
-                        priors$prior_kappa_mean <- c(log(100), log(100))
-                        priors$prior_kappa_SD <- c(1.0, 1.0)
-                        priors$prior_kappa_dof <- c(5, 3) ## default = c(5, 5)#
+                        priors$prior_kappa_mean <- c(log(300), log(300))
+                        priors$prior_kappa_SD <- c(0.5, 0.5)
+                        priors$prior_kappa_dof <- c(1000, 1000) ## default = c(5, 5)#
                         ##
                         for (kk in 1:n_chains) {
                           init_lists_per_chain[[kk]]$kappa <- c(2000, 500)
                         }
                     } else {
                         priors$prior_beta_SD_SD <- c(0.5, 0.5)
-                        priors$prior_kappa_mean <- log(100)
-                        priors$prior_kappa_SD <- 1.0
-                        priors$prior_kappa_dof <- 5
+                        priors$prior_kappa_mean <- log(300)
+                        priors$prior_kappa_SD <- 0.5
+                        priors$prior_kappa_dof <- 1000
                         ##
                         for (kk in 1:n_chains) {
                           init_lists_per_chain[[kk]]$kappa <- 1000
