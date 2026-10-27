@@ -708,9 +708,11 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
                                                        metric = "diag_e"
                                                      )
                                                      ##
-                                                     stan_data_list <- remove_duplicates_by_name(c(stan_data_list, priors))
+                                                     ## (the fold's own data: a worker fits several folds in one environment, so
+                                                     ##  stan_data_list itself must keep no fold's K_fold_CV_indicator)
+                                                     stan_data_list_of_the_fold <- remove_duplicates_by_name(c(stan_data_list, priors))
                                                      ##
-                                                     print(paste("compound_symmetry = ", stan_data_list$compound_symmetry))
+                                                     print(paste("compound_symmetry = ", stan_data_list_of_the_fold$compound_symmetry))
                                                      ##
                                                      final_stan_args <- utils::modifyList(
                                                        final_stan_args,
@@ -719,7 +721,7 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
                                                      final_stan_args <- utils::modifyList(
                                                        final_stan_args,
                                                        list(
-                                                         data = stan_data_list,
+                                                         data = stan_data_list_of_the_fold,
                                                          seed = seed + k,
                                                          output_dir = fold_output_dir,
                                                          output_basename = paste0("fold_", k, "_chain"),
@@ -734,7 +736,7 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
                                                        ## ---- The fold sampled with NicoStan (the model's NicoStan version):
                                                        ##
                                                        outs_of_the_fold <- R_fn_fit_one_K_fold_CV_fold_with_NicoStan(
-                                                         stan_data_list = stan_data_list,
+                                                         stan_data_list = stan_data_list_of_the_fold,
                                                          stan_model_file_name =
                                                            model_prep_obj$internal_obj$outs_stan_model_name$stan_model_file_name,
                                                          n_chains = n_chains,
