@@ -776,9 +776,7 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                               compute_nested_rhat = NULL,
                                               n_superchains = NULL,
                                               ##
-                                              save_trace_tibbles = FALSE,
-                                              ##
-                                              use_BayesMVP_for_faster_summaries = NULL
+                                              save_trace_tibbles = FALSE
                                               ##
                                               # other_args = list()
                                               ) {
@@ -793,9 +791,6 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                               str(self$internal_obj, max.level = 1L)
                             }
                             ##
-                            use_BayesMVP_for_faster_summaries <- if_null_then_set_to( use_BayesMVP_for_faster_summaries, 
-                                                                                      MetaOrdDTA:::check_if_BayesMVP_R_pkg_installed(TRUE, FALSE))
-                            ##
                             # initial_object <- self$initial_object
                             ##
                             # stan_model_sample_output <- self$model_samples_obj$full_outputs$stan_model_sample_output ## add "stan_model_sample_output" to "internal_obj" ???
@@ -808,7 +803,6 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                                                                   ##
                                                                                   package = "MetaOrdDTA",
                                                                                   use_bridgestan = FALSE,
-                                                                                  use_BayesMVP_for_faster_summaries = use_BayesMVP_for_faster_summaries,
                                                                                   ##
                                                                                   # stan_model_sample_output = stan_model_sample_output,
                                                                                   # stan_param_names_list = stan_param_names_list,
@@ -1217,7 +1211,6 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                    #'@param parallel ...
                    #'@param n_workers ...
                    #'@param output_dir ...
-                   #'@param use_BayesMVP_for_faster_summaries ...
                    #'@param algorithm "Stan" (cmdstanr) or "NicoStan" (each fold with NicoStan, as in $sample)
                    #'@param NicoStan_args ... (as in $sample)
                    #'@return Extract params
@@ -1242,8 +1235,6 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                               n_workers = NULL,
                                               output_dir = metaorddta_output_path("cv_results"),
                                               ##
-                                              use_BayesMVP_for_faster_summaries = NULL,
-                                              ##
                                               algorithm = "Stan",
                                               NicoStan_args = list()
                    ) {
@@ -1251,10 +1242,6 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                if (is.null(self$internal_obj)) {
                                  stop("No model samples object ('internal_obj') available")
                                }
-                               use_BayesMVP_for_faster_summaries <- if_null_then_set_to( 
-                                                                    use_BayesMVP_for_faster_summaries, 
-                                                                    MetaOrdDTA:::check_if_BayesMVP_R_pkg_installed(TRUE, FALSE))
-                               ##
                                model_prep_obj <- self
                                stan_data_list <- self$internal_obj$outs_data$stan_data_list
                                ##
@@ -1315,8 +1302,6 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                                                        n_workers = n_workers,
                                                                        output_dir = output_dir,
                                                                        ##
-                                                                       use_BayesMVP_for_faster_summaries = use_BayesMVP_for_faster_summaries,
-                                                                       ##
                                                                        algorithm = algorithm,
                                                                        NicoStan_args = NicoStan_args)
                                } else { 
@@ -1341,9 +1326,7 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                                                adapt_delta = adapt_delta,
                                                                max_treedepth = max_treedepth,
                                                                ##
-                                                               output_dir = output_dir,
-                                                               ##
-                                                               use_BayesMVP_for_faster_summaries = use_BayesMVP_for_faster_summaries)
+                                                               output_dir = output_dir)
                                }
                                
                                ##
@@ -2047,12 +2030,10 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                    ##
                    #'@param debugging ...
                    #'@param test_names ...
-                   #'@param use_BayesMVP_for_faster_summaries ...
                    #'@return AUC summary
                    #'
                    extract_AUC = function( debugging = FALSE,
-                                           test_names,
-                                           use_BayesMVP_for_faster_summaries = NULL
+                                           test_names
                    ) {
                      
                                if (is.null(self$internal_obj)) {
@@ -2127,12 +2108,10 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                    ##
                    #'@param debugging ...
                    #'@param test_names ...
-                   #'@param use_BayesMVP_for_faster_summaries ...
                    #'@return Se/Sp summary
                    #'
                    extract_MR_Se_Sp = function( debugging = FALSE,
-                                                test_names,
-                                                use_BayesMVP_for_faster_summaries = NULL
+                                                test_names
                    ) {
                      
                      if (is.null(self$internal_obj)) {

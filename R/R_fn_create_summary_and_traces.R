@@ -13,7 +13,6 @@
 #' @keywords internal
 create_summary_and_traces <- function(    package,
                                           use_bridgestan,
-                                          use_BayesMVP_for_faster_summaries,
                                           ##
                                           # stan_model_sample_output,
                                           # stan_param_names_list,
@@ -45,11 +44,7 @@ create_summary_and_traces <- function(    package,
   ## Start timer: 
   tictoc::tic()
   ##
-  if (is.null(use_BayesMVP_for_faster_summaries)) { 
-    use_BayesMVP_for_faster_summaries <- check_if_BayesMVP_R_pkg_installed(TRUE, FALSE)
-  }
   if (package == "BayesMVP") {
-        use_BayesMVP_for_faster_summaries <- TRUE
         if (is.null(n_nuisance)) { 
           stop("ERROR: need 'n_nuisance' if using BayesMVP")
         }
@@ -1021,7 +1016,7 @@ create_summary_and_traces <- function(    package,
                     Max_nested_rhat_main <- max(na.rm = TRUE, summary_tibble_main_params$n_Rhat)
                   }
 
-          } else if ((package == "BayesMVP") || (use_BayesMVP_for_faster_summaries == TRUE)) {
+          } else {
           
                   # str(trace_main_3)
             
@@ -1043,16 +1038,6 @@ create_summary_and_traces <- function(    package,
                     Max_nested_rhat_main <- max(na.rm = TRUE, summary_tibble_main_params$n_Rhat[1:n_main])
                   }
               
-          } else if ((package == "MetaOrdDTA") || (use_BayesMVP_for_faster_summaries == FALSE)) { 
-
-                  summary_tibble_main_params <- MetaOrdDTA:::R_fn_compute_cmdstanr_summary_tibble( stan_fitted_model = stan_fitted_model, 
-                                                                                         variables_vec =  grouped_params$names_main)
-                  ##
-                  Min_ESS_main <-  min(na.rm = TRUE, summary_tibble_main_params$n_eff[1:n_main],
-                                       summary_tibble_main_params$n_eff_tail[1:n_main],
-                                       summary_tibble_main_params$n_eff_sd[1:n_main])
-                  Max_rhat_main <- max(na.rm = TRUE, summary_tibble_main_params$Rhat[1:n_main])
-            
           }
           try({  
             rm(trace_main_3)
@@ -1088,7 +1073,7 @@ create_summary_and_traces <- function(    package,
                    ##  generated quantities: the same columns in all three)
                    summary_tibble_transformed_parameters <- NicoStan_summary_obj$get_summary_transformed()
 
-       } else if ((package == "BayesMVP") || (use_BayesMVP_for_faster_summaries == TRUE)) {
+       } else {
          
                    ## str(trace_tp_wo_log_lik_3)
                    
@@ -1107,11 +1092,6 @@ create_summary_and_traces <- function(    package,
                                                                                        compute_nested_rhat = compute_nested_rhat,
                                                                                        n_superchains = n_superchains)
        
-       } else if ((package == "MetaOrdDTA") || (use_BayesMVP_for_faster_summaries == FALSE)) { 
-
-                   summary_tibble_transformed_parameters <- MetaOrdDTA:::R_fn_compute_cmdstanr_summary_tibble( stan_fitted_model = stan_fitted_model, 
-                                                                                                  variables_vec =  names_tp_wo_log_lik)
-         
        }
        ##
        try({  
@@ -1138,7 +1118,7 @@ create_summary_and_traces <- function(    package,
                         summary_tibble_generated_quantities <-
                               NicoStan_summary_obj$get_summary_generated_quantities()
 
-          } else if ((package == "BayesMVP") || (use_BayesMVP_for_faster_summaries == TRUE)) {
+          } else {
             
                         if (package == "MetaOrdDTA") { 
                             n_chains <- dim(trace_gq_3)[chain_dim]
@@ -1155,11 +1135,6 @@ create_summary_and_traces <- function(    package,
                                                                                         compute_nested_rhat = compute_nested_rhat,
                                                                                         n_superchains = n_superchains)
                   
-              } else if ((package == "MetaOrdDTA") || (use_BayesMVP_for_faster_summaries == FALSE)) {  
-    
-                        summary_tibble_generated_quantities <- MetaOrdDTA:::R_fn_compute_cmdstanr_summary_tibble( stan_fitted_model = stan_fitted_model, 
-                                                                                                                  variables_vec =  names_gq)
-                
               }
        ##
        try({  

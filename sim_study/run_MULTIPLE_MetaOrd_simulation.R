@@ -752,8 +752,7 @@ run_multiple_sims <- function(MCMC_seed,
             model_summary_obj <- model_samples_obj$summary( compute_main_params = TRUE,
                                                             compute_transformed_parameters = FALSE,
                                                             compute_generated_quantities = TRUE,
-                                                            save_log_lik_trace = FALSE,
-                                                            use_BayesMVP_for_faster_summaries = TRUE)
+                                                            save_log_lik_trace = FALSE)
             time_after_the_summary <- Sys.time()
             ##
             tibble_main <- model_summary_obj$get_summary_main()

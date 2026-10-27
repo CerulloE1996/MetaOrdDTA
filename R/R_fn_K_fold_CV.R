@@ -276,9 +276,7 @@ R_fn_run_kfold_cv <- function(   debugging = FALSE,
                                  adapt_delta,
                                  max_treedepth,
                                  ##
-                                 output_dir = metaorddta_output_path("cv_results"),
-                                 ##
-                                 use_BayesMVP_for_faster_summaries = FALSE
+                                 output_dir = metaorddta_output_path("cv_results")
 ) {
           cat("Using", K, "-fold CV (sequential)\n")
 
@@ -321,8 +319,7 @@ R_fn_run_kfold_cv <- function(   debugging = FALSE,
               compute_main_params = TRUE,
               compute_transformed_parameters = FALSE,
               compute_generated_quantities = TRUE,
-              save_log_lik_trace = TRUE,
-              use_BayesMVP_for_faster_summaries = use_BayesMVP_for_faster_summaries
+              save_log_lik_trace = TRUE
             )
 
             trace_gq <- model_summary_and_trace_obj$get_all_traces_list()$traces_as_arrays$trace_gq
@@ -496,8 +493,6 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
                                          n_workers = NULL,
                                          output_dir = metaorddta_output_path("cv_results"),
                                          ##
-                                         use_BayesMVP_for_faster_summaries,
-                                         ##
                                          ## ("Stan": cmdstanr; "NicoStan": each fold with NicoStan, NicoStan_args as in
                                          ##  MetaOrd_model$sample)
                                          algorithm = "Stan",
@@ -507,11 +502,6 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
         if (!requireNamespace("doParallel", quietly = TRUE) ||
             !requireNamespace("foreach", quietly = TRUE)) {
           stop("Parallel K-fold CV requires the doParallel and foreach packages")
-        }
-        ##
-        if (use_BayesMVP_for_faster_summaries &&
-            !requireNamespace("BayesMVP", quietly = TRUE)) {
-          stop("BayesMVP is required when use_BayesMVP_for_faster_summaries = TRUE")
         }
         ##
         cat("Using", K, "-fold CV (LOO inappropriate for NMA models) - PARALLEL VERSION\n")
@@ -586,8 +576,6 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
         minimal_env$fold_ids <- fold_ids
         minimal_env$current_wd <- current_wd
         minimal_env$output_dir <- output_dir
-        ##
-        minimal_env$use_BayesMVP_for_faster_summaries <- use_BayesMVP_for_faster_summaries
         ## (here too, as foreach also exports this function's own cmdstanr_args to the workers; NULL for NicoStan folds)
         cmdstanr_args <- if (is.null(cmdstanr_args)) list() else cmdstanr_args
         minimal_env$cmdstanr_args <- cmdstanr_args
@@ -648,11 +636,6 @@ R_fn_run_kfold_cv_parallel <- function(  debugging,
                                                      require(MetaOrdDTA)
                                                      if (identical(algorithm, "Stan")) require(cmdstanr)
                                                      require(dplyr)
-                                                     ##
-                                                     if (use_BayesMVP_for_faster_summaries) { 
-                                                       require(RcppParallel)
-                                                       require(BayesMVP)
-                                                     }
                                                      ##
                                                      # Create unique directories for this fold
                                                      fold_id <- sprintf("fold_%02d_pid_%s", k, Sys.getpid())
