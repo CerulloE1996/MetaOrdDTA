@@ -62,3 +62,13 @@ fold_*_results.rds
 /temp_v4.R
 /make_Klaus_data_NMA_Stan_v3_temp.R
 /sdgerstgdb.R
+
+# Klaus collaboration: code, data and results live outside the package (confidential data)
+*Klaus*
+*klaus*
+real_data_*
+real_GAD_data_*
+real_x_*
+FINAL_FOLD_ASSIGNMENTS_*
+temp_old/
+R/temp_old/
