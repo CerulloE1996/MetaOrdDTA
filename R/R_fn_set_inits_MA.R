@@ -60,7 +60,7 @@ R_fn_set_inits_MA <- function(    inits,
                                 inits$beta_mu[2, 1] <- +1.0
                                 ##
                                 inits$beta_SD <- if_null_then_set_to( inits$beta_SD,
-                                                                      rep(0.001, 2))
+                                                                      rep(0.25, 2))
                                 inits$beta_z  <- if_null_then_set_to( inits$beta_z,  
                                                                       array(0.001, dim = c(n_studies, 2)))
                                 ##
@@ -74,7 +74,7 @@ R_fn_set_inits_MA <- function(    inits,
                                 inits$raw_scale_mu <- if_null_then_set_to( inits$raw_scale_mu,
                                                                            matrix(0.001, nrow = 2, ncol = n_covariates_max))
                                 inits$raw_scale_SD <- if_null_then_set_to( inits$raw_scale_SD, 
-                                                                           rep(0.001, 2))
+                                                                           rep(0.25, 2))
                                 inits$raw_scale_z  <- if_null_then_set_to( inits$raw_scale_z, 
                                                                            array(0.001, dim = c(n_studies, 2)))
                                 ##
@@ -105,14 +105,14 @@ R_fn_set_inits_MA <- function(    inits,
                                         ##
                                         inits$beta_mu <- if_null_then_set_to(inits$beta_mu, rep(0.001, n_covariates_max))
                                         ##
-                                        inits$beta_SD <- if_null_then_set_to(inits$beta_SD, 0.001)
+                                        inits$beta_SD <- if_null_then_set_to(inits$beta_SD, 0.25)
                                         inits$beta_z  <- if_null_then_set_to(inits$beta_z,  rep(0.001, n_studies))
                                         ##
                                         ## Default inits for raw scale parameters ("gamma"):
                                         ##
                                         ## since: softplus_scaled(0) = 1.0 and exp(0) = 1.0:
                                         inits$raw_scale_mu <- if_null_then_set_to(inits$raw_scale_mu, 0.001)   
-                                        inits$raw_scale_SD <- if_null_then_set_to(inits$raw_scale_SD, 0.001)
+                                        inits$raw_scale_SD <- if_null_then_set_to(inits$raw_scale_SD, 0.25)
                                         inits$raw_scale_z  <- if_null_then_set_to(inits$raw_scale_z, rep(0.001, n_studies))
                                         ##
                                         ## Default inits for the cutpoints and/or induced-Dirichlet parameters:
@@ -149,7 +149,7 @@ R_fn_set_inits_MA <- function(    inits,
                                         inits$beta_mu[1, 1] <- -1.0
                                         inits$beta_mu[2, 1] <- +1.0
                                         ##
-                                        inits$beta_SD <- if_null_then_set_to(inits$beta_SD, rep(0.001, 2))
+                                        inits$beta_SD <- if_null_then_set_to(inits$beta_SD, rep(0.25, 2))
                                         inits$beta_z  <- if_null_then_set_to(inits$beta_z,  array(0.001, dim = c(n_studies, 2)))
                                         ##
                                         ## Default inits for the between-study corr matrix ("beta_corr"):
