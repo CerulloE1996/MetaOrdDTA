@@ -261,7 +261,7 @@ R_fn_set_inits_NMA <- function(    inits,
                         # inits$beta_L_Omega <- t(chol(inits_Omega))
                         ##
                         inits$beta_sigma <- if_null_then_set_to( inits$beta_sigma, 
-                                                                 rep(0.001, 2))
+                                                                 rep(0.25, 2))
                         inits$beta_sigma_raw <- if_null_then_set_to( inits$beta_sigma_raw, 
                                                                      rep(0.001, 2))
                         ##
@@ -282,7 +282,7 @@ R_fn_set_inits_NMA <- function(    inits,
                                                                         rep(-1.0, 2))
                         ##
                         inits$log_beta_sigma_SD <- if_null_then_set_to(inits$log_beta_sigma_SD, 
-                                                                        rep(0.001, 2))
+                                                                        rep(0.25, 2))
                         ##
                         inits$log_beta_sigma_z <- if_null_then_set_to(inits$log_beta_sigma_z, 
                                                                        array(0.001, dim = c(n_index_tests, 2)))
