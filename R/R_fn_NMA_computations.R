@@ -178,6 +178,7 @@ R_fn_extract_NMA_AUC_summary <- function(tibble_gq,
           # Build pair metadata
           pair_metadata <- expand.grid(test1 = 1:(n_tests-1), test2 = 1:n_tests) %>%
             filter(test2 > test1) %>%
+            arrange(test1, test2) %>%  ## same pair order as the Stan models' AUC_diff (t1 outer, t2 inner)
             mutate(
               index = row_number(),
               test1_name = test_names[test1],

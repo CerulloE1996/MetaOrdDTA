@@ -20,7 +20,7 @@ data {
         ////
         //// ---- Data:
         ////
-        int<lower=1> n_studies;ission 
+        int<lower=1> n_studies;
         int<lower=1> n_thr;
         array[n_studies] int n_obs_cutpoints;
         ////

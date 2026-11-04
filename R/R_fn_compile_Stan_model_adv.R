@@ -87,15 +87,9 @@ R_fn_compile_stan_advanced_given_file_name <- function( stan_model_file_name,
                       FMA_FLAGS <- " "
                     }
                     try({  
-                        try({ 
-                             check_CPU_features_using_BayesMVP <- BayesMVP:::checkCPUFeatures()
-                          }, silent = TRUE)
                           ## FMA:
                           if (is.null(FMA_FLAGS)) {
                              has_FMA <- 0
-                            try({ 
-                              has_FMA <- check_CPU_features_using_BayesMVP$has_fma
-                            })
                               if (has_FMA == 1) { 
                                 FMA_FLAGS <- "-mfma"
                               }
@@ -116,9 +110,6 @@ R_fn_compile_stan_advanced_given_file_name <- function( stan_model_file_name,
                             #
                             detect_SIMD_type <- NULL
                             AVX_FLAGS <- NULL
-                            try({ 
-                              detect_SIMD_type <- BayesMVP:::detect_vectorization_support()
-                            }, silent = TRUE)
                             ##
                             if (detect_SIMD_type == "AVX512") { 
                               AVX_FLAGS <- AVX_512_FLAGS

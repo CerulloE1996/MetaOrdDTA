@@ -149,13 +149,7 @@ R_fn_set_priors_NMA <- function(  priors,
                                                                                   rep(list( matrix(0.0, nrow = 2, ncol = n_covariates_max)), n_index_tests))
                                 priors$prior_beta_mu_SD   <- if_null_then_set_to( priors$prior_beta_mu_SD, 
                                                                                   rep(list( matrix(1.0*mult, nrow = 2, ncol = n_covariates_max)), n_index_tests))
-                                if (n_covariates_max > 1L) {
-                                  for (t in seq_len(n_index_tests)) {
-                                    priors$prior_beta_mu_SD[[t]][
-                                      1:2, 2:n_covariates_max
-                                    ] <- 1.0 * mult
-                                  }
-                                }
+                                ## (coefficient SDs given in priors are kept; the default above is used only when none are given)
                                 ##
                                 priors$prior_beta_tau_SD <- if_null_then_set_to(priors$prior_beta_tau_SD, 
                                                                                 array(dim = c(n_index_tests, 2), 

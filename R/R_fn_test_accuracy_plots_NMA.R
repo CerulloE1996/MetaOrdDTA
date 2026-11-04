@@ -4327,10 +4327,16 @@ plot_pairwise_differences <- function(  tibble_comp,
                                              ncol = metareg_plot_settings$facet_ncol,
                                              scales = metareg_plot_settings$facet_scales,
                                              labeller = label_wrap_gen(width = metareg_plot_settings$facet_label_width)) + 
-                                  theme_void() +
+                                  theme_bw(base_size = metareg_plot_settings$base_size) +
                                   theme(
-                                    strip.text = element_blank(),
-                                    panel.spacing = theme_get()$panel.spacing
+                                    ## (see-through strips: each row lines up with its forest row)
+                                    axis.text = element_blank(),
+                                    axis.ticks = element_blank(),
+                                    axis.title = element_blank(),
+                                    panel.border = element_blank(),
+                                    panel.grid = element_blank(),
+                                    strip.background = element_blank(),
+                                    strip.text = element_text(colour = NA)
                                   ) +
                                   coord_cartesian(xlim = c(-1, 100), clip = "off")
                                 
@@ -4420,10 +4426,16 @@ plot_pairwise_differences <- function(  tibble_comp,
                                              ncol = metareg_plot_settings$facet_ncol,
                                              scales = metareg_plot_settings$facet_scales, 
                                              labeller = label_wrap_gen(width = metareg_plot_settings$facet_label_width)) +
-                                  theme_void() +
+                                  theme_bw(base_size = metareg_plot_settings$base_size) +
                                   theme(
-                                    strip.text = element_blank(),
-                                    panel.spacing = theme_get()$panel.spacing
+                                    ## (see-through strips: each row lines up with its forest row)
+                                    axis.text = element_blank(),
+                                    axis.ticks = element_blank(),
+                                    axis.title = element_blank(),
+                                    panel.border = element_blank(),
+                                    panel.grid = element_blank(),
+                                    strip.background = element_blank(),
+                                    strip.text = element_text(colour = NA)
                                   ) +
                                   coord_cartesian(xlim = c(-1, 100), clip = "off")
                                 
@@ -4520,10 +4532,16 @@ plot_pairwise_differences <- function(  tibble_comp,
                                            drop = FALSE, 
                                            scales = "free_y",
                                            ncol = 1) +
-                                theme_void() +
+                                theme_bw(base_size = baseline_plot_settings$base_size) +
                                 theme(
-                                  strip.text = element_blank(),
-                                  panel.spacing = theme_get()$panel.spacing
+                                  ## (see-through strips: each row lines up with its forest row)
+                                  axis.text = element_blank(),
+                                  axis.ticks = element_blank(),
+                                  axis.title = element_blank(),
+                                  panel.border = element_blank(),
+                                  panel.grid = element_blank(),
+                                  strip.background = element_blank(),
+                                  strip.text = element_text(colour = NA)
                                 ) +
                                 coord_cartesian(xlim = c(-1, 100), 
                                                 clip = "off")   
@@ -4592,10 +4610,16 @@ plot_pairwise_differences <- function(  tibble_comp,
                                 facet_wrap(~ comparison_type_facet,
                                            drop = FALSE, 
                                            scales = "free_y", ncol = 1) +
-                                theme_void() +
+                                theme_bw(base_size = baseline_plot_settings$base_size) +
                                 theme(
-                                  strip.text = element_blank(),
-                                  panel.spacing = theme_get()$panel.spacing
+                                  ## (see-through strips: each row lines up with its forest row)
+                                  axis.text = element_blank(),
+                                  axis.ticks = element_blank(),
+                                  axis.title = element_blank(),
+                                  panel.border = element_blank(),
+                                  panel.grid = element_blank(),
+                                  strip.background = element_blank(),
+                                  strip.text = element_text(colour = NA)
                                 ) +
                                 coord_cartesian(xlim = c(-1, 100),
                                                 clip = "off")   
