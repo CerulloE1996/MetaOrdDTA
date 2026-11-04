@@ -179,19 +179,14 @@ R_fn_sample_model_with_NicoStan  <-  function(  stan_data_list,
                                          name_of_the_model   = name_of_the_model), "\033[0m"))
               }
         }
-        ## (the parameter families of interest, NicoStan_args$interest_only: the tau criterion and the min ESS use
-        ##  only these; the package names them when they are not given)
-        if (is.null(NicoStan_args$interest_only)) {
-              NicoStan_args$interest_only <-  fn_interest_only_params_of_a_MetaOrdDTA_model(
-                    name_of_the_model        = name_of_the_model,
-                    model_parameterisation   = if (grepl("^DTA_NMA_", name_of_the_model)) "NMA" else
-                                                     if (grepl("Jones", name_of_the_model)) "Jones" else
-                                                     if (grepl("ord_HSROC", name_of_the_model)) "ordinal_HSROC" else
-                                                     if (grepl("ord_biv", name_of_the_model)) "ord_biv" else "Bivariate",
-                    random_thresholds        = grepl("RANDthr", name_of_the_model))
+        ## (the parameters of interest of every model are Se and Sp: the min ESS of the summary is over Se_baseline
+        ##  and Sp_baseline; the tau criterion uses every main parameter, so interest_only is left as given)
+        if (is.null(NicoStan_args$parameter_families_of_interest_for_min_ESS)) {
+              NicoStan_args$parameter_families_of_interest_for_min_ESS <-  c("Se_baseline", "Sp_baseline")
         }
-        message(paste0("\033[36m", "parameter families of interest (tau criterion and min ESS): ",
-                       paste(NicoStan_args$interest_only, collapse = ", "), "\033[0m"))
+        message(paste0("\033[36m", "parameter families of interest (min ESS of the summary): ",
+                       paste(NicoStan_args$parameter_families_of_interest_for_min_ESS, collapse = ", "),
+                       "\033[0m"))
         ## (sample_nuisance = TRUE needs the nuisance blocks named in NicoStan_args$nuisance_params)
         # ## (sample_nuisance = TRUE without nuisance_params: the first parameter block of the model is the nuisance
         # ##  block, and the model file is used as it is)
