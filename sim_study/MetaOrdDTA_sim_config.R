@@ -30,7 +30,7 @@ get_simulation_config <- function() {
     # threshold_configs = list(
     #   GAD_2 = list(vec_index_inner = 1:6, n_thr = 6),
     #   HADS = list(vec_index_inner = 3:17, n_thr = 20),
-    #   BAI = list(vec_index_inner = 3:43, n_thr = 63),
+    #   BAI = list(vec_index_inner = 5:43, n_thr = 63),
     #   GAD_7 = list(vec_index_inner = 1:10, n_thr = 10)
     # ),
     # 
