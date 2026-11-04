@@ -43,7 +43,7 @@ run_multiple_sims <- function(MCMC_seed,
                 } else if (test == "HADS") {
                   vec_index_inner <- 3:17
                 } else if (test == "BAI") {
-                  vec_index_inner <- 3:43
+                  vec_index_inner <- 5:43
                 }
 
                 missing_thr <- TRUE
@@ -136,6 +136,11 @@ run_multiple_sims <- function(MCMC_seed,
             else x <- x_BAI
           }
 
+          if (nzchar(Sys.getenv("SIM_REAL_DATA_DIR"))) {
+                real_x <- readRDS(file.path(Sys.getenv("SIM_REAL_DATA_DIR"),
+                                           paste0("real_x_", c(GAD_2 = "GAD2", HADS = "HADS", BAI = "BAI")[[test]], ".RDS")))
+                x <- list(real_x$nondiseased, real_x$diseased) ## the model takes the non-diseased class first
+          }
           n_thr <- ncol(x[[1]]) - 1
           n_studies_actual <- nrow(x[[1]])
 
@@ -436,18 +441,30 @@ run_multiple_sims <- function(MCMC_seed,
                         priors$prior_kappa_mean <- c(log(300), log(300))
                         priors$prior_kappa_SD <- c(0.5, 0.5)
                         priors$prior_kappa_dof <- c(1000, 1000) ## default = c(5, 5)#
+                        if (Sys.getenv("KAPPA_PRIOR") %in% c("", "wide")) {
+                              priors$prior_kappa_mean <- c(log(150), log(150))
+                              priors$prior_kappa_SD <- c(1.25, 1.25)
+                              priors$prior_kappa_dof <- c(1000, 1000)
+                        }
                         ##
                         for (kk in 1:n_chains) {
-                          init_lists_per_chain[[kk]]$kappa <- c(2000, 500)
+                          init_lists_per_chain[[kk]]$kappa <- c(50, 50)
                         }
                     } else {
                         priors$prior_beta_SD_SD <- c(0.5, 0.5)
                         priors$prior_kappa_mean <- log(300)
                         priors$prior_kappa_SD <- 0.5
                         priors$prior_kappa_dof <- 1000
+                        if (Sys.getenv("KAPPA_PRIOR") %in% c("", "wide")) {
+                              priors$prior_kappa_mean <- log(150)
+                              priors$prior_kappa_SD <- 1.25
+                              priors$prior_kappa_dof <- 1000
+                        }
                         ##
                         for (kk in 1:n_chains) {
-                          init_lists_per_chain[[kk]]$kappa <- 1000
+                          init_lists_per_chain[[kk]]$kappa <- 50
+                          init_lists_per_chain[[kk]]$beta_SD <- 0.25
+                          init_lists_per_chain[[kk]]$raw_scale_SD <- 0.25
                         }
                     }
               
@@ -475,17 +492,54 @@ run_multiple_sims <- function(MCMC_seed,
                     priors$prior_beta_SD_SD      <- 0.5
                     priors$prior_raw_scale_SD_SD <- 0.5
                     ##
-                    ## (the RC ord_HSROC median vs pop-median sim study: both models on the priors set above)
-                    if (alpha_pi %in% c("one", "informative_from_the_literature") &&
-                        !("RC_ord_HSROC_model" %in% names(scenario_row))) {
+                    ## (alpha = (1, ..., 1): the SD of the intercept prior and of the log-scale prior matched to the
+                    ##  ord_biv fixed-cutpoint prior by NicoStan prior-only fits of the pop-median model, 5 seeds, 0.05 rule)
+                    if (alpha_pi == "one") {
+                          SD_of_the_intercept_matched <-  c(HADS = 1.0, GAD_2 = 0.7, BAI = 1.0)[[test]]
+                          SD_of_the_log_scale_matched <-  c(HADS = 0.25, GAD_2 = 0.5, BAI = 0.25)[[test]]
+                          ## (MATCHED_PRIORS=band: matched over the whole band of thresholds; KAPPA_PRIOR=wide: GAD-2 log-scale 0.375)
+                          if (Sys.getenv("MATCHED_PRIORS") %in% c("", "band")) {
+                                SD_of_the_intercept_matched <-  c(HADS = 1.0, GAD_2 = 1.0, BAI = 1.0)[[test]]
+                                SD_of_the_log_scale_matched <-  c(HADS = 0.25, GAD_2 = 0.25, BAI = 0.25)[[test]]
+                                if (Sys.getenv("KAPPA_PRIOR") %in% c("", "wide")) SD_of_the_log_scale_matched <-  c(HADS = 0.25, GAD_2 = 0.375, BAI = 0.25)[[test]]
+                          }
+                          if (!is.null(SD_of_the_intercept_matched)) priors$prior_beta_mu_SD[1] <-  SD_of_the_intercept_matched
+                          if (!is.null(SD_of_the_log_scale_matched)) priors$prior_raw_scale_mu_SD[1] <-  SD_of_the_log_scale_matched
+                    }
+                    if (alpha_pi == "informative_from_the_literature" && !("RC_ord_HSROC_model" %in% names(scenario_row))) {
                       stop(paste0("No ordinal-HSROC prior is derived by Stan sampling yet for alpha_pi = ", alpha_pi))
                     }
                 
           } else if (model_parameterisation == "Jones") {
-            
+
                     priors$prior_beta_SD_SD      <- c(0.5, 0.5)
                     priors$prior_raw_scale_SD_SD <- c(0.5, 0.5)
-                
+                    ## (alpha = (1, ..., 1): the means and SDs of the location, log-scale and Box-Cox priors matched to the
+                    ##  ord_biv fixed-cutpoint prior by NicoStan prior-only fits of this model, 5 seeds, the closest found)
+                    if (alpha_pi == "one") {
+                          mean_of_beta_mu_matched <-  c(HADS = 2.4, GAD_2 = 1.5, BAI = 3.673)[[test]]
+                          mean_of_raw_scale_mu_matched <-  c(HADS = -0.15, GAD_2 = 0.4, BAI = 0.217)[[test]]
+                          mean_of_boxcox_lambda_matched <-  c(HADS = 0, GAD_2 = 0, BAI = 0)[[test]]
+                          SD_of_beta_mu_matched <-  c(HADS = 0.75, GAD_2 = 1.245, BAI = 1.243)[[test]]
+                          SD_of_raw_scale_mu_matched <-  c(HADS = 0.375, GAD_2 = 0.5, BAI = 0.25)[[test]]
+                          SD_of_boxcox_lambda_matched <-  c(HADS = 0.1, GAD_2 = 0.5, BAI = 0.1)[[test]]
+                          ## (MATCHED_PRIORS=band: the Jones priors matched over the whole band of thresholds)
+                          if (Sys.getenv("MATCHED_PRIORS") %in% c("", "band")) {
+                                mean_of_beta_mu_matched <-  c(HADS = 6.571, GAD_2 = 2.5, BAI = 9.094)[[test]]
+                                mean_of_raw_scale_mu_matched <-  c(HADS = 1.497, GAD_2 = 0.811, BAI = 1.358)[[test]]
+                                mean_of_boxcox_lambda_matched <-  c(HADS = 0.75, GAD_2 = 1.0, BAI = 0.5)[[test]]
+                                SD_of_beta_mu_matched <-  c(HADS = 4.062, GAD_2 = 2.5, BAI = 4.321)[[test]]
+                                SD_of_raw_scale_mu_matched <-  c(HADS = 0.125, GAD_2 = 0.5, BAI = 0.25)[[test]]
+                                SD_of_boxcox_lambda_matched <-  c(HADS = 0.05, GAD_2 = 0.1, BAI = 0.1)[[test]]
+                          }
+                          if (!is.null(mean_of_beta_mu_matched)) priors$prior_beta_mu_mean[, 1] <-  mean_of_beta_mu_matched
+                          if (!is.null(mean_of_raw_scale_mu_matched)) priors$prior_raw_scale_mu_mean[, 1] <-  mean_of_raw_scale_mu_matched
+                          if (!is.null(mean_of_boxcox_lambda_matched)) priors$prior_boxcox_lambda_mean <-  rep(mean_of_boxcox_lambda_matched, 2)
+                          if (!is.null(SD_of_beta_mu_matched)) priors$prior_beta_mu_SD[, 1] <-  SD_of_beta_mu_matched
+                          if (!is.null(SD_of_raw_scale_mu_matched)) priors$prior_raw_scale_mu_SD[, 1] <-  SD_of_raw_scale_mu_matched
+                          if (!is.null(SD_of_boxcox_lambda_matched)) priors$prior_boxcox_lambda_SD <-  rep(SD_of_boxcox_lambda_matched, 2)
+                    }
+
           } else if (model_parameterisation == "Bivariate") {
                 
                     ##
@@ -572,9 +626,12 @@ run_multiple_sims <- function(MCMC_seed,
 
 
 
+            ## (the model's name for its nuisance blocks: the Jones model has no custom file, its own file names it)
+            name_of_the_model_of_this_fit <- if (is.null(custom_file_name)) "DTA_MA_Jones" else
+                                             sub("[.]stan$", "", custom_file_name)
             ## (the nuisance blocks come from MetaOrdDTA itself, never written here: one source of truth)
             nuisance_params <- MetaOrdDTA::fn_nuisance_params_of_a_MetaOrdDTA_model(
-                  name_of_the_model      = sub("[.]stan$", "", custom_file_name),
+                  name_of_the_model      = name_of_the_model_of_this_fit,
                   model_parameterisation = model_parameterisation,
                   random_thresholds      = random_thresholds)
             ##
@@ -649,6 +706,12 @@ run_multiple_sims <- function(MCMC_seed,
                                                   NicoStan_args = list(
                                             ## (every $sample setting that changes sampling, written out)
                                             adapt_delta                          = 0.80,  ## the PS7 value 
+                                            ## (the paper's models, sampled with no auto-chunking library; the Jones
+                                            ##  model has no fused AVX file: its own Stan file runs on NicoStan)
+                                            auto_chunking                        = FALSE,
+                                            Stan_file_of_the_fused_version       = if (model_parameterisation == "Jones")
+                                                  system.file("stan_models", "stan_models_MA", "DTA_MA_Jones.stan",
+                                                              package = "MetaOrdDTA") else NULL,
                                             ###
                                             # metric_shape_main                    = "dense", ## --------
                                             metric_shape_main                    = "diag",    ## --------
@@ -796,8 +859,8 @@ run_multiple_sims <- function(MCMC_seed,
               }
 
               # Check ESS (filter out using "vec_index_inner" though!!):
-              ESS_vec_Se <- tibble_Se$n_eff
-              ESS_vec_Sp <- tibble_Sp$n_eff
+              ESS_vec_Se <- pmin(tibble_Se$n_eff, tibble_Se$n_eff_tail, tibble_Se$n_eff_sd) ## min ESS = min(bulk, tail, SD)
+              ESS_vec_Sp <- pmin(tibble_Sp$n_eff, tibble_Sp$n_eff_tail, tibble_Sp$n_eff_sd)
               ##
               ESS_vec_Se_main_thr <- ESS_vec_Se[vec_index_inner]
               ESS_vec_Sp_main_thr <- ESS_vec_Sp[vec_index_inner]

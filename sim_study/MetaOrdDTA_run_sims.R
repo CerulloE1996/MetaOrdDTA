@@ -518,8 +518,8 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
         if (test_val == "GAD_2") {
           vec_index_inner <- 1:6
         } else if (test_val == "HADS") {
-          vec_index_inner <- 1:21
-          # vec_index_inner <- 3:17
+          vec_index_inner <- 3:17
+          # vec_index_inner <- 1:21
         } else if (test_val == "BAI") {
           # vec_index_inner <- 1:63 ## 5:43
           vec_index_inner <- 5:43
@@ -961,8 +961,6 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
 
                                                              ## Load packages
                                                              require(RcppParallel)
-                                                             require(BayesMVPsim)
-                                                             require(BayesMVP)
                                                              require(MetaOrdDTA)
                                                              require(cmdstanr)
                                                              require(dplyr)
