@@ -3,8 +3,7 @@
 
 #' @export
 summarise_beta_mu <- function(beta_mu, 
-                              test_names = c("GAD-2", "GAD-7", "HADS", "BAI", 
-                                             "OASIS", "STAI_S", "STAI_T", "PROMIS"),
+                              test_names,
                               covariate_names,  # e.g., c("intercept", "SCID", "Structured")
                               magnitude_threshold = 0.25,
                               skip_intercept = TRUE) {

@@ -282,7 +282,7 @@ if (index_test_MA == "GAD_2") {
           index_test_chosen_index <- 2 + 1
           n_thr <- 63
           ##
-          vec_index_inner <- 3:43
+          vec_index_inner <- 5:43
           n_inner_thr <- length(vec_index_inner)
           vec_index_outer_thr <- setdiff(1:n_thr, vec_index_inner)
           n_outer_thr <- length(vec_index_outer_thr)
@@ -1432,7 +1432,7 @@ sim_configs <- list(
   #       missing_thr = TRUE,
   #       ##
   #       index_test_MA = "BAI",
-  #       vec_index_inner = 3:43,
+  #       vec_index_inner = 5:43,
   #       n_studies = 10,
   #       model_parameterisation = "Bivariate",
   #       alpha_pi = "flat",
@@ -1456,7 +1456,7 @@ sim_configs <- list(
   #       missing_thr = TRUE,
   #       ##
   #       index_test_MA = "BAI",
-  #       vec_index_inner = 3:43,
+  #       vec_index_inner = 5:43,
   #       n_studies = 10,
   #       model_parameterisation = "Jones",
   #       alpha_pi = "flat",
@@ -1480,7 +1480,7 @@ sim_configs <- list(
   #       missing_thr = TRUE,
   #       ##
   #       index_test_MA = "BAI",
-  #       vec_index_inner = 3:43,
+  #       vec_index_inner = 5:43,
   #       n_studies = 10,
   #       model_parameterisation = "ord_bivariate",
   #       alpha_pi = "one",
@@ -1504,7 +1504,7 @@ sim_configs <- list(
   #       missing_thr = TRUE,
   #       ##
   #       index_test_MA = "BAI",
-  #       vec_index_inner = 3:43,
+  #       vec_index_inner = 5:43,
   #       n_studies = 10,
   #       model_parameterisation = "ord_bivariate",
   #       alpha_pi = "one",
@@ -1528,7 +1528,7 @@ sim_configs <- list(
   #       missing_thr = TRUE,
   #       ##
   #       index_test_MA = "BAI",
-  #       vec_index_inner = 3:43,
+  #       vec_index_inner = 5:43,
   #       n_studies = 10,
   #       model_parameterisation = "R&G",
   #       alpha_pi = "one",
@@ -1552,7 +1552,7 @@ sim_configs <- list(
   #       missing_thr = TRUE,
   #       ##
   #       index_test_MA = "BAI",
-  #       vec_index_inner = 3:43,
+  #       vec_index_inner = 5:43,
   #       n_studies = 10,
   #       model_parameterisation = "R&G",
   #       alpha_pi = "one",
@@ -1578,7 +1578,7 @@ sim_configs <- list(
   #       missing_thr = TRUE,
   #       ##
   #       index_test_MA = "BAI",
-  #       vec_index_inner = 3:43,
+  #       vec_index_inner = 5:43,
   #       n_studies = 50,
   #       model_parameterisation = "Bivariate",
   #       alpha_pi = "flat",
@@ -1602,7 +1602,7 @@ sim_configs <- list(
   #       missing_thr = TRUE,
   #       ##
   #       index_test_MA = "BAI",
-  #       vec_index_inner = 3:43,
+  #       vec_index_inner = 5:43,
   #       n_studies = 50,
   #       model_parameterisation = "Jones",
   #       alpha_pi = "flat",
@@ -1626,7 +1626,7 @@ sim_configs <- list(
   #       missing_thr = TRUE,
   #       ##
   #       index_test_MA = "BAI",
-  #       vec_index_inner = 3:43,
+  #       vec_index_inner = 5:43,
   #       n_studies = 50,
   #       model_parameterisation = "ord_bivariate",
   #       alpha_pi = "one",
@@ -1650,7 +1650,7 @@ sim_configs <- list(
   #       missing_thr = TRUE,
   #       ##
   #       index_test_MA = "BAI",
-  #       vec_index_inner = 3:43,
+  #       vec_index_inner = 5:43,
   #       n_studies = 50,
   #       model_parameterisation = "ord_bivariate",
   #       alpha_pi = "one",
@@ -1674,7 +1674,7 @@ sim_configs <- list(
   #       missing_thr = TRUE,
   #       ##
   #       index_test_MA = "BAI",
-  #       vec_index_inner = 3:43,
+  #       vec_index_inner = 5:43,
   #       n_studies = 50,
   #       model_parameterisation = "R&G",
   #       alpha_pi = "one",
@@ -1698,7 +1698,7 @@ sim_configs <- list(
   #       missing_thr = TRUE,
   #       ##
   #       index_test_MA = "BAI",
-  #       vec_index_inner = 3:43,
+  #       vec_index_inner = 5:43,
   #       n_studies = 50,
   #       model_parameterisation = "R&G",
   #       alpha_pi = "one",

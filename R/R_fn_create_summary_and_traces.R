@@ -606,15 +606,6 @@ create_summary_and_traces <- function(    package,
          ## print(n_main)
          pars_indicies_to_track <- 1:n_par_inc_tp_and_gq
          n_params_full <- n_par_inc_tp_and_gq
-         all_param_outs_trace_inc_log_lik <- BayesMVPsim:::fn_compute_param_constrain_from_trace_parallel( unc_params_trace_input_main = main_trace,
-                                                                                                        unc_params_trace_input_nuisance = nuisance_trace,
-                                                                                                        pars_indicies_to_track = pars_indicies_to_track,
-                                                                                                        n_params_full = n_params_full,
-                                                                                                        n_nuisance = n_nuisance,
-                                                                                                        n_main = n_main,
-                                                                                                        include_nuisance = include_nuisance,
-                                                                                                        model_so_file = model_so_file,
-                                                                                                        json_file_path = json_file_path)
       } else if (use_bridgestan == FALSE) { 
         
             # trace_main_as_posterior_array <- posterior::as_draws_array(trace_main)

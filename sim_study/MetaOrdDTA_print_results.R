@@ -559,7 +559,7 @@ results_HADS_n_studies_10 <-  process_all_scenarios_MetaOrd(
                               max_seed_to_check = max_seed_to_check,
                               min_runs_needed = 5,
                               min_ESS_thr = 3000,
-                              vec_index_inner = 1:21,
+                              vec_index_inner = 3:17,
                               min_studies_per_threshold = min_studies_per_threshold)
 ##
 results_HADS_n_studies_10_summary <- filter( results_HADS_n_studies_10$summary_table,
@@ -635,7 +635,7 @@ results_HADS_n_studies_50 <- process_all_scenarios_MetaOrd(
   max_seed_to_check = max_seed_to_check,
   min_runs_needed = 5,
   min_ESS_thr = 500,
-  vec_index_inner = 1:21,
+  vec_index_inner = 3:17,
   min_studies_per_threshold = min_studies_per_threshold)
 ##
 results_HADS_n_studies_50_summary <- filter( results_HADS_n_studies_50$summary_table,

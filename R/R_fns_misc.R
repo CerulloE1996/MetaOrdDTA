@@ -299,7 +299,7 @@ create_cutpoint_index_matrix <- function( data_matrix,
 #' @export
 compare_indicator_matrices <- function(sim_matrix, 
                                        real_matrix, 
-                                       test_names = c("Test1", "Test2", "Test3", "Test4"),
+                                       test_names,
                                        detailed = TRUE) {
   
         # Ensure same number of columns
@@ -1819,12 +1819,7 @@ plot_distribution_fits <- function(individual_obs_tibble,
 #' filter_tibble_by_thresholds
 #' @export
 filter_tibble_by_thresholds <- function(tibble_data, 
-                                        relevant_thresholds = list(
-                                          "GAD-2" = c(1:7), 
-                                          "GAD-7" = c(3:18), 
-                                          "HADS" = c(3:18),
-                                          "BAI" = c(3:40)
-                                        )) {
+                                        relevant_thresholds) {
   
         # Create a dataframe of valid test-threshold combinations
         valid_combos <- bind_rows(
@@ -2256,8 +2251,8 @@ extract_param_latex <- function(model_or_tibble,
 #' @export
 extract_se_sp_latex <- function(model_or_tibble, 
                                 param_type = "Se_baseline", 
-                                n_tests = 4,
-                                max_n_thr = 63, 
+                                n_tests,
+                                max_n_thr, 
                                 digits = 3) {
   
         
@@ -2728,17 +2723,18 @@ get_param_or_na <- function(model,
 #' create_table2_latex
 #' @export
 create_table2_latex <- function(model_list, 
+                                test_names,
                                 digits = 3) {
   
         lines <- c()
         
-        # Test names
-        test_names <- c("GAD-2", "GAD-7", "HADS", "BAI")
+        # Escape underscores for LaTeX
+        test_names <- gsub("_", "\\\\_", test_names)
         
         # Location parameters (non-diseased)
         lines <- c(lines, "\\multicolumn{4}{l}{\\textit{\\textbf{Location parameters (intercept; non-diseased):}}}  \\\\")
         
-        for(i in 1:4) {
+        for(i in seq_along(test_names)) {
           param <- paste0("beta_mu[", i, ",1,1]")
           
           values <- sapply(model_list, function(model) {
@@ -2753,7 +2749,7 @@ create_table2_latex <- function(model_list,
         # Location parameters (diseased)
         lines <- c(lines, "\\multicolumn{4}{l}{\\textit{\\textbf{Location parameters (intercept; diseased):}}}  \\\\")
         
-        for(i in 1:4) {
+        for(i in seq_along(test_names)) {
           param <- paste0("beta_mu[", i, ",2,1]")
           
           values <- sapply(model_list, function(model) {
@@ -2793,7 +2789,7 @@ create_table2_latex <- function(model_list,
         # Non-diseased
         lines <- c(lines, "\\multicolumn{5}{l}{\\textit{Non-diseased:}} \\\\")
         
-        for(i in 1:4) {
+        for(i in seq_along(test_names)) {
           param <- paste0("beta_tau[", i, ",1]")
           
           values <- sapply(model_list, function(model) {
@@ -2807,7 +2803,7 @@ create_table2_latex <- function(model_list,
         # Diseased
         lines <- c(lines, "\\multicolumn{5}{l}{\\textit{Diseased:}} \\\\")
         
-        for(i in 1:4) {
+        for(i in seq_along(test_names)) {
           param <- paste0("beta_tau[", i, ",2]")
           
           values <- sapply(model_list, function(model) {
@@ -2825,7 +2821,7 @@ create_table2_latex <- function(model_list,
         lines <- c(lines, "\\multicolumn{5}{l}{\\textit{\\textbf{Total within-test, between-study heterogeneity (includes cutpoint variation for RC models):}}} \\\\")
         lines <- c(lines, "\\multicolumn{5}{l}{\\textit{Non-diseased:}} \\\\")
         
-        for(i in 1:4) {
+        for(i in seq_along(test_names)) {
           param <- paste0("total_SD_inc_C[", i, ",1]")
           
           values <- sapply(model_list, function(model) {
@@ -2838,7 +2834,7 @@ create_table2_latex <- function(model_list,
         
         lines <- c(lines, "\\multicolumn{5}{l}{\\textit{Diseased:}} \\\\")
         
-        for(i in 1:4) {
+        for(i in seq_along(test_names)) {
           param <- paste0("total_SD_inc_C[", i, ",2]")
           
           values <- sapply(model_list, function(model) {
@@ -2866,7 +2862,7 @@ create_table2_latex <- function(model_list,
         # rho12
         lines <- c(lines, "\\multicolumn{5}{l}{\\textit{Between-study, within-test correlations ($\\rho_{12}$):}} \\\\")
         
-        for(i in 1:4) {
+        for(i in seq_along(test_names)) {
           param <- paste0("rho12[", i, ",", i, "]")
           
           values <- sapply(model_list, function(model) {
@@ -2875,6 +2871,69 @@ create_table2_latex <- function(model_list,
           
           line <- sprintf("%s & %s \\\\", test_names[i], paste(values, collapse = " & "))
           lines <- c(lines, line)
+        }
+        
+        return(lines)
+  
+}
+
+
+
+#' Function to create the table of AUC, Se and Sp of several models (one column per model)
+#' create_se_sp_table_of_models_latex
+#' @param model_list Named list of summary tibbles (one per model), each with the AUC, Se_baseline and Sp_baseline rows
+#' @param test_names Character vector of every test, in the order of the tests in the model
+#' @param thresholds_list List with one vector of thresholds per test, in the order of test_names
+#' @param threshold_labels List with one character vector of labels per test ("" for no label), in the order of test_names
+#' @param digits Number of digits
+#' @export
+create_se_sp_table_of_models_latex <- function(model_list,
+                                               test_names,
+                                               thresholds_list,
+                                               threshold_labels,
+                                               digits) {
+  
+        lines <- c()
+        n_columns <- length(model_list) + 1
+        test_names_latex <- gsub("_", "\\\\_", test_names)
+        
+        # AUC
+        lines <- c(lines, sprintf("\\multicolumn{%d}{l}{\\textit{\\textbf{AUC:}}}  \\\\", n_columns))
+        
+        for(i in seq_along(test_names)) {
+          param <- paste0("AUC[", i, "]")
+          
+          values <- sapply(model_list, function(model) {
+            extract_param_latex(model, param, digits)
+          })
+          
+          lines <- c(lines, sprintf("%s & %s \\\\", test_names_latex[i], paste(values, collapse = " & ")))
+        }
+        
+        # Se and Sp of each test
+        for(i in seq_along(test_names)) {
+          
+          lines <- c(lines, "%%%%", "\\midrule", "%%%%")
+          
+          for(measure in c("Se", "Sp")) {
+            
+            heading <- if (measure == "Se") "Sensitivity" else "Specificity"
+            lines <- c(lines, sprintf("\\multicolumn{%d}{l}{\\textit{\\textbf{%s (%s):}}} \\\\", 
+                                      n_columns, heading, test_names_latex[i]))
+            
+            for(j in seq_along(thresholds_list[[i]])) {
+              k <- thresholds_list[[i]][j]
+              param <- paste0(measure, "_baseline[", i, ",", k, "]")
+              
+              values <- sapply(model_list, function(model) {
+                extract_param_latex(model, param, digits)
+              })
+              
+              label <- threshold_labels[[i]][j]
+              row_name <- sprintf("$%s_{%d, ~ \\ge %d}$%s", measure, i, k, if (label == "") "" else paste0(" ", label))
+              lines <- c(lines, sprintf("%s & %s \\\\", row_name, paste(values, collapse = " & ")))
+            }
+          }
         }
         
         return(lines)
@@ -3182,6 +3241,9 @@ create_heterogeneity_comparison_table <- function(MR_model_summary_and_trace_obj
               print(n = 100)
           }
   
+          ## (beta_tau and total_SD_inc_C rows: [t, 1] for t = 1, ..., n_tests, then [t, 2])
+          n_tests_of_the_model <- nrow(beta_tau_intercept) / 2
+          ##
           lines <- c()
           
           # Header
@@ -3233,20 +3295,20 @@ create_heterogeneity_comparison_table <- function(MR_model_summary_and_trace_obj
                                                 use_signif = use_signif),
                                latex_format_val(row =  beta_tau_covariate[1,],
                                                 digits = digits,
-                                                use_signif = use_signif)))
+                                                use_signif = use_signif)),
                        sprintf("$\\tau^{(d+)}$ (all tests) & $%s$ & $%s$ \\\\",
-                               latex_format_val(row =  beta_tau_intercept[5,],
+                               latex_format_val(row =  beta_tau_intercept[n_tests_of_the_model + 1,],
                                                 digits = digits,
                                                 use_signif = use_signif),
-                               latex_format_val(row =  beta_tau_covariate[5,],
+                               latex_format_val(row =  beta_tau_covariate[n_tests_of_the_model + 1,],
                                                 digits = digits,
-                                                use_signif = use_signif))
+                                                use_signif = use_signif)))
         
           } else {   # UN - show each test's tau
             lines <- c(lines,
                        "\\multicolumn{3}{l}{\\textit{\\textbf{NMA test-specific deviation SD's (UN structure):}}} \\\\")
             # Assuming 4 tests
-            for (i in 1:4) {
+            for (i in 1:n_tests_of_the_model) {
               lines <- c(lines,
                          sprintf("$\\tau_%d^{(d-)}$ & $%s$ & $%s$ \\\\", i,
                                  latex_format_val(row =  beta_tau_intercept[i,],
@@ -3256,13 +3318,13 @@ create_heterogeneity_comparison_table <- function(MR_model_summary_and_trace_obj
                                                   digits = digits,
                                                   use_signif = use_signif)))
             }
-            for (i in 1:4) {
+            for (i in 1:n_tests_of_the_model) {
               lines <- c(lines,
                          sprintf("$\\tau_%d^{(d+)}$ & $%s$ & $%s$ \\\\", i,
-                                 latex_format_val(row =  beta_tau_intercept[4+i,],
+                                 latex_format_val(row =  beta_tau_intercept[n_tests_of_the_model + i,],
                                                   digits = digits,
                                                   use_signif = use_signif),
-                                 latex_format_val(row =  beta_tau_covariate[4+i,],
+                                 latex_format_val(row =  beta_tau_covariate[n_tests_of_the_model + i,],
                                                   digits = digits,
                                                   use_signif = use_signif)))
             }
@@ -3286,10 +3348,10 @@ create_heterogeneity_comparison_table <- function(MR_model_summary_and_trace_obj
                                                 digits = digits,
                                                 use_signif = use_signif)),
                        sprintf("$\\sigma_{total}^{(d+)}$ (all tests) & $%s$ & $%s$ \\\\",
-                               latex_format_val(row =  total_SD_intercept[5,],
+                               latex_format_val(row =  total_SD_intercept[n_tests_of_the_model + 1,],
                                                 digits = digits,
                                                 use_signif = use_signif),
-                               latex_format_val(row =  total_SD_covariate[5,],
+                               latex_format_val(row =  total_SD_covariate[n_tests_of_the_model + 1,],
                                                 digits = digits,
                                                 use_signif = use_signif))
             )
@@ -3297,7 +3359,7 @@ create_heterogeneity_comparison_table <- function(MR_model_summary_and_trace_obj
             # UN - show each test
             lines <- c(lines,
                        "\\multicolumn{3}{l}{\\textit{\\textbf{Total within-test, between-study heterogeneity:}}} \\\\")
-            for (i in 1:4) {
+            for (i in 1:n_tests_of_the_model) {
               lines <- c(lines,
                          sprintf("$\\sigma_{total,%d}^{(d-)}$ & $%s$ & $%s$ \\\\", i,
                                  latex_format_val(row =  total_SD_intercept[i,],
@@ -3307,13 +3369,13 @@ create_heterogeneity_comparison_table <- function(MR_model_summary_and_trace_obj
                                                   digits = digits,
                                                   use_signif = use_signif)))
             }
-            for (i in 1:4) {
+            for (i in 1:n_tests_of_the_model) {
               lines <- c(lines,
                          sprintf("$\\sigma_{total,%d}^{(d+)}$ & $%s$ & $%s$ \\\\", i,
-                                 latex_format_val(row = total_SD_intercept[4+i,],
+                                 latex_format_val(row = total_SD_intercept[n_tests_of_the_model + i,],
                                                   digits = digits,
                                                   use_signif = use_signif),
-                                 latex_format_val(row = total_SD_covariate[4+i,],
+                                 latex_format_val(row = total_SD_covariate[n_tests_of_the_model + i,],
                                                   digits = digits,
                                                   use_signif = use_signif)))
             }

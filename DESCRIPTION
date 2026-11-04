@@ -9,7 +9,7 @@ Description: An R package for the meta-analysis and network-meta-analysis of dia
 License: GPL-3 + file LICENSE
 Imports: Rcpp (>= 1.0.0), R6, cmdstanr, bayesplot, NicoStan, dplyr, ggplot2, tibble, tictoc, doParallel, foreach, stringr, jsonlite, tidyr, purrr, patchwork, forcats, data.table, digest, gtools, LaplacesDemon, MASS, Matrix, MCMCpack, scales, TruncatedNormal, truncnorm, bridgestan
 LinkingTo: Rcpp, RcppEigen, NicoSIMD
-Suggests: roxygen2, testthat (>= 3.0.0), BayesMVP, BayesMVPsim, BayesMVPtest, RcppParallel
+Suggests: roxygen2, testthat (>= 3.0.0), BayesMVPtest, RcppParallel
 Remotes: CerulloE1996/NicoStan
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE, roclets = c("namespace", "rd"))
