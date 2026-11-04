@@ -288,16 +288,16 @@ run_multiple_sims <- function(MCMC_seed,
               if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
 
                       priors$prior_dirichlet_alpha <- rep(1.0, n_thr + 1)
-                      priors$prior_kappa_mean <- log(300)
-                      priors$prior_kappa_SD <- 0.5
+                      priors$prior_kappa_mean <- log(100)
+                      priors$prior_kappa_SD <- 1.0
                       priors$kappa_lb <- 0.001
 
               } else {
 
                       prior_dirichlet_alpha <- rep(1.0, n_thr + 1)
                       priors$prior_dirichlet_alpha <-  list(prior_dirichlet_alpha, prior_dirichlet_alpha)
-                      priors$prior_kappa_mean   <-  c(log(300), log(300))
-                      priors$prior_kappa_SD   <-  c(0.5, 0.5)
+                      priors$prior_kappa_mean   <-  c(log(100), log(100))
+                      priors$prior_kappa_SD   <-  c(1.0, 1.0)
                       priors$kappa_lb <-  0.001
 
               }
@@ -411,10 +411,14 @@ run_multiple_sims <- function(MCMC_seed,
 
           }
           ##
+          if (nzchar(Sys.getenv("N_ITER_FOR_4_CHAINS"))) {
+                n_iter_for_4_chains <- as.integer(Sys.getenv("N_ITER_FOR_4_CHAINS"))
+          }
           n_iter <- ceiling(n_iter_for_4_chains / (n_chains/4))
           ##
           ## (NicoStan's burn-in is 125-250 iterations; Stan's is never fewer than 200)
-          n_burnin <- if (sampling_algorithm == "NicoStan") 500 else 500
+          n_burnin <- if (nzchar(Sys.getenv("N_BURNIN"))) as.integer(Sys.getenv("N_BURNIN")) else
+                      if (sampling_algorithm == "NicoStan") 500 else 500
           # n_burnin <- 500
           # n_burnin <- 250
           # n_burnin <- 200
@@ -438,10 +442,14 @@ run_multiple_sims <- function(MCMC_seed,
                 
                     if (model_parameterisation == "ord_bivariate") {
                         priors$prior_beta_SD_SD <- c(0.5, 0.5)
-                        priors$prior_kappa_mean <- c(log(300), log(300))
-                        priors$prior_kappa_SD <- c(0.5, 0.5)
-                        priors$prior_kappa_dof <- c(1000, 1000) ## default = c(5, 5)#
-                        if (Sys.getenv("KAPPA_PRIOR") %in% c("", "wide")) {
+                        priors$prior_kappa_mean <- c(log(100), log(100))
+                        priors$prior_kappa_SD <- c(1.0, 1.0)
+                        priors$prior_kappa_dof <- c(5, 3) ## default = c(5, 5)#
+                        if (Sys.getenv("KAPPA_PRIOR") == "current") {
+                              priors$prior_kappa_mean <- c(log(300), log(300))
+                              priors$prior_kappa_SD <- c(0.5, 0.5)
+                              priors$prior_kappa_dof <- c(1000, 1000)
+                        } else if (Sys.getenv("KAPPA_PRIOR") %in% c("", "wide")) {
                               priors$prior_kappa_mean <- c(log(150), log(150))
                               priors$prior_kappa_SD <- c(1.25, 1.25)
                               priors$prior_kappa_dof <- c(1000, 1000)
@@ -452,10 +460,15 @@ run_multiple_sims <- function(MCMC_seed,
                         }
                     } else {
                         priors$prior_beta_SD_SD <- c(0.5, 0.5)
-                        priors$prior_kappa_mean <- log(300)
-                        priors$prior_kappa_SD <- 0.5
-                        priors$prior_kappa_dof <- 1000
-                        if (Sys.getenv("KAPPA_PRIOR") %in% c("", "wide")) {
+                        priors$prior_kappa_mean <- log(100)
+                        priors$prior_kappa_SD <- 1.0
+                        priors$prior_kappa_dof <- 5
+                        ## (KAPPA_PRIOR=current: the tighter kappa prior, for the sampling check of the pop-median model)
+                        if (Sys.getenv("KAPPA_PRIOR") == "current") {
+                              priors$prior_kappa_mean <- log(300)
+                              priors$prior_kappa_SD <- 0.5
+                              priors$prior_kappa_dof <- 1000
+                        } else if (Sys.getenv("KAPPA_PRIOR") %in% c("", "wide")) {
                               priors$prior_kappa_mean <- log(150)
                               priors$prior_kappa_SD <- 1.25
                               priors$prior_kappa_dof <- 1000
@@ -493,16 +506,12 @@ run_multiple_sims <- function(MCMC_seed,
                     priors$prior_raw_scale_SD_SD <- 0.5
                     ##
                     ## (alpha = (1, ..., 1): the SD of the intercept prior and of the log-scale prior matched to the
-                    ##  ord_biv fixed-cutpoint prior by NicoStan prior-only fits of the pop-median model, 5 seeds, 0.05 rule)
-                    if (alpha_pi == "one") {
-                          SD_of_the_intercept_matched <-  c(HADS = 1.0, GAD_2 = 0.7, BAI = 1.0)[[test]]
-                          SD_of_the_log_scale_matched <-  c(HADS = 0.25, GAD_2 = 0.5, BAI = 0.25)[[test]]
-                          ## (MATCHED_PRIORS=band: matched over the whole band of thresholds; KAPPA_PRIOR=wide: GAD-2 log-scale 0.375)
-                          if (Sys.getenv("MATCHED_PRIORS") %in% c("", "band")) {
-                                SD_of_the_intercept_matched <-  c(HADS = 1.0, GAD_2 = 1.0, BAI = 1.0)[[test]]
-                                SD_of_the_log_scale_matched <-  c(HADS = 0.25, GAD_2 = 0.25, BAI = 0.25)[[test]]
-                                if (Sys.getenv("KAPPA_PRIOR") %in% c("", "wide")) SD_of_the_log_scale_matched <-  c(HADS = 0.25, GAD_2 = 0.375, BAI = 0.25)[[test]]
-                          }
+                    ##  ord_biv fixed-cutpoint prior by NicoStan prior-only fits of the pop-median model, 5 seeds, 0.05 rule;
+                    ##  MATCHED_PRIORS=0 keeps the runner's own SDs, for the sampling checks)
+                    if (alpha_pi == "one" && Sys.getenv("MATCHED_PRIORS") != "0") {
+                          SD_of_the_intercept_matched <-  c(HADS = 1.0, GAD_2 = 1.0, BAI = 1.0)[[test]]
+                          SD_of_the_log_scale_matched <-  c(HADS = 0.25, GAD_2 = 0.25, BAI = 0.25)[[test]]
+                          if (Sys.getenv("KAPPA_PRIOR") %in% c("", "wide")) SD_of_the_log_scale_matched <-  c(HADS = 0.25, GAD_2 = 0.375, BAI = 0.25)[[test]]
                           if (!is.null(SD_of_the_intercept_matched)) priors$prior_beta_mu_SD[1] <-  SD_of_the_intercept_matched
                           if (!is.null(SD_of_the_log_scale_matched)) priors$prior_raw_scale_mu_SD[1] <-  SD_of_the_log_scale_matched
                     }
@@ -705,35 +714,41 @@ run_multiple_sims <- function(MCMC_seed,
                                             ##
                                                   NicoStan_args = list(
                                             ## (every $sample setting that changes sampling, written out)
-                                            adapt_delta                          = 0.80,  ## the PS7 value 
+                                            adapt_delta                          = if (nzchar(Sys.getenv("ADAPT_DELTA")))
+                                                  as.numeric(Sys.getenv("ADAPT_DELTA")) else 0.80,  ## the PS7 value
                                             ## (the paper's models, sampled with no auto-chunking library; the Jones
                                             ##  model has no fused AVX file: its own Stan file runs on NicoStan)
                                             auto_chunking                        = FALSE,
+                                            debug                                = Sys.getenv("DUMP_BURNIN_TRACE") == "1",
                                             Stan_file_of_the_fused_version       = if (model_parameterisation == "Jones")
                                                   system.file("stan_models", "stan_models_MA", "DTA_MA_Jones.stan",
                                                               package = "MetaOrdDTA") else NULL,
                                             ###
                                             # metric_shape_main                    = "dense", ## --------
-                                            metric_shape_main                    = "diag",    ## --------
+                                            metric_shape_main                    = if (nzchar(Sys.getenv("METRIC_SHAPE_MAIN")))
+                                                  Sys.getenv("METRIC_SHAPE_MAIN") else "diag",    ## --------
                                             ##
                                             nuisance_params                      = nuisance_params,
                                             sample_nuisance                      = !is.null(nuisance_params),
-                                            diffusion_HMC                        = TRUE,
+                                            diffusion_HMC                        = Sys.getenv("DIFFUSION_HMC") != "0",
                                             diffusion_HMC_integrator             = "kick_flow_kick",  ## signature
                                             partitioned_HMC                      = FALSE,  ## R_fn_sample.R:1606
                                             ##
-                                            burnin_algorithm                     = "ESJD", ## --------
+                                            burnin_algorithm                     = if (nzchar(Sys.getenv("BURNIN_ALGORITHM"))) Sys.getenv("BURNIN_ALGORITHM") else "ESJD", ## --------
                                             ##
                                             n_adapt                              = n_burnin - round(n_burnin / 10),
-                                            clip_iter                            = NULL, ## 20,
-                                            clip_iter_tau                        = NULL, ## 50,
+                                            clip_iter                            = if (nzchar(Sys.getenv("CLIP_ITER"))) as.integer(Sys.getenv("CLIP_ITER")) else NULL, ## 20,
+                                            clip_iter_tau                        = if (nzchar(Sys.getenv("CLIP_ITER_TAU"))) as.integer(Sys.getenv("CLIP_ITER_TAU")) else NULL, ## 50,
                                             n_refresh                            = round(n_burnin / 20),
                                             parallel_method                      = "RcppParallel",
                                             ##
                                             n_superchains                        = 4,
                                             ##
-                                            learning_rate                        = 0.05,
+                                            learning_rate                        = if (nzchar(Sys.getenv("LEARNING_RATE"))) as.numeric(Sys.getenv("LEARNING_RATE")) else 0.05,
                                             # learning_rate                        = 0.025,
+                                            ##
+                                            eps_initial                          = if (nzchar(Sys.getenv("EPS_INITIAL"))) as.numeric(Sys.getenv("EPS_INITIAL")) else NULL,
+                                            eps_initial_iter                     = if (nzchar(Sys.getenv("EPS_INITIAL_ITER"))) as.integer(Sys.getenv("EPS_INITIAL_ITER")) else NULL,
                                             ##
                                             tau_mult                             = 1.60,  ## R_fn_sample.R:1355
                                             manual_tau                           = FALSE,  ## R_fn_sample.R:1367
@@ -821,6 +836,10 @@ run_multiple_sims <- function(MCMC_seed,
             tibble_main <- model_summary_obj$get_summary_main()
             tibble_gq   <- model_summary_obj$get_summary_generated_quantities()
             tibble_all  <- rbind(tibble_main, tibble_gq)
+            if (nzchar(Sys.getenv("DUMP_SUMMARY"))) {
+                  saveRDS(tibble_all, file.path(output_dir, paste0("summary_of_every_parameter_of_seed_", seed, "_",
+                                                                   file_name_string, ".rds")))
+            }
             ##
             # tibbles_list_testing[[MCMC_seed]] <- tibble_gq
 
@@ -959,6 +978,29 @@ run_multiple_sims <- function(MCMC_seed,
                                                   row.names = FALSE,
                                                   col.names = !file.exists(file_of_the_HMC_log),
                                                   append = TRUE))
+              ##
+              if (Sys.getenv("DUMP_BURNIN_TRACE") == "1") {
+                    NicoStan_result_of_this_fit <- tryCatch(
+                          model_samples_obj$internal_obj$outs_stan_sampling$NicoStan_model_obj$result,
+                          error = function(e) NULL)
+                    if (!is.null(NicoStan_result_of_this_fit)) {
+                          burnin_of_this_fit <- NicoStan_result_of_this_fit$burnin_object
+                          saveRDS(list(seed = seed,
+                                       n_burnin = n_burnin,
+                                       burnin_tau = burnin_of_this_fit$burnin_tau_main_ii_all_chains,
+                                       burnin_eps = burnin_of_this_fit$burnin_eps_main_all_chains,
+                                       burnin_L = burnin_of_this_fit$burnin_L_main_ii_all_chains,
+                                       burnin_div = burnin_of_this_fit$burnin_div_main_all_chains,
+                                       burnin_p_jump = burnin_of_this_fit$burnin_p_jump_main_all_chains,
+                                       burnin_tau_update_records = burnin_of_this_fit$burnin_tau_update_records,
+                                       burnin_schedule = burnin_of_this_fit$burnin_schedule,
+                                       theta_main_end_of_burnin = burnin_of_this_fit$theta_main_vectors_all_chains_input_from_R,
+                                       theta_us_end_of_burnin = burnin_of_this_fit$theta_us_vectors_all_chains_input_from_R,
+                                       eps_calibration = NicoStan_result_of_this_fit$eps_calibration_on_sampling_chains,
+                                       HMC_info = HMC_info_of_this_fit),
+                                  file.path(output_dir, paste0("burnin_trace_of_seed_", seed, "_", file_name_string, ".rds")))
+                    }
+              }
               ##
               # ess_vec[MCMC_seed] <- min_ESS
 
