@@ -24,7 +24,7 @@ export LEARNING_RATE=0.0625
 export SIM_SEED_OFFSET=${SIM_SEED_OFFSET:-0}
 export KAPPA_PRIOR=wide
 export MATCHED_PRIORS=band
-export SIM_OUTPUT_FOLDER=${SIM_OUTPUT_FOLDER:-fixed_raw_C_J_sim_results_NicoStan_MCSE_0.125_alpha_prior_flat_1_band_priors}
+export SIM_OUTPUT_FOLDER=${SIM_OUTPUT_FOLDER:-revised_DGMs_fixed_raw_C_J_sim_results_NicoStan_MCSE_0.125_alpha_prior_flat_1_band_priors}
 echo "node $(hostname), job $SLURM_JOB_ID, NicoStan burn-in $N_BURNIN, models $SIM_MODELS, CPUs $SIM_N_THREADS, seed offset $SIM_SEED_OFFSET, clip $CLIP_ITER / $CLIP_ITER_TAU, LR $LEARNING_RATE, library $R_LIBS_USER, kappa prior $KAPPA_PRIOR, matched priors $MATCHED_PRIORS, folder $SIM_OUTPUT_FOLDER, start $(date)"
 Rscript --vanilla $HOME/R_packages/MetaOrdDTA/sim_study/MetaOrdDTA_run_sims_ALICE.R
 echo "end $(date), exit $?"
