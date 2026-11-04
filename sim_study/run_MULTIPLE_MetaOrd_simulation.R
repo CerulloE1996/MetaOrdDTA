@@ -780,7 +780,8 @@ run_multiple_sims <- function(MCMC_seed,
                                             tau_sampling_scale                   = "none",  ## R_fn_sample.R:1446
                                             tau_jitter_burnin                    = if (nzchar(Sys.getenv("TAU_JITTER_BURNIN")))
                                                   Sys.getenv("TAU_JITTER_BURNIN") else "uniform",
-                                            tau_jitter_sampling_type             = "uniform",
+                                            tau_jitter_sampling_type             = if (nzchar(Sys.getenv("TAU_JITTER_BURNIN")))
+                                                  Sys.getenv("TAU_JITTER_BURNIN") else "uniform",  ## same as burn-in
                                             ##
                                             randomize_tau_burnin                 = TRUE,  ## signature
                                             randomize_tau_sampling               = TRUE,  ## signature
