@@ -360,9 +360,9 @@ sim_study_dir <- file.path(local_pkg_dir, "sim_study")
               # inner_path <-  "fixed_raw_C_J_simu_results_NicoStan_diag_burnin_250"
               # inner_path <-   "fixed_raw_C_J_sim_results_NicoStan_test_MCSE_0.5_test_2"
               # inner_path <-   "fixed_raw_C_J_sim_results_NicoStan_MCSE_0.25_Se_Sp_prior_flat_1"
-                inner_path <-   "fixed_raw_C_J_sim_results_NicoStan_MCSE_0.25_alpha_prior_flat_1"
+                inner_path <-   "revised_DGMs_fixed_raw_C_J_sim_results_NicoStan_MCSE_0.25_alpha_prior_flat_1"
             } else { 
-              inner_path <-  "fixed_raw_C_J_sim_results_Stan_reference_grid"
+              inner_path <-  "revised_DGMs_fixed_raw_C_J_sim_results_Stan_reference_grid"
             }
       
     } else if (sim_study_type == "RC_ord_biv_median_vs_pop_median") {
