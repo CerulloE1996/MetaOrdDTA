@@ -405,6 +405,8 @@ DGM_vec <- c("ord_biv_fixed_C", "Jones", "ord_biv_random_C", "R&G_random_C") ## 
 # DGM_vec <- "Jones"
 # DGM_vec <- "ord_biv_random_C"
 # DGM_vec <- "R&G_random_C"
+## (SIM_DGMS, e.g. "ord_biv_fixed_C,Jones", runs those DGMs only)
+if (nzchar(Sys.getenv("SIM_DGMS"))) DGM_vec <- strsplit(Sys.getenv("SIM_DGMS"), ",")[[1]]
 ##
 n_studies_vals_vec <- c(10, 50) ## ----
 ##
@@ -900,6 +902,15 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                                   custom_cpp_user_header_of_this_scenario <-
                                         scenario_row$custom_cpp_user_header_file_path[[1]]
                             }
+                            ##
+                            ## ---- The Stan::math-only file of the model, with no user header ----------------------------------------
+                            ##
+                            if (Sys.getenv("STAN_MATH_ONLY_MODEL") == "1" && use_custom_file_of_this_scenario) {
+                                  custom_file_name_of_this_scenario <- sub("_NicoStan_fused_AVX[.]stan$",
+                                                                           "_Stan_math_only.stan",
+                                                                           custom_file_name_of_this_scenario)
+                                  custom_cpp_user_header_of_this_scenario <- NULL
+                            }
                             Stan_model_name_of_this_scenario <- MetaOrdDTA:::R_fn_get_stan_model_file_name(
                                   custom_file_name              = custom_file_name_of_this_scenario,
                                   # use_Se_Sp_prior               = scenario_row$model_parameterisation %in%
@@ -966,7 +977,7 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
 
                                                       ## (a free port for the workers, never one another program holds, e.g. Ollama's 11434)
                             port_of_the_workers <-  NA
-                            for (port in 11500:11999) {
+                            for (port in (if (nzchar(Sys.getenv("SIM_PORT_START"))) as.integer(Sys.getenv("SIM_PORT_START")) else 11500):11999) {
                                   socket <-  tryCatch(serverSocket(port), error = function(e) NULL)
                                   if (!is.null(socket)) {
                                         close(socket)
