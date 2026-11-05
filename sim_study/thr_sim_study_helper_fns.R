@@ -1088,9 +1088,12 @@ compute_simulation_metrics <- function(test,
             
             result <- complete_results_all_ESS[[i]]
             ##
-            Se_Sp_tibble <- MetaOrdDTA:::extract_params_from_tibble_batch( tibble = result$tibble_all, 
-                                                                           param_strings_vec = c("Se_baseline", "Sp_baseline"))
-            min_ESS <- min(Se_Sp_tibble$n_eff, na.rm = TRUE)
+            ## (min ESS as when the fit was kept: Se and Sp at vec_index_inner only)
+            tibble_Se <- dplyr::filter(result$tibble_all, stringr::str_detect(parameter, "Se_baseline\\["))
+            tibble_Sp <- dplyr::filter(result$tibble_all, stringr::str_detect(parameter, "Sp_baseline\\["))
+            ESS_vec_Se <- pmin(tibble_Se$n_eff, tibble_Se$n_eff_tail, tibble_Se$n_eff_sd)
+            ESS_vec_Sp <- pmin(tibble_Sp$n_eff, tibble_Sp$n_eff_tail, tibble_Sp$n_eff_sd)
+            min_ESS <- min(c(ESS_vec_Se[vec_index_inner], ESS_vec_Sp[vec_index_inner]), na.rm = TRUE)
             min_ESS_vec[i] <- min_ESS
             
           })
