@@ -849,14 +849,14 @@ run_multiple_sims <- function(MCMC_seed,
                                             metric_start_iter                    = if (nzchar(Sys.getenv("METRIC_START_ITER"))) as.integer(Sys.getenv("METRIC_START_ITER")) else round(n_burnin/10) ## says WHEN the metric starts collecting draws.
                                             ),
                                             ## (METRIC_POOLED_WINDOW_RESETS = none, or iterations split by commas)
-               if (nzchar(Sys.getenv("METRIC_POOLED_WINDOW_RESETS")))
-                     list(metric_pooled_window_resets =
-                                if (Sys.getenv("METRIC_POOLED_WINDOW_RESETS") == "none") "none" else
-                                      as.integer(strsplit(Sys.getenv("METRIC_POOLED_WINDOW_RESETS"), ",")[[1]])),
-               ## (METRIC_ADAPTATION_END_ITER = the last metric update)
-               if (nzchar(Sys.getenv("METRIC_ADAPTATION_END_ITER")))
-                     list(metric_adaptation_end_iter = as.integer(Sys.getenv("METRIC_ADAPTATION_END_ITER"))),
-               ## (RESTART_STUCK_CHAINS = 1: a stuck chain restarts from a chain that moves)
+                                            if (nzchar(Sys.getenv("METRIC_POOLED_WINDOW_RESETS")))
+                                                  list(metric_pooled_window_resets =
+                                                             if (Sys.getenv("METRIC_POOLED_WINDOW_RESETS") == "none") "none" else
+                                                                   as.integer(strsplit(Sys.getenv("METRIC_POOLED_WINDOW_RESETS"), ",")[[1]])),
+                                            ## (METRIC_ADAPTATION_END_ITER = the last metric update)
+                                            if (nzchar(Sys.getenv("METRIC_ADAPTATION_END_ITER")))
+                                                  list(metric_adaptation_end_iter = as.integer(Sys.getenv("METRIC_ADAPTATION_END_ITER"))),
+                                            ## (RESTART_STUCK_CHAINS = 1: a stuck chain restarts from a chain that moves)
                                             if (Sys.getenv("RESTART_STUCK_CHAINS") == "1")
                                                   list(restart_stuck_chains_in_burnin = TRUE,
                                                        n_iter_of_a_stuck_chain = if (nzchar(Sys.getenv("N_ITER_OF_A_STUCK_CHAIN")))
