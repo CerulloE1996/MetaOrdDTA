@@ -164,6 +164,12 @@ run_multiple_sims <- function(MCMC_seed,
               custom_file_name <- scenario_row$custom_file_name[[1]]
               use_custom_file <- TRUE
           }
+          ## (STAN_MATH_ONLY_MODEL = 1: the Stan::math-only file of the model, with no user header)
+          Stan_math_only_model <- Sys.getenv("STAN_MATH_ONLY_MODEL") == "1"
+          custom_file_name_to_compile <- custom_file_name
+          if (Stan_math_only_model && use_custom_file) {
+              custom_file_name_to_compile <- sub("_NicoStan_fused_AVX[.]stan$", "_Stan_math_only.stan", custom_file_name)
+          }
           CPU_has_AVX512 <- any(grepl("\\bavx512f\\b", readLines("/proc/cpuinfo", warn = FALSE)))
           ## (the compiler flags: AVX-512 on the local-HPC, AVX2 on the laptop)
           AVX_FLAGS_of_this_machine <- if (CPU_has_AVX512) {
@@ -206,13 +212,13 @@ run_multiple_sims <- function(MCMC_seed,
                                         random_thresholds = random_thresholds,
                                         Dirichlet_random_effects_type = Dirichlet_random_effects_type,
                                         ##
-                                        custom_file_name = custom_file_name,
+                                        custom_file_name = custom_file_name_to_compile,
                                         ##
                                         advanced_compile = use_custom_file,
                                         force_recompile = FALSE,
                                         quiet = TRUE,
                                         set_custom_CXX_CPP_flags = use_custom_file,
-                                        custom_cpp_user_header_file_path = if (use_custom_file)
+                                        custom_cpp_user_header_file_path = if (use_custom_file && !Stan_math_only_model)
                                                                   NicoSIMD_user_header else NULL,
                                         FMA_FLAGS = "-mfma",
                                         AVX_FLAGS = AVX_FLAGS_of_this_machine)
@@ -700,6 +706,14 @@ run_multiple_sims <- function(MCMC_seed,
                   }
             }
             time_after_the_model_prep <- Sys.time()
+            ## (KEEP_THE_DATA_FILE_IN = a folder: the Stan data of this cmdstanr fit is saved there as it is written)
+            if (nzchar(Sys.getenv("KEEP_THE_DATA_FILE_IN")) && sampling_algorithm == "Stan") {
+                  file_of_the_Stan_data <- file.path(Sys.getenv("KEEP_THE_DATA_FILE_IN"),
+                                                     paste0("seed_", seed, "_", file_name_string, ".rds"))
+                  trace("write_stan_json", where = asNamespace("cmdstanr"), print = FALSE,
+                        tracer = bquote(saveRDS(data, paste0(.(file_of_the_Stan_data),
+                                                         if (grepl("init", basename(file))) "_init" else ""))))
+            }
             model_samples_obj <- model_prep_obj$sample( seed = MCMC_seed, ## MCMC seed
                                             n_burnin = n_burnin,
                                             n_iter = n_iter,
@@ -1003,6 +1017,7 @@ run_multiple_sims <- function(MCMC_seed,
                                        burnin_p_jump = burnin_of_this_fit$burnin_p_jump_main_all_chains,
                                        burnin_tau_update_records = burnin_of_this_fit$burnin_tau_update_records,
                                        burnin_schedule = burnin_of_this_fit$burnin_schedule,
+                                       burnin_start_main = burnin_of_this_fit$burnin_start_main_all_chains,
                                        theta_main_end_of_burnin = burnin_of_this_fit$theta_main_vectors_all_chains_input_from_R,
                                        theta_us_end_of_burnin = burnin_of_this_fit$theta_us_vectors_all_chains_input_from_R,
                                        eps_calibration = NicoStan_result_of_this_fit$eps_calibration_on_sampling_chains,

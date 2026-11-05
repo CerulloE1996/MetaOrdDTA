@@ -844,6 +844,15 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                                   custom_cpp_user_header_of_this_scenario <-
                                         scenario_row$custom_cpp_user_header_file_path[[1]]
                             }
+                            ##
+                            ## ---- The Stan::math-only file of the model, with no user header ----------------------------------------
+                            ##
+                            if (Sys.getenv("STAN_MATH_ONLY_MODEL") == "1" && use_custom_file_of_this_scenario) {
+                                  custom_file_name_of_this_scenario <- sub("_NicoStan_fused_AVX[.]stan$",
+                                                                           "_Stan_math_only.stan",
+                                                                           custom_file_name_of_this_scenario)
+                                  custom_cpp_user_header_of_this_scenario <- NULL
+                            }
                             Stan_model_name_of_this_scenario <- MetaOrdDTA:::R_fn_get_stan_model_file_name(
                                   custom_file_name              = custom_file_name_of_this_scenario,
                                   # use_Se_Sp_prior               = scenario_row$model_parameterisation %in%
