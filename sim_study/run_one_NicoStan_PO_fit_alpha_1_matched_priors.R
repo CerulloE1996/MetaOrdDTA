@@ -160,6 +160,11 @@ adapt_delta <-  eval(sample_call_of_the_runner$adapt_delta)
 max_treedepth <-  eval(sample_call_of_the_runner$max_treedepth)
 ## (the sim study's models are sampled as the paper sampled them, with no auto-chunking library)
 NicoStan_args$auto_chunking <-  FALSE
+## (N_CHAINS_BURNIN = a number: that many burn-in chains, with n_chains sampling chains)
+if (nzchar(Sys.getenv("N_CHAINS_BURNIN"))) {
+      NicoStan_args$n_chains_burnin <-  as.numeric(Sys.getenv("N_CHAINS_BURNIN"))
+      NicoStan_args$n_chains_sampling <-  n_chains
+}
 ## (Jones has no fused AVX file: NicoStan samples its own Stan file, R_fn_sample_model_with_NicoStan.R 40-47)
 if (model_parameterisation == "Jones") {
       NicoStan_args$Stan_file_of_the_fused_version <-  system.file("stan_models", "stan_models_MA", "DTA_MA_Jones.stan",
