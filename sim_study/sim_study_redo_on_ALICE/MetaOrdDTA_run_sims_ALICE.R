@@ -435,6 +435,10 @@ alpha_pi_vec <- "one"
 ## ---- Settings of the RC ord_biv median vs pop-median sim study ---------------------------------------------------------------------
 ##
 random_thresholds_vec <- c(FALSE, TRUE)
+## (SIM_RANDOM_THRESHOLDS, e.g. "TRUE", runs the random-cutpoint models only)
+if (nzchar(Sys.getenv("SIM_RANDOM_THRESHOLDS"))) {
+      random_thresholds_vec <- as.logical(strsplit(Sys.getenv("SIM_RANDOM_THRESHOLDS"), ",")[[1]])
+}
 ##
 if (sim_study_type == "RC_ord_biv_median_vs_pop_median") {
       model_param_vec       <- "ord_bivariate"

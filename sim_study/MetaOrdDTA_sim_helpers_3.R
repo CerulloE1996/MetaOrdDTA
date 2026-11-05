@@ -524,7 +524,7 @@ create_MetaOrd_scenarios <- function() {
           !((model_parameterisation %in% c("Jones", "Bivariate")) &
               (alpha_pi %in% c("informative", "informative_from_the_literature"))),
           !((model_parameterisation == "R&G") & (alpha_pi == "informative")),
-          !(DGM == "ord_biv_fixed_C" & (random_thresholds == TRUE)),
+          # !(DGM == "ord_biv_fixed_C" & (random_thresholds == TRUE)),
           !((DGM == "Jones") & (random_thresholds == TRUE)),
           !(model_parameterisation == "Bivariate" & random_thresholds == TRUE),
           !(model_parameterisation == "R&G" & random_thresholds == FALSE),
