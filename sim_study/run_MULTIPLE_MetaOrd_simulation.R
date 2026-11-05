@@ -730,7 +730,7 @@ run_multiple_sims <- function(MCMC_seed,
                                             # algorithm = "NicoStan",
                                             # algorithm = "Stan",
                                             ##
-                                                  NicoStan_args = list(
+                                                  NicoStan_args = c(list(
                                             ## (every $sample setting that changes sampling, written out)
                                             adapt_delta                          = if (nzchar(Sys.getenv("ADAPT_DELTA")))
                                                   as.numeric(Sys.getenv("ADAPT_DELTA")) else 0.80,  ## the PS7 value
@@ -845,7 +845,12 @@ run_multiple_sims <- function(MCMC_seed,
                                             ##
                                             pooled_metric_warm_up                = 8, ## says how many draws it waits for before its first estimate replaces the starting identity metric.
                                             metric_start_iter                    = if (nzchar(Sys.getenv("METRIC_START_ITER"))) as.integer(Sys.getenv("METRIC_START_ITER")) else round(n_burnin/10) ## says WHEN the metric starts collecting draws.
-                                            ))
+                                            ),
+                                            ## (RESTART_STUCK_CHAINS = 1: a stuck chain restarts from a chain that moves)
+                                            if (Sys.getenv("RESTART_STUCK_CHAINS") == "1")
+                                                  list(restart_stuck_chains_in_burnin = TRUE,
+                                                       n_iter_of_a_stuck_chain = if (nzchar(Sys.getenv("N_ITER_OF_A_STUCK_CHAIN")))
+                                                             as.integer(Sys.getenv("N_ITER_OF_A_STUCK_CHAIN")) else 30L)))
             ##SO
             ## ---- Get summaries:
             ##
@@ -1018,6 +1023,7 @@ run_multiple_sims <- function(MCMC_seed,
                                        burnin_tau_update_records = burnin_of_this_fit$burnin_tau_update_records,
                                        burnin_schedule = burnin_of_this_fit$burnin_schedule,
                                        burnin_start_main = burnin_of_this_fit$burnin_start_main_all_chains,
+                                       restarts_of_stuck_chains = burnin_of_this_fit$restarts_of_stuck_chains,
                                        theta_main_end_of_burnin = burnin_of_this_fit$theta_main_vectors_all_chains_input_from_R,
                                        theta_us_end_of_burnin = burnin_of_this_fit$theta_us_vectors_all_chains_input_from_R,
                                        eps_calibration = NicoStan_result_of_this_fit$eps_calibration_on_sampling_chains,
