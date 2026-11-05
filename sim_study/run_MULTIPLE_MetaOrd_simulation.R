@@ -791,7 +791,7 @@ run_multiple_sims <- function(MCMC_seed,
                                             tau_adaptation_block                 = "main",  ## --------
                                             interest_only                        = NULL,
                                             ##
-                                            tau_sampling_scale                   = "none",  ## R_fn_sample.R:1446
+                                            tau_sampling_scale                   = if (nzchar(Sys.getenv("TAU_SAMPLING_SCALE"))) as.numeric(Sys.getenv("TAU_SAMPLING_SCALE")) else "none",  ## R_fn_sample.R:1446
                                             tau_jitter_burnin                    = if (nzchar(Sys.getenv("TAU_JITTER_BURNIN")))
                                                   Sys.getenv("TAU_JITTER_BURNIN") else "uniform",
                                             tau_jitter_sampling_type             = if (nzchar(Sys.getenv("TAU_JITTER_BURNIN")))
