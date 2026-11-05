@@ -998,6 +998,14 @@ run_multiple_sims <- function(MCMC_seed,
               }
               n_divergent <- sum(n_divergent_per_chain)
               percent_divergent <- 100 * n_divergent / (n_chains * n_iter)
+              ## (KEEP_THE_DIVERGENCE_TRACE_IN = a folder: the divergence trace and the draws of this NicoStan fit are saved there)
+              if (nzchar(Sys.getenv("KEEP_THE_DIVERGENCE_TRACE_IN")) && sampling_algorithm == "NicoStan") {
+                    outs_of_this_fit <- model_samples_obj$internal_obj$outs_stan_sampling
+                    saveRDS(list(div_trace = outs_of_this_fit$NicoStan_model_obj$result$sampling_object[[2]],
+                                 draws_array = outs_of_this_fit$draws_array),
+                            file.path(Sys.getenv("KEEP_THE_DIVERGENCE_TRACE_IN"),
+                                      paste0("seed_", seed, "_", file_name_string, ".rds")))
+              }
               cat(sprintf("Seed %d: min ESS = %.0f (threshold %.0f), divergent = %d of %d (%.3f%%, max %.1f%%)\n",
                           seed,
                           min_ESS,
