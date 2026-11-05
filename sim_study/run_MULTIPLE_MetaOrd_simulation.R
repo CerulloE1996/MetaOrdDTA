@@ -563,11 +563,11 @@ run_multiple_sims <- function(MCMC_seed,
                           ## (MATCHED_PRIORS=band: the Jones priors matched over the whole band of thresholds)
                           if (Sys.getenv("MATCHED_PRIORS") %in% c("", "band")) {
                                 mean_of_beta_mu_matched <-  c(HADS = 6.571, GAD_2 = 2.5, BAI = 9.094)[[test]]
-                                mean_of_raw_scale_mu_matched <-  c(HADS = 1.497, GAD_2 = 0.811, BAI = 1.358)[[test]]
+                                mean_of_raw_scale_mu_matched <-  c(HADS = 1.497, GAD_2 = 0.708, BAI = 1.432)[[test]]
                                 mean_of_boxcox_lambda_matched <-  c(HADS = 0.75, GAD_2 = 1.0, BAI = 0.5)[[test]]
-                                SD_of_beta_mu_matched <-  c(HADS = 4.062, GAD_2 = 2.5, BAI = 4.321)[[test]]
-                                SD_of_raw_scale_mu_matched <-  c(HADS = 0.125, GAD_2 = 0.5, BAI = 0.25)[[test]]
-                                SD_of_boxcox_lambda_matched <-  c(HADS = 0.05, GAD_2 = 0.1, BAI = 0.1)[[test]]
+                                SD_of_beta_mu_matched <-  c(HADS = 4.062, GAD_2 = 2.256, BAI = 4.651)[[test]]
+                                SD_of_raw_scale_mu_matched <-  c(HADS = 0.25, GAD_2 = 0.5, BAI = 0.1875)[[test]]
+                                SD_of_boxcox_lambda_matched <-  c(HADS = 0.1, GAD_2 = 0.1, BAI = 0.05)[[test]]
                           }
                           ## (JONES_RAW_SCALE_MU_PRIOR_SD = a number: the SD of the prior of raw_scale_mu of the Jones model)
                           if (nzchar(Sys.getenv("JONES_RAW_SCALE_MU_PRIOR_SD"))) {
