@@ -760,7 +760,7 @@ run_multiple_sims <- function(MCMC_seed,
                                             ##
                                             tau_weight_by_p_jump                 = TRUE,  ## R_fn_sample.R:1421
                                             tau_ramp                             = "staged",
-                                            eps_reinit_at_ChEES_handover         = FALSE, ## ----
+                                            eps_reinit_at_ChEES_handover         = if (nzchar(Sys.getenv("EPS_REINIT_AT_HANDOVER"))) Sys.getenv("EPS_REINIT_AT_HANDOVER") == "1" else FALSE, ## ----
                                             ##
                                             eps_acceptance_mean                  = if (nzchar(Sys.getenv("EPS_ACCEPTANCE_MEAN"))) Sys.getenv("EPS_ACCEPTANCE_MEAN") else "harmonic",
                                             ##
@@ -790,7 +790,7 @@ run_multiple_sims <- function(MCMC_seed,
                                             ##
                                             metric_type_main                     = "Empirical",
                                             ratio_M_main                         = 0.90,  ## R_fn_sample.R:1686
-                                            interval_width_main                  = 1,  ## R_fn_sample.R:1689
+                                            interval_width_main                  = if (nzchar(Sys.getenv("INTERVAL_WIDTH_MAIN"))) as.integer(Sys.getenv("INTERVAL_WIDTH_MAIN")) else 1,  ## R_fn_sample.R:1689
                                             ##
                                             metric_type_nuisance                 = "Empirical",
                                             metric_shape_nuisance                = "diag",  ## R_fn_sample.R:1697
@@ -825,7 +825,7 @@ run_multiple_sims <- function(MCMC_seed,
                                             esjd_jump_power                      = if (nzchar(Sys.getenv("ESJD_JUMP_POWER"))) as.numeric(Sys.getenv("ESJD_JUMP_POWER")) else 2,  ## signature
                                             tau_cost_exponent                    = 1,  ## signature
                                             ##
-                                            metric_update_rescales_eps_and_tau   = TRUE, ## signature ## ----
+                                            metric_update_rescales_eps_and_tau   = if (nzchar(Sys.getenv("METRIC_UPDATE_RESCALES"))) Sys.getenv("METRIC_UPDATE_RESCALES") == "1" else TRUE, ## signature ## ----
                                             ##
                                             pooled_metric_warm_up                = 8, ## says how many draws it waits for before its first estimate replaces the starting identity metric.
                                             metric_start_iter                    = if (nzchar(Sys.getenv("METRIC_START_ITER"))) as.integer(Sys.getenv("METRIC_START_ITER")) else round(n_burnin/10) ## says WHEN the metric starts collecting draws.
