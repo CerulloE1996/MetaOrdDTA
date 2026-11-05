@@ -826,6 +826,8 @@ run_multiple_sims <- function(MCMC_seed,
                                             tau_cost_exponent                    = 1,  ## signature
                                             ##
                                             metric_update_rescales_eps_and_tau   = if (nzchar(Sys.getenv("METRIC_UPDATE_RESCALES"))) Sys.getenv("METRIC_UPDATE_RESCALES") == "1" else TRUE, ## signature ## ----
+                                            metric_update_rescales_tau           = if (nzchar(Sys.getenv("METRIC_UPDATE_RESCALES_TAU"))) Sys.getenv("METRIC_UPDATE_RESCALES_TAU") == "1" else TRUE,
+                                            initial_eps_search_at_each_chain     = Sys.getenv("INITIAL_EPS_SEARCH_AT_EACH_CHAIN") == "1",
                                             ##
                                             pooled_metric_warm_up                = 8, ## says how many draws it waits for before its first estimate replaces the starting identity metric.
                                             metric_start_iter                    = if (nzchar(Sys.getenv("METRIC_START_ITER"))) as.integer(Sys.getenv("METRIC_START_ITER")) else round(n_burnin/10) ## says WHEN the metric starts collecting draws.
