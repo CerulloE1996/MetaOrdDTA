@@ -448,8 +448,8 @@ if (sim_study_type == "RC_ord_HSROC_median_vs_pop_median") {
 ##
 ## ---- sampler and the min ESS of Se / Sp a fit needs to be kept:
 ##
-min_ESS_of_10_studies <- 1000
-min_ESS_of_50_studies <- 200
+min_ESS_of_10_studies <- 2500
+min_ESS_of_50_studies <- 500
 ##
 # test_val    <- "BAI"
 # model_param <- model_param_vec

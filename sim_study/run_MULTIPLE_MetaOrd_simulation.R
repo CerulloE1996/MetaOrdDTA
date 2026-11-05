@@ -36,6 +36,28 @@ run_multiple_sims <- function(MCMC_seed,
                 softplus <- FALSE ## scenario_row$softplus
                 random_thresholds <- scenario_row$random_thresholds
                 Dirichlet_random_effects_type <- scenario_row$Dirichlet_random_effects_type
+                ##
+                ## ---- The sampler settings of this cell (SETTINGS_OF_EVERY_CELL = a csv file, one row per cell) ---------------------
+                ##
+                if (nzchar(Sys.getenv("SETTINGS_OF_EVERY_CELL"))) {
+
+                      settings_of_every_cell <- read.csv(Sys.getenv("SETTINGS_OF_EVERY_CELL"),
+                                                         stringsAsFactors = FALSE)
+                      row_of_this_cell <- which(settings_of_every_cell$test == test &
+                                                settings_of_every_cell$DGM == DGM &
+                                                settings_of_every_cell$n_studies == n_studies &
+                                                settings_of_every_cell$model == model_parameterisation &
+                                                settings_of_every_cell$random_thresholds == random_thresholds)
+                      if (length(row_of_this_cell) != 1) {
+                            stop("the settings file needs one row for this cell")
+                      }
+                      ## (a setting of another cell never stays set)
+                      Sys.unsetenv(unique(sub("=.*", "", unlist(strsplit(settings_of_every_cell$settings, " ")))))
+                      settings_of_this_cell <- strsplit(settings_of_every_cell$settings[row_of_this_cell], " ")[[1]]
+                      do.call(Sys.setenv, stats::setNames(as.list(sub("^[^=]*=", "", settings_of_this_cell)),
+                                                          sub("=.*", "", settings_of_this_cell)))
+
+                }
 
                 # Set threshold ranges
                 if (test == "GAD_2") {
