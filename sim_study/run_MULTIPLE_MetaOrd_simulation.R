@@ -828,7 +828,7 @@ run_multiple_sims <- function(MCMC_seed,
                                             metric_update_rescales_eps_and_tau   = TRUE, ## signature ## ----
                                             ##
                                             pooled_metric_warm_up                = 8, ## says how many draws it waits for before its first estimate replaces the starting identity metric.
-                                            metric_start_iter                    = round(n_burnin/5) ## says WHEN the metric starts collecting draws.
+                                            metric_start_iter                    = if (nzchar(Sys.getenv("METRIC_START_ITER"))) as.integer(Sys.getenv("METRIC_START_ITER")) else round(n_burnin/10) ## says WHEN the metric starts collecting draws.
                                             ))
             ##SO
             ## ---- Get summaries:
