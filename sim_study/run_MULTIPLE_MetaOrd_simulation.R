@@ -869,7 +869,15 @@ run_multiple_sims <- function(MCMC_seed,
                                                        first_iter_of_the_eps_searches = if (nzchar(Sys.getenv("FIRST_ITER_OF_THE_EPS_SEARCHES")))
                                                              as.integer(Sys.getenv("FIRST_ITER_OF_THE_EPS_SEARCHES")) else 130L,
                                                        n_iter_between_the_eps_searches = if (nzchar(Sys.getenv("N_ITER_BETWEEN_THE_EPS_SEARCHES")))
-                                                             as.integer(Sys.getenv("N_ITER_BETWEEN_THE_EPS_SEARCHES")) else 10L)))
+                                                             as.integer(Sys.getenv("N_ITER_BETWEEN_THE_EPS_SEARCHES")) else 10L),
+                                            ## (EPS_DOUBLING_WHILE_THE_ACCEPTANCE_IS_HIGH = 1: eps is doubled while the acceptance is 0.95 or more,
+                                            ##  from FIRST_ITER_OF_THE_EPS_DOUBLINGS on, default 60, every N_ITER_BETWEEN_THE_EPS_DOUBLINGS, default 5)
+                                            if (Sys.getenv("EPS_DOUBLING_WHILE_THE_ACCEPTANCE_IS_HIGH") == "1")
+                                                  list(eps_doubling_while_the_acceptance_is_high_in_burnin = TRUE,
+                                                       first_iter_of_the_eps_doublings = if (nzchar(Sys.getenv("FIRST_ITER_OF_THE_EPS_DOUBLINGS")))
+                                                             as.integer(Sys.getenv("FIRST_ITER_OF_THE_EPS_DOUBLINGS")) else 60L,
+                                                       n_iter_between_the_eps_doublings = if (nzchar(Sys.getenv("N_ITER_BETWEEN_THE_EPS_DOUBLINGS")))
+                                                             as.integer(Sys.getenv("N_ITER_BETWEEN_THE_EPS_DOUBLINGS")) else 5L)))
             ##SO
             ## ---- Get summaries:
             ##
