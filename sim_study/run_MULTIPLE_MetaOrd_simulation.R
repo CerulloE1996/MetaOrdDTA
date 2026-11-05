@@ -539,7 +539,7 @@ run_multiple_sims <- function(MCMC_seed,
                     if (alpha_pi == "one" && Sys.getenv("MATCHED_PRIORS") != "0") {
                           SD_of_the_intercept_matched <-  c(HADS = 1.0, GAD_2 = 1.0, BAI = 1.0)[[test]]
                           SD_of_the_log_scale_matched <-  c(HADS = 0.25, GAD_2 = 0.25, BAI = 0.25)[[test]]
-                          if (Sys.getenv("KAPPA_PRIOR") %in% c("", "wide")) SD_of_the_log_scale_matched <-  c(HADS = 0.25, GAD_2 = 0.375, BAI = 0.25)[[test]]
+                          if (Sys.getenv("KAPPA_PRIOR") %in% c("", "wide")) SD_of_the_log_scale_matched <-  c(HADS = 0.125, GAD_2 = 0.1875, BAI = 0.1875)[[test]]
                           if (!is.null(SD_of_the_intercept_matched)) priors$prior_beta_mu_SD[1] <-  SD_of_the_intercept_matched
                           if (!is.null(SD_of_the_log_scale_matched)) priors$prior_raw_scale_mu_SD[1] <-  SD_of_the_log_scale_matched
                     }
