@@ -825,7 +825,7 @@ run_multiple_sims <- function(MCMC_seed,
                                             esjd_jump_power                      = if (nzchar(Sys.getenv("ESJD_JUMP_POWER"))) as.numeric(Sys.getenv("ESJD_JUMP_POWER")) else 2,  ## signature
                                             tau_cost_exponent                    = 1,  ## signature
                                             ##
-                                            metric_update_rescales_eps_and_tau   = if (nzchar(Sys.getenv("METRIC_UPDATE_RESCALES"))) Sys.getenv("METRIC_UPDATE_RESCALES") == "1" else TRUE, ## signature ## ----
+                                            metric_update_rescales_eps_and_tau   = if (nzchar(Sys.getenv("METRIC_UPDATE_RESCALES"))) Sys.getenv("METRIC_UPDATE_RESCALES") == "1" else FALSE, ## signature ## ----
                                             metric_update_rescales_tau           = if (nzchar(Sys.getenv("METRIC_UPDATE_RESCALES_TAU"))) Sys.getenv("METRIC_UPDATE_RESCALES_TAU") == "1" else TRUE,
                                             initial_eps_search_at_each_chain     = Sys.getenv("INITIAL_EPS_SEARCH_AT_EACH_CHAIN") == "1",
                                             ##
