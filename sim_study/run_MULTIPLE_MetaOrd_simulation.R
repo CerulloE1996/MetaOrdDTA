@@ -856,6 +856,9 @@ run_multiple_sims <- function(MCMC_seed,
                                             ## (METRIC_ADAPTATION_END_ITER = the last metric update)
                                             if (nzchar(Sys.getenv("METRIC_ADAPTATION_END_ITER")))
                                                   list(metric_adaptation_end_iter = as.integer(Sys.getenv("METRIC_ADAPTATION_END_ITER"))),
+                                            ## (TAU_SAMPLING_SCALE_WITH_A_JITTERED_BURNIN = 1: TAU_SAMPLING_SCALE also applies with a jittered burn-in tau)
+                                            if (Sys.getenv("TAU_SAMPLING_SCALE_WITH_A_JITTERED_BURNIN") == "1")
+                                                  list(tau_sampling_scale_with_a_jittered_burnin = TRUE),
                                             ## (RESTART_STUCK_CHAINS = 1: a stuck chain restarts from a chain that moves)
                                             if (Sys.getenv("RESTART_STUCK_CHAINS") == "1")
                                                   list(restart_stuck_chains_in_burnin = TRUE,
