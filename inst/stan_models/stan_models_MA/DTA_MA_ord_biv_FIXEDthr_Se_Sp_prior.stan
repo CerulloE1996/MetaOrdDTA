@@ -306,6 +306,10 @@ model {
              vector[n_thr] C_shifted = C[c] - C_anchor[c];
              if (use_Se_Sp_prior == 1 && n_chosen[c] > 0) {
                   int m = n_chosen[c];
+                  //// (the Se / Sp prior on the cutpoints at the baseline location, as Se_baseline and Fp_baseline)
+                  real baseline_location = (c == 1) ?
+                                           dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd])) :
+                                           dot_product(baseline_case_d,  to_vector(beta_mu[2, 1:n_covariates_d]));
                   matrix[m, 2] beta_ab = prior_Se_Sp_beta[c][1:m, ];
                   matrix[m, 2] link_mean_SD = prior_Se_Sp_link_mean_SD[c][1:m, ];
                   if (c == 2) {
@@ -315,7 +319,7 @@ model {
                        }
                   }
                   target += induced_dirichlet_with_Se_Sp_prior_lpdf(
-                            C_shifted | prior_dirichlet_alpha[c],
+                            C[c] - baseline_location | prior_dirichlet_alpha[c],
                             alpha_seg[c][1:(m + 1)],
                             chosen_cutoffs[c, 1:m], Se_Sp_prior_type,
                             prior_Se_Sp_dirichlet_A[c][1:(m + 1)], beta_ab,
