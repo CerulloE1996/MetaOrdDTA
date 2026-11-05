@@ -836,7 +836,9 @@ run_multiple_sims <- function(MCMC_seed,
                                             pre_burnin_L                         = NULL,  ## signature
                                             ##
                                             burnin_schedule                      = "automatic",  ## signature
-                                            esjd_jump_power                      = if (nzchar(Sys.getenv("ESJD_JUMP_POWER"))) as.numeric(Sys.getenv("ESJD_JUMP_POWER")) else 2,  ## signature
+                                            esjd_jump_power                      = if ((random_thresholds == FALSE) && nzchar(Sys.getenv("ESJD_JUMP_POWER_OF_FIXED_C")))
+                                                                                       as.numeric(Sys.getenv("ESJD_JUMP_POWER_OF_FIXED_C")) else
+                                                                                   if (nzchar(Sys.getenv("ESJD_JUMP_POWER"))) as.numeric(Sys.getenv("ESJD_JUMP_POWER")) else 2,  ## signature
                                             tau_cost_exponent                    = 1,  ## signature
                                             ##
                                             metric_update_rescales_eps_and_tau   = if (nzchar(Sys.getenv("METRIC_UPDATE_RESCALES"))) Sys.getenv("METRIC_UPDATE_RESCALES") == "1" else FALSE, ## signature ## ----
