@@ -657,25 +657,28 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                     ## (the same fields as the two pop-median blocks above, for both ord_biv and ord_HSROC)
                     if (sim_study_type == "paper" && isTRUE(scenario_row$random_thresholds) &&
                         Sys.getenv("POPMED") != "0" &&
-                        scenario_row$model_parameterisation %in% c("ord_bivariate", "R&G")) {
-                          scenario_row$custom_file_name <- list(
-                                if (scenario_row$model_parameterisation == "ord_bivariate") {
-                                      "DTA_MA_ord_biv_RANDthr_kappa_popmed_Se_Sp_prior_NicoStan_fused_AVX.stan"
-                                } else {
-                                      "DTA_MA_ord_HSROC_RANDthr_kappa_popmed_Se_Sp_prior_NicoStan_fused_AVX.stan"
-                                })
-                          scenario_row$custom_cpp_user_header_file_path <- list(
-                                file.path(frozen_library_of_this_sim, "RC_popmed_user_header.hpp"))
-                          scenario_row$prior_fields <- list(list(
-                                use_Se_Sp_prior          = 0,
-                                Se_Sp_prior_type         = 4,
-                                n_chosen_max             = 1,
-                                n_chosen                 = c(0L, 0L),
-                                chosen_cutoffs           = matrix(1L, 2, 1),
-                                prior_Se_Sp_dirichlet_A  = list(rep(0, 2), rep(0, 2)),
-                                prior_Se_Sp_beta         = list(matrix(0, 1, 2), matrix(0, 1, 2)),
-                                prior_Se_Sp_link_mean_SD = list(matrix(0, 1, 2), matrix(0, 1, 2))))
-                          file_name_string <- paste0(file_name_string, "_popmed")
+                        scenario_row$model_parameterisation %in% c("ord_bivariate", 
+                                                                   "R&G")) {
+                          
+                              scenario_row$custom_file_name <- list(
+                                    if (scenario_row$model_parameterisation == "ord_bivariate") {
+                                          "DTA_MA_ord_biv_RANDthr_kappa_popmed_Se_Sp_prior_NicoStan_fused_AVX.stan"
+                                    } else {
+                                          "DTA_MA_ord_HSROC_RANDthr_kappa_popmed_Se_Sp_prior_NicoStan_fused_AVX.stan"
+                                    })
+                              scenario_row$custom_cpp_user_header_file_path <- list(
+                                    file.path(frozen_library_of_this_sim, "RC_popmed_user_header.hpp"))
+                              scenario_row$prior_fields <- list(list(
+                                    use_Se_Sp_prior          = 0,
+                                    Se_Sp_prior_type         = 4,
+                                    n_chosen_max             = 1,
+                                    n_chosen                 = c(0L, 0L),
+                                    chosen_cutoffs           = matrix(1L, 2, 1),
+                                    prior_Se_Sp_dirichlet_A  = list(rep(0, 2), rep(0, 2)),
+                                    prior_Se_Sp_beta         = list(matrix(0, 1, 2), matrix(0, 1, 2)),
+                                    prior_Se_Sp_link_mean_SD = list(matrix(0, 1, 2), matrix(0, 1, 2))))
+                              file_name_string <- paste0(file_name_string, "_popmed")
+                          
                     }
                     ##
                     ## ---- The centred cutpoints: the centred file of each model (the median model on the NicoSIMD header) -----------
