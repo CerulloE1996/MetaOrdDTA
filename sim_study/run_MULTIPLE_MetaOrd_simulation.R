@@ -569,6 +569,10 @@ run_multiple_sims <- function(MCMC_seed,
                                 SD_of_raw_scale_mu_matched <-  c(HADS = 0.125, GAD_2 = 0.5, BAI = 0.25)[[test]]
                                 SD_of_boxcox_lambda_matched <-  c(HADS = 0.05, GAD_2 = 0.1, BAI = 0.1)[[test]]
                           }
+                          ## (JONES_RAW_SCALE_MU_PRIOR_SD = a number: the SD of the prior of raw_scale_mu of the Jones model)
+                          if (nzchar(Sys.getenv("JONES_RAW_SCALE_MU_PRIOR_SD"))) {
+                                SD_of_raw_scale_mu_matched <- as.numeric(Sys.getenv("JONES_RAW_SCALE_MU_PRIOR_SD"))
+                          }
                           if (!is.null(mean_of_beta_mu_matched)) priors$prior_beta_mu_mean[, 1] <-  mean_of_beta_mu_matched
                           if (!is.null(mean_of_raw_scale_mu_matched)) priors$prior_raw_scale_mu_mean[, 1] <-  mean_of_raw_scale_mu_matched
                           if (!is.null(mean_of_boxcox_lambda_matched)) priors$prior_boxcox_lambda_mean <-  rep(mean_of_boxcox_lambda_matched, 2)
