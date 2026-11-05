@@ -861,7 +861,15 @@ run_multiple_sims <- function(MCMC_seed,
                                                   list(eps_search_at_handover_from_each_chain = TRUE),
                                             ## (FREEZE_TAU_WHILE_THE_CAP_BINDS = 1: tau is held while it is longer than max_L * eps)
                                             if (Sys.getenv("FREEZE_TAU_WHILE_THE_CAP_BINDS") == "1")
-                                                  list(freeze_tau_while_the_cap_of_steps_binds_in_burnin = TRUE)))
+                                                  list(freeze_tau_while_the_cap_of_steps_binds_in_burnin = TRUE),
+                                            ## (EPS_SEARCH_WHILE_THE_ACCEPTANCE_IS_HIGH = 1: eps goes up to the search from each chain,
+                                            ##  from FIRST_ITER_OF_THE_EPS_SEARCHES on, default 130)
+                                            if (Sys.getenv("EPS_SEARCH_WHILE_THE_ACCEPTANCE_IS_HIGH") == "1")
+                                                  list(eps_search_while_the_acceptance_is_high_in_burnin = TRUE,
+                                                       first_iter_of_the_eps_searches = if (nzchar(Sys.getenv("FIRST_ITER_OF_THE_EPS_SEARCHES")))
+                                                             as.integer(Sys.getenv("FIRST_ITER_OF_THE_EPS_SEARCHES")) else 130L,
+                                                       n_iter_between_the_eps_searches = if (nzchar(Sys.getenv("N_ITER_BETWEEN_THE_EPS_SEARCHES")))
+                                                             as.integer(Sys.getenv("N_ITER_BETWEEN_THE_EPS_SEARCHES")) else 10L)))
             ##SO
             ## ---- Get summaries:
             ##
