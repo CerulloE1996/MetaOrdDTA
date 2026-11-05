@@ -855,7 +855,10 @@ run_multiple_sims <- function(MCMC_seed,
                                                              as.integer(Sys.getenv("N_ITER_OF_A_STUCK_CHAIN")) else 30L),
                                             ## (TAU_WITHIN_THE_CAP_OF_STEPS = 1: tau is never longer than max_L * eps in burn-in)
                                             if (Sys.getenv("TAU_WITHIN_THE_CAP_OF_STEPS") == "1")
-                                                  list(hold_tau_within_the_cap_of_steps_in_burnin = TRUE)))
+                                                  list(hold_tau_within_the_cap_of_steps_in_burnin = TRUE),
+                                            ## (EPS_SEARCH_AT_HANDOVER_FROM_EACH_CHAIN = 1: the median of the searches from each chain)
+                                            if (Sys.getenv("EPS_SEARCH_AT_HANDOVER_FROM_EACH_CHAIN") == "1")
+                                                  list(eps_search_at_handover_from_each_chain = TRUE)))
             ##SO
             ## ---- Get summaries:
             ##
