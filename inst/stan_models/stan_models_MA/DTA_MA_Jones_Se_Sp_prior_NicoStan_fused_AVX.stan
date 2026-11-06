@@ -354,24 +354,20 @@ model {
         ////
         //// ---- Priors for locations:
         ////
-        to_vector(beta_mu[1, 1:n_covariates_nd]) ~ nico_normal(
-                                                    to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd]),
-                                                    to_vector(prior_beta_mu_SD[1, 1:n_covariates_nd]));
-        to_vector(beta_mu[2, 1:n_covariates_d])  ~ nico_normal(
-                                                    to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]),
-                                                    to_vector(prior_beta_mu_SD[2, 1:n_covariates_d]));
+        to_vector(beta_mu[1, 1:n_covariates_nd]) ~ nico_normal( to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd]),
+                                                                to_vector(prior_beta_mu_SD[1, 1:n_covariates_nd]));
+        to_vector(beta_mu[2, 1:n_covariates_d])  ~ nico_normal( to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]),
+                                                                to_vector(prior_beta_mu_SD[2, 1:n_covariates_d]));
         ////
         to_vector(beta_SD) ~ nico_normal(prior_beta_SD_mean, prior_beta_SD_SD);
         beta_L_Omega ~ nico_lkj_corr_cholesky(prior_beta_corr_LKJ);
         ////
         //// ---- Priors for scales:
         ////
-        to_vector(raw_scale_mu[1, 1:n_covariates_nd]) ~ nico_normal(
-                                                         to_vector(prior_raw_scale_mu_mean[1, 1:n_covariates_nd]),
-                                                         to_vector(prior_raw_scale_mu_SD[1, 1:n_covariates_nd]));
-        to_vector(raw_scale_mu[2, 1:n_covariates_d])  ~ nico_normal(
-                                                         to_vector(prior_raw_scale_mu_mean[2, 1:n_covariates_d]),
-                                                         to_vector(prior_raw_scale_mu_SD[2, 1:n_covariates_d]));
+        to_vector(raw_scale_mu[1, 1:n_covariates_nd]) ~ nico_normal( to_vector(prior_raw_scale_mu_mean[1, 1:n_covariates_nd]),
+                                                                     to_vector(prior_raw_scale_mu_SD[1, 1:n_covariates_nd]));
+        to_vector(raw_scale_mu[2, 1:n_covariates_d])  ~ nico_normal( to_vector(prior_raw_scale_mu_mean[2, 1:n_covariates_d]),
+                                                                     to_vector(prior_raw_scale_mu_SD[2, 1:n_covariates_d]));
         ////
         to_vector(raw_scale_SD) ~ nico_normal(prior_raw_scale_SD_mean, prior_raw_scale_SD_SD);
         raw_scale_L_Omega ~ nico_lkj_corr_cholesky(prior_raw_scale_corr_LKJ);
@@ -403,6 +399,7 @@ model {
                        target += Se_Sp_prior_at_chosen_cutoffs_lpdf(
                                  C_baseline | Se_Sp_prior_type, beta_ab, link_mean_SD, use_probit_link);
                        target += nico_log(abs(baseline[1])) - nico_log(scale);
+                       ////
                        if (m >= 2) {
                             real log_scale_derivative = (softplus == 1) ?
                                   nico_log_inv_logit(raw_scale) - nico_log(nico_log(2.0)) : raw_scale;
