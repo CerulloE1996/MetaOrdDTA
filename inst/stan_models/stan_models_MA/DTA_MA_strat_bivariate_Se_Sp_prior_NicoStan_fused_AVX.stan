@@ -22,8 +22,35 @@ functions {
         real nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
               array[] int n, array[] int n_previous, vector latent, data vector is_first, data int link,
               data real bound);
-        vector nico_Phi(vector x);
+        real nico_inv_logit(real x);
+        real nico_log_inv_logit(real x);
+        real nico_Phi(real x);
+        real nico_log1m_inv_logit(real x);
         vector nico_inv_logit(vector x);
+        vector nico_log_inv_logit(vector x);
+        vector nico_Phi(vector x);
+        vector nico_log1m_inv_logit(vector x);
+        row_vector nico_inv_logit(row_vector x);
+        row_vector nico_log_inv_logit(row_vector x);
+        row_vector nico_Phi(row_vector x);
+        row_vector nico_log1m_inv_logit(row_vector x);
+        matrix nico_inv_logit(matrix x);
+        matrix nico_log_inv_logit(matrix x);
+        matrix nico_Phi(matrix x);
+        matrix nico_log1m_inv_logit(matrix x);
+        real nico_normal_lpdf(vector y, vector mu, vector sigma);
+        real nico_normal_lpdf(vector y, vector mu, real sigma);
+        real nico_normal_lpdf(vector y, real mu, vector sigma);
+        real nico_normal_lpdf(vector y, real mu, real sigma);
+        real nico_normal_lpdf(row_vector y, row_vector mu, row_vector sigma);
+        real nico_normal_lpdf(array[] real y, vector mu, vector sigma);
+        real nico_normal_lpdf(array[] real y, vector mu, real sigma);
+        real nico_normal_lpdf(array[] real y, real mu, vector sigma);
+        real nico_normal_lpdf(array[] real y, real mu, real sigma);
+        real nico_normal_lpdf(real y, real mu, real sigma);
+        real nico_beta_lpdf(real y, data real alpha, data real beta);
+        real nico_beta_lpdf(vector y, vector alpha, vector beta);
+        real nico_lkj_corr_cholesky_lpdf(matrix L, data real eta);
 }
 
 
@@ -209,39 +236,39 @@ model {
 
           //// ---- The location prior of every threshold that does not carry the Se/Sp prior:
           if (use_Se_Sp_prior == 0) {
-                mu[k, 1] ~ normal(prior_mu_mean[1][k], prior_mu_SD[1][k]);
-                mu[k, 2] ~ normal(prior_mu_mean[2][k], prior_mu_SD[2][k]);
+                mu[k, 1] ~ nico_normal(prior_mu_mean[1][k], prior_mu_SD[1][k]);
+                mu[k, 2] ~ nico_normal(prior_mu_mean[2][k], prior_mu_SD[2][k]);
           } else {
                 if (is_chosen[1, k] == 0) {
-                      mu[k, 1] ~ normal(prior_mu_mean[1][k], prior_mu_SD[1][k]);
+                      mu[k, 1] ~ nico_normal(prior_mu_mean[1][k], prior_mu_SD[1][k]);
                 }
                 if (is_chosen[2, k] == 0) {
-                      mu[k, 2] ~ normal(prior_mu_mean[2][k], prior_mu_SD[2][k]);
+                      mu[k, 2] ~ nico_normal(prior_mu_mean[2][k], prior_mu_SD[2][k]);
                 }
           }
           if (n_studies_per_thr[k] > 2) {
 
-                sigma[k, 1:2] ~ normal(0, 1);
-                L_Omega[k] ~ lkj_corr_cholesky(2);
+                sigma[k, 1:2] ~ nico_normal(0, 1);
+                L_Omega[k] ~ nico_lkj_corr_cholesky(2);
 
           } else if (n_studies_per_thr[k] == 2) {
 
-                sigma[k, 1:2] ~ normal(0, 0.25);
-                L_Omega[k] ~ lkj_corr_cholesky(24);
+                sigma[k, 1:2] ~ nico_normal(0, 0.25);
+                L_Omega[k] ~ nico_lkj_corr_cholesky(24);
 
           } else if (n_studies_per_thr[k] == 1) {
 
-                sigma[k, 1:2] ~ normal(0, 0.01);
-                L_Omega[k] ~ lkj_corr_cholesky(50);
+                sigma[k, 1:2] ~ nico_normal(0, 0.01);
+                L_Omega[k] ~ nico_lkj_corr_cholesky(50);
 
           } else {
-                sigma[k, 1:2] ~ normal(0.0, 1.0);
+                sigma[k, 1:2] ~ nico_normal(0.0, 1.0);
           }
           ////
           //// ---- Random effects of every study:
           ////
           for (s in 1:n_studies) {
-                  z[k, s] ~ std_normal();
+                  z[k, s] ~ nico_normal(0, 1);
           }
 
     }
@@ -256,16 +283,16 @@ model {
                 for (j in 1:n_chosen[c]) {
                       int k = chosen_cutoffs[c, j];
                       if (Se_Sp_prior_type == 4) {
-                            target += normal_lpdf(mu[k, c] |
+                            target += nico_normal_lpdf(mu[k, c] |
                                                   prior_Se_Sp_link_mean_SD[c][j, 1],
                                                   prior_Se_Sp_link_mean_SD[c][j, 2]);
                       } else {
-                            real P = (use_probit_link == 1) ? Phi(mu[k, c]) : inv_logit(mu[k, c]);
-                            target += beta_lpdf(P | prior_Se_Sp_beta[c, j, 1], prior_Se_Sp_beta[c, j, 2]);
+                            real P = (use_probit_link == 1) ? nico_Phi(mu[k, c]) : nico_inv_logit(mu[k, c]);
+                            target += nico_beta_lpdf(P | prior_Se_Sp_beta[c, j, 1], prior_Se_Sp_beta[c, j, 2]);
                             if (use_probit_link == 1) {
-                                  target += std_normal_lpdf(mu[k, c]);
+                                  target += nico_normal_lpdf(mu[k, c] | 0, 1);
                             } else {
-                                  target += log_inv_logit(mu[k, c]) + log1m_inv_logit(mu[k, c]);
+                                  target += nico_log_inv_logit(mu[k, c]) + nico_log1m_inv_logit(mu[k, c]);
                             }
                       }
                 }
@@ -305,8 +332,8 @@ generated quantities {
                 Se_baseline[k] = safe_Phi(mu[k, 1]);
                 Sp_baseline[k] = safe_Phi(mu[k, 2]);
             } else {
-                Se_baseline[k] = inv_logit(mu[k, 1]);
-                Sp_baseline[k] = inv_logit(mu[k, 2]);
+                Se_baseline[k] = nico_inv_logit(mu[k, 1]);
+                Sp_baseline[k] = nico_inv_logit(mu[k, 2]);
             }
             Fp_baseline[k] = 1 - Sp_baseline[k];
         }
