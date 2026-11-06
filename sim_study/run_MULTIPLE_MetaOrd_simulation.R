@@ -170,13 +170,17 @@ run_multiple_sims <- function(MCMC_seed,
               use_custom_file  <- TRUE
               custom_file_name <- "DTA_MA_strat_bivariate_Se_Sp_prior_NicoStan_fused_AVX.stan"
           }
-          if (model_parameterisation %in% c("ord_bivariate", "R&G")) {
+          if (model_parameterisation == "ord_bivariate") {
               use_custom_file  <- TRUE
-              name_of_the_model_family <- if (model_parameterisation == "ord_bivariate") "DTA_MA_ord_biv_" else
-                                          "DTA_MA_ord_HSROC_"
-              custom_file_name <- paste0(name_of_the_model_family,
+              custom_file_name <- paste0("DTA_MA_ord_biv_",
                                          if (random_thresholds) "RANDthr_kappa_popmed" else "FIXEDthr",
                                          "_Se_Sp_prior_NicoStan_fused_AVX.stan")
+          }
+          ## (the ordinal-HSROC model has random cutpoints only)
+          if (model_parameterisation == "R&G") {
+              stopifnot(random_thresholds)
+              use_custom_file  <- TRUE
+              custom_file_name <- "DTA_MA_ord_HSROC_RANDthr_kappa_popmed_Se_Sp_prior_NicoStan_fused_AVX.stan"
           }
           if (model_parameterisation == "Jones") {
               use_custom_file  <- TRUE
