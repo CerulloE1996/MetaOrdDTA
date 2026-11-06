@@ -279,6 +279,7 @@ R_fn_set_priors_MA <- function(   priors,
         priors <- R_fn_set_Se_Sp_prior_MA(priors = priors,
                                           cts = cts,
                                           model_parameterisation = model_parameterisation,
+                                          random_thresholds = random_thresholds,
                                           n_thr = n_thr)
         ##
         return(priors)
