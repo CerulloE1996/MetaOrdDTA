@@ -327,15 +327,12 @@ transformed parameters {
         ////
         //// ---- Study-level random effects (after Cholesky decomposition):
         ////
-        // matrix[n_studies, 2] beta_random;
-        // matrix[n_studies, 2] raw_scale_random;
-        // for (s in 1:n_studies) {
-        //      beta_random[s, ]      =  beta_z[s, ]      * beta_L_Sigma;
-        //      raw_scale_random[s, ] =  raw_scale_z[s, ] * raw_scale_L_Sigma;
-        // }
-        //// (every study's row times its L_Sigma at once)
-        matrix[n_studies, 2] beta_random      = beta_z      * beta_L_Sigma;
-        matrix[n_studies, 2] raw_scale_random = raw_scale_z * raw_scale_L_Sigma;
+        matrix[n_studies, 2] beta_random;
+        matrix[n_studies, 2] raw_scale_random;
+        for (s in 1:n_studies) {
+             beta_random[s, ]      =  beta_z[s, ]      * beta_L_Sigma;
+             raw_scale_random[s, ] =  raw_scale_z[s, ] * raw_scale_L_Sigma;
+        };
         ////
         //// ---- Linear predictors for each disease statu + apply covariates for non-diseased and diseased groups:
         ////
@@ -349,8 +346,7 @@ transformed parameters {
         Xraw_scale[, 1]  = X_nd[1:n_studies, 1:n_covariates_nd]  * to_vector(raw_scale_mu[1, 1:n_covariates_nd]) + raw_scale_random[, 1];
         Xraw_scale[, 2]  = X_d[1:n_studies,  1:n_covariates_d]   * to_vector(raw_scale_mu[2, 1:n_covariates_d])  + raw_scale_random[, 2];
         ////
-        // Xscale = ((softplus == 1) ? softplus_scaled(Xraw_scale) : exp(Xraw_scale));  // local
-        Xscale = ((softplus == 1) ? 1.4426950408889634 * nico_log1p_exp(Xraw_scale) : nico_exp(Xraw_scale));
+        Xscale = ((softplus == 1) ? 1.4426950408889634 * nico_log1p_exp(Xraw_scale) : nico_exp(Xraw_scale));  // local
 }
 
 
