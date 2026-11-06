@@ -44,25 +44,12 @@ transformed data {
 
 parameters {
         ////
-        //// ---- The Jones priors (the hyperparameters to find): the prior of the location of each class, of the log-scale
-        //// ---- of each class and of the Box-Cox lambda (one prior for both classes, as DTA_MA_Jones.stan):
+        //// ---- The Jones priors to find (the SDs of raw_scale_mu and lambda stay at their defaults):
         ////
         vector[2] prior_beta_mu_mean;
         vector<lower=0.0>[2] prior_beta_mu_SD;
         vector[2] prior_raw_scale_mu_mean;
-        vector<lower=0.0>[2] prior_raw_scale_mu_SD;
-        real prior_boxcox_lambda_mean;
-        real<lower=0.0> prior_boxcox_lambda_SD;
-        ////
-        //// ---- The Jones parameters of each draw of the reference prior (as DTA_MA_Jones.stan):
-        ////
-        matrix[N, 2] beta_mu;
-        matrix[N, 2] raw_scale_mu;
-        matrix<lower=-5.0, upper=5.0>[N, 2] lambda; //// box-cox params
-        ////
-        //// ---- The spread of the reference draws around the Jones curve of each class:
-        ////
-        vector<lower=0.0>[2] sigma;
+        real<lower=-5.0, upper=5.0> prior_boxcox_lambda_mean;
 }
 
 
@@ -70,56 +57,45 @@ model {
         ////
         //// ---- Hyperpriors:
         ////
-        prior_beta_mu_mean ~ normal(0, 5);
-        prior_beta_mu_SD ~ normal(0, 5);
-        prior_raw_scale_mu_mean ~ normal(0, 5);
-        prior_raw_scale_mu_SD ~ normal(0, 5);
-        prior_boxcox_lambda_mean ~ normal(0, 5);
-        prior_boxcox_lambda_SD ~ normal(0, 5);
-        sigma ~ normal(0, 1);
+        prior_beta_mu_mean       ~ normal(0, 5);
+        prior_beta_mu_SD         ~ normal(0, 5);
         ////
-        //// ---- The Jones priors on the parameters of each draw (the priors of DTA_MA_Jones.stan):
+        prior_raw_scale_mu_mean  ~ normal(0, 1);
         ////
-        for (c in 1:2) {
-            beta_mu[, c] ~ normal(prior_beta_mu_mean[c], prior_beta_mu_SD[c]);
-            raw_scale_mu[, c] ~ normal(prior_raw_scale_mu_mean[c], prior_raw_scale_mu_SD[c]);
-            lambda[, c] ~ normal(prior_boxcox_lambda_mean, prior_boxcox_lambda_SD);
+        prior_boxcox_lambda_mean ~ normal(0, 1);
+        ////
+        //// ---- Cutpoints (as DTA_MA_Jones.stan), with lambda of both classes at its prior mean:
+        ////
+        vector[n_thr] C_raw = ((box_cox == 0) ? log(cts_thr_shifted)
+                                              : fn_Stan_box_cox(cts_thr_shifted, prior_boxcox_lambda_mean));
+        vector[n_thr] C;      // Scaled to [-2, +2]
+        real C_min = min(C_raw);
+        real C_max = max(C_raw);
+        real C_range = C_max - C_min;
+        if (C_range > 0) {
+            // Linear rescaling: map [C_min, C_max] → [-2, +2]
+            C = -2.0 + 4.0 * (C_raw - C_min) / C_range;
+        } else {
+            C = rep_vector(0.0, n_thr);  // All same value → center at 0
         }
         ////
-        //// ---- Each draw of the reference prior: probit(Sp) = (C[1] - beta_mu[1]) / scale_nd and probit(Se) =
-        //// ---- -(C[2] - beta_mu[2]) / scale_d (the baseline Se / Sp of DTA_MA_Jones.stan), with the cutpoints and the
-        //// ---- scales computed from that draw's Jones parameters:
+        //// ---- Scales (as DTA_MA_Jones.stan), with raw_scale_mu at its prior mean:
+        ////
+        real scale_nd_baseline = ((softplus == 1) ? softplus_scaled(prior_raw_scale_mu_mean[1])
+                                                  : exp(prior_raw_scale_mu_mean[1]));
+        real scale_d_baseline  = ((softplus == 1) ? softplus_scaled(prior_raw_scale_mu_mean[2])
+                                                  : exp(prior_raw_scale_mu_mean[2]));
+        ////
+        //// ---- beta_mu[c] ~ normal(prior_beta_mu_mean[c], prior_beta_mu_SD[c]), so probit(Sp) and probit(Se)
+        //// ---- at each threshold are normal with these means and SDs:
         ////
         for (i in 1:N) {
-            ////
-            //// ---- Compute (global) cutpoints using either log or box-cox transform (as DTA_MA_Jones.stan):
-            ////
-            array[2] vector[n_thr] C_raw;  // Unconstrained Box-Cox output
-            array[2] vector[n_thr] C;      // Scaled to [-2, +2]
-            C_raw[1] = ((box_cox == 0) ? log(cts_thr_shifted) : fn_Stan_box_cox(cts_thr_shifted, lambda[i, 1]));
-            C_raw[2] = ((box_cox == 0) ? log(cts_thr_shifted) : fn_Stan_box_cox(cts_thr_shifted, lambda[i, 2]));
-            for (c in 1:2) {
-                real C_min = min(C_raw[c]);
-                real C_max = max(C_raw[c]);
-                real C_range = C_max - C_min;
-                if (C_range > 0) {
-                    // Linear rescaling: map [C_min, C_max] → [-2, +2]
-                    C[c] = -2.0 + 4.0 * (C_raw[c] - C_min) / C_range;
-                } else {
-                    C[c] = rep_vector(0.0, n_thr);  // All same value → center at 0
-                }
-            }
-            ////
-            //// ---- The scales at the baseline (as DTA_MA_Jones.stan):
-            ////
-            real scale_nd_baseline = ((softplus == 1) ? softplus_scaled(raw_scale_mu[i, 1]) : exp(raw_scale_mu[i, 1]));
-            real scale_d_baseline  = ((softplus == 1) ? softplus_scaled(raw_scale_mu[i, 2]) : exp(raw_scale_mu[i, 2]));
-            ////
-            target += normal_lpdf( to_vector(probit_Sp_draws_to_copy[i, ]) | (C[1] - beta_mu[i, 1]) / scale_nd_baseline,
-                                                                             sigma[1]);
-            target += normal_lpdf( to_vector(probit_Se_draws_to_copy[i, ]) | -(C[2] - beta_mu[i, 2]) / scale_d_baseline,
-                                                                             sigma[2]);
+            target += normal_lpdf( to_vector(probit_Sp_draws_to_copy[i, ]) |
+                                   (C - prior_beta_mu_mean[1]) / scale_nd_baseline,
+                                   prior_beta_mu_SD[1] / scale_nd_baseline);
+            target += normal_lpdf( to_vector(probit_Se_draws_to_copy[i, ]) |
+                                   -(C - prior_beta_mu_mean[2]) / scale_d_baseline,
+                                   prior_beta_mu_SD[2] / scale_d_baseline);
         }
 
 }
-
