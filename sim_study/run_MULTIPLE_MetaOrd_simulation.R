@@ -258,7 +258,12 @@ run_multiple_sims <- function(MCMC_seed,
           } else if (alpha_pi == "flat") {
                 priors$prior_dirichlet_alpha <- list( rep(2.0, n_thr + 1), rep(2.0, n_thr + 1))
           } else if (alpha_pi == "informative_from_the_literature") {
-                stop("No informative prior from the literature is derived by Stan sampling yet")
+                ## (the Jones and R&G priors of prior set 1 / 2 are matched to the ordinal-bivariate reference prior of that
+                ##  set by a prior model, Stan sampling; the reference has alpha = (1, ..., 1))
+                if (!(model_parameterisation %in% c("Jones", "R&G"))) {
+                      stop("No informative prior from the literature is derived by Stan sampling yet")
+                }
+                priors$prior_dirichlet_alpha <- list( rep(1.0, n_thr + 1), rep(1.0, n_thr + 1))
           } else if (alpha_pi == "informative") {
 
                 generate_neutral_ordinal_dirichlet_prior <- function( n_cat,
@@ -548,32 +553,38 @@ run_multiple_sims <- function(MCMC_seed,
                           if (!is.null(SD_of_the_intercept_matched)) priors$prior_beta_mu_SD[1] <-  SD_of_the_intercept_matched
                           if (!is.null(SD_of_the_log_scale_matched)) priors$prior_raw_scale_mu_SD[1] <-  SD_of_the_log_scale_matched
                     }
-                    if (alpha_pi == "informative_from_the_literature" && !("RC_ord_HSROC_model" %in% names(scenario_row))) {
-                      stop(paste0("No ordinal-HSROC prior is derived by Stan sampling yet for alpha_pi = ", alpha_pi))
+                    ## (prior set 1 / 2: the location and log-scale priors matched to the ordinal-bivariate reference prior
+                    ##  of that set by a prior model, Stan sampling (prior_model_for_R_and_G_params.stan); PRIOR_SET = 1 or 2)
+                    if (alpha_pi == "informative_from_the_literature") {
+                          prior_set <- if (nzchar(Sys.getenv("PRIOR_SET"))) Sys.getenv("PRIOR_SET") else "1"
+                          matched <- readRDS(file.path(sim_study_dir, "prior_derivation_tools_checks",
+                                                       "R_and_G_priors_matched_to_the_ord_biv_reference_priors_by_a_prior_model.rds"))
+                          matched <- matched$matched_priors[[paste0("prior_set_", prior_set, "_", test)]]
+                          priors$prior_beta_mu_mean[1] <-  matched$prior_beta_mu_mean
+                          priors$prior_beta_mu_SD[1] <-  matched$prior_beta_mu_SD
+                          priors$prior_raw_scale_mu_mean[1] <-  matched$prior_raw_scale_mu_mean
+                          priors$prior_raw_scale_mu_SD[1] <-  matched$prior_raw_scale_mu_SD
                     }
                 
           } else if (model_parameterisation == "Jones") {
 
                     priors$prior_beta_SD_SD      <- c(0.5, 0.5)
                     priors$prior_raw_scale_SD_SD <- c(0.5, 0.5)
-                    ## (alpha = (1, ..., 1): the means and SDs of the location, log-scale and Box-Cox priors matched to the
-                    ##  ord_biv fixed-cutpoint prior by NicoStan prior-only fits of this model, 5 seeds, the closest found)
-                    if (alpha_pi == "one") {
-                          mean_of_beta_mu_matched <-  c(HADS = 2.4, GAD_2 = 1.5, BAI = 3.673)[[test]]
-                          mean_of_raw_scale_mu_matched <-  c(HADS = -0.15, GAD_2 = 0.4, BAI = 0.217)[[test]]
-                          mean_of_boxcox_lambda_matched <-  c(HADS = 0, GAD_2 = 0, BAI = 0)[[test]]
-                          SD_of_beta_mu_matched <-  c(HADS = 0.75, GAD_2 = 1.245, BAI = 1.243)[[test]]
-                          SD_of_raw_scale_mu_matched <-  c(HADS = 0.375, GAD_2 = 0.5, BAI = 0.25)[[test]]
-                          SD_of_boxcox_lambda_matched <-  c(HADS = 0.1, GAD_2 = 0.5, BAI = 0.1)[[test]]
-                          ## (MATCHED_PRIORS=band: the Jones priors matched over the whole band of thresholds)
-                          if (Sys.getenv("MATCHED_PRIORS") %in% c("", "band")) {
-                                mean_of_beta_mu_matched <-  c(HADS = 6.571, GAD_2 = 2.5, BAI = 9.094)[[test]]
-                                mean_of_raw_scale_mu_matched <-  c(HADS = 1.497, GAD_2 = 0.708, BAI = 1.432)[[test]]
-                                mean_of_boxcox_lambda_matched <-  c(HADS = 0.75, GAD_2 = 1.0, BAI = 0.5)[[test]]
-                                SD_of_beta_mu_matched <-  c(HADS = 4.062, GAD_2 = 2.256, BAI = 4.651)[[test]]
-                                SD_of_raw_scale_mu_matched <-  c(HADS = 0.25, GAD_2 = 0.5, BAI = 0.1875)[[test]]
-                                SD_of_boxcox_lambda_matched <-  c(HADS = 0.1, GAD_2 = 0.1, BAI = 0.05)[[test]]
-                          }
+                    ## (the location, log-scale and Box-Cox priors matched to the ordinal-bivariate reference prior by a prior
+                    ##  model, Stan sampling (prior_model_for_Jones_params.stan): alpha = (1, ..., 1) -> the flat reference;
+                    ##  the literature prior -> prior set 1 / 2 (PRIOR_SET = 1 or 2))
+                    if (alpha_pi %in% c("one", "informative_from_the_literature")) {
+                          key_of_the_reference <- if (alpha_pi == "one") "flat" else
+                                paste0("prior_set_", if (nzchar(Sys.getenv("PRIOR_SET"))) Sys.getenv("PRIOR_SET") else "1")
+                          matched <- readRDS(file.path(sim_study_dir, "prior_derivation_tools_checks",
+                                                       "Jones_priors_matched_to_the_ord_biv_reference_priors_by_a_prior_model.rds"))
+                          matched <- matched$matched_priors[[paste0(key_of_the_reference, "_", test)]]
+                          mean_of_beta_mu_matched <-  matched$prior_beta_mu_mean
+                          mean_of_raw_scale_mu_matched <-  matched$prior_raw_scale_mu_mean
+                          mean_of_boxcox_lambda_matched <-  matched$prior_boxcox_lambda_mean
+                          SD_of_beta_mu_matched <-  matched$prior_beta_mu_SD
+                          SD_of_raw_scale_mu_matched <-  matched$prior_raw_scale_mu_SD
+                          SD_of_boxcox_lambda_matched <-  matched$prior_boxcox_lambda_SD
                           ## (JONES_RAW_SCALE_MU_PRIOR_SD = a number: the SD of the prior of raw_scale_mu of the Jones model)
                           if (nzchar(Sys.getenv("JONES_RAW_SCALE_MU_PRIOR_SD"))) {
                                 SD_of_raw_scale_mu_matched <- as.numeric(Sys.getenv("JONES_RAW_SCALE_MU_PRIOR_SD"))
