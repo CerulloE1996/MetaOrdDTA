@@ -16,15 +16,21 @@
                                      "/home/enzo/Documents/Work/PhD_work")
       ##
       root_of_the_work_folder <-  roots_of_the_work_folder[dir.exists(roots_of_the_work_folder)][1]
+      ##
       local_pkg_dir <-  file.path(root_of_the_work_folder, "R_packages", "MetaOrdDTA")
+      ##
       checks_dir <-  file.path(local_pkg_dir, "sim_study", "prior_derivation_tools_checks")
-      tests_to_match <-  c("GAD_2", "HADS", "BAI")
+      ##
+      tests_to_match <-  c("GAD_2", 
+                           "HADS", 
+                           "BAI")
       references_to_match <-  c("flat", "1", "2")
+      ##
       n_iter_of_the_reference_fit <-  2500   ## (one chain of the prior-only ordinal-bivariate fit under prior set 1 or 2)
       n_chains <-  4
       n_burnin <-  500
-      n_iter <-  500
-      seed <-  1
+      n_iter   <-  500
+      seed     <-  1
       ##
       args <-  commandArgs(trailingOnly = TRUE)
       if (any(grepl("^tests=", args))) {
@@ -39,11 +45,13 @@
 ##
 model <-  cmdstanr::cmdstan_model(file.path(checks_dir, "prior_model_for_Jones_params.stan"),
                                   include_paths = file.path(local_pkg_dir, "inst", "stan_functions"))
-names_of_the_params_of_each_class <-  c("prior_beta_mu_mean", "prior_beta_mu_SD", "prior_raw_scale_mu_mean",
-                                        "prior_raw_scale_mu_SD", "sigma")
+##
+names_of_the_params_of_each_class <-  c("prior_beta_mu_mean", "prior_beta_mu_SD", 
+                                        "prior_raw_scale_mu_mean")
+##
 names_of_the_params <-  c(paste0(names_of_the_params_of_each_class, "[1]"),
                           paste0(names_of_the_params_of_each_class, "[2]"),
-                          "prior_boxcox_lambda_mean", "prior_boxcox_lambda_SD")
+                          "prior_boxcox_lambda_mean")
 ##
 ## ---- Function: the reference trace of a test (the prior-only ordinal-bivariate fit under the flat prior or a prior set) -----------
 ##
@@ -105,10 +113,9 @@ for (reference in references_to_match) {
             matched <-  list(prior_beta_mu_mean = fn_median_of("prior_beta_mu_mean"),
                              prior_beta_mu_SD = fn_median_of("prior_beta_mu_SD"),
                              prior_raw_scale_mu_mean = fn_median_of("prior_raw_scale_mu_mean"),
-                             prior_raw_scale_mu_SD = fn_median_of("prior_raw_scale_mu_SD"),
+                             prior_raw_scale_mu_SD = c(1.0, 1.0),   ## (the default, R_fn_set_priors_MA.R)
                              prior_boxcox_lambda_mean = stats::median(draws_array[, , "prior_boxcox_lambda_mean"]),
-                             prior_boxcox_lambda_SD = stats::median(draws_array[, , "prior_boxcox_lambda_SD"]),
-                             sigma = fn_median_of("sigma"),
+                             prior_boxcox_lambda_SD = 1.0,   ## (the default, R_fn_set_priors_MA.R)
                              reference = trace$source,
                              n_draws_of_the_reference = nrow(trace$Se))
             matched_priors[[paste0(if (reference == "flat") "flat_" else paste0("prior_set_", reference, "_"), test)]] <-  matched
@@ -122,7 +129,6 @@ for (reference in references_to_match) {
                                                                             collapse = " / "),
                                                     lambda_mean = round(matched$prior_boxcox_lambda_mean, 3),
                                                     lambda_SD = round(matched$prior_boxcox_lambda_SD, 3),
-                                                    sigma = paste(round(matched$sigma, 3), collapse = " / "),
                                                     min_ESS = round(min(summary_of_the_fit$n_eff, summary_of_the_fit$n_eff_tail,
                                                                         summary_of_the_fit$n_eff_sd)),
                                                     largest_R_hat = round(max(summary_of_the_fit$Rhat), 4),
