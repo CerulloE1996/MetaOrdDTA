@@ -1,3 +1,5 @@
+// NicoSIMD_AVX512 version of DTA_MA_strat_bivariate_Se_Sp_prior_NicoStan_fused_AVX.stan written by NicoStan (source model md5 43d6212158eef0facb6a530788d00cde; NicoSIMD declarations md5 e3c567fd115d2ccf49ec504688009e6b; writer implementation md5 d387df684f8005ca53ed8808961860dc)
+// NicoSIMD functions used: inv_logit, log_inv_logit, Phi, log1m_inv_logit, normal, beta, lkj_corr_cholesky, binomial_counts_above_successive_cutpoints_of_a_cumulative_link
 //// DTA_MA_strat_bivariate_Se_Sp_prior_NicoStan_fused_AVX.stan
 //// The model of MetaOrdDTA's DTA_MA_strat_bivariate_Se_Sp_prior.stan with NicoSIMD's AVX functions:
 //// the binomial likelihood of Se and Sp at every threshold in one autodiff node.
@@ -6,6 +8,34 @@
 
 
 functions {
+    real bmvp_simd_lanes();
+    real nico_inv_logit(real x);
+    real nico_log_inv_logit(real x);
+    real nico_Phi(real x);
+    real nico_log1m_inv_logit(real x);
+    vector nico_log_inv_logit(vector x);
+    vector nico_log1m_inv_logit(vector x);
+    row_vector nico_inv_logit(row_vector x);
+    row_vector nico_log_inv_logit(row_vector x);
+    row_vector nico_Phi(row_vector x);
+    row_vector nico_log1m_inv_logit(row_vector x);
+    matrix nico_inv_logit(matrix x);
+    matrix nico_log_inv_logit(matrix x);
+    matrix nico_Phi(matrix x);
+    matrix nico_log1m_inv_logit(matrix x);
+    real nico_normal_lpdf(vector y, vector mu, vector sigma);
+    real nico_normal_lpdf(vector y, vector mu, real sigma);
+    real nico_normal_lpdf(vector y, real mu, vector sigma);
+    real nico_normal_lpdf(vector y, real mu, real sigma);
+    real nico_normal_lpdf(row_vector y, row_vector mu, row_vector sigma);
+    real nico_normal_lpdf(array[] real y, vector mu, vector sigma);
+    real nico_normal_lpdf(array[] real y, vector mu, real sigma);
+    real nico_normal_lpdf(array[] real y, real mu, vector sigma);
+    real nico_normal_lpdf(array[] real y, real mu, real sigma);
+    real nico_normal_lpdf(real y, real mu, real sigma);
+    real nico_beta_lpdf(real y, data real alpha, data real beta);
+    real nico_beta_lpdf(vector y, vector alpha, vector beta);
+    real nico_lkj_corr_cholesky_lpdf(matrix L, data real eta);
         ////
         //// ---- Include files to compile the necessary custom (user-defined) Stan functions:
         ////
@@ -22,35 +52,8 @@ functions {
         real nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
               array[] int n, array[] int n_previous, vector latent, data vector is_first, data int link,
               data real bound);
-        real nico_inv_logit(real x);
-        real nico_log_inv_logit(real x);
-        real nico_Phi(real x);
-        real nico_log1m_inv_logit(real x);
-        vector nico_inv_logit(vector x);
-        vector nico_log_inv_logit(vector x);
         vector nico_Phi(vector x);
-        vector nico_log1m_inv_logit(vector x);
-        row_vector nico_inv_logit(row_vector x);
-        row_vector nico_log_inv_logit(row_vector x);
-        row_vector nico_Phi(row_vector x);
-        row_vector nico_log1m_inv_logit(row_vector x);
-        matrix nico_inv_logit(matrix x);
-        matrix nico_log_inv_logit(matrix x);
-        matrix nico_Phi(matrix x);
-        matrix nico_log1m_inv_logit(matrix x);
-        real nico_normal_lpdf(vector y, vector mu, vector sigma);
-        real nico_normal_lpdf(vector y, vector mu, real sigma);
-        real nico_normal_lpdf(vector y, real mu, vector sigma);
-        real nico_normal_lpdf(vector y, real mu, real sigma);
-        real nico_normal_lpdf(row_vector y, row_vector mu, row_vector sigma);
-        real nico_normal_lpdf(array[] real y, vector mu, vector sigma);
-        real nico_normal_lpdf(array[] real y, vector mu, real sigma);
-        real nico_normal_lpdf(array[] real y, real mu, vector sigma);
-        real nico_normal_lpdf(array[] real y, real mu, real sigma);
-        real nico_normal_lpdf(real y, real mu, real sigma);
-        real nico_beta_lpdf(real y, data real alpha, data real beta);
-        real nico_beta_lpdf(vector y, vector alpha, vector beta);
-        real nico_lkj_corr_cholesky_lpdf(matrix L, data real eta);
+        vector nico_inv_logit(vector x);
 }
 
 
@@ -321,6 +324,7 @@ model {
 
 
 generated quantities {
+    real simd_lanes = bmvp_simd_lanes();
         // Summary statistics for each threshold (matching Jones model output)
         vector[n_thr] Se_baseline;
         vector[n_thr] Sp_baseline;
