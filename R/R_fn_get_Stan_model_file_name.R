@@ -43,7 +43,8 @@ R_fn_get_stan_model_file_name <- function( custom_file_name,
                     file_string_3 <- "RANDthr"
                   }
                   ##
-                  if (random_thresholds == TRUE) { 
+                  if (random_thresholds == TRUE) {
+                    
                       rand_type <- Dirichlet_random_effects_type
                       if (rand_type == "SD") { 
                         file_string_4 <- "_SD"
