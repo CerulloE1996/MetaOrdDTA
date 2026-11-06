@@ -1,4 +1,4 @@
-// NicoSIMD_AVX512 version of DTA_MA_ord_biv_FIXEDthr_Se_Sp_prior.stan written by NicoStan (source model md5 dadd3af2e0b74565f35c0987a3e20249; NicoSIMD declarations md5 e3c567fd115d2ccf49ec504688009e6b; writer implementation md5 d387df684f8005ca53ed8808961860dc)
+// NicoSIMD_AVX512 version of DTA_MA_ord_biv_FIXEDthr_Se_Sp_prior.stan written by NicoStan (source model md5 3e8c3c7a95963023baa27b638e83bacf; NicoSIMD declarations md5 e3c567fd115d2ccf49ec504688009e6b; writer implementation md5 d387df684f8005ca53ed8808961860dc)
 // NicoSIMD functions used: log1m, inv_logit, log_inv_logit, Phi, log1m_inv_logit, normal, beta, dirichlet, lkj_corr_cholesky
 
 
@@ -343,10 +343,6 @@ model {
              vector[n_thr] C_shifted = C[c] - C_anchor[c];
              if (use_Se_Sp_prior == 1 && n_chosen[c] > 0) {
                   int m = n_chosen[c];
-                  //// (the Se / Sp prior on the cutpoints at the baseline location, as Se_baseline and Fp_baseline)
-                  real baseline_location = (c == 1) ?
-                                           dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd])) :
-                                           dot_product(baseline_case_d,  to_vector(beta_mu[2, 1:n_covariates_d]));
                   matrix[m, 2] beta_ab = prior_Se_Sp_beta[c][1:m, ];
                   matrix[m, 2] link_mean_SD = prior_Se_Sp_link_mean_SD[c][1:m, ];
                   if (c == 2) {
@@ -356,7 +352,7 @@ model {
                        }
                   }
                   target += induced_dirichlet_with_Se_Sp_prior_lpdf(
-                            C[c] - baseline_location | prior_dirichlet_alpha[c],
+                            C_shifted | prior_dirichlet_alpha[c],
                             alpha_seg[c][1:(m + 1)],
                             chosen_cutoffs[c, 1:m], Se_Sp_prior_type,
                             prior_Se_Sp_dirichlet_A[c][1:(m + 1)], beta_ab,

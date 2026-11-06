@@ -648,11 +648,6 @@ run_multiple_sims <- function(MCMC_seed,
                     priors$prior_Se_Sp_link_mean_SD <- list(cbind(rep(0, n_thr), rep(1, n_thr)),
                                                             cbind(rep(0, n_thr), rep(1, n_thr)))
 
-                    ## (fixed cutpoints only): centres the cutpoints at the baseline location, so the prior sits on Phi(C_k − beta), the summary Sp and Se. 
-                    ## The random-cutpoint files have no such field, hence the "if":
-                    if (random_thresholds == FALSE) {
-                      priors$anchor_at_location <- 1
-                    }
 
           }
           ##

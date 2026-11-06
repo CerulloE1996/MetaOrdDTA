@@ -195,7 +195,6 @@ data {
           //// ---- (hyperparameters on the scale P = Sp for c = 1 and P = 1 - Se for c = 2)
           ////
           int<lower=0, upper=1> use_Se_Sp_prior;     //// 0 = original cutpoint prior
-          int<lower=0, upper=1> anchor_at_location;  //// 1 = cutpoints shifted to the baseline location
           int<lower=1, upper=4> Se_Sp_prior_type;    //// 1 = Dirichlet, 2-3 = Betas, 4 = link-scale Normal
           int<lower=0, upper=n_thr_max> n_chosen_max;
           array[n_index_tests, 2] int<lower=0, upper=n_chosen_max> n_chosen;
