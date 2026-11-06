@@ -43,15 +43,17 @@
 ##
 ## ---- The prior model ---------------------------------------------------------------------------------------------------------------
 ##
-model <-  cmdstanr::cmdstan_model(file.path(checks_dir, "prior_model_for_Jones_params.stan"),
-                                  include_paths = file.path(local_pkg_dir, "inst", "stan_functions"))
-##
-names_of_the_params_of_each_class <-  c("prior_beta_mu_mean", "prior_beta_mu_SD", 
-                                        "prior_raw_scale_mu_mean")
-##
-names_of_the_params <-  c(paste0(names_of_the_params_of_each_class, "[1]"),
-                          paste0(names_of_the_params_of_each_class, "[2]"),
-                          "prior_boxcox_lambda_mean")
+{
+      model <-  cmdstanr::cmdstan_model(file.path(checks_dir, "prior_model_for_Jones_params.stan"),
+                                        include_paths = file.path(local_pkg_dir, "inst", "stan_functions"))
+      ##
+      names_of_the_params_of_each_class <-  c("prior_beta_mu_mean", "prior_beta_mu_SD", 
+                                              "prior_raw_scale_mu_mean")
+      ##
+      names_of_the_params <-  c(paste0(names_of_the_params_of_each_class, "[1]"),
+                                paste0(names_of_the_params_of_each_class, "[2]"),
+                                "prior_boxcox_lambda_mean")
+}
 ##
 ## ---- Function: the reference trace of a test (the prior-only ordinal-bivariate fit under the flat prior or a prior set) -----------
 ##
@@ -80,36 +82,42 @@ fn_reference_trace <-  function(reference,
 ##
 matched_priors <-  list()
 rows <-  list()
+##
 for (reference in references_to_match) {
       for (test in tests_to_match) {
 
             trace <-  fn_reference_trace(reference, test)
             n_thr <-  ncol(trace$Se)
-            seconds <-  system.time({
-                  fit <-  model$sample(data = list(n_thr = n_thr,
-                                                   cts_thr_values = 1:n_thr,
-                                                   N = nrow(trace$Se),
-                                                   probit_Sp_draws_to_copy = stats::qnorm(trace$Sp),
-                                                   probit_Se_draws_to_copy = stats::qnorm(trace$Se),
-                                                   box_cox = 1,
-                                                   softplus = 0),
-                                       seed = seed,
-                                       chains = n_chains,
-                                       parallel_chains = n_chains,
-                                       iter_warmup = n_burnin,
-                                       iter_sampling = n_iter,
-                                       refresh = 0,
-                                       show_messages = FALSE)
-            })[["elapsed"]]
+            tictoc::tic()
+            fit <-  model$sample(data = list(n_thr = n_thr,
+                                             cts_thr_values = 1:n_thr,
+                                             N = nrow(trace$Se[1:1000, ]),
+                                             probit_Sp_draws_to_copy = stats::qnorm(trace$Sp[1:1000, ]),
+                                             probit_Se_draws_to_copy = stats::qnorm(trace$Se[1:1000, ]),
+                                             box_cox = 1,
+                                             softplus = 0),
+                                 seed = seed,
+                                 chains = n_chains,
+                                 parallel_chains = n_chains,
+                                 iter_warmup = n_burnin,
+                                 iter_sampling = n_iter,
+                                 refresh = 10,
+                                 show_messages = FALSE)
+            elapsed <-  tictoc::toc(quiet = TRUE)
+            seconds <-  unname(elapsed$toc - elapsed$tic)
+            ##
             draws_array <-  fit$draws(names_of_the_params, format = "draws_array")
+            ##
             summary_of_the_fit <-  NicoStan::generate_summary_tibble(n_threads = 1,
                                                                       trace = aperm(draws_array, c(3, 1, 2)),
                                                                       param_names = names_of_the_params,
                                                                       n_to_compute = length(names_of_the_params),
                                                                       compute_nested_rhat = FALSE,
                                                                       n_chains = n_chains,
-                                                                      n_superchains = 1)
+                                                                      n_superchains = n_chains)
+            ##
             fn_median_of <-  function(param) sapply(1:2, function(c) stats::median(draws_array[, , paste0(param, "[", c, "]")]))
+            ##
             matched <-  list(prior_beta_mu_mean = fn_median_of("prior_beta_mu_mean"),
                              prior_beta_mu_SD = fn_median_of("prior_beta_mu_SD"),
                              prior_raw_scale_mu_mean = fn_median_of("prior_raw_scale_mu_mean"),
@@ -118,7 +126,9 @@ for (reference in references_to_match) {
                              prior_boxcox_lambda_SD = 1.0,   ## (the default, R_fn_set_priors_MA.R)
                              reference = trace$source,
                              n_draws_of_the_reference = nrow(trace$Se))
+            ##
             matched_priors[[paste0(if (reference == "flat") "flat_" else paste0("prior_set_", reference, "_"), test)]] <-  matched
+            ##
             rows[[length(rows) + 1]] <-  data.frame(reference = reference,
                                                     test = test,
                                                     beta_mu_mean = paste(round(matched$prior_beta_mu_mean, 3), collapse = " / "),

@@ -79,23 +79,24 @@ for (reference in references_to_match) {
             trace$Se <-  trace$Se[rows_to_copy, , drop = FALSE]
             trace$Sp <-  trace$Sp[rows_to_copy, , drop = FALSE]
             n_thr <-  ncol(trace$Se)
-            seconds <-  system.time({
-                  fit <-  model$sample(data = list(n_thr = n_thr,
-                                                   N = nrow(trace$Se),
-                                                   probit_Sp_draws_to_copy = stats::qnorm(trace$Sp),
-                                                   probit_Se_draws_to_copy = stats::qnorm(trace$Se),
-                                                   prior_dirichlet_alpha = rep(1.0, n_thr + 1),
-                                                   softplus = 0,
-                                                   use_probit_link = 1),
-                                       init = function() list(C_raw = matrix(-2.0, nrow(trace$Se), n_thr)),
-                                       seed = seed,
-                                       chains = n_chains,
-                                       parallel_chains = n_chains,
-                                       iter_warmup = n_burnin,
-                                       iter_sampling = n_iter,
-                                       refresh = 0,
-                                       show_messages = FALSE)
-            })[["elapsed"]]
+            tictoc::tic()
+            fit <-  model$sample(data = list(n_thr = n_thr,
+                                             N = nrow(trace$Se),
+                                             probit_Sp_draws_to_copy = stats::qnorm(trace$Sp),
+                                             probit_Se_draws_to_copy = stats::qnorm(trace$Se),
+                                             prior_dirichlet_alpha = rep(1.0, n_thr + 1),
+                                             softplus = 0,
+                                             use_probit_link = 1),
+                                 init = function() list(C_raw = matrix(-2.0, nrow(trace$Se), n_thr)),
+                                 seed = seed,
+                                 chains = n_chains,
+                                 parallel_chains = n_chains,
+                                 iter_warmup = n_burnin,
+                                 iter_sampling = n_iter,
+                                 refresh = 0,
+                                 show_messages = FALSE)
+            elapsed <-  tictoc::toc(quiet = TRUE)
+            seconds <-  unname(elapsed$toc - elapsed$tic)
             draws_array <-  fit$draws(names_of_the_params, format = "draws_array")
             summary_of_the_fit <-  NicoStan::generate_summary_tibble(n_threads = 1,
                                                                       trace = aperm(draws_array, c(3, 1, 2)),
