@@ -38,6 +38,8 @@ functions {
                                                                     data real location);
         vector nico_exp(vector x);
         vector nico_log1p_exp(vector x);
+        vector nico_log_inv_logit(vector x);
+        vector nico_log1m_inv_logit(vector x);
         real nico_log_det_jacobian_of_cutpoints_from_raw_differences(vector C_raw, data int softplus);
         real nico_log_det_jacobian_of_cutpoints_from_raw_differences(matrix C_raw, data int softplus);
         array[] matrix nico_map_latent_surv_to_fixed_hetero_C(data array[] vector C,

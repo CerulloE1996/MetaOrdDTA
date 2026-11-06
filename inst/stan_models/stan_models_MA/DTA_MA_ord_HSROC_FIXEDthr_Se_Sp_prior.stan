@@ -274,12 +274,14 @@ model {
                         use_probit_link);
            }
         } else {
+           real anchor_ct = 0.5 * (mult_nd + mult_d) * prior_beta_mu_mean[1]; // prior mean of the mid-location
+           vector[n_thr] C_shifted = C - anchor_ct;
            vector[n_cat] Ind_Dir_ord_prob; //// = cumul_probs_to_ord_probs(Phi(C));
-           if (use_probit_link == 1) Ind_Dir_ord_prob = cumul_probs_to_ord_probs(Phi(C));
-           else                      Ind_Dir_ord_prob = cumul_probs_to_ord_probs(inv_logit(C));
+           if (use_probit_link == 1) Ind_Dir_ord_prob = cumul_probs_to_ord_probs(Phi(C_shifted));
+           else                      Ind_Dir_ord_prob = cumul_probs_to_ord_probs(inv_logit(C_shifted));
            ////
            Ind_Dir_ord_prob ~ induced_dirichlet_given_C(
-                              C, prior_dirichlet_alpha, use_probit_link);
+                              C_shifted, prior_dirichlet_alpha, use_probit_link);
         }
         ////
         //// ---- Likelihood / Model:

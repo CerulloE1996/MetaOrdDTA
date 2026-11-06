@@ -386,9 +386,11 @@ model {
                         use_probit_link);
            }
         } else {
-           //// (as induced_dirichlet_given_C)
+           //// (as induced_dirichlet_given_C, anchored at the prior mean of the mid-location)
            target += nico_induced_dirichlet_prior_of_ordered_cutpoints_lupdf(C | prior_dirichlet_alpha,
-                                                                             use_probit_link, 0.0);
+                                                                             use_probit_link,
+                                                                             0.5 * (mult_nd + mult_d) *
+                                                                             prior_beta_mu_mean[1]);
         }
         ////
         //// ---- Likelihood / Model:
