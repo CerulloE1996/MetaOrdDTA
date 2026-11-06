@@ -111,7 +111,7 @@ functions {
                                                                    P_upper_of_alpha[k],
                                                                    alpha_0,
                                                                    use_probit_link);
-                     C_median[j] = median_and_log_J[1];
+                     C_median[j] = baseline_location + median_and_log_J[1];
                      //// (chain rule: d C / d P = d C / d P_of_alpha * d P_of_alpha / d P = d C / d P_of_alpha *
                      ////  kappa / alpha_0)
                      log_J[j] = median_and_log_J[2] + nico_log(kappa / alpha_0);
@@ -414,13 +414,9 @@ model {
         to_vector(beta_SD) ~ nico_normal(prior_beta_SD_mean, prior_beta_SD_SD);
         beta_L_Omega ~ nico_lkj_corr_cholesky(prior_beta_corr_LKJ); 
         ////
-        //// (the baseline location minus the anchor of C_mu, the prior mean of the intercept: the Se / Sp prior
-        ////  on C_mu - baseline location, as Se_baseline and Fp_baseline)
-        vector[2] baseline_location;
-        baseline_location[1] = dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd])) -
-                               prior_beta_mu_mean[1, 1];
-        baseline_location[2] = dot_product(baseline_case_d,  to_vector(beta_mu[2, 1:n_covariates_d])) -
-                               prior_beta_mu_mean[2, 1];
+        vector[2] baseline_location;  //// the prior mean of the intercept (prior intercepts as anchor point)
+        baseline_location[1] = prior_beta_mu_mean[1, 1];
+        baseline_location[2] = prior_beta_mu_mean[2, 1];
         ////
         for (c in 1:2) {
            log_kappa[c] ~ nico_student_t(prior_kappa_dof[c], prior_kappa_mean[c], prior_kappa_SD[c]);
