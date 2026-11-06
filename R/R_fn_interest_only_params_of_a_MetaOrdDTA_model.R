@@ -51,7 +51,7 @@ fn_interest_only_params_of_a_MetaOrdDTA_model <-  function( name_of_the_model,
       }
       ## (Jones: Se / Sp from beta_mu, raw_scale_mu and the two Box-Cox lambdas)
       if (grepl("^DTA_MA_Jones", name_of_the_model)) {
-            return(c("beta_mu", "raw_scale_mu", "lambda", "lambda_upper"))
+            return(c("beta_mu", "raw_scale_mu", "lambda"))
       }
       ## (stratified bivariate: Se / Sp from mu at each threshold)
       if (grepl("^DTA_MA_strat_bivariate", name_of_the_model)) {

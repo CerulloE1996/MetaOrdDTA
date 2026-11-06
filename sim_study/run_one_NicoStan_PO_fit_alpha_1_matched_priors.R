@@ -328,14 +328,14 @@ if (model_parameterisation == "Jones") {
                      ", boxcox lambda SD ", paste(priors$prior_boxcox_lambda_SD, collapse = " / ")))
       if (SD_1_given != "runner") priors$prior_beta_mu_SD[, 1] <-  as.numeric(SD_1_given)
       if (SD_2_given != "runner") priors$prior_raw_scale_mu_SD[, 1] <-  as.numeric(SD_2_given)
-      if (SD_3_given != "runner") priors$prior_boxcox_lambda_SD <-  rep(as.numeric(SD_3_given), 2)
+      if (SD_3_given != "runner") priors$prior_boxcox_lambda_SD <-  as.numeric(SD_3_given)
       message(paste0("  the runner's Jones prior means: beta_mu ",
                      paste(priors$prior_beta_mu_mean[, 1], collapse = " / "), ", raw_scale_mu ",
                      paste(priors$prior_raw_scale_mu_mean[, 1], collapse = " / "), ", boxcox lambda ",
                      paste(priors$prior_boxcox_lambda_mean, collapse = " / ")))
       if (mean_1_given != "runner") priors$prior_beta_mu_mean[, 1] <-  as.numeric(mean_1_given)
       if (mean_2_given != "runner") priors$prior_raw_scale_mu_mean[, 1] <-  as.numeric(mean_2_given)
-      if (mean_3_given != "runner") priors$prior_boxcox_lambda_mean <-  rep(as.numeric(mean_3_given), 2)
+      if (mean_3_given != "runner") priors$prior_boxcox_lambda_mean <-  as.numeric(mean_3_given)
       message(paste0("  the priors of this fit: beta_mu N(",
                      paste(priors$prior_beta_mu_mean[, 1], collapse = " / "),
                      ", ", paste(priors$prior_beta_mu_SD[, 1], collapse = " / "),

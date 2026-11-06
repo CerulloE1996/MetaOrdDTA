@@ -81,10 +81,8 @@ R_fn_set_inits_MA <- function(    inits,
                                 ##
                                 ## Set default inits for box-cox ("lambda"):
                                 ##
-                                inits$lambda <- if_null_then_set_to( inits$lambda, 
+                                inits$lambda <- if_null_then_set_to( inits$lambda,
                                                                      rep(0.001, 2))
-                                inits$lambda_upper <- if_null_then_set_to( inits$lambda_upper,
-                                                                           rep(0.001, 2))
                                 ##
                                 ## Default inits for the between-study corr matrix ("beta_corr"):
                                 ##

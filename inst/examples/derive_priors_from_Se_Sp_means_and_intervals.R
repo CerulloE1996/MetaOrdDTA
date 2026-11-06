@@ -11,7 +11,6 @@ prior_function_folder <- "/home/enzocerullo/Documents/Work/PhD_work/R_packages/M
 prior_function_files <- c("R_fns_derive_priors_from_accuracy_means_and_intervals.R",
                            "R_fn_accuracy_prior_bank_from_MetaOrdDTA.R",
                            "R_fn_accuracy_prior_bank_from_a_MetaOrdDTA_model.R",
-                           "R_fn_data_for_deriving_the_Jones_marginal_accuracy_prior.R",
                            "R_fn_data_for_deriving_ord_HSROC_marginal_accuracy_prior.R",
                            "R_fns_target_distributions_from_accuracy_beliefs.R",
                            "R_fn_marginal_prior_request_from_accuracy_targets.R",
@@ -60,7 +59,7 @@ fn_derive_HADS_prior_inputs <- function(model_samples_obj,
                                         n_target_draws,
                                         seed_of_target_draws,
                                         objective,
-                                        target_grain_size,
+                                        target_points_per_task,
                                         estimate,
                                         prior_values,
                                         compiled_model,
@@ -103,9 +102,7 @@ fn_derive_HADS_prior_inputs <- function(model_samples_obj,
 
     native_fit <- model_samples_obj$internal_obj$outs_stan_sampling$stan_mod_samples
     native_draws <- native_fit$draws(variables = NULL, inc_warmup = FALSE, format = "matrix")
-    native_bank <- if (model == "Jones") {
-        fn_Jones_native_prior_integration_bank(native_prior_draws = native_draws, native_stan_data = native_data)
-    } else {
+    native_bank <- {
         fn_ord_HSROC_native_prior_integration_bank(native_prior_draws = native_draws,
                                                    native_stan_data = native_data,
                                                    raw_cutoff_grid = raw_cutoff_grid)
@@ -122,12 +119,10 @@ fn_derive_HADS_prior_inputs <- function(model_samples_obj,
                                                                native_prior_bank = native_bank,
                                                                model = model,
                                                                objective = objective,
-                                                               target_grain_size = target_grain_size,
+                                                               target_points_per_task = target_points_per_task,
                                                                estimate = estimate,
                                                                prior_values = prior_values)
-    derive <- if (model == "Jones") {
-        fn_derive_the_Jones_marginal_accuracy_prior_by_sampling
-    } else fn_derive_the_R_and_G_marginal_accuracy_prior_by_sampling
+    derive <- fn_derive_the_R_and_G_marginal_accuracy_prior_by_sampling
 
     result <- derive(request = request,
                       initial_values_per_chain = initial_values_per_chain,

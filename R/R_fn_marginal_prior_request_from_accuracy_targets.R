@@ -10,7 +10,7 @@ fn_marginal_prior_request_from_accuracy_targets <- function(target_distributions
                                                             native_prior_bank,
                                                             model,
                                                             objective,
-                                                            target_grain_size,
+                                                            target_points_per_task,
                                                             estimate,
                                                             prior_values) {
 
@@ -56,16 +56,16 @@ fn_marginal_prior_request_from_accuracy_targets <- function(target_distributions
 
     }
 
-    if (!is.numeric(target_grain_size) || length(target_grain_size) != 1 || !is.finite(target_grain_size)
-        || target_grain_size < 1 || target_grain_size != as.integer(target_grain_size)) {
-        stop("Supply target_grain_size explicitly in target accuracy points per minimum task.")
+    if (!is.numeric(target_points_per_task) || length(target_points_per_task) != 1 || !is.finite(target_points_per_task)
+        || target_points_per_task < 1 || target_points_per_task != as.integer(target_points_per_task)) {
+        stop("Supply target_points_per_task explicitly in target accuracy points per minimum task.")
     }
 
     is_Jones <- model == "Jones"
     common_bank <- c("n_thr", "n_bank", "cutpoint_bank", "raw_scale_bank", "bank_raw_scale_mean",
                      "bank_raw_scale_SD", "softplus", "use_probit_link", "baseline_case", "n_covariates", "scope")
     additional_bank <- if (is_Jones) {
-        c("cts_thr_values", "lambda_bank", "lambda_upper_bank", "bank_boxcox_mean", "bank_boxcox_SD")
+        c("cts_thr_values", "lambda_bank", "bank_boxcox_mean", "bank_boxcox_SD")
     } else c("raw_cutoff_grid", "phi_bank", "bank_dirichlet_alpha", "n_studies")
 
     if (!is.list(native_prior_bank) || !all(c(common_bank, additional_bank) %in% names(native_prior_bank))) {
@@ -137,7 +137,7 @@ fn_marginal_prior_request_from_accuracy_targets <- function(target_distributions
     data$target_status <- ifelse(draws$quantity == "Sp", 1, 2)
     data$target_cutoff_index <- cutoff_index
     data$target_probability <- draws$probability
-    data$target_grain_size <- as.integer(target_grain_size)
+    data$target_points_per_task <- as.integer(target_points_per_task)
     data$marginal_composite_likelihood <- 1
     data <- c(data, masks, fixed)
     target_map <- draws[, setdiff(required_draws, "probability"), drop = FALSE]

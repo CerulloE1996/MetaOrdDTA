@@ -182,6 +182,11 @@ run_multiple_sims <- function(MCMC_seed,
                                          if (random_thresholds) "RANDthr_kappa" else "FIXEDthr",
                                          "_NicoStan_fused_AVX.stan")
           }
+          ## (the Jones model: its fused AVX file, as the other models)
+          if (model_parameterisation == "Jones") {
+              use_custom_file  <- TRUE
+              custom_file_name <- "DTA_MA_Jones_NicoStan_fused_AVX.stan"
+          }
           if (any(candidate_route)) {
               custom_file_name <- scenario_row$custom_file_name[[1]]
               use_custom_file <- TRUE
@@ -579,10 +584,10 @@ run_multiple_sims <- function(MCMC_seed,
                           }
                           if (!is.null(mean_of_beta_mu_matched)) priors$prior_beta_mu_mean[, 1] <-  mean_of_beta_mu_matched
                           if (!is.null(mean_of_raw_scale_mu_matched)) priors$prior_raw_scale_mu_mean[, 1] <-  mean_of_raw_scale_mu_matched
-                          if (!is.null(mean_of_boxcox_lambda_matched)) priors$prior_boxcox_lambda_mean <-  rep(mean_of_boxcox_lambda_matched, 2)
+                          if (!is.null(mean_of_boxcox_lambda_matched)) priors$prior_boxcox_lambda_mean <-  mean_of_boxcox_lambda_matched
                           if (!is.null(SD_of_beta_mu_matched)) priors$prior_beta_mu_SD[, 1] <-  SD_of_beta_mu_matched
                           if (!is.null(SD_of_raw_scale_mu_matched)) priors$prior_raw_scale_mu_SD[, 1] <-  SD_of_raw_scale_mu_matched
-                          if (!is.null(SD_of_boxcox_lambda_matched)) priors$prior_boxcox_lambda_SD <-  rep(SD_of_boxcox_lambda_matched, 2)
+                          if (!is.null(SD_of_boxcox_lambda_matched)) priors$prior_boxcox_lambda_SD <-  SD_of_boxcox_lambda_matched
                     }
 
           } else if (model_parameterisation == "Bivariate") {
@@ -764,13 +769,11 @@ run_multiple_sims <- function(MCMC_seed,
                                             ## (every $sample setting that changes sampling, written out)
                                             adapt_delta                          = if (nzchar(Sys.getenv("ADAPT_DELTA")))
                                                   as.numeric(Sys.getenv("ADAPT_DELTA")) else 0.80,  ## the PS7 value
-                                            ## (the paper's models, sampled with no auto-chunking library; the Jones
-                                            ##  model has no fused AVX file: its own Stan file runs on NicoStan)
+                                            ## (the paper's models, sampled with no auto-chunking library; every model,
+                                            ##  the Jones model included, runs its fused AVX file)
                                             auto_chunking                        = FALSE,
                                             debug                                = Sys.getenv("DUMP_BURNIN_TRACE") == "1",
-                                            Stan_file_of_the_fused_version       = if (model_parameterisation == "Jones")
-                                                  system.file("stan_models", "stan_models_MA", "DTA_MA_Jones.stan",
-                                                              package = "MetaOrdDTA") else NULL,
+                                            Stan_file_of_the_fused_version       = NULL,
                                             ###
                                             # metric_shape_main                    = "dense", ## --------
                                             metric_shape_main                    = if (nzchar(Sys.getenv("METRIC_SHAPE_MAIN")))
