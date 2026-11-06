@@ -3,11 +3,10 @@
 ##
 ## The trace of Se and Sp at each threshold from the prior-only fit of the ordinal-bivariate (fixed-cutpoint) model under
 ## the flat prior (alpha = 1) or under prior set 1 or 2 is the data; each draw of it is given the ordinal-HSROC model's
-## own parameters (the location, the log-scale and the cutpoints, the cutpoints under the model's own induced Dirichlet
-## prior with alpha = 1), with the model's own priors on the location and the log-scale, and the priors that copy the
-## trace are found by Stan sampling (prior_model_for_R_and_G_params.stan): beta_mu ~ normal(prior_beta_mu_mean,
-## prior_beta_mu_SD) and raw_scale_mu ~ normal(prior_raw_scale_mu_mean, prior_raw_scale_mu_SD). The draws copied are
-## n_draws_to_copy of the trace, evenly spaced (each draw carries its own cutpoints).
+## priors (beta_mu ~ normal(prior_beta_mu_mean, prior_beta_mu_SD), with raw_scale_mu at prior_raw_scale_mu_mean and the
+## cutpoints at the mean of their induced Dirichlet prior with alpha = 1) that copy the trace are found by Stan sampling
+## (prior_model_for_R_and_G_params.stan); prior_raw_scale_mu_SD stays at its default. The draws copied are
+## n_draws_to_copy of the trace, evenly spaced.
 ## Rscript arguments: "tests=GAD_2,HADS", "references=flat,1,2".
 ##
 ## ---- Settings ----------------------------------------------------------------------------------------------------------------------
@@ -41,8 +40,7 @@
 ##
 model <-  cmdstanr::cmdstan_model(file.path(checks_dir, "prior_model_for_R_and_G_params.stan"),
                                   include_paths = file.path(local_pkg_dir, "inst", "stan_functions"))
-names_of_the_params <-  c("prior_beta_mu_mean", "prior_beta_mu_SD", "prior_raw_scale_mu_mean", "prior_raw_scale_mu_SD",
-                          "sigma")
+names_of_the_params <-  c("prior_beta_mu_mean", "prior_beta_mu_SD", "prior_raw_scale_mu_mean")
 ##
 ## ---- Function: the reference trace of a test (the prior-only ordinal-bivariate fit under the flat prior or a prior set) -----------
 ##
@@ -87,14 +85,12 @@ for (reference in references_to_match) {
                                              prior_dirichlet_alpha = rep(1.0, n_thr + 1),
                                              softplus = 0,
                                              use_probit_link = 1),
-                                 init = function() list(C_raw = matrix(-2.0, nrow(trace$Se), n_thr)),
                                  seed = seed,
                                  chains = n_chains,
                                  parallel_chains = n_chains,
                                  iter_warmup = n_burnin,
                                  iter_sampling = n_iter,
-                                 refresh = 0,
-                                 show_messages = FALSE)
+                                 refresh = 10)
             elapsed <-  tictoc::toc(quiet = TRUE)
             seconds <-  unname(elapsed$toc - elapsed$tic)
             draws_array <-  fit$draws(names_of_the_params, format = "draws_array")
@@ -109,8 +105,7 @@ for (reference in references_to_match) {
             matched <-  list(prior_beta_mu_mean = fn_median_of("prior_beta_mu_mean"),
                              prior_beta_mu_SD = fn_median_of("prior_beta_mu_SD"),
                              prior_raw_scale_mu_mean = fn_median_of("prior_raw_scale_mu_mean"),
-                             prior_raw_scale_mu_SD = fn_median_of("prior_raw_scale_mu_SD"),
-                             sigma = fn_median_of("sigma"),
+                             prior_raw_scale_mu_SD = 1.0,   ## (the default, R_fn_set_priors_MA.R)
                              reference = trace$source,
                              n_draws_of_the_reference = nrow(trace$Se))
             matched_priors[[paste0(if (reference == "flat") "flat_" else paste0("prior_set_", reference, "_"), test)]] <-  matched
@@ -120,7 +115,6 @@ for (reference in references_to_match) {
                                                     beta_mu_SD = round(matched$prior_beta_mu_SD, 3),
                                                     raw_scale_mu_mean = round(matched$prior_raw_scale_mu_mean, 3),
                                                     raw_scale_mu_SD = round(matched$prior_raw_scale_mu_SD, 3),
-                                                    sigma = round(matched$sigma, 3),
                                                     min_ESS = round(min(summary_of_the_fit$n_eff, summary_of_the_fit$n_eff_tail,
                                                                         summary_of_the_fit$n_eff_sd)),
                                                     largest_R_hat = round(max(summary_of_the_fit$Rhat), 4),

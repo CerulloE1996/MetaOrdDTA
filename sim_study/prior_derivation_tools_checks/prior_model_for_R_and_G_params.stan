@@ -38,39 +38,24 @@ transformed data {
         int n_cat = n_thr + 1;
         real mult_nd = -1.0;
         real mult_d  = +1.0; //// hence: mult_d > mult_nd
+        ////
+        //// ---- The cutpoints at the mean of their induced-Dirichlet prior (ordinal probabilities
+        //// ---- prior_dirichlet_alpha / sum(prior_dirichlet_alpha)):
+        ////
+        vector[n_thr] cumul_prob_at_the_prior_mean = cumulative_sum(prior_dirichlet_alpha[1:n_thr]) /
+                                                     sum(prior_dirichlet_alpha);
+        vector[n_thr] C_at_the_prior_mean = ((use_probit_link == 1) ? inv_Phi(cumul_prob_at_the_prior_mean)
+                                                                    : logit(cumul_prob_at_the_prior_mean));
 }
 
 
 parameters {
         ////
-        //// ---- The ordinal-HSROC priors (the hyperparameters to find): the prior of the location and of the log-scale:
+        //// ---- The ordinal-HSROC priors to find (the SD of raw_scale_mu stays at its default):
         ////
         real prior_beta_mu_mean;
         real<lower=0.0> prior_beta_mu_SD;
         real prior_raw_scale_mu_mean;
-        real<lower=0.0> prior_raw_scale_mu_SD;
-        ////
-        //// ---- The ordinal-HSROC parameters of each draw of the reference prior (as DTA_MA_ord_HSROC_RANDthr_kappa.stan):
-        ////
-        vector[N] beta_mu;
-        vector[N] raw_scale_mu;
-        matrix<lower=-15, upper=2.5>[N, n_thr] C_raw; //// restricting solves divs/numerical stab. issues w/ lots of sparse categories!
-        ////
-        //// ---- The spread of the reference draws around the ordinal-HSROC curve, one for both classes (a spread per
-        //// ---- class lets the free cutpoints copy one class exactly and that class's spread go to zero):
-        ////
-        real<lower=0.0> sigma;
-}
-
-
-transformed parameters {
-        ////
-        //// ---- Construct the cutpoints of each draw:
-        ////
-        matrix[N, n_thr] C;
-        for (i in 1:N) {
-                     C[i, ] =  construct_C(C_raw[i, 1:n_thr], softplus);
-        }
 }
 
 
@@ -81,43 +66,30 @@ model {
         prior_beta_mu_mean ~ normal(0, 5);
         prior_beta_mu_SD ~ normal(0, 5);
         prior_raw_scale_mu_mean ~ normal(0, 5);
-        prior_raw_scale_mu_SD ~ normal(0, 5);
-        sigma ~ normal(0, 1);
         ////
-        //// ---- The ordinal-HSROC priors on the parameters of each draw (the priors of DTA_MA_ord_HSROC_RANDthr_kappa.stan):
+        //// ---- Cutpoints at their prior mean, anchored at the prior mean of the mid-location (as
+        //// ---- DTA_MA_ord_HSROC_FIXEDthr_Se_Sp_prior.stan):
         ////
-        beta_mu ~ normal(prior_beta_mu_mean, prior_beta_mu_SD);
-        raw_scale_mu ~ normal(prior_raw_scale_mu_mean, prior_raw_scale_mu_SD);
+        real anchor_ct = 0.5 * (mult_nd + mult_d) * prior_beta_mu_mean; // prior mean of the mid-location
+        vector[n_thr] C = C_at_the_prior_mean + anchor_ct;
         ////
-        //// ---- Induced-dirichlet prior on the cutpoints of each draw (as DTA_MA_ord_HSROC_RANDthr_kappa.stan):
+        //// ---- Scales (as DTA_MA_ord_HSROC_FIXEDthr_Se_Sp_prior.stan), with raw_scale_mu at its prior mean:
         ////
-        for (i in 1:N) {
-             real anchor_ct = 0.5 * (mult_nd + mult_d) * prior_beta_mu_mean; // prior mean of the mid-location
-             vector[n_thr] C_shifted = to_vector(C[i, ]) - anchor_ct;
-             vector[n_cat] Ind_Dir_ord_prob;
-             if (use_probit_link == 1) Ind_Dir_ord_prob = cumul_probs_to_ord_probs(Phi(C_shifted));
-             else                      Ind_Dir_ord_prob = cumul_probs_to_ord_probs(inv_logit(C_shifted));
-             ////
-             Ind_Dir_ord_prob ~ induced_dirichlet_given_C(
-                                C_shifted, prior_dirichlet_alpha, use_probit_link);
-        }
-        target += raw_C_to_C_log_det_J_lp(C_raw, softplus);
+        real scale_nd_baseline = ((softplus == 1) ? softplus_scaled(-mult_nd * prior_raw_scale_mu_mean)
+                                                  : exp(-mult_nd * prior_raw_scale_mu_mean));
+        real scale_d_baseline  = ((softplus == 1) ? softplus_scaled(-mult_d  * prior_raw_scale_mu_mean)
+                                                  : exp(-mult_d  * prior_raw_scale_mu_mean));
         ////
-        //// ---- Each draw of the reference prior: probit(Sp) = (C + mult_nd * beta_mu) * scale_nd and probit(Se) =
-        //// ---- -(C + mult_d * beta_mu) * scale_d (the baseline Se / Sp of DTA_MA_ord_HSROC_RANDthr_kappa.stan), with
-        //// ---- the scales computed from that draw's log-scale:
+        //// ---- beta_mu ~ normal(prior_beta_mu_mean, prior_beta_mu_SD), so probit(Sp) and probit(Se) at each
+        //// ---- threshold are normal with these means and SDs:
         ////
         for (i in 1:N) {
-            real scale_nd_baseline = ((softplus == 1) ?
-                                     softplus_scaled(-mult_nd * raw_scale_mu[i]) : exp(-mult_nd * raw_scale_mu[i]));
-            real scale_d_baseline  = ((softplus == 1) ?
-                                     softplus_scaled(-mult_d  * raw_scale_mu[i]) : exp(-mult_d  * raw_scale_mu[i]));
-            ////
             target += normal_lpdf( to_vector(probit_Sp_draws_to_copy[i, ]) |
-                                   (to_vector(C[i, ]) + mult_nd * beta_mu[i]) * scale_nd_baseline, sigma);
+                                   (C + mult_nd * prior_beta_mu_mean) * scale_nd_baseline,
+                                   prior_beta_mu_SD * scale_nd_baseline);
             target += normal_lpdf( to_vector(probit_Se_draws_to_copy[i, ]) |
-                                   -(to_vector(C[i, ]) + mult_d * beta_mu[i]) * scale_d_baseline, sigma);
+                                   -(C + mult_d * prior_beta_mu_mean) * scale_d_baseline,
+                                   prior_beta_mu_SD * scale_d_baseline);
         }
 
 }
-
