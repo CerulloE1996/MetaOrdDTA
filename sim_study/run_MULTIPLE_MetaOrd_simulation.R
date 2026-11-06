@@ -590,10 +590,10 @@ run_multiple_sims <- function(MCMC_seed,
                           }
                           if (!is.null(mean_of_beta_mu_matched)) priors$prior_beta_mu_mean[, 1] <-  mean_of_beta_mu_matched
                           if (!is.null(mean_of_raw_scale_mu_matched)) priors$prior_raw_scale_mu_mean[, 1] <-  mean_of_raw_scale_mu_matched
-                          if (!is.null(mean_of_boxcox_lambda_matched)) priors$prior_boxcox_lambda_mean <-  mean_of_boxcox_lambda_matched
+                          if (!is.null(mean_of_boxcox_lambda_matched)) priors$prior_boxcox_lambda_mean[] <-  mean_of_boxcox_lambda_matched
                           if (!is.null(SD_of_beta_mu_matched)) priors$prior_beta_mu_SD[, 1] <-  SD_of_beta_mu_matched
                           if (!is.null(SD_of_raw_scale_mu_matched)) priors$prior_raw_scale_mu_SD[, 1] <-  SD_of_raw_scale_mu_matched
-                          if (!is.null(SD_of_boxcox_lambda_matched)) priors$prior_boxcox_lambda_SD <-  SD_of_boxcox_lambda_matched
+                          if (!is.null(SD_of_boxcox_lambda_matched)) priors$prior_boxcox_lambda_SD[] <-  SD_of_boxcox_lambda_matched
                     }
 
           } else if (model_parameterisation == "Bivariate") {

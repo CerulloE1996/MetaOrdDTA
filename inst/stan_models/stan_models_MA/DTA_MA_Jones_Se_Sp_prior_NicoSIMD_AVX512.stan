@@ -1,4 +1,4 @@
-// NicoSIMD_AVX512 version of DTA_MA_Jones_Se_Sp_prior.stan written by NicoStan (source model md5 69c77f1745a7e75ce4e225f63068d2f7; NicoSIMD declarations md5 e3c567fd115d2ccf49ec504688009e6b; writer implementation md5 d387df684f8005ca53ed8808961860dc)
+// NicoSIMD_AVX512 version of DTA_MA_Jones_Se_Sp_prior.stan written by NicoStan (source model md5 905505ecd3fa020d29458e012032fc3f; NicoSIMD declarations md5 e3c567fd115d2ccf49ec504688009e6b; writer implementation md5 d387df684f8005ca53ed8808961860dc)
 // NicoSIMD functions used: exp, log, inv_logit, log_inv_logit, Phi, log1m_inv_logit, normal, beta, lkj_corr_cholesky
 
 
@@ -122,8 +122,8 @@ data {
         //// 
         //// ---- Priors for box-cox ("lambda"):
         ////
-        real prior_boxcox_lambda_mean;
-        real prior_boxcox_lambda_SD;
+        vector[2] prior_boxcox_lambda_mean;
+        vector[2] prior_boxcox_lambda_SD;
         ////
         //// ---- Priors (and possible restrictions) for between-study correlations:
         ////  

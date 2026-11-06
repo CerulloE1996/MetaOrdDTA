@@ -87,8 +87,8 @@ data {
           ////
           //// ---- Priors for box-cox:
           ////
-          vector[n_index_tests] prior_boxcox_lambda_mean;
-          vector<lower=0.0>[n_index_tests] prior_boxcox_lambda_SD;
+          array[2] vector[n_index_tests] prior_boxcox_lambda_mean;
+          array[2] vector<lower=0.0>[n_index_tests] prior_boxcox_lambda_SD;
           ////
           //// ---- Priors (and possible restrictions) for between-study correlations:
           ////
@@ -398,7 +398,7 @@ model {
         //// ---- Priors:
         ////
         for (c in 1:2) {
-           lambda[c] ~ normal(prior_boxcox_lambda_mean, prior_boxcox_lambda_SD);
+           lambda[c] ~ normal(prior_boxcox_lambda_mean[c], prior_boxcox_lambda_SD[c]);
         }
         ////
         for (t in 1:n_index_tests) {

@@ -132,8 +132,8 @@ data {
         ////
         //// ---- Priors for box-cox ("lambda"):
         ////
-        real prior_boxcox_lambda_mean;
-        real prior_boxcox_lambda_SD;
+        vector[2] prior_boxcox_lambda_mean;
+        vector[2] prior_boxcox_lambda_SD;
         ////
         //// ---- Priors (and possible restrictions) for between-study correlations:
         ////

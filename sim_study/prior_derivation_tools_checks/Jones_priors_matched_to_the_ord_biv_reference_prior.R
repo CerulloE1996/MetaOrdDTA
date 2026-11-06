@@ -124,7 +124,7 @@ for (reference in references_to_match) {
                              prior_raw_scale_mu_mean = fn_median_of("prior_raw_scale_mu_mean"),
                              prior_raw_scale_mu_SD = c(1.0, 1.0),   ## (the default, R_fn_set_priors_MA.R)
                              prior_boxcox_lambda_mean = fn_median_of("prior_boxcox_lambda_mean"),
-                             prior_boxcox_lambda_SD = 1.0,   ## (the default, R_fn_set_priors_MA.R)
+                             prior_boxcox_lambda_SD = c(1.0, 1.0),   ## (the default, R_fn_set_priors_MA.R)
                              reference = trace$source,
                              n_draws_of_the_reference = nrow(trace$Se))
             ##
