@@ -316,9 +316,9 @@ transformed parameters {
         matrix[n_studies, 2] Xbeta;
         Xbeta[, 1]  = X_nd[, 1:n_covariates_nd] * to_vector(beta_mu[1, 1:n_covariates_nd]) + beta_random[, 1];
         Xbeta[, 2]  = X_d[, 1:n_covariates_d]   * to_vector(beta_mu[2, 1:n_covariates_d])  + beta_random[, 2];
-} 
- 
- 
+}
+
+
 model { 
         ////
         //// ---- Priors: 
