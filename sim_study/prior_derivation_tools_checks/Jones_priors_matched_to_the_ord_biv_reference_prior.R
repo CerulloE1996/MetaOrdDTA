@@ -48,11 +48,10 @@
                                         include_paths = file.path(local_pkg_dir, "inst", "stan_functions"))
       ##
       names_of_the_params_of_each_class <-  c("prior_beta_mu_mean", "prior_beta_mu_SD", 
-                                              "prior_raw_scale_mu_mean")
+                                              "prior_raw_scale_mu_mean", "prior_boxcox_lambda_mean")
       ##
       names_of_the_params <-  c(paste0(names_of_the_params_of_each_class, "[1]"),
-                                paste0(names_of_the_params_of_each_class, "[2]"),
-                                "prior_boxcox_lambda_mean")
+                                paste0(names_of_the_params_of_each_class, "[2]"))
 }
 ##
 ## ---- Function: the reference trace of a test (the prior-only ordinal-bivariate fit under the flat prior or a prior set) -----------
@@ -88,7 +87,9 @@ for (reference in references_to_match) {
 
             trace <-  fn_reference_trace(reference, test)
             n_thr <-  ncol(trace$Se)
+            ##
             tictoc::tic()
+            ##
             fit <-  model$sample(data = list(n_thr = n_thr,
                                              cts_thr_values = 1:n_thr,
                                              N = nrow(trace$Se[1:1000, ]),
@@ -101,8 +102,8 @@ for (reference in references_to_match) {
                                  parallel_chains = n_chains,
                                  iter_warmup = n_burnin,
                                  iter_sampling = n_iter,
-                                 refresh = 10,
-                                 show_messages = FALSE)
+                                 refresh = 10)
+            ##
             elapsed <-  tictoc::toc(quiet = TRUE)
             seconds <-  unname(elapsed$toc - elapsed$tic)
             ##
@@ -122,7 +123,7 @@ for (reference in references_to_match) {
                              prior_beta_mu_SD = fn_median_of("prior_beta_mu_SD"),
                              prior_raw_scale_mu_mean = fn_median_of("prior_raw_scale_mu_mean"),
                              prior_raw_scale_mu_SD = c(1.0, 1.0),   ## (the default, R_fn_set_priors_MA.R)
-                             prior_boxcox_lambda_mean = stats::median(draws_array[, , "prior_boxcox_lambda_mean"]),
+                             prior_boxcox_lambda_mean = fn_median_of("prior_boxcox_lambda_mean"),
                              prior_boxcox_lambda_SD = 1.0,   ## (the default, R_fn_set_priors_MA.R)
                              reference = trace$source,
                              n_draws_of_the_reference = nrow(trace$Se))
@@ -137,7 +138,7 @@ for (reference in references_to_match) {
                                                                               collapse = " / "),
                                                     raw_scale_mu_SD = paste(round(matched$prior_raw_scale_mu_SD, 3),
                                                                             collapse = " / "),
-                                                    lambda_mean = round(matched$prior_boxcox_lambda_mean, 3),
+                                                    lambda_mean = paste(round(matched$prior_boxcox_lambda_mean, 3), collapse = " / "),
                                                     lambda_SD = round(matched$prior_boxcox_lambda_SD, 3),
                                                     min_ESS = round(min(summary_of_the_fit$n_eff, summary_of_the_fit$n_eff_tail,
                                                                         summary_of_the_fit$n_eff_sd)),
