@@ -308,10 +308,9 @@ R_fn_set_priors_NMA <- function(  priors,
       
     }
     ##
-    ## ---- The direct Se / Sp prior fields of the ordinal-bivariate NMA models (their one Stan file each):
+    ## ---- The direct Se / Sp prior fields of the NMA models (their one Stan file each):
     ##
-    if (cts == FALSE &&
-        !grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
+    if (!grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
           priors <- R_fn_set_Se_Sp_prior_NMA(priors = priors,
                                              model_parameterisation = model_parameterisation,
                                              random_thresholds = random_thresholds,

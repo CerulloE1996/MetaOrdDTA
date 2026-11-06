@@ -20,8 +20,8 @@ R_fn_set_Se_Sp_prior_MA <-  function(priors,
                                      random_thresholds,
                                      n_thr) {
 
-      ## (fixed cutpoints: the direct prior sits on the cutpoints centred at the baseline location)
-      if (random_thresholds == FALSE && is.null(priors$anchor_at_location)) {
+      ## (the direct prior sits on the cutpoints centred at the baseline location)
+      if (is.null(priors$anchor_at_location)) {
             priors$anchor_at_location <-  1
       }
       ##

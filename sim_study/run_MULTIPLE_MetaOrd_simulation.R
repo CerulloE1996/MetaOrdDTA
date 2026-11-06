@@ -87,20 +87,16 @@ run_multiple_sims <- function(MCMC_seed,
         candidate_fields <- c("custom_file_name", "custom_cpp_user_header_file_path", "prior_fields")
         candidate_route <- candidate_fields %in% names(scenario_row)
         if (any(candidate_route)) {
-            ## (the pop-median models carry their Se / Sp prior fields; the centred median model has none)
+            ## (the pop-median models carry their Se / Sp prior fields)
             is_a_pop_median_model <- grepl("popmed", scenario_row$custom_file_name[[1]], fixed = TRUE)
-            is_a_centred_C_model <- grepl("_centred_C_", scenario_row$custom_file_name[[1]], fixed = TRUE)
             stopifnot(all(candidate_route[1:2]), candidate_route[3] == is_a_pop_median_model,
                       model_parameterisation %in% c("ord_bivariate", "R&G"),
                       isTRUE(random_thresholds), Dirichlet_random_effects_type == "kappa",
                       is.character(file_name_string), length(file_name_string) == 1,
                       !is.na(file_name_string),
-                      grepl("popmed", file_name_string, fixed = TRUE) == is_a_pop_median_model,
-                      grepl("_centred_C", file_name_string, fixed = TRUE) == is_a_centred_C_model)
+                      grepl("popmed", file_name_string, fixed = TRUE) == is_a_pop_median_model)
             stopifnot(scenario_row$custom_file_name[[1]] %in%
                             c("DTA_MA_ord_biv_RANDthr_kappa_popmed_Se_Sp_prior_NicoStan_fused_AVX.stan",
-                              "DTA_MA_ord_biv_RANDthr_kappa_popmed_centred_C_Se_Sp_prior_NicoStan_fused_AVX.stan",
-                              "DTA_MA_ord_biv_RANDthr_kappa_centred_C_NicoStan_fused_AVX.stan",
                               "DTA_MA_ord_HSROC_RANDthr_kappa_popmed_Se_Sp_prior_NicoStan_fused_AVX.stan"))
             stopifnot(grepl("ord_HSROC", scenario_row$custom_file_name[[1]], fixed = TRUE) ==
                             (model_parameterisation == "R&G"))
@@ -179,7 +175,7 @@ run_multiple_sims <- function(MCMC_seed,
               name_of_the_model_family <- if (model_parameterisation == "ord_bivariate") "DTA_MA_ord_biv_" else
                                           "DTA_MA_ord_HSROC_"
               custom_file_name <- paste0(name_of_the_model_family,
-                                         if (random_thresholds) "RANDthr_kappa" else "FIXEDthr",
+                                         if (random_thresholds) "RANDthr_kappa_popmed" else "FIXEDthr",
                                          "_Se_Sp_prior_NicoStan_fused_AVX.stan")
           }
           if (model_parameterisation == "Jones") {
@@ -718,36 +714,6 @@ run_multiple_sims <- function(MCMC_seed,
             # if (any(candidate_route) && is_a_pop_median_model) {
             if (any(candidate_route) && is_a_pop_median_model && ordinal_prior_type == "Dirichlet") {
                 priors[names(prior_fields)] <- prior_fields
-            }
-            ##
-            ## ---- The centred cutpoints: each C_v starts at the cutpoints of the off-centred start (C_raw) --------------------------
-            ##
-            ## (C from C_raw as in the off-centred model, softplus off; the category probabilities of C at the
-            ##  anchor, the prior mean of the intercept; C_v = alpha * log(probabilities), alpha = 0.01 +
-            ##  dirichlet_phi * kappa of the same start, so softmax(C_v ./ alpha) gives the same C back)
-            if (isTRUE(grepl("_centred_C_", custom_file_name, fixed = TRUE))) {
-                  for (kk in 1:n_chains) {
-                        C_v_of_this_chain <- list()
-                        for (c in 1:2) {
-                              C_raw_of_this_class <- init_lists_per_chain[[kk]]$C_raw[[c]]
-                              C_of_this_class <- C_raw_of_this_class
-                              if (ncol(C_raw_of_this_class) > 1) {
-                                    for (k in 2:ncol(C_raw_of_this_class)) {
-                                          C_of_this_class[, k] <- C_of_this_class[, k - 1] +
-                                                                  exp(C_raw_of_this_class[, k])
-                                    }
-                              }
-                              P_of_this_class <- pnorm(C_of_this_class - priors$prior_beta_mu_mean[c, 1])
-                              probabilities_of_this_class <- t(apply(cbind(0, P_of_this_class, 1), 1, diff))
-                              alpha_of_this_class <- 0.01 + init_lists_per_chain[[kk]]$dirichlet_phi[[c]] *
-                                                            init_lists_per_chain[[kk]]$kappa[c]
-                              C_v_of_this_chain[[c]] <- sweep(log(probabilities_of_this_class), 2,
-                                                              alpha_of_this_class, "*")
-                              stopifnot(all(is.finite(C_v_of_this_chain[[c]])))
-                        }
-                        init_lists_per_chain[[kk]]$C_v <- C_v_of_this_chain
-                        init_lists_per_chain[[kk]]$C_raw <- NULL
-                  }
             }
             time_after_the_model_prep <- Sys.time()
             ## (KEEP_THE_DATA_FILE_IN = a folder: the Stan data of this cmdstanr fit is saved there as it is written)

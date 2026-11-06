@@ -298,7 +298,8 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                     #'@param priors See class documentation for details.
                     ##
                     #'@param model_parameterisation Use \code{"ord_biv"}, \code{"ord_HSROC"}, or \code{"Jones"}.
-                    #'@param random_thresholds See class documentation for details.
+                    #'@param random_thresholds \code{TRUE} fits the random-cutpoint (pop-median) model, \code{FALSE} the
+                    #'fixed-cutpoint one.
                     #'@param Dirichlet_random_effects_type See class documentation for details.
                     ##
                     #'@param box_cox See class documentation for details.
