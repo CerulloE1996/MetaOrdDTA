@@ -1,4 +1,4 @@
-// NicoSIMD_AVX512 version of DTA_NMA_Nyaga_Jones_Se_Sp_prior.stan written by NicoStan (source model md5 1a84f137d74c71735828ef835b9a7d7b; NicoSIMD declarations md5 e3c567fd115d2ccf49ec504688009e6b; writer implementation md5 d387df684f8005ca53ed8808961860dc)
+// NicoSIMD_AVX512 version of DTA_NMA_Nyaga_Jones_Se_Sp_prior.stan written by NicoStan (source model md5 1fed74d204f7dee374d4d0d3e37d8235; NicoSIMD declarations md5 e3c567fd115d2ccf49ec504688009e6b; writer implementation md5 d387df684f8005ca53ed8808961860dc)
 // NicoSIMD functions used: exp, log, inv_logit, log_inv_logit, Phi, log1m_inv_logit, normal_rng, normal, beta, lkj_corr_cholesky
 
 
@@ -133,8 +133,8 @@ data {
           ////
           //// ---- Priors for box-cox:
           ////
-          vector[n_index_tests] prior_boxcox_lambda_mean;
-          vector<lower=0.0>[n_index_tests] prior_boxcox_lambda_SD;
+          array[2] vector[n_index_tests] prior_boxcox_lambda_mean;
+          array[2] vector<lower=0.0>[n_index_tests] prior_boxcox_lambda_SD;
           ////
           //// ---- Priors (and possible restrictions) for between-study correlations:
           ////
@@ -444,7 +444,7 @@ model {
         //// ---- Priors:
         ////
         for (c in 1:2) {
-           lambda[c] ~ nico_normal(prior_boxcox_lambda_mean, prior_boxcox_lambda_SD);
+           lambda[c] ~ nico_normal(prior_boxcox_lambda_mean[c], prior_boxcox_lambda_SD[c]);
         }
         ////
         for (t in 1:n_index_tests) {
