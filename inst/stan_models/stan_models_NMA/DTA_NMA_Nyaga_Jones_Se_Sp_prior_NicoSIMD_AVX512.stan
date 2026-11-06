@@ -1,32 +1,52 @@
-// NicoSIMD_AVX512 version of DTA_NMA_Nyaga_Jones_Se_Sp_prior.stan written by NicoStan (source model md5 1fed74d204f7dee374d4d0d3e37d8235; NicoSIMD declarations md5 e3c567fd115d2ccf49ec504688009e6b; writer implementation md5 d387df684f8005ca53ed8808961860dc)
-// NicoSIMD functions used: exp, log, inv_logit, log_inv_logit, Phi, log1m_inv_logit, normal_rng, normal, beta, lkj_corr_cholesky
+// NicoSIMD_AVX512 version of DTA_NMA_Nyaga_Jones_Se_Sp_prior.stan written by NicoStan (source model md5 04058d468b29284a92357aad7a8c3197; NicoSIMD declarations md5 e3c567fd115d2ccf49ec504688009e6b; writer implementation md5 aef1406a74d6694a1d260c4cd31c7a35)
+// NicoSIMD functions used: exp, log, log1m, log1p_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal_rng, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, log_diff_exp
 
 
 functions {
     real bmvp_simd_lanes();
     real nico_exp(real x);
     real nico_log(real x);
+    real nico_log1m(real x);
+    real nico_log1p_exp(real x);
     real nico_inv_logit(real x);
     real nico_log_inv_logit(real x);
     real nico_Phi(real x);
+    real nico_inv_Phi(real x);
+    real nico_tanh(real x);
+    real nico_logit(real x);
     real nico_log1m_inv_logit(real x);
     vector nico_exp(vector x);
     vector nico_log(vector x);
+    vector nico_log1m(vector x);
+    vector nico_log1p_exp(vector x);
     vector nico_inv_logit(vector x);
     vector nico_log_inv_logit(vector x);
     vector nico_Phi(vector x);
+    vector nico_inv_Phi(vector x);
+    vector nico_tanh(vector x);
+    vector nico_logit(vector x);
     vector nico_log1m_inv_logit(vector x);
     row_vector nico_exp(row_vector x);
     row_vector nico_log(row_vector x);
+    row_vector nico_log1m(row_vector x);
+    row_vector nico_log1p_exp(row_vector x);
     row_vector nico_inv_logit(row_vector x);
     row_vector nico_log_inv_logit(row_vector x);
     row_vector nico_Phi(row_vector x);
+    row_vector nico_inv_Phi(row_vector x);
+    row_vector nico_tanh(row_vector x);
+    row_vector nico_logit(row_vector x);
     row_vector nico_log1m_inv_logit(row_vector x);
     matrix nico_exp(matrix x);
     matrix nico_log(matrix x);
+    matrix nico_log1m(matrix x);
+    matrix nico_log1p_exp(matrix x);
     matrix nico_inv_logit(matrix x);
     matrix nico_log_inv_logit(matrix x);
     matrix nico_Phi(matrix x);
+    matrix nico_inv_Phi(matrix x);
+    matrix nico_tanh(matrix x);
+    matrix nico_logit(matrix x);
     matrix nico_log1m_inv_logit(matrix x);
     real nico_normal_rng(real mu, real sigma);
     array[] real nico_normal_rng(vector mu, real sigma);
@@ -44,48 +64,26 @@ functions {
     real nico_normal_lpdf(array[] real y, real mu, vector sigma);
     real nico_normal_lpdf(array[] real y, real mu, real sigma);
     real nico_normal_lpdf(real y, real mu, real sigma);
+    real nico_lgamma(data real x);
+    vector nico_lgamma(vector x);
     real nico_beta_lpdf(real y, data real alpha, data real beta);
     real nico_beta_lpdf(vector y, vector alpha, vector beta);
+    real nico_dirichlet_lpdf(vector theta, vector alpha);
     real nico_lkj_corr_cholesky_lpdf(matrix L, data real eta);
+    real nico_log_diff_exp(real x, real y);
+    vector nico_log_diff_exp(vector x, vector y);
         ////
         //// ---- Include files to compile the necessary custom (user-defined) Stan functions:
         ////
-        #include "Stan_fns_basic.stan"
-        #include "Stan_fns_Box_Cox.stan"
-        #include "Stan_fns_corr.stan"
-        #include "Stan_fns_ordinal.stan"
-        #include "Stan_fns_log_lik.stan"
-        #include "Stan_fns_ragged.stan"
-        #include "Stan_fns_NMA.stan"
-        #include "Stan_fns_model_fit.stan"
-        #include "Stan_fns_NMA_bivariate.stan"
-        ////
-        //// ---- Probability-scale Beta or link-scale Normal at chosen cutoffs:
-        ////
-        real Se_Sp_prior_at_chosen_cutoffs_lpdf(vector C_baseline_chosen,
-                                                int prior_type,
-                                                matrix beta_ab,
-                                                matrix link_mean_SD,
-                                                int use_probit_link) {
-
-                real log_prob = 0.0;
-                //// Selected baseline values follow the ordered curve.
-                if (prior_type == 2) {
-                     vector[num_elements(C_baseline_chosen)] P_chosen = (use_probit_link == 1) ?
-                           nico_Phi(C_baseline_chosen) : nico_inv_logit(C_baseline_chosen);
-                     log_prob += nico_beta_lpdf(P_chosen | beta_ab[, 1], beta_ab[, 2]);
-                     if (use_probit_link == 1) {
-                          log_prob += nico_normal_lpdf(C_baseline_chosen | 0, 1);
-                     } else {
-                          log_prob += sum(nico_log_inv_logit(C_baseline_chosen) +
-                                          nico_log1m_inv_logit(C_baseline_chosen));
-                     }
-                } else {
-                     log_prob += nico_normal_lpdf(C_baseline_chosen | link_mean_SD[, 1], link_mean_SD[, 2]);
-                }
-                return log_prob;
-
-        }
+        #include "Stan_fns_basic_NicoSIMD_AVX.stan"
+        #include "Stan_fns_Box_Cox_NicoSIMD_AVX.stan"
+        #include "Stan_fns_corr_NicoSIMD_AVX.stan"
+        #include "Stan_fns_ordinal_NicoSIMD_AVX.stan"
+        #include "Stan_fns_log_lik_NicoSIMD_AVX.stan"
+        #include "Stan_fns_ragged_NicoSIMD_AVX.stan"
+        #include "Stan_fns_NMA_NicoSIMD_AVX.stan"
+        #include "Stan_fns_model_fit_NicoSIMD_AVX.stan"
+        #include "Stan_fns_NMA_bivariate_NicoSIMD_AVX.stan"
 }
 
  
@@ -158,11 +156,12 @@ data {
           ////
           int<lower=0, upper=1> use_Se_Sp_prior;
           int<lower=1, upper=4> Se_Sp_prior_type;
-          int<lower=0, upper=n_thr_max> n_chosen_max;
-          array[n_index_tests, 2] int<lower=0, upper=n_chosen_max> n_chosen;
-          array[n_index_tests, 2, n_chosen_max] int<lower=1, upper=n_thr_max> chosen_cutoffs;
-          array[n_index_tests, 2] matrix<lower=0.0>[n_chosen_max, 2] prior_Se_Sp_beta;
-          array[n_index_tests, 2] matrix[n_chosen_max, 2] prior_Se_Sp_link_mean_SD;
+          int<lower=0, upper=n_thr_max> n_chosen_cutoffs_max;
+          array[n_index_tests, 2] int<lower=0, upper=n_chosen_cutoffs_max> n_chosen_cutoffs;
+          array[n_index_tests, 2, n_chosen_cutoffs_max] int<lower=1, upper=n_thr_max> chosen_cutoffs;
+          array[n_index_tests, 2] vector<lower=0.0>[n_chosen_cutoffs_max + 1] prior_Se_Sp_dirichlet_A;
+          array[n_index_tests, 2] matrix<lower=0.0>[n_chosen_cutoffs_max, 2] prior_Se_Sp_beta;
+          array[n_index_tests, 2] matrix[n_chosen_cutoffs_max, 2] prior_Se_Sp_link_mean_SD;
           ////
           int hetero_sigma;
           int compound_symmetry;
@@ -177,20 +176,20 @@ transformed data {
           //// ---- One cutoff replaces location; multiple cutoffs also replace scale:
           ////
           if (use_Se_Sp_prior == 1) {
-               if (Se_Sp_prior_type != 2 && Se_Sp_prior_type != 4) {
-                    reject("Jones direct priors support type 2 (Beta) or type 4 (link-scale Normal)");
+               if (Se_Sp_prior_type == 3) {
+                    reject("Jones direct priors support type 1 (Dirichlet), 2 (Beta) or 4 (link-scale Normal)");
                }
                if (use_probit_link != 0 && use_probit_link != 1) reject("use_probit_link must be 0 or 1");
                for (t in 1:n_index_tests) {
                     for (c in 1:2) {
-                         if (n_chosen[t, c] > 0) {
+                         if (n_chosen_cutoffs[t, c] > 0) {
                               if (c == 1 && baseline_case_nd[t][1] == 0.0) {
                                    reject("baseline_case_nd[1] must not be 0: t = ", t);
                               }
                               if (c == 2 && baseline_case_d[t][1] == 0.0) {
                                    reject("baseline_case_d[1] must not be 0: t = ", t);
                               }
-                              for (j in 1:n_chosen[t, c]) {
+                              for (j in 1:n_chosen_cutoffs[t, c]) {
                                    if (chosen_cutoffs[t, c, j] > n_thr[t]) {
                                         reject("chosen_cutoffs above n_thr[t]: t = ", t, ", c = ", c);
                                    }
@@ -202,6 +201,10 @@ transformed data {
                                             cts_thr_values[t][chosen_cutoffs[t, c, j - 1]]) {
                                              reject("Chosen threshold values must rise: t = ", t, ", c = ", c);
                                         }
+                                   }
+                                   if (Se_Sp_prior_type == 1 &&
+                                       min(prior_Se_Sp_dirichlet_A[t, c][1:(n_chosen_cutoffs[t, c] + 1)]) <= 0.0) {
+                                        reject("Dirichlet weights must be positive: t = ", t, ", c = ", c);
                                    }
                                    if (Se_Sp_prior_type == 2 &&
                                        min(prior_Se_Sp_beta[t, c][j, ]) <= 0.0) {
@@ -484,8 +487,7 @@ model {
         if (use_Se_Sp_prior == 1) {
              for (t in 1:n_index_tests) {
                   for (c in 1:2) {
-                       int m = n_chosen[t, c];
-                       if (m > 0) {
+                       if (n_chosen_cutoffs[t, c] > 0) {
                             int n_covariates_c = (c == 1) ? n_covariates_nd[t] : n_covariates_d[t];
                             vector[n_covariates_c] baseline = (c == 1) ? baseline_case_nd[t][1:n_covariates_c] :
                                                                          baseline_case_d[t][1:n_covariates_c];
@@ -493,25 +495,30 @@ model {
                             real raw_scale = dot_product(baseline, to_vector(raw_scale_mu[t][c, 1:n_covariates_c]));
                             real scale = (softplus == 1) ? softplus_scaled(raw_scale) : nico_exp(raw_scale);
                             vector[n_thr[t]] C_vec_t = get_test_values(C_vec[c], start_index, end_index, t);
-                            vector[m] C_baseline = (C_vec_t[chosen_cutoffs[t, c, 1:m]] - location) / scale;
-                            matrix[m, 2] beta_ab = prior_Se_Sp_beta[t, c][1:m, ];
-                            matrix[m, 2] link_mean_SD = prior_Se_Sp_link_mean_SD[t, c][1:m, ];
+                            vector[n_chosen_cutoffs[t, c]] C_baseline = (C_vec_t[chosen_cutoffs[t, c, 1:n_chosen_cutoffs[t, c]]] - location) / scale;
+                            matrix[n_chosen_cutoffs[t, c], 2] prior_beta_of_this_class =
+                                 prior_Se_Sp_beta[t, c][1:n_chosen_cutoffs[t, c], ];
+                            matrix[n_chosen_cutoffs[t, c], 2] prior_link_mean_SD_of_this_class =
+                                 prior_Se_Sp_link_mean_SD[t, c][1:n_chosen_cutoffs[t, c], ];
                             if (c == 2) {
-                                 link_mean_SD[, 1] = -link_mean_SD[, 1];
+                                 prior_link_mean_SD_of_this_class[, 1] = -prior_link_mean_SD_of_this_class[, 1];
                                  if (Se_Sp_prior_type == 2) {
-                                      beta_ab = append_col(beta_ab[, 2], beta_ab[, 1]);
+                                      prior_beta_of_this_class = append_col(prior_beta_of_this_class[, 2],
+                                                                            prior_beta_of_this_class[, 1]);
                                  }
                             }
-                            target += -nico_normal_lpdf(beta_mu[t][c, 1] | prior_beta_mu_mean[t][c, 1],
+                            target += -nico_normal_lupdf(beta_mu[t][c, 1] | prior_beta_mu_mean[t][c, 1],
                                                    prior_beta_mu_SD[t][c, 1]);
-                            target += Se_Sp_prior_at_chosen_cutoffs_lpdf(
-                                      C_baseline | Se_Sp_prior_type, beta_ab, link_mean_SD, use_probit_link);
+                            target += Se_Sp_prior_at_chosen_cutoffs_lupdf(
+                                      C_baseline | Se_Sp_prior_type,
+                                      prior_Se_Sp_dirichlet_A[t, c][1:(n_chosen_cutoffs[t, c] + 1)],
+                                      prior_beta_of_this_class, prior_link_mean_SD_of_this_class, use_probit_link);
                             target += nico_log(abs(baseline[1])) - nico_log(scale);
-                            if (m >= 2) {
+                            if (n_chosen_cutoffs[t, c] >= 2) {
                                  real log_scale_derivative = (softplus == 1) ?
                                        nico_log_inv_logit(raw_scale) - nico_log(nico_log(2.0)) : raw_scale;
                                  real C_gap = C_vec_t[chosen_cutoffs[t, c, 2]] - C_vec_t[chosen_cutoffs[t, c, 1]];
-                                 target += -nico_normal_lpdf(raw_scale_mu[t][c, 1] |
+                                 target += -nico_normal_lupdf(raw_scale_mu[t][c, 1] |
                                                         prior_raw_scale_mu_mean[t][c, 1],
                                                         prior_raw_scale_mu_SD[t][c, 1]);
                                  target += nico_log(abs(baseline[1])) + nico_log(C_gap) +
@@ -533,15 +540,15 @@ model {
             // }
             // beta_sigma_raw[c] ~ normal(0.0, prior_beta_sigma_SD[c]);
         }
-        target += nico_normal_lpdf(to_vector(log_beta_sigma_z) | 0, 1);
-        target += nico_normal_lpdf(to_vector(log_raw_scale_sigma_z) | 0, 1);
+        target += nico_normal_lupdf(to_vector(log_beta_sigma_z) | 0, 1);
+        target += nico_normal_lupdf(to_vector(log_raw_scale_sigma_z) | 0, 1);
         ////
         for (t in 1:n_index_tests) {
-            target += nico_normal_lpdf(to_vector(beta_eta_z[t]) | 0, 1);   
-            target += nico_normal_lpdf(to_vector(raw_scale_eta_z[t]) | 0, 1);   
+            target += nico_normal_lupdf(to_vector(beta_eta_z[t]) | 0, 1);   
+            target += nico_normal_lupdf(to_vector(raw_scale_eta_z[t]) | 0, 1);   
             ////
-            target += nico_normal_lpdf(to_vector(beta_delta_z[t]) | 0, 1);   
-            target += nico_normal_lpdf(to_vector(raw_scale_delta_z[t]) | 0, 1); 
+            target += nico_normal_lupdf(to_vector(beta_delta_z[t]) | 0, 1);   
+            target += nico_normal_lupdf(to_vector(raw_scale_delta_z[t]) | 0, 1); 
         }
         ////
         //// ---- Log-likelihood:
@@ -950,8 +957,6 @@ generated quantities {
           }
 
 }
-
-
 
 
 

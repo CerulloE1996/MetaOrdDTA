@@ -197,10 +197,10 @@ real induced_dirichlet_given_C_lpdf(    vector p_ord,
         real log_prob = 0.0;
 
         for (k in 1:n_thr) {
-          if (use_probit_link == 1)  log_prob += normal_lpdf(C[k] | 0.0, 1.0);
+          if (use_probit_link == 1)  log_prob += normal_lupdf(C[k] | 0.0, 1.0);
           else                       log_prob += log_inv_logit(C[k]) + log1m_inv_logit(C[k]);
         }
-        log_prob += dirichlet_lpdf(p_ord | alpha);
+        log_prob += dirichlet_lupdf(p_ord | alpha);
         
         return log_prob;
   
@@ -220,7 +220,7 @@ real induced_dirichlet_given_C_lpdf(  row_vector p_ord,
         vector[n_thr] C_col_vec     = to_vector(C);
         vector[n_cat] alpha_col_vec = to_vector(alpha);
         
-        return induced_dirichlet_given_C_lpdf(p_ord_col_vec | C_col_vec, alpha_col_vec, use_probit_link);
+        return induced_dirichlet_given_C_lupdf(p_ord_col_vec | C_col_vec, alpha_col_vec, use_probit_link);
   
 }
 
@@ -1135,7 +1135,7 @@ real induced_dirichlet_given_C_on_the_log_scale_lpdf(vector C,
         for (j in 1:(n_thr + 1)) {
           if (alpha[j] != 1.0) log_prob += (alpha[j] - 1.0) * log_p[j];
         }
-        if (use_probit_link == 1) log_prob += std_normal_lpdf(C);
+        if (use_probit_link == 1) log_prob += std_normal_lupdf(C);
         else                      log_prob += sum(log_F + log_S);
         return log_prob;
 
@@ -1147,6 +1147,179 @@ real induced_dirichlet_given_C_on_the_log_scale_lpdf(row_vector C,
                                                      vector alpha,
                                                      int use_probit_link) {
 
-        return induced_dirichlet_given_C_on_the_log_scale_lpdf(to_vector(C) | alpha, use_probit_link);
+        return induced_dirichlet_given_C_on_the_log_scale_lupdf(to_vector(C) | alpha, use_probit_link);
+
+}
+////
+//// ---- Probability-scale Dirichlet or Beta, or link-scale Normal, at chosen cutoffs:
+////
+real Se_Sp_prior_at_chosen_cutoffs_lpdf(vector C_baseline_at_chosen_cutoffs,
+                                        int Se_Sp_prior_type,
+                                        vector prior_Se_Sp_dirichlet_A,
+                                        matrix prior_Se_Sp_beta,
+                                        matrix prior_Se_Sp_link_mean_SD,
+                                        int use_probit_link) {
+
+        real log_prob = 0.0;
+        //// Selected baseline values follow the ordered curve.
+        if (Se_Sp_prior_type == 1 || Se_Sp_prior_type == 2) {
+             vector[num_elements(C_baseline_at_chosen_cutoffs)] P_at_chosen_cutoffs = (use_probit_link == 1) ?
+                   Phi(C_baseline_at_chosen_cutoffs) : inv_logit(C_baseline_at_chosen_cutoffs);
+             if (Se_Sp_prior_type == 1) {
+                  //// Dirichlet on the segment sums:
+                  log_prob += dirichlet_lupdf(cumul_probs_to_ord_probs(P_at_chosen_cutoffs) | prior_Se_Sp_dirichlet_A);
+             } else {
+                  log_prob += beta_lupdf(P_at_chosen_cutoffs | prior_Se_Sp_beta[, 1], prior_Se_Sp_beta[, 2]);
+             }
+             if (use_probit_link == 1) {
+                  log_prob += std_normal_lupdf(C_baseline_at_chosen_cutoffs);
+             } else {
+                  log_prob += sum(log_inv_logit(C_baseline_at_chosen_cutoffs) +
+                                  log1m_inv_logit(C_baseline_at_chosen_cutoffs));
+             }
+        } else {
+             log_prob += normal_lupdf(C_baseline_at_chosen_cutoffs | prior_Se_Sp_link_mean_SD[, 1],
+                                     prior_Se_Sp_link_mean_SD[, 2]);
+        }
+        return log_prob;
+
+}
+////
+//// ---- Induced Dirichlet with the Dirichlet of the segment sums (between chosen cutoffs) swapped for
+//// ---- a prior on Sp (c = 1) or 1 - Se (c = 2) at the chosen cutoffs, all at the constant anchor:
+////
+real induced_dirichlet_with_Se_Sp_prior_lpdf(vector C_shifted,
+                                             vector alpha,
+                                             vector alpha_of_the_segments,
+                                             array[] int chosen_cutoffs,
+                                             int Se_Sp_prior_type,
+                                             vector prior_Se_Sp_dirichlet_A,
+                                             matrix prior_Se_Sp_beta,
+                                             matrix prior_Se_Sp_link_mean_SD,
+                                             int use_probit_link) {
+
+        int n_thr = num_elements(C_shifted);
+        int n_chosen_cutoffs = num_elements(chosen_cutoffs);
+        vector[n_thr] P = (use_probit_link == 1) ? Phi(C_shifted) : inv_logit(C_shifted);
+        vector[n_thr + 1] p_ord = cumul_probs_to_ord_probs(P);
+        vector[n_chosen_cutoffs] P_at_chosen_cutoffs = P[chosen_cutoffs];
+        vector[n_chosen_cutoffs + 1] segment_probs = cumul_probs_to_ord_probs(P_at_chosen_cutoffs);
+        ////
+        //// ---- induced Dirichlet minus the Dirichlet of the segment sums:
+        ////
+        real log_prob = induced_dirichlet_given_C_lupdf(p_ord | C_shifted, alpha, use_probit_link);
+        log_prob += - dirichlet_lupdf(segment_probs | alpha_of_the_segments);
+        ////
+        //// ---- prior on P at the chosen cutoffs:
+        ////
+        if (Se_Sp_prior_type == 1) {
+             //// Dirichlet on the segment sums:
+             log_prob += dirichlet_lupdf(segment_probs | prior_Se_Sp_dirichlet_A);
+        } else if (Se_Sp_prior_type == 2) {
+             //// Beta on each P, restricted to rising P (normaliser constant):
+             log_prob += beta_lupdf(P_at_chosen_cutoffs | prior_Se_Sp_beta[, 1], prior_Se_Sp_beta[, 2]);
+        } else if (Se_Sp_prior_type == 4) {
+             //// Normal on the link scale, restricted to rising P (with the Jacobian from P to the link):
+             log_prob += normal_lupdf(C_shifted[chosen_cutoffs] | prior_Se_Sp_link_mean_SD[, 1],
+                                     prior_Se_Sp_link_mean_SD[, 2]);
+             if (use_probit_link == 1) {
+                  log_prob += - std_normal_lupdf(C_shifted[chosen_cutoffs]);
+             } else {
+                  log_prob += - sum(log_inv_logit(C_shifted[chosen_cutoffs]) +
+                                    log1m_inv_logit(C_shifted[chosen_cutoffs]));
+             }
+        } else {
+             //// Beta on each (P_j - P_{j-1}) / (1 - P_{j-1}):
+             vector[n_chosen_cutoffs] P_previous = append_row(0.0, P_at_chosen_cutoffs[1:(n_chosen_cutoffs - 1)]);
+             log_prob += beta_lupdf(segment_probs[1:n_chosen_cutoffs] ./ (1.0 - P_previous) |
+                                   prior_Se_Sp_beta[, 1], prior_Se_Sp_beta[, 2]);
+             log_prob += - sum(log1m(P_previous));
+        }
+        return log_prob;
+
+}
+////
+//// ---- The median of the Beta of a cutpoint under the Dirichlet, on the link scale
+////      (shapes kappa * P_lower and kappa * P_upper; the smaller shape first, then reflected):
+////
+real dirichlet_cutpoint_median(real P_lower,
+                               real P_upper,
+                               real kappa,
+                               int use_probit_link) {
+
+        int reflect = (P_lower > P_upper);
+        real shape_a = kappa * ((reflect == 1) ? P_upper : P_lower);
+        real shape_b = kappa * ((reflect == 1) ? P_lower : P_upper);
+        real p = inv_inc_beta(shape_a, shape_b, 0.5);
+        real cutpoint = (use_probit_link == 1) ? inv_Phi(p) : logit(p);
+        return (reflect == 1) ? -cutpoint : cutpoint;
+
+}
+////
+//// ---- Induced Dirichlet with the Dirichlet of the segment sums (between chosen cutoffs) swapped for
+//// ---- a prior on baseline Sp (c = 1) or 1 - Se (c = 2) at the chosen cutoffs:
+////
+real induced_dirichlet_with_Se_Sp_prior_lpdf(vector C_shifted,
+                                             vector C_baseline,
+                                             vector alpha,
+                                             vector alpha_of_the_segments,
+                                             array[] int chosen_cutoffs,
+                                             int Se_Sp_prior_type,
+                                             vector prior_Se_Sp_dirichlet_A,
+                                             matrix prior_Se_Sp_beta,
+                                             matrix prior_Se_Sp_link_mean_SD,
+                                             int use_probit_link) {
+
+        int n_thr = num_elements(C_shifted);
+        int n_chosen_cutoffs = num_elements(chosen_cutoffs);
+        vector[n_thr] P = (use_probit_link == 1) ? Phi(C_shifted) : inv_logit(C_shifted);
+        vector[n_thr + 1] p_ord = cumul_probs_to_ord_probs(P);
+        vector[n_chosen_cutoffs] P_at_chosen_cutoffs = (use_probit_link == 1) ? Phi(C_baseline[chosen_cutoffs]) :
+                                                    inv_logit(C_baseline[chosen_cutoffs]);
+        vector[n_chosen_cutoffs + 1] segment_probs = cumul_probs_to_ord_probs(P_at_chosen_cutoffs);
+        vector[n_chosen_cutoffs + 1] segment_probs_at_the_anchor = cumul_probs_to_ord_probs(P[chosen_cutoffs]);
+        ////
+        //// ---- induced Dirichlet minus the Dirichlet of the segment sums:
+        ////
+        real log_prob = induced_dirichlet_given_C_lupdf(p_ord | C_shifted, alpha, use_probit_link);
+        log_prob += - dirichlet_lupdf(segment_probs_at_the_anchor | alpha_of_the_segments);
+        ////
+        //// ---- Jacobian between selected anchor and baseline probabilities:
+        ////
+        for (j in 1:n_chosen_cutoffs) {
+             int k = chosen_cutoffs[j];
+             if (use_probit_link == 1) {
+                  log_prob += - std_normal_lupdf(C_shifted[k]);
+                  if (Se_Sp_prior_type != 4) {
+                       log_prob += std_normal_lupdf(C_baseline[k]);
+                  }
+             } else {
+                  log_prob += - log_inv_logit(C_shifted[k]) - log1m_inv_logit(C_shifted[k]);
+                  if (Se_Sp_prior_type != 4) {
+                       log_prob += log_inv_logit(C_baseline[k]) + log1m_inv_logit(C_baseline[k]);
+                  }
+             }
+        }
+        ////
+        //// ---- prior on P at the chosen cutoffs:
+        ////
+        if (Se_Sp_prior_type == 1) {
+             //// Dirichlet on the segment sums:
+             log_prob += dirichlet_lupdf(segment_probs | prior_Se_Sp_dirichlet_A);
+        } else if (Se_Sp_prior_type == 2) {
+             //// Beta on each P, restricted to rising P (normaliser constant):
+             log_prob += beta_lupdf(P_at_chosen_cutoffs | prior_Se_Sp_beta[, 1], prior_Se_Sp_beta[, 2]);
+        } else if (Se_Sp_prior_type == 4) {
+             //// Normal on the link scale, restricted to rising P:
+             log_prob += normal_lupdf(C_baseline[chosen_cutoffs] | prior_Se_Sp_link_mean_SD[, 1],
+                                     prior_Se_Sp_link_mean_SD[, 2]);
+        } else {
+             //// Beta on each (P_j - P_{j-1}) / (1 - P_{j-1}):
+             vector[n_chosen_cutoffs] P_previous = append_row(0.0, P_at_chosen_cutoffs[1:(n_chosen_cutoffs - 1)]);
+             log_prob += beta_lupdf(segment_probs[1:n_chosen_cutoffs] ./ (1.0 - P_previous) |
+                                   prior_Se_Sp_beta[, 1], prior_Se_Sp_beta[, 2]);
+             log_prob += - sum(log1m(P_previous));
+        }
+        return log_prob;
 
 }

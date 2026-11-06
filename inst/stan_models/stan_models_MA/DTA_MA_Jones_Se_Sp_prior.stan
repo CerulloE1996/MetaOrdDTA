@@ -12,33 +12,6 @@ functions {
         #include "Stan_fns_log_lik.stan"
         #include "Stan_fns_Jacobian.stan"
         #include "Stan_fns_model_fit.stan"
-        ////
-        //// ---- Probability-scale Beta or link-scale Normal at chosen cutoffs:
-        ////
-        real Se_Sp_prior_at_chosen_cutoffs_lpdf(vector C_baseline_chosen,
-                                                int prior_type,
-                                                matrix beta_ab,
-                                                matrix link_mean_SD,
-                                                int use_probit_link) {
-
-                real log_prob = 0.0;
-                //// Selected baseline values follow the ordered curve.
-                if (prior_type == 2) {
-                     vector[num_elements(C_baseline_chosen)] P_chosen = (use_probit_link == 1) ?
-                           Phi(C_baseline_chosen) : inv_logit(C_baseline_chosen);
-                     log_prob += beta_lpdf(P_chosen | beta_ab[, 1], beta_ab[, 2]);
-                     if (use_probit_link == 1) {
-                          log_prob += std_normal_lpdf(C_baseline_chosen);
-                     } else {
-                          log_prob += sum(log_inv_logit(C_baseline_chosen) +
-                                          log1m_inv_logit(C_baseline_chosen));
-                     }
-                } else {
-                     log_prob += normal_lpdf(C_baseline_chosen | link_mean_SD[, 1], link_mean_SD[, 2]);
-                }
-                return log_prob;
-
-        }
 }
 
 
@@ -100,11 +73,12 @@ data {
         ////
         int<lower=0, upper=1> use_Se_Sp_prior;
         int<lower=1, upper=4> Se_Sp_prior_type;
-        int<lower=0, upper=n_thr> n_chosen_max;
-        array[2] int<lower=0, upper=n_chosen_max> n_chosen;
-        array[2, n_chosen_max] int<lower=1, upper=n_thr> chosen_cutoffs;
-        array[2] matrix<lower=0.0>[n_chosen_max, 2] prior_Se_Sp_beta;
-        array[2] matrix[n_chosen_max, 2] prior_Se_Sp_link_mean_SD;
+        int<lower=0, upper=n_thr> n_chosen_cutoffs_max;
+        array[2] int<lower=0, upper=n_chosen_cutoffs_max> n_chosen_cutoffs;
+        array[2, n_chosen_cutoffs_max] int<lower=1, upper=n_thr> chosen_cutoffs;
+        array[2] vector<lower=0.0>[n_chosen_cutoffs_max + 1] prior_Se_Sp_dirichlet_A;
+        array[2] matrix<lower=0.0>[n_chosen_cutoffs_max, 2] prior_Se_Sp_beta;
+        array[2] matrix[n_chosen_cutoffs_max, 2] prior_Se_Sp_link_mean_SD;
         ////
         //// ---- Other:
         ////
@@ -122,15 +96,15 @@ transformed data {
         //// ---- One cutoff replaces location; multiple cutoffs also replace scale:
         ////
         if (use_Se_Sp_prior == 1) {
-             if (Se_Sp_prior_type != 2 && Se_Sp_prior_type != 4) {
-                  reject("Jones direct priors support type 2 (Beta) or type 4 (link-scale Normal)");
+             if (Se_Sp_prior_type == 3) {
+                  reject("Jones direct priors support type 1 (Dirichlet), 2 (Beta) or 4 (link-scale Normal)");
              }
              if (use_probit_link != 0 && use_probit_link != 1) reject("use_probit_link must be 0 or 1");
              for (c in 1:2) {
-                  if (n_chosen[c] > 0) {
+                  if (n_chosen_cutoffs[c] > 0) {
                        if (c == 1 && baseline_case_nd[1] == 0.0) reject("baseline_case_nd[1] must not be 0");
                        if (c == 2 && baseline_case_d[1] == 0.0) reject("baseline_case_d[1] must not be 0");
-                       for (j in 1:n_chosen[c]) {
+                       for (j in 1:n_chosen_cutoffs[c]) {
                             if (j > 1) {
                                  if (chosen_cutoffs[c, j] <= chosen_cutoffs[c, j - 1]) {
                                       reject("Chosen cutoffs must rise");
@@ -139,6 +113,10 @@ transformed data {
                                      cts_thr_values[chosen_cutoffs[c, j - 1]]) {
                                       reject("Chosen threshold values must rise");
                                  }
+                            }
+                            if (Se_Sp_prior_type == 1 &&
+                                min(prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)]) <= 0.0) {
+                                 reject("Dirichlet weights must be positive");
                             }
                             if (Se_Sp_prior_type == 2 &&
                                 min(prior_Se_Sp_beta[c][j, ]) <= 0.0) {
@@ -277,8 +255,7 @@ model {
         ////
         if (use_Se_Sp_prior == 1) {
              for (c in 1:2) {
-                  int m = n_chosen[c];
-                  if (m > 0) {
+                  if (n_chosen_cutoffs[c] > 0) {
                        int n_covariates_c = (c == 1) ? n_covariates_nd : n_covariates_d;
                        vector[n_covariates_c] baseline = (c == 1) ? baseline_case_nd : baseline_case_d;
                        real location = dot_product(baseline, to_vector(beta_mu[c, 1:n_covariates_c]));
@@ -286,25 +263,30 @@ model {
                        ////
                        real scale = (softplus == 1) ? softplus_scaled(raw_scale) : exp(raw_scale);
                        ////
-                       vector[m] C_baseline = (C[c][chosen_cutoffs[c, 1:m]] - location) / scale;
-                       matrix[m, 2] beta_ab = prior_Se_Sp_beta[c][1:m, ];
-                       matrix[m, 2] link_mean_SD = prior_Se_Sp_link_mean_SD[c][1:m, ];
+                       vector[n_chosen_cutoffs[c]] C_baseline =
+                            (C[c][chosen_cutoffs[c, 1:n_chosen_cutoffs[c]]] - location) / scale;
+                       matrix[n_chosen_cutoffs[c], 2] prior_beta_of_this_class =
+                            prior_Se_Sp_beta[c][1:n_chosen_cutoffs[c], ];
+                       matrix[n_chosen_cutoffs[c], 2] prior_link_mean_SD_of_this_class =
+                            prior_Se_Sp_link_mean_SD[c][1:n_chosen_cutoffs[c], ];
                        if (c == 2) {
-                            link_mean_SD[, 1] = -link_mean_SD[, 1];
+                            prior_link_mean_SD_of_this_class[, 1] = -prior_link_mean_SD_of_this_class[, 1];
                             if (Se_Sp_prior_type == 2) {
-                                 beta_ab = append_col(beta_ab[, 2], beta_ab[, 1]);
+                                 prior_beta_of_this_class = append_col(prior_beta_of_this_class[, 2],
+                                                                       prior_beta_of_this_class[, 1]);
                             }
                        }
-                       target += -normal_lpdf(beta_mu[c, 1] | prior_beta_mu_mean[c, 1], prior_beta_mu_SD[c, 1]);
-                       target += Se_Sp_prior_at_chosen_cutoffs_lpdf(
-                                 C_baseline | Se_Sp_prior_type, beta_ab, link_mean_SD, use_probit_link);
+                       target += -normal_lupdf(beta_mu[c, 1] | prior_beta_mu_mean[c, 1], prior_beta_mu_SD[c, 1]);
+                       target += Se_Sp_prior_at_chosen_cutoffs_lupdf(
+                                 C_baseline | Se_Sp_prior_type, prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
+                                 prior_beta_of_this_class, prior_link_mean_SD_of_this_class, use_probit_link);
                        target += log(abs(baseline[1])) - log(scale);
                        ////
-                       if (m >= 2) {
+                       if (n_chosen_cutoffs[c] >= 2) {
                             real log_scale_derivative = (softplus == 1) ?
                                   log_inv_logit(raw_scale) - log(log(2.0)) : raw_scale;
                             real C_gap = C[c][chosen_cutoffs[c, 2]] - C[c][chosen_cutoffs[c, 1]];
-                            target += -normal_lpdf(raw_scale_mu[c, 1] |
+                            target += -normal_lupdf(raw_scale_mu[c, 1] |
                                                    prior_raw_scale_mu_mean[c, 1],
                                                    prior_raw_scale_mu_SD[c, 1]);
                             target += log(abs(baseline[1])) + log(C_gap) +
@@ -320,8 +302,8 @@ model {
         ////
         //// ---- Likelihood / Model:
         ////
-        target += std_normal_lpdf(to_vector(beta_z)); // part of between-study model, NOT prior
-        target += std_normal_lpdf(to_vector(raw_scale_z)); // part of between-study model, NOT prior
+        target += std_normal_lupdf(to_vector(beta_z)); // part of between-study model, NOT prior
+        target += std_normal_lupdf(to_vector(raw_scale_z)); // part of between-study model, NOT prior
         ////
         //// target += raw_scale_to_scale_log_det_J_lp(Xraw_scale, softplus); // dont actually need this as not putting a prior on "Xscale"
         ////
