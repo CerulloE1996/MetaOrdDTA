@@ -772,8 +772,8 @@ model {
                                                               to_vector(prior_dirichlet_phi[c][t, 1:n_cat[t]]));
                  ////
                  //// ---- Induced-dirichlet between study ** model ** (part of the likelihood since random-effect
-                 ////      cutpoints): every study with test t in one node, one row per study, not shifted (as
-                 ////      induced_dirichlet_given_C of each study's C_vec_t)
+                 ////      cutpoints): every study with test t in one node, one row per study, shifted by the prior
+                 ////      mean of the intercept (prior intercepts as anchor point), as induced_dirichlet_given_C
                  ////
                  int n_thr_t = n_thr[t];
                  int n_studies_t = n_studies_per_test[t];
@@ -782,7 +782,8 @@ model {
                  matrix[n_studies_t, n_thr_t] C_of_test_t = to_matrix(C_vec[c][first:last], n_thr_t,
                                                                       n_studies_t)';
                  target += nico_induced_dirichlet_prior_of_ordered_cutpoints_lupdf(
-                                 C_of_test_t | to_vector(alpha[c][t, 1:n_cat[t]]), use_probit_link, 0.0);
+                                 C_of_test_t | to_vector(alpha[c][t, 1:n_cat[t]]), use_probit_link,
+                                 prior_beta_mu_mean[t][c, 1]);
               }
           }
           ////

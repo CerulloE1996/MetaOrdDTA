@@ -3,7 +3,7 @@
 ##
 ## ---- DTA_MA_ord_biv_FIXEDthr_Se_Sp_prior_NicoStan_fused_AVX.stan against DTA_MA_ord_biv_FIXEDthr_Se_Sp_prior.stan
 ##      (Stan math): the log density (every constant) and the gradient at 6 random unconstrained points, in 12
-##      settings of the Se/Sp prior (off; each of the 4 prior types at each anchor with the cutoffs 2 and 5 chosen;
+##      settings of the Se/Sp prior (off; each of the 4 prior types with the cutoffs 2 and 5 chosen;
 ##      prior type 1 at the location with every cutoff chosen, likelihood on and off; prior type 4 at the location
 ##      with every cutoff chosen, mean 0 and SD 1, the default); the GAD-2 data set of the sim study and
 ##      the priors of its literature cell. Gate: log density within 1e-8 (relative), gradient within 1e-8 of its
@@ -129,10 +129,10 @@ settings[["off"]] <-  fn_Se_Sp_fields(0, 1, 1, list(c(1, 1), c(1, 1)), list(matr
                                       link_mean_SD_of_one)
 for (prior_type in 1:4) {
 
-      for (anchor in 0:1) {
+      {
 
-            settings[[paste0("type_", prior_type, "_anchor_", anchor, "_cutoffs_2_5")]] <-
-                  fn_Se_Sp_fields(1, anchor, prior_type, chosen_two, A_of_two, beta_ab_of_two,
+            settings[[paste0("type_", prior_type, "_cutoffs_2_5")]] <-
+                  fn_Se_Sp_fields(1, prior_type, chosen_two, A_of_two, beta_ab_of_two,
                                   link_mean_SD_of_two)
 
       }

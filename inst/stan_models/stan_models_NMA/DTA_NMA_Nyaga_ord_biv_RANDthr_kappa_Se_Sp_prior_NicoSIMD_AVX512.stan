@@ -1,4 +1,4 @@
-// NicoSIMD_AVX512 version of DTA_NMA_Nyaga_ord_biv_RANDthr_kappa_Se_Sp_prior.stan written by NicoStan (source model md5 8641f8f29e00e9eae31fefc87f7412ee; NicoSIMD declarations md5 e3c567fd115d2ccf49ec504688009e6b; writer implementation md5 d387df684f8005ca53ed8808961860dc)
+// NicoSIMD_AVX512 version of DTA_NMA_Nyaga_ord_biv_RANDthr_kappa_Se_Sp_prior.stan written by NicoStan (source model md5 929fd01a0f9abc3b9ffb454877845c9c; NicoSIMD declarations md5 e3c567fd115d2ccf49ec504688009e6b; writer implementation md5 d387df684f8005ca53ed8808961860dc)
 // NicoSIMD functions used: log, log1m, inv_logit, log_inv_logit, Phi, log1m_inv_logit, normal_rng, normal, beta, dirichlet, lkj_corr_cholesky, student_t
 
 
@@ -468,12 +468,14 @@ model {
                          vector[n_thr[t]] C_vec_t = get_test_t_study_s_segment_values(
                                                     C_vec[c], t, study_idx, n_thr, n_studies_per_test);
                          ////
+                         real anchor_ct = prior_beta_mu_mean[t][c, 1]; // prior intercepts as anchor point
+                         vector[n_thr[t]] C_shifted = C_vec_t - anchor_ct;
                          vector[n_cat[t]] Ind_Dir_ord_prob = (use_probit_link == 1) ? 
-                                                             cumul_probs_to_ord_probs(nico_Phi(C_vec_t)) :
-                                                             cumul_probs_to_ord_probs(nico_inv_logit(C_vec_t));
+                                                             cumul_probs_to_ord_probs(nico_Phi(C_shifted)) :
+                                                             cumul_probs_to_ord_probs(nico_inv_logit(C_shifted));
                          ////
                          Ind_Dir_ord_prob ~ induced_dirichlet_given_C(
-                                            C_vec_t, alpha_vec, use_probit_link);
+                                            C_shifted, alpha_vec, use_probit_link);
                    }
                  }
               }

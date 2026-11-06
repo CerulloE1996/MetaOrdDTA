@@ -119,13 +119,13 @@ settings[["off_likelihood_on"]] <-  fn_Se_Sp_fields(0, 4, list(c(2, 5), integer(
                                                     list(cbind(c(1, 1), c(1, 1)), NULL),
                                                     list(cbind(c(0, 0), c(1, 1)), NULL))
 settings[["off_prior_only"]] <-  settings[["off_likelihood_on"]]
-for (anchor in 0:1) {
+{
 
-      settings[[paste0("Sp_all_type_4_N_0_1_anchor_", anchor)]] <-
-            fn_Se_Sp_fields(1, anchor, 4, list(1:n_thr, integer(0)), list(rep(1, n_thr + 1), 1),
+      settings[[paste0("Sp_all_type_4_N_0_1")]] <-
+            fn_Se_Sp_fields(1, 4, list(1:n_thr, integer(0)), list(rep(1, n_thr + 1), 1),
                             list(matrix(1, n_thr, 2), NULL), list(cbind(rep(0, n_thr), rep(1, n_thr)), NULL))
-      settings[[paste0("Sp_2_5_type_1_anchor_", anchor)]] <-
-            fn_Se_Sp_fields(1, anchor, 1, list(c(2, 5), integer(0)), list(c(2, 3, 4), 1),
+      settings[[paste0("Sp_2_5_type_1")]] <-
+            fn_Se_Sp_fields(1, 1, list(c(2, 5), integer(0)), list(c(2, 3, 4), 1),
                             list(beta_ab_of_three[1:2, ], NULL), list(mean_SD_of_three[1:2, ], NULL))
 
 }

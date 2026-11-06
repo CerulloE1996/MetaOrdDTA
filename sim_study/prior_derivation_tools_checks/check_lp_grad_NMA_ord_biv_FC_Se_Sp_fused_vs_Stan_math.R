@@ -217,10 +217,10 @@ settings[["off"]] <-  fn_Se_Sp_fields_NMA(0, 1, chosen_of_the_off_setting, off_f
                                           off_field_lists$beta_ab, off_field_lists$link_mean_SD)
 for (prior_type in 1:4) {
 
-      for (anchor in 0:1) {
+      {
 
-            settings[[paste0("type_", prior_type, "_anchor_", anchor)]] <-
-                  fn_Se_Sp_fields_NMA(1, anchor, prior_type, chosen_of_the_on_settings, on_field_lists$A,
+            settings[[paste0("type_", prior_type)]] <-
+                  fn_Se_Sp_fields_NMA(1, prior_type, chosen_of_the_on_settings, on_field_lists$A,
                                       on_field_lists$beta_ab, on_field_lists$link_mean_SD)
 
       }

@@ -1,4 +1,4 @@
-// NicoSIMD_AVX512 version of DTA_MA_ord_HSROC_FIXEDthr_Se_Sp_prior.stan written by NicoStan (source model md5 a153abe6db1399ede2f3b1a67f1493b1; NicoSIMD declarations md5 e3c567fd115d2ccf49ec504688009e6b; writer implementation md5 d387df684f8005ca53ed8808961860dc)
+// NicoSIMD_AVX512 version of DTA_MA_ord_HSROC_FIXEDthr_Se_Sp_prior.stan written by NicoStan (source model md5 97fb17de60fc1ee6131ee19d1a7b62ed; NicoSIMD declarations md5 e3c567fd115d2ccf49ec504688009e6b; writer implementation md5 d387df684f8005ca53ed8808961860dc)
 // NicoSIMD functions used: exp, log1m, inv_logit, log_inv_logit, Phi, log1m_inv_logit, normal_rng, normal, beta, dirichlet
 
 
@@ -320,12 +320,14 @@ model {
                         use_probit_link);
            }
         } else {
+           real anchor_ct = 0.5 * (mult_nd + mult_d) * prior_beta_mu_mean[1]; // prior mean of the mid-location
+           vector[n_thr] C_shifted = C - anchor_ct;
            vector[n_cat] Ind_Dir_ord_prob; //// = cumul_probs_to_ord_probs(Phi(C));
-           if (use_probit_link == 1) Ind_Dir_ord_prob = cumul_probs_to_ord_probs(nico_Phi(C));
-           else                      Ind_Dir_ord_prob = cumul_probs_to_ord_probs(nico_inv_logit(C));
+           if (use_probit_link == 1) Ind_Dir_ord_prob = cumul_probs_to_ord_probs(nico_Phi(C_shifted));
+           else                      Ind_Dir_ord_prob = cumul_probs_to_ord_probs(nico_inv_logit(C_shifted));
            ////
            Ind_Dir_ord_prob ~ induced_dirichlet_given_C(
-                              C, prior_dirichlet_alpha, use_probit_link);
+                              C_shifted, prior_dirichlet_alpha, use_probit_link);
         }
         ////
         //// ---- Likelihood / Model:

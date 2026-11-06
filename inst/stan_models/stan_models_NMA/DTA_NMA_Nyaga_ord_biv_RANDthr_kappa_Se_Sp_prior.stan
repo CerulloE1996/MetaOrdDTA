@@ -412,12 +412,14 @@ model {
                          vector[n_thr[t]] C_vec_t = get_test_t_study_s_segment_values(
                                                     C_vec[c], t, study_idx, n_thr, n_studies_per_test);
                          ////
+                         real anchor_ct = prior_beta_mu_mean[t][c, 1]; // prior intercepts as anchor point
+                         vector[n_thr[t]] C_shifted = C_vec_t - anchor_ct;
                          vector[n_cat[t]] Ind_Dir_ord_prob = (use_probit_link == 1) ? 
-                                                             cumul_probs_to_ord_probs(Phi(C_vec_t)) :
-                                                             cumul_probs_to_ord_probs(inv_logit(C_vec_t));
+                                                             cumul_probs_to_ord_probs(Phi(C_shifted)) :
+                                                             cumul_probs_to_ord_probs(inv_logit(C_shifted));
                          ////
                          Ind_Dir_ord_prob ~ induced_dirichlet_given_C(
-                                            C_vec_t, alpha_vec, use_probit_link);
+                                            C_shifted, alpha_vec, use_probit_link);
                    }
                  }
               }
