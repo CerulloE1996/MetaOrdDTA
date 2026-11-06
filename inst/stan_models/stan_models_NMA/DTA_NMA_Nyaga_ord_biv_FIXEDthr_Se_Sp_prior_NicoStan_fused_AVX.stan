@@ -92,6 +92,8 @@ functions {
                 vector[m + 1] q = cumul_probs_to_ord_probs(P_chosen);
                 ////
                 //// ---- induced Dirichlet minus the Dirichlet of the segment sums:
+                //// (anchor 0.0 on C_shifted = C - C_anchor, i.e. the anchor is C_anchor = the prior mean of the
+                ////  intercept, prior_beta_mu_mean[t][c, 1])
                 ////
                 real log_prob = nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf(
                                 C_shifted | alpha, use_probit_link, 0.0);
@@ -546,7 +548,8 @@ model {
                                  link_mean_SD,
                                  use_probit_link);
                   } else {
-                       //// (as induced_dirichlet_given_C)
+                       //// (as induced_dirichlet_given_C; anchor 0.0 on C_shifted = C - C_anchor, i.e. the anchor
+                       ////  is C_anchor = the prior mean of the intercept, prior_beta_mu_mean[t][c, 1])
                        target += nico_induced_dirichlet_prior_of_ordered_cutpoints_lupdf(
                                  C_shifted | to_vector(prior_dirichlet_alpha[c][t, 1:n_cat_t]),
                                  use_probit_link, 0.0);
