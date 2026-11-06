@@ -16,7 +16,7 @@ R_fn_set_Se_Sp_prior_NMA <-  function(priors,
                                       n_thr) {
 
       n_thr_max <-  max(n_thr)
-      if (random_thresholds == FALSE && is.null(priors$anchor_at_location)) {
+      if (is.null(priors$anchor_at_location)) {
             priors$anchor_at_location <-  1
       }
       ##

@@ -79,7 +79,7 @@ fn_accuracy_prior_bank_from_a_MetaOrdDTA_model <- function(model_samples_obj,
         DTA_MA_ord_biv_FIXEDthr.stan = "DTA_MA_ord_biv_FIXEDthr.stan",
         DTA_MA_Gat_RANDthr_kappa.stan = "DTA_MA_ord_HSROC_RANDthr_kappa.stan"
     )
-    recorded_basename <- sub("_Se_Sp_prior[.]stan$", ".stan", basename(recorded_model_file))
+    recorded_basename <- sub("(_popmed)?_Se_Sp_prior[.]stan$", ".stan", basename(recorded_model_file))
     expected_basename <- paste0(model_code, ".stan")
 
     if (identical(recorded_basename, expected_basename)) {
