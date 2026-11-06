@@ -271,9 +271,6 @@ parameters {
         real<lower=beta_corr_lb, upper=beta_corr_ub> beta_corr;  //// between-study corr (possibly restricted)  
         //// 
         array[2] vector<lower=-15, upper=2.5>[n_thr] C_raw_vec;   //// Global cutpoints ("raw" / unconstrained) 
-        /// array[2] vector[n_thr] C_raw_vec; 
-        ////
-        // matrix[n_studies, 2] beta_random;
 }  
 
 
@@ -304,14 +301,10 @@ transformed parameters {
         ////
         //// ---- Study-level random effects (after Cholesky decomposition):
         ////
-        // matrix[n_studies, 2] beta_random;
-        // for (s in 1:n_studies) {
-        //      beta_random[s, ] =  beta_z[s, ] * beta_L_Sigma;
-        // }
-
-        //// (every study's row times beta_L_Sigma at once)
-        // matrix[n_studies, 2] beta_random = beta_z * beta_L_Sigma;
-        matrix[n_studies, 2] beta_random = to_matrix(beta_z) * beta_L_Sigma;
+        matrix[n_studies, 2] beta_random;
+        for (s in 1:n_studies) {
+             beta_random[s, ] =  beta_z[s, ] * beta_L_Sigma;
+        }
         ////
         //// ---- Linear predictors for each disease statu + apply covariates for non-diseased and diseased groups:
         ////
@@ -351,6 +344,7 @@ model {
         ////
         for (c in 1:2) {
              vector[n_thr] C_shifted = C[c] - C_anchor[c];
+             ////
              if (use_Se_Sp_prior == 1 && n_chosen[c] > 0) {
                   int m = n_chosen[c];
                   matrix[m, 2] beta_ab = prior_Se_Sp_beta[c][1:m, ];
@@ -369,8 +363,7 @@ model {
                             link_mean_SD,
                             use_probit_link);
              } else {
-                  //// (as induced_dirichlet_given_C, for each class; anchor 0.0 on C_shifted = C - C_anchor, i.e.
-                  ////  the anchor is C_anchor = the prior mean of the intercept, prior_beta_mu_mean[c, 1])
+                  //// (as induced_dirichlet_given_C, for each class)
                   target += nico_induced_dirichlet_prior_of_ordered_cutpoints_lupdf(
                             C_shifted | prior_dirichlet_alpha[c], use_probit_link, 0.0);
              }
@@ -391,19 +384,6 @@ model {
         ////
         //// ---- Log-likelihood:
         ////
-        // {
-        //     ////
-        //     //// ---- Get the cutpoint index (k) to map "latent_surv[c][s, cut_i]" to correct cutpoint "C[k]":
-        //     ////
-        //     // real scale = 1.0; // since using "ord_bivariate-like"" param.
-        //     array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_to_fixed_hetero_C(
-        //                                                     C, Xbeta, n_studies,
-        //                                                     n_obs_cutpoints, cutpoint_index);
-        //     target += compute_log_lik_binomial_fact_lp(
-        //               latent_surv, use_probit_link, n_thr, n_studies,
-        //               x_2, n, N_total, n_obs_cutpoints,
-        //               K_fold_CV_indicator);
-        // }
         {
             ////
             //// ---- every term in one autodiff node: nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf
