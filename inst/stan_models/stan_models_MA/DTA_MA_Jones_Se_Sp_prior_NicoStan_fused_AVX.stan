@@ -50,17 +50,28 @@ functions {
         real nico_normal_lpdf(vector y, vector mu, vector sigma);
         real nico_normal_lpdf(real y, real mu, real sigma);
         ////
-        //// ---- Box-Cox of positive data values (as fn_Stan_box_cox: pow(x, lambda) = exp(lambda * log(x)), with
-        //// ---- the log of the data computed once, in transformed data):
+        //// ---- Vectorized Box-Cox transform function (fn_Stan_box_cox of Stan_fns_Box_Cox.stan, with nico_log):
         ////
-        vector box_cox_of_positive_data_values(data vector log_x,
-                                               real lambda) {
-
+        vector fn_nico_box_cox( vector x, 
+                                real lambda) {
+              
+              int N = num_elements(x);
+              vector[N] result;
+              
+              for (n in 1:N) {
                 if (lambda == 0.0) {
-                     return log_x;
+                    if (x[n] != 0.0) {
+                      result[n] = nico_log(x[n]);
+                    } else {
+                      result[n] = -700.0;
+                    }
+                } else {
+                    result[n] = (pow(x[n], lambda) - 1.0) / lambda;
                 }
-                return (nico_exp(lambda * log_x) - 1.0) / lambda;
-
+              }
+              
+              return result;
+              
         }
         ////
         //// ---- Probability-scale Beta or link-scale Normal at chosen cutoffs:
@@ -222,12 +233,6 @@ transformed data {
               }
        }
         ////
-        //// ---- The log of the shifted threshold values (the data of the Box-Cox cutpoints):
-        ////
-        real min_thr_of_the_data = min(cts_thr_values);
-        real shift_of_the_data = min_thr_of_the_data <= 0 ? abs(min_thr_of_the_data) + 1.0 : 0.0;
-        vector[n_thr] log_cts_thr_shifted = nico_log(cts_thr_values + shift_of_the_data);
-        ////
         //// ---- The terms of the likelihood, one per reported cutpoint of each study and class (its counts and
         ////      its places in the locations, the scales and the cutpoints):
         ////
@@ -294,9 +299,8 @@ transformed parameters {
         ////
         array[2] vector[n_thr] C_raw;  // Unconstrained Box-Cox output
         array[2] vector[n_thr] C;      // Scaled to [-2, +2]
-        //// (both lines below are overwritten by Step 2, as in the source model)
-        // C_raw[1] = ((box_cox == 0) ? log(cts_thr_values) : fn_Stan_box_cox(cts_thr_values, lambda[1]));
-        // C_raw[2] = ((box_cox == 0) ? log(cts_thr_values) : fn_Stan_box_cox(cts_thr_values, lambda[2]));
+        C_raw[1] = ((box_cox == 0) ? nico_log(cts_thr_values) : fn_nico_box_cox(cts_thr_values, lambda[1]));
+        C_raw[2] = ((box_cox == 0) ? nico_log(cts_thr_values) : fn_nico_box_cox(cts_thr_values, lambda[2]));
         ////
         // Step 1: Shift to positive if needed
         real min_thr = min(cts_thr_values);
@@ -304,11 +308,8 @@ transformed parameters {
         vector[n_thr] cts_thr_shifted = cts_thr_values + shift;
 
         // Step 2: Apply Box-Cox
-        // C_raw[1] = fn_Stan_box_cox(cts_thr_shifted, lambda[1]);
-        // C_raw[2] = fn_Stan_box_cox(cts_thr_shifted, lambda[2]);
-        //// (as fn_Stan_box_cox, with nico_exp: the log of cts_thr_shifted is log_cts_thr_shifted)
-        C_raw[1] = box_cox_of_positive_data_values(log_cts_thr_shifted, lambda[1]);
-        C_raw[2] = box_cox_of_positive_data_values(log_cts_thr_shifted, lambda[2]);
+        C_raw[1] = fn_nico_box_cox(cts_thr_shifted, lambda[1]);
+        C_raw[2] = fn_nico_box_cox(cts_thr_shifted, lambda[2]);
 
         // Step 3: Scale to [-2, +2] range
         for (c in 1:2) {
