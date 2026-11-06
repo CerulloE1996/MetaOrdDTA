@@ -283,7 +283,9 @@ model {
                        vector[n_covariates_c] baseline = (c == 1) ? baseline_case_nd : baseline_case_d;
                        real location = dot_product(baseline, to_vector(beta_mu[c, 1:n_covariates_c]));
                        real raw_scale = dot_product(baseline, to_vector(raw_scale_mu[c, 1:n_covariates_c]));
+                       ////
                        real scale = (softplus == 1) ? softplus_scaled(raw_scale) : exp(raw_scale);
+                       ////
                        vector[m] C_baseline = (C[c][chosen_cutoffs[c, 1:m]] - location) / scale;
                        matrix[m, 2] beta_ab = prior_Se_Sp_beta[c][1:m, ];
                        matrix[m, 2] link_mean_SD = prior_Se_Sp_link_mean_SD[c][1:m, ];
@@ -297,6 +299,7 @@ model {
                        target += Se_Sp_prior_at_chosen_cutoffs_lpdf(
                                  C_baseline | Se_Sp_prior_type, beta_ab, link_mean_SD, use_probit_link);
                        target += log(abs(baseline[1])) - log(scale);
+                       ////
                        if (m >= 2) {
                             real log_scale_derivative = (softplus == 1) ?
                                   log_inv_logit(raw_scale) - log(log(2.0)) : raw_scale;
