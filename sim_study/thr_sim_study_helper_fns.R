@@ -1525,3 +1525,110 @@ calc_min_sim_size_RMSE <- function( metrics,
 
 
 
+##
+## ---- Induced-accuracy priors of each model and prior set (0, 1 or 2) --------------------------------------------------------------
+##
+## (prior set 0: O-biv-FC, O-biv-RC and O-HSROC-RC get a Dirichlet(1, ..., 1) on the segment probabilities at every cutoff,
+##  i.e. Sp_k ~ Beta(k, K + 1 - k) and Se_k ~ Beta(K + 1 - k, k), and Jones the same Beta at its two cutoffs; prior sets 1
+##  and 2: N(a, b) on probit Se and probit Sp at the chosen cutoffs of each test. Every model gets the same values, on its
+##  summary Se and Sp. The stratified bivariate gets N(0, 1) on everything (set 0) and the N(a, b) of sets 1 and 2 at
+##  their cutoffs.)
+##
+fn_induced_accuracy_priors <- function(priors,
+                                       model_parameterisation,
+                                       test,
+                                       n_thr,
+                                       prior_set) {
+
+        stopifnot(prior_set %in% c(0, 1, 2), test %in% c("GAD_2", "HADS", "BAI"),
+                  model_parameterisation %in% c("ord_bivariate", "R&G", "Jones", "Bivariate"))
+        ##
+        ## ---- Prior sets 1 and 2 on the probit scale (Table "Informative induced-accuracy priors"):
+        ##
+        literature_priors <- list(
+              GAD_2 = list(cutoffs = c(2, 3),
+                           Se_mean = list(c(1.04, 0.39), c(1.55, 0.77)), Se_SD = c(0.26, 0.20),
+                           Sp_mean = list(c(0.47, 1.08), c(0.86, 1.61)), Sp_SD = c(0.20, 0.27)),
+              HADS  = list(cutoffs = c(8, 11),
+                           Se_mean = list(c(0.92, 0.18), c(1.39, 0.55)), Se_SD = c(0.24, 0.19),
+                           Sp_mean = list(c(0.61, 1.28), c(1.02, 1.89)), Sp_SD = c(0.21, 0.31)),
+              BAI   = list(cutoffs = c(8, 16, 26),
+                           Se_mean = list(c(1.41, 0.67, -0.08), c(2.07, 1.10, 0.31)), Se_SD = c(0.34, 0.21, 0.19),
+                           Sp_mean = list(c(0.13, 0.88, 1.48), c(0.50, 1.34, 2.18)), Sp_SD = c(0.19, 0.24, 0.36))
+        )[[test]]
+        ## (the band of thresholds of each test, and the SD of the O-biv-FC intercept prior of each set)
+        band <-  list(GAD_2 = 1:6, HADS = 3:17, BAI = 5:43)[[test]]
+        SD_of_the_intercept <-  if (prior_set == 0) 1.0 else c(HADS = 0.20, GAD_2 = 0.25, BAI = 0.35)[[test]]
+        ##
+        ## ---- The cutoffs and the link-scale Normal of class 1 (Sp) and class 2 (Se) of each model:
+        ##
+        is_an_ordinal_model <-  model_parameterisation %in% c("ord_bivariate", "R&G")
+        Se_Sp_prior_type <-  4
+        if (prior_set == 0) {
+              if (is_an_ordinal_model) {
+                    Se_Sp_prior_type <-  1
+                    cutoffs <-  1:n_thr
+                    mean_of_Sp <-  rep(0, n_thr)
+                    SD_of_Sp <-  rep(1, n_thr)
+                    mean_of_Se <-  rep(0, n_thr)
+                    SD_of_Se <-  rep(1, n_thr)
+              } else if (model_parameterisation == "Jones") {
+                    Se_Sp_prior_type <-  1
+                    cutoffs <-  range(band)
+                    mean_of_Sp <-  rep(0, 2)
+                    SD_of_Sp <-  rep(1, 2)
+                    mean_of_Se <-  rep(0, 2)
+                    SD_of_Se <-  rep(1, 2)
+              } else {
+                    cutoffs <-  1:n_thr
+                    mean_of_Sp <-  rep(0, n_thr)
+                    SD_of_Sp <-  rep(1, n_thr)
+                    mean_of_Se <-  rep(0, n_thr)
+                    SD_of_Se <-  rep(1, n_thr)
+              }
+        } else {
+              cutoffs <-  literature_priors$cutoffs
+              mean_of_Sp <-  literature_priors$Sp_mean[[prior_set]]
+              SD_of_Sp <-  literature_priors$Sp_SD
+              mean_of_Se <-  literature_priors$Se_mean[[prior_set]]
+              SD_of_Se <-  literature_priors$Se_SD
+        }
+        n_chosen <-  length(cutoffs)
+        ##
+        ## ---- The Se / Sp prior fields (row 1 Sp and row 2 Se, but row 1 Se and row 2 Sp for the stratified bivariate):
+        ##
+        link_mean_SD_of_Sp <-  cbind(mean_of_Sp, SD_of_Sp, deparse.level = 0)
+        link_mean_SD_of_Se <-  cbind(mean_of_Se, SD_of_Se, deparse.level = 0)
+        priors$use_Se_Sp_prior <-  1
+        priors$Se_Sp_prior_type <-  Se_Sp_prior_type
+        priors$n_chosen_cutoffs_max <-  n_chosen
+        priors$n_chosen_cutoffs <-  c(n_chosen, n_chosen)
+        priors$chosen_cutoffs <-  rbind(cutoffs, cutoffs, deparse.level = 0)
+        ## (type 1: the Dirichlet(1, ..., 1) of the n_thr + 1 categories summed over the segments between the cutoffs)
+        priors$prior_Se_Sp_dirichlet_A <-  list(diff(c(0, cutoffs, n_thr + 1)), diff(c(0, cutoffs, n_thr + 1)))
+        ## (type 2: Sp_k ~ Beta(k, K + 1 - k) in row 1 and Se_k ~ Beta(K + 1 - k, k) in row 2)
+        priors$prior_Se_Sp_beta <-  list(cbind(cutoffs, n_thr + 1 - cutoffs, deparse.level = 0),
+                                         cbind(n_thr + 1 - cutoffs, cutoffs, deparse.level = 0))
+        priors$prior_Se_Sp_link_mean_SD <-  if (model_parameterisation == "Bivariate")
+                                                  list(link_mean_SD_of_Se, link_mean_SD_of_Sp) else
+                                                  list(link_mean_SD_of_Sp, link_mean_SD_of_Se)
+        ##
+        ## ---- The Dirichlet alpha the induced-accuracy prior divides out, and the intercept priors:
+        ##
+        if (model_parameterisation == "ord_bivariate") {
+              priors$prior_dirichlet_alpha <-  list(rep(1.0, n_thr + 1), rep(1.0, n_thr + 1))
+              priors$prior_beta_mu_mean[1, 1] <-  0
+              priors$prior_beta_mu_mean[2, 1] <-  0
+              priors$prior_beta_mu_SD[1, 1] <-  SD_of_the_intercept
+              priors$prior_beta_mu_SD[2, 1] <-  SD_of_the_intercept
+        } else if (model_parameterisation == "R&G") {
+              priors$prior_dirichlet_alpha <-  rep(1.0, n_thr + 1)
+              priors$prior_beta_mu_mean[1] <-  0
+              priors$prior_beta_mu_SD[1] <-  SD_of_the_intercept
+        } else if (model_parameterisation == "Bivariate") {
+              priors$prior_mu_mean <-  list(rep(0, n_thr), rep(0, n_thr))
+              priors$prior_mu_SD <-  list(rep(1, n_thr), rep(1, n_thr))
+        }
+        return(priors)
+
+}
