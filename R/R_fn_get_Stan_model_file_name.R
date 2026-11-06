@@ -58,9 +58,9 @@ R_fn_get_stan_model_file_name <- function( custom_file_name,
                       Dirichlet_random_effects_type <- "none"
                   }
                   ##
-                  ## (the MA random-cutpoint models are the pop-median ones)
+                  ## (the random-cutpoint models, MA and NMA, are the pop-median ones)
                   ##
-                  if (network == FALSE && random_thresholds == TRUE) {
+                  if (random_thresholds == TRUE) {
                       file_string_4 <- paste0(file_string_4, "_popmed")
                   }
                   ##
@@ -110,6 +110,13 @@ R_fn_get_stan_model_file_name <- function( custom_file_name,
         ##
         if (grepl("ord_HSROC_FIXEDthr", stan_model_file_name, fixed = TRUE)) {
           stop("The ordinal-HSROC (R&G) model has random cutpoints only: set random_thresholds = TRUE.")
+        }
+        ##
+        ## The random-cutpoint models are the pop-median ones only, MA and NMA:
+        ##
+        if (grepl("RANDthr", stan_model_file_name, fixed = TRUE) &&
+            !grepl("_popmed", stan_model_file_name, fixed = TRUE)) {
+          stop("The random-cutpoint models are the pop-median ones only (their file names have _popmed).")
         }
         ##
         ## One Stan file per model, its _Se_Sp_prior file: use_Se_Sp_prior = 0 is the model's own prior on the
