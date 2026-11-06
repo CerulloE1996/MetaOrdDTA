@@ -102,8 +102,14 @@ R_fn_get_stan_model_file_name <- function( custom_file_name,
         ##
          ### return(stan_model_file_name)
         
-        if (!(is.null(custom_file_name))) { 
+        if (!(is.null(custom_file_name))) {
           stan_model_file_name <- custom_file_name
+        }
+        ##
+        ## The ordinal-HSROC model has random cutpoints only (its fixed-cutpoint version is not a valid model):
+        ##
+        if (grepl("ord_HSROC_FIXEDthr", stan_model_file_name, fixed = TRUE)) {
+          stop("The ordinal-HSROC (R&G) model has random cutpoints only: set random_thresholds = TRUE.")
         }
         ##
         ## One Stan file per model, its _Se_Sp_prior file: use_Se_Sp_prior = 0 is the model's own prior on the

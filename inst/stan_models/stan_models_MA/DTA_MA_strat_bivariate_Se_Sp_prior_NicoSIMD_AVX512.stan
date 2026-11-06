@@ -4,36 +4,36 @@
 
 
 functions {
-    real bmvp_simd_lanes();
-    real nico_inv_logit(real x);
-    real nico_log_inv_logit(real x);
-    real nico_Phi(real x);
-    real nico_log1m_inv_logit(real x);
-    vector nico_inv_logit(vector x);
-    vector nico_log_inv_logit(vector x);
-    vector nico_Phi(vector x);
-    vector nico_log1m_inv_logit(vector x);
-    row_vector nico_inv_logit(row_vector x);
-    row_vector nico_log_inv_logit(row_vector x);
-    row_vector nico_Phi(row_vector x);
-    row_vector nico_log1m_inv_logit(row_vector x);
-    matrix nico_inv_logit(matrix x);
-    matrix nico_log_inv_logit(matrix x);
-    matrix nico_Phi(matrix x);
-    matrix nico_log1m_inv_logit(matrix x);
-    real nico_normal_lpdf(vector y, vector mu, vector sigma);
-    real nico_normal_lpdf(vector y, vector mu, real sigma);
-    real nico_normal_lpdf(vector y, real mu, vector sigma);
-    real nico_normal_lpdf(vector y, real mu, real sigma);
-    real nico_normal_lpdf(row_vector y, row_vector mu, row_vector sigma);
-    real nico_normal_lpdf(array[] real y, vector mu, vector sigma);
-    real nico_normal_lpdf(array[] real y, vector mu, real sigma);
-    real nico_normal_lpdf(array[] real y, real mu, vector sigma);
-    real nico_normal_lpdf(array[] real y, real mu, real sigma);
-    real nico_normal_lpdf(real y, real mu, real sigma);
-    real nico_beta_lpdf(real y, data real alpha, data real beta);
-    real nico_beta_lpdf(vector y, vector alpha, vector beta);
-    real nico_lkj_corr_cholesky_lpdf(matrix L, data real eta);
+        real bmvp_simd_lanes();
+        real nico_inv_logit(real x);
+        real nico_log_inv_logit(real x);
+        real nico_Phi(real x);
+        real nico_log1m_inv_logit(real x);
+        vector nico_inv_logit(vector x);
+        vector nico_log_inv_logit(vector x);
+        vector nico_Phi(vector x);
+        vector nico_log1m_inv_logit(vector x);
+        row_vector nico_inv_logit(row_vector x);
+        row_vector nico_log_inv_logit(row_vector x);
+        row_vector nico_Phi(row_vector x);
+        row_vector nico_log1m_inv_logit(row_vector x);
+        matrix nico_inv_logit(matrix x);
+        matrix nico_log_inv_logit(matrix x);
+        matrix nico_Phi(matrix x);
+        matrix nico_log1m_inv_logit(matrix x);
+        real nico_normal_lpdf(vector y, vector mu, vector sigma);
+        real nico_normal_lpdf(vector y, vector mu, real sigma);
+        real nico_normal_lpdf(vector y, real mu, vector sigma);
+        real nico_normal_lpdf(vector y, real mu, real sigma);
+        real nico_normal_lpdf(row_vector y, row_vector mu, row_vector sigma);
+        real nico_normal_lpdf(array[] real y, vector mu, vector sigma);
+        real nico_normal_lpdf(array[] real y, vector mu, real sigma);
+        real nico_normal_lpdf(array[] real y, real mu, vector sigma);
+        real nico_normal_lpdf(array[] real y, real mu, real sigma);
+        real nico_normal_lpdf(real y, real mu, real sigma);
+        real nico_beta_lpdf(real y, data real alpha, data real beta);
+        real nico_beta_lpdf(vector y, vector alpha, vector beta);
+        real nico_lkj_corr_cholesky_lpdf(matrix L, data real eta);
         ////
         //// ---- Include files to compile the necessary custom (user-defined) Stan functions:
         ////
