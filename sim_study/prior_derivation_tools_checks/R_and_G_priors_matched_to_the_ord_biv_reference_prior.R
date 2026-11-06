@@ -42,7 +42,7 @@
 model <-  cmdstanr::cmdstan_model(file.path(checks_dir, "prior_model_for_R_and_G_params.stan"),
                                   include_paths = file.path(local_pkg_dir, "inst", "stan_functions"))
 names_of_the_params <-  c("prior_beta_mu_mean", "prior_beta_mu_SD", "prior_raw_scale_mu_mean", "prior_raw_scale_mu_SD",
-                          "sigma[1]", "sigma[2]")
+                          "sigma")
 ##
 ## ---- Function: the reference trace of a test (the prior-only ordinal-bivariate fit under the flat prior or a prior set) -----------
 ##
@@ -109,7 +109,7 @@ for (reference in references_to_match) {
                              prior_beta_mu_SD = fn_median_of("prior_beta_mu_SD"),
                              prior_raw_scale_mu_mean = fn_median_of("prior_raw_scale_mu_mean"),
                              prior_raw_scale_mu_SD = fn_median_of("prior_raw_scale_mu_SD"),
-                             sigma = c(fn_median_of("sigma[1]"), fn_median_of("sigma[2]")),
+                             sigma = fn_median_of("sigma"),
                              reference = trace$source,
                              n_draws_of_the_reference = nrow(trace$Se))
             matched_priors[[paste0(if (reference == "flat") "flat_" else paste0("prior_set_", reference, "_"), test)]] <-  matched
@@ -119,7 +119,7 @@ for (reference in references_to_match) {
                                                     beta_mu_SD = round(matched$prior_beta_mu_SD, 3),
                                                     raw_scale_mu_mean = round(matched$prior_raw_scale_mu_mean, 3),
                                                     raw_scale_mu_SD = round(matched$prior_raw_scale_mu_SD, 3),
-                                                    sigma = paste(round(matched$sigma, 3), collapse = " / "),
+                                                    sigma = round(matched$sigma, 3),
                                                     min_ESS = round(min(summary_of_the_fit$n_eff, summary_of_the_fit$n_eff_tail,
                                                                         summary_of_the_fit$n_eff_sd)),
                                                     largest_R_hat = round(max(summary_of_the_fit$Rhat), 4),

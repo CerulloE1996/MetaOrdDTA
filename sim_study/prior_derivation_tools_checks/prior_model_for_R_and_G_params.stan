@@ -56,9 +56,10 @@ parameters {
         vector[N] raw_scale_mu;
         matrix<lower=-15, upper=2.5>[N, n_thr] C_raw; //// restricting solves divs/numerical stab. issues w/ lots of sparse categories!
         ////
-        //// ---- The spread of the reference draws around the ordinal-HSROC curve of each class:
+        //// ---- The spread of the reference draws around the ordinal-HSROC curve, one for both classes (a spread per
+        //// ---- class lets the free cutpoints copy one class exactly and that class's spread go to zero):
         ////
-        vector<lower=0.0>[2] sigma;
+        real<lower=0.0> sigma;
 }
 
 
@@ -113,9 +114,9 @@ model {
                                      softplus_scaled(-mult_d  * raw_scale_mu[i]) : exp(-mult_d  * raw_scale_mu[i]));
             ////
             target += normal_lpdf( to_vector(probit_Sp_draws_to_copy[i, ]) |
-                                   (to_vector(C[i, ]) + mult_nd * beta_mu[i]) * scale_nd_baseline, sigma[1]);
+                                   (to_vector(C[i, ]) + mult_nd * beta_mu[i]) * scale_nd_baseline, sigma);
             target += normal_lpdf( to_vector(probit_Se_draws_to_copy[i, ]) |
-                                   -(to_vector(C[i, ]) + mult_d * beta_mu[i]) * scale_d_baseline, sigma[2]);
+                                   -(to_vector(C[i, ]) + mult_d * beta_mu[i]) * scale_d_baseline, sigma);
         }
 
 }
