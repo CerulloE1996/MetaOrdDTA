@@ -245,7 +245,11 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                     ## ---- priors  (OPTIONAL - user-inputted element-by-element)
                     ##
                     priors = NULL,
-                    #' @field priors  An R list of priors. Default will depend on model.
+                    #' @field priors  An R list of priors. Default will depend on model. priors$Se_Sp_prior puts a
+                    #' direct prior on Se and Sp at chosen cutoffs (the model's own prior on the cutpoints otherwise):
+                    #' list(type = 4, Sp = list(cutoffs, median, lower, upper), Se = list(cutoffs, median, lower, upper))
+                    #' for a Normal on the link scale; type = 1 a Dirichlet on the segment sums (each class: cutoffs, A);
+                    #' type = 2 a Beta on each Se / Sp and type = 3 a Beta on each step (each class: cutoffs, beta).
                     ##
                     ## ---- initial values for each chain (OPTIONAL - user-inputted element-by-element)
                     ##

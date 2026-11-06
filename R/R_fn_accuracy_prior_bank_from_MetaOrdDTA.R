@@ -24,7 +24,7 @@ fn_accuracy_prior_bank_from_MetaOrdDTA <- function(native_prior_draws,
     }
 
     if (!is.character(model_file) || length(model_file) != 1 || !file.exists(model_file)
-        || basename(model_file) != paste0(model_code, ".stan")) {
+        || !(basename(model_file) %in% paste0(model_code, c(".stan", "_Se_Sp_prior.stan")))) {
         stop("Supply the actual original native Stan file corresponding to model_code.")
     }
 

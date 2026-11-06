@@ -169,33 +169,32 @@ run_multiple_sims <- function(MCMC_seed,
           use_custom_file <- FALSE
           custom_file_name <- NULL
           ##
+          ## (one file per model: its Se_Sp_prior fused AVX file; use_Se_Sp_prior = 0 is the model's own Dirichlet prior)
           if (model_parameterisation == "Bivariate") {
               use_custom_file  <- TRUE
-               custom_file_name <- "DTA_MA_strat_bivariate_NicoStan_fused_AVX.stan"
+              custom_file_name <- "DTA_MA_strat_bivariate_Se_Sp_prior_NicoStan_fused_AVX.stan"
           }
-          ## (fused AVX ord_biv / ord_HSROC models: NicoSIMD header as the user header, run on cmdstanr)
           if (model_parameterisation %in% c("ord_bivariate", "R&G")) {
               use_custom_file  <- TRUE
               name_of_the_model_family <- if (model_parameterisation == "ord_bivariate") "DTA_MA_ord_biv_" else
                                           "DTA_MA_ord_HSROC_"
               custom_file_name <- paste0(name_of_the_model_family,
                                          if (random_thresholds) "RANDthr_kappa" else "FIXEDthr",
-                                         "_NicoStan_fused_AVX.stan")
+                                         "_Se_Sp_prior_NicoStan_fused_AVX.stan")
           }
-          ## (the Jones model: its fused AVX file, as the other models)
           if (model_parameterisation == "Jones") {
               use_custom_file  <- TRUE
-              custom_file_name <- "DTA_MA_Jones_NicoStan_fused_AVX.stan"
+              custom_file_name <- "DTA_MA_Jones_Se_Sp_prior_NicoStan_fused_AVX.stan"
           }
           if (any(candidate_route)) {
               custom_file_name <- scenario_row$custom_file_name[[1]]
               use_custom_file <- TRUE
           }
-          ## (STAN_MATH_ONLY_MODEL = 1: the Stan::math-only file of the model, with no user header)
+          ## (STAN_MATH_ONLY_MODEL = 1: the model's own Stan file, Stan::math only, no user header)
           Stan_math_only_model <- Sys.getenv("STAN_MATH_ONLY_MODEL") == "1"
           custom_file_name_to_compile <- custom_file_name
           if (Stan_math_only_model && use_custom_file) {
-              custom_file_name_to_compile <- sub("_NicoStan_fused_AVX[.]stan$", "_Stan_math_only.stan", custom_file_name)
+              custom_file_name_to_compile <- sub("_NicoStan_fused_AVX[.]stan$", ".stan", custom_file_name)
           }
           CPU_has_AVX512 <- any(grepl("\\bavx512f\\b", readLines("/proc/cpuinfo", warn = FALSE)))
           ## (the compiler flags: AVX-512 on the local-HPC, AVX2 on the laptop)
@@ -628,15 +627,14 @@ run_multiple_sims <- function(MCMC_seed,
           ##
           ## ---- The direct Se/Sp prior: type 4, N(0, 1) on probit Sp and probit Se at every cutoff ----------------------------------
           ##
-          ## (the pop-median models too: with "Dirichlet" their own fields, the prior off, replace these below)
-          if (model_parameterisation %in% c("ord_bivariate", "R&G") && 
-              alpha_pi == "one" && 
-              # !any(candidate_route)) {
-              (!any(candidate_route) || is_a_pop_median_model)) {
+          ## (every model file is a Se_Sp_prior file, so the fields are always passed; the prior is on only for the
+          ##  alpha_pi = "one" cells with ordinal_prior_type "Se_Sp"; the pop-median models with "Dirichlet" replace
+          ##  these fields below with their own)
+          if (!any(candidate_route) || is_a_pop_median_model) {
     
                     # priors$use_Se_Sp_prior <- 1 ## switches the direct Se/Sp prior on. With 0, the model uses its own Dirichlet prior on the cutpoints, unchanged.
                     # priors$use_Se_Sp_prior <- 0
-                    priors$use_Se_Sp_prior <- if (ordinal_prior_type == "Se_Sp") 1 else 0
+                    priors$use_Se_Sp_prior <- if (ordinal_prior_type == "Se_Sp" && alpha_pi == "one") 1 else 0
                     ##
                     priors$Se_Sp_prior_type <- 4 ## type 4 is a Normal on the probit scale of Sp and Se at the chosen cutoffs. Type 1 is a Dirichlet, types 2-3 are Betas.
                     ##

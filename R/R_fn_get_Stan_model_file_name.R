@@ -100,9 +100,12 @@ R_fn_get_stan_model_file_name <- function( custom_file_name,
           stan_model_file_name <- custom_file_name
         }
         ##
-        ## The model's _Se_Sp_prior file when the user gives direct Se / Sp priors (priors$Se_Sp_prior):
+        ## One Stan file per MA model, its _Se_Sp_prior file: use_Se_Sp_prior = 0 is the model's own prior on the
+        ## cutpoints, 1 the direct Se / Sp prior (priors$Se_Sp_prior); the NMA models switch only with the prior
+        ## on.
         ##
-        if (use_Se_Sp_prior == TRUE && !grepl("_Se_Sp_prior", stan_model_file_name, fixed = TRUE)) {
+        if ((network == FALSE || use_Se_Sp_prior == TRUE) &&
+            !grepl("_Se_Sp_prior", stan_model_file_name, fixed = TRUE)) {
           stan_model_file_name <- sub("(_NicoStan_fused_AVX)?[.]stan$",
                                       "_Se_Sp_prior\\1.stan",
                                       stan_model_file_name)
