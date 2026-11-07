@@ -350,18 +350,21 @@ transformed parameters {
 
 
 model { 
-        // for (c in 1:2) {
-        //   target += stickbreaking_logistic_simplex_constrain_lp(raw_dirichlet_phi[c]);
-        // }
         ////
         //// ---- Priors: 
         ////
+        beta_mu[1, 1:n_covariates_nd] ~ nico_normal(
+                                          prior_beta_mu_mean[1, 1:n_covariates_nd],
+                                          prior_beta_mu_SD[1, 1:n_covariates_nd]);
+        beta_mu[2, 1:n_covariates_d]  ~ nico_normal(
+                                          prior_beta_mu_mean[2, 1:n_covariates_d],
+                                          prior_beta_mu_SD[2, 1:n_covariates_d]);
         ////
         to_vector(beta_SD) ~ nico_normal(prior_beta_SD_mean, prior_beta_SD_SD);
-        beta_L_Omega ~ nico_lkj_corr_cholesky(prior_beta_corr_LKJ); 
+        beta_L_Omega ~ nico_lkj_corr_cholesky(prior_beta_corr_LKJ);
         ////
-        real Xbeta_baseline_nd = dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd]));
-        real Xbeta_baseline_d  = dot_product(baseline_case_d,  to_vector(beta_mu[2, 1:n_covariates_d]));
+        // real Xbeta_baseline_nd = dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd]));
+        // real Xbeta_baseline_d  = dot_product(baseline_case_d,  to_vector(beta_mu[2, 1:n_covariates_d]));
         ////
         for (c in 1:2) {
            log_kappa[c] ~ nico_student_t(prior_kappa_dof[c], prior_kappa_mean[c], prior_kappa_SD[c]);
@@ -379,8 +382,11 @@ model {
                                                                     prior_beta_of_this_class[, 1]);
                          }
                     }
+                    real Xbeta_baseline = (c == 1) ?
+                        dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd])) :
+                        dot_product(baseline_case_d,  to_vector(beta_mu[2, 1:n_covariates_d]));
                     ////
-                    //// (the shapes of the Beta of each cutpoint from alpha itself: sum(alpha) = kappa + 0.01 * n_cat)
+                    //// ---- C_mu: ---- (the shapes of the Beta of each cutpoint from alpha itself: sum(alpha) = kappa + 0.01 * n_cat)
                     ////
                     real alpha_0 = sum(alpha[c]);
                     vector[n_thr] P_of_alpha = cumulative_sum(alpha[c][1:n_thr]) / alpha_0;
@@ -394,27 +400,24 @@ model {
                                                                                                 P_upper_of_alpha[k],
                                                                                                 alpha_0,
                                                                                                 use_probit_link);
-                         C_mu[j]  = prior_beta_mu_mean[c, 1] + median_and_log_J[1]; // prior_beta_mu_mean = anchor.
+                         C_mu[j]  = Xbeta_baseline + median_and_log_J[1]; // Xbeta_baseline = anchor.
                          log_J[j] = median_and_log_J[2] + nico_log(kappa[c] / alpha_0);
                     }
                     ////
                     target += nico_dirichlet_with_Se_Sp_prior_lupdf(
                               dirichlet_phi[c] | log_J, 
-                              C_mu - ((c == 1) ? Xbeta_baseline_nd : Xbeta_baseline_d),
+                              C_mu - Xbeta_baseline,
                               prior_dirichlet_alpha[c],
                               alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
-                              chosen_cutoffs[c, 1:n_chosen_cutoffs[c]], Se_Sp_prior_type,
-                              prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)], prior_beta_of_this_class,
+                              chosen_cutoffs[c, 1:n_chosen_cutoffs[c]], 
+                              Se_Sp_prior_type,
+                              prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
+                              prior_beta_of_this_class,
                               prior_link_mean_SD_of_this_class,
                               use_probit_link);
                           
            } else {
              
-                     to_vector(beta_mu[1, 1:n_covariates_nd]) ~ nico_normal( to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd]),
-                                                                             to_vector(prior_beta_mu_SD[1, 1:n_covariates_nd]));
-                     to_vector(beta_mu[2, 1:n_covariates_d])  ~ nico_normal( to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]),
-                                                                             to_vector(prior_beta_mu_SD[2, 1:n_covariates_d]));
-                     ////                       
                      dirichlet_phi[c] ~ nico_dirichlet(prior_dirichlet_alpha[c]);
                 
            }
@@ -438,9 +441,12 @@ model {
         ////      induced_dirichlet_given_C on each row (NicoSIMD's induced Dirichlet density, used as
         ////      this model, not as a prior):
         for (c in 1:2) {
-             //// (anchored at the prior mean of the intercept: prior intercepts as anchor point)
+             //// (anchored at Xbeta_baseline)
+             real Xbeta_baseline = (c == 1) ?
+                  dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd])) :
+                  dot_product(baseline_case_d, to_vector(beta_mu[2, 1:n_covariates_d]));
              target += nico_induced_dirichlet_with_Se_Sp_prior_lupdf(
-                       C[c] | alpha[c], use_probit_link, prior_beta_mu_mean[c, 1]);
+                       C[c] - Xbeta_baseline | alpha[c], use_probit_link, 0.0);
         }
         ////
         //// ---- Likelihood / Model:
@@ -521,8 +527,11 @@ generated quantities {
          real alpha_0 = sum(alpha[c]);
          vector[n_thr] P = cumulative_sum(alpha[c][1:n_thr]) / alpha_0;
          vector[n_thr] P_upper = reverse(cumulative_sum(reverse(alpha[c][2:n_cat]))) / alpha_0;
+         real Xbeta_baseline = (c == 1) ?
+              dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd])) :
+              dot_product(baseline_case_d, to_vector(beta_mu[2, 1:n_covariates_d]));
          for (k in 1:n_thr) {
-            C_mu[c][k] = prior_beta_mu_mean[c, 1] +
+            C_mu[c][k] = Xbeta_baseline +
                          dirichlet_cutpoint_median(P[k], P_upper[k], alpha_0, use_probit_link);
          }
       }
