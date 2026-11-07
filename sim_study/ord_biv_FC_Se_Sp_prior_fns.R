@@ -29,7 +29,7 @@ fn_Se_Sp_prior_lp_R <- function(u,
                 Stan_data$use_Se_Sp_prior %in% c(0, 1))
       if (Stan_data$use_Se_Sp_prior == 1) {
             stopifnot(Stan_data$Se_Sp_prior_type %in% c(1, 4),
-                      all(Stan_data$n_chosen == Stan_data$n_thr))
+                      all(Stan_data$n_chosen_cutoffs == Stan_data$n_thr))
       }
       mu <- matrix(block("beta_mu"), nrow = 2)
       SD <- exp(block("beta_SD"))
@@ -221,14 +221,14 @@ fn_validate_Se_Sp_prior_comparison_reference <- function(Stan_data,
             stop("use_Se_Sp_prior must be 0 or 1.")
       }
       if (Stan_data$use_Se_Sp_prior == 1) {
-            if (length(Stan_data$n_chosen) != 2 || any(!is.finite(Stan_data$n_chosen)) ||
-                any(Stan_data$n_chosen != as.integer(Stan_data$n_chosen)) ||
-                any(Stan_data$n_chosen < 0) || any(Stan_data$n_chosen > Stan_data$n_thr) ||
-                sum(Stan_data$n_chosen) == 0) {
+            if (length(Stan_data$n_chosen_cutoffs) != 2 || any(!is.finite(Stan_data$n_chosen_cutoffs)) ||
+                any(Stan_data$n_chosen_cutoffs != as.integer(Stan_data$n_chosen_cutoffs)) ||
+                any(Stan_data$n_chosen_cutoffs < 0) || any(Stan_data$n_chosen_cutoffs > Stan_data$n_thr) ||
+                sum(Stan_data$n_chosen_cutoffs) == 0) {
                   stop("Active Se/Sp comparisons need valid selected-cutoff counts.")
             }
             for (c in seq_len(2)) {
-                  m <- Stan_data$n_chosen[c]
+                  m <- Stan_data$n_chosen_cutoffs[c]
                   if (m > 0) {
                         chosen <- Stan_data$chosen_cutoffs[c, seq_len(m)]
                         if (length(chosen) != m || any(!is.finite(chosen)) ||
@@ -241,7 +241,7 @@ fn_validate_Se_Sp_prior_comparison_reference <- function(Stan_data,
             if (is.null(comparison_reference) && Stan_data$Se_Sp_prior_type == 1) {
                   analytic_supported <- all(vapply(seq_len(2), function(c) {
 
-                        m <- Stan_data$n_chosen[c]
+                        m <- Stan_data$n_chosen_cutoffs[c]
                         if (m == 0) return(TRUE)
                         A <- Stan_data$prior_Se_Sp_dirichlet_A[[c]]
                         length(A) >= m + 1 && all(is.finite(A[seq_len(m + 1)])) &&
@@ -252,7 +252,7 @@ fn_validate_Se_Sp_prior_comparison_reference <- function(Stan_data,
             if (is.null(comparison_reference) && Stan_data$Se_Sp_prior_type == 4) {
                   analytic_supported <- all(vapply(seq_len(2), function(c) {
 
-                        m <- Stan_data$n_chosen[c]
+                        m <- Stan_data$n_chosen_cutoffs[c]
                         if (m == 0) return(TRUE)
                         mean_SD <- Stan_data$prior_Se_Sp_link_mean_SD[[c]]
                         is.matrix(mean_SD) && nrow(mean_SD) >= m && ncol(mean_SD) == 2 &&
@@ -296,7 +296,7 @@ fn_Se_Sp_prior_comparison <- function(draws_array,
                 length(dim(draws_array)) == 3, !is.null(dimnames(draws_array)[[3]]))
       for (c in 1:2) {
             variable <- if (c == 1) "Sp" else "Se"
-            m <- if (Stan_data$use_Se_Sp_prior == 0) Stan_data$n_thr else Stan_data$n_chosen[c]
+            m <- if (Stan_data$use_Se_Sp_prior == 0) Stan_data$n_thr else Stan_data$n_chosen_cutoffs[c]
             if (m == 0) next
             cutoffs <- if (Stan_data$use_Se_Sp_prior == 0) seq_len(Stan_data$n_thr) else
                                                                   Stan_data$chosen_cutoffs[c, seq_len(m)]
@@ -411,7 +411,7 @@ fn_run_Se_Sp_prior_check <- function(Stan_data,
                 is.finite(gap_limit), gap_limit >= 0)
       if (Stan_data$use_Se_Sp_prior == 1) {
             stopifnot(Stan_data$Se_Sp_prior_type %in% c(1, 4),
-                      all(Stan_data$n_chosen == Stan_data$n_thr))
+                      all(Stan_data$n_chosen_cutoffs == Stan_data$n_thr))
       }
       fn_validate_Se_Sp_prior_comparison_reference(Stan_data, comparison_reference)
       stopifnot(n_burnin <= 250, n_iter <= 250,

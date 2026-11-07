@@ -83,7 +83,7 @@ run_multiple_sims <- function(MCMC_seed,
 
 
         ## ("Dirichlet" = each ordinal model's own Dirichlet prior on the cutpoints, "Se_Sp" = the direct Se / Sp prior)
-        stopifnot(ordinal_prior_type %in% c("Dirichlet", "Se_Sp"))
+        stopifnot(ordinal_prior_type == "Se_Sp")
         candidate_fields <- c("custom_file_name", "custom_cpp_user_header_file_path", "prior_fields")
         candidate_route <- candidate_fields %in% names(scenario_row)
         if (any(candidate_route)) {
@@ -108,9 +108,9 @@ run_multiple_sims <- function(MCMC_seed,
                   stopifnot(is.list(prior_fields), !is.null(names(prior_fields)),
                             !anyDuplicated(names(prior_fields)),
                             setequal(names(prior_fields),
-                                     c("use_Se_Sp_prior", "Se_Sp_prior_type", "n_chosen_max", "n_chosen",
-                                       "chosen_cutoffs", "prior_Se_Sp_dirichlet_A", "prior_Se_Sp_beta",
-                                       "prior_Se_Sp_link_mean_SD")))
+                                     c("use_Se_Sp_prior", "Se_Sp_prior_type", "n_chosen_cutoffs_max",
+                                       "n_chosen_cutoffs", "chosen_cutoffs", "prior_Se_Sp_dirichlet_A",
+                                       "prior_Se_Sp_beta", "prior_Se_Sp_link_mean_SD")))
             }
         }
 
@@ -259,9 +259,6 @@ run_multiple_sims <- function(MCMC_seed,
           } else if (alpha_pi == "informative_from_the_literature") {
                 ## (the Jones and R&G priors of prior set 1 / 2 are matched to the ordinal-bivariate reference prior of that
                 ##  set by a prior model, Stan sampling; the reference has alpha = (1, ..., 1))
-                if (!(model_parameterisation %in% c("Jones", "R&G"))) {
-                      stop("No informative prior from the literature is derived by Stan sampling yet")
-                }
                 priors$prior_dirichlet_alpha <- list( rep(1.0, n_thr + 1), rep(1.0, n_thr + 1))
           } else if (alpha_pi == "informative") {
 
@@ -545,115 +542,38 @@ run_multiple_sims <- function(MCMC_seed,
                     ## (alpha = (1, ..., 1): the SD of the intercept prior and of the log-scale prior matched to the
                     ##  ord_biv fixed-cutpoint prior by NicoStan prior-only fits of the pop-median model, 5 seeds, 0.05 rule;
                     ##  MATCHED_PRIORS=0 keeps the runner's own SDs, for the sampling checks)
-                    if (alpha_pi == "one" && Sys.getenv("MATCHED_PRIORS") != "0") {
+                    if (Sys.getenv("MATCHED_PRIORS") != "0") {
                           SD_of_the_intercept_matched <-  c(HADS = 1.0, GAD_2 = 1.0, BAI = 1.0)[[test]]
                           SD_of_the_log_scale_matched <-  c(HADS = 0.25, GAD_2 = 0.25, BAI = 0.25)[[test]]
                           if (Sys.getenv("KAPPA_PRIOR") %in% c("", "wide")) SD_of_the_log_scale_matched <-  c(HADS = 0.125, GAD_2 = 0.1875, BAI = 0.1875)[[test]]
                           if (!is.null(SD_of_the_intercept_matched)) priors$prior_beta_mu_SD[1] <-  SD_of_the_intercept_matched
                           if (!is.null(SD_of_the_log_scale_matched)) priors$prior_raw_scale_mu_SD[1] <-  SD_of_the_log_scale_matched
                     }
-                    ## (prior set 1 / 2: the location and log-scale priors matched to the ordinal-bivariate reference prior
-                    ##  of that set by a prior model, Stan sampling (prior_model_for_R_and_G_params.stan); PRIOR_SET = 1 or 2)
-                    if (alpha_pi == "informative_from_the_literature") {
-                          prior_set <- if (nzchar(Sys.getenv("PRIOR_SET"))) Sys.getenv("PRIOR_SET") else "1"
-                          matched <- readRDS(file.path(sim_study_dir, "prior_derivation_tools_checks",
-                                                       "R_and_G_priors_matched_to_the_ord_biv_reference_priors_by_a_prior_model.rds"))
-                          matched <- matched$matched_priors[[paste0("prior_set_", prior_set, "_", test)]]
-                          priors$prior_beta_mu_mean[1] <-  matched$prior_beta_mu_mean
-                          priors$prior_beta_mu_SD[1] <-  matched$prior_beta_mu_SD
-                          priors$prior_raw_scale_mu_mean[1] <-  matched$prior_raw_scale_mu_mean
-                          priors$prior_raw_scale_mu_SD[1] <-  matched$prior_raw_scale_mu_SD
-                    }
                 
           } else if (model_parameterisation == "Jones") {
 
                     priors$prior_beta_SD_SD      <- c(0.5, 0.5)
                     priors$prior_raw_scale_SD_SD <- c(0.5, 0.5)
-                    ## (the location, log-scale and Box-Cox priors matched to the ordinal-bivariate reference prior by a prior
-                    ##  model, Stan sampling (prior_model_for_Jones_params.stan): alpha = (1, ..., 1) -> the flat reference;
-                    ##  the literature prior -> prior set 1 / 2 (PRIOR_SET = 1 or 2))
-                    if (alpha_pi %in% c("one", "informative_from_the_literature")) {
-                          key_of_the_reference <- if (alpha_pi == "one") "flat" else
-                                paste0("prior_set_", if (nzchar(Sys.getenv("PRIOR_SET"))) Sys.getenv("PRIOR_SET") else "1")
-                          matched <- readRDS(file.path(sim_study_dir, "prior_derivation_tools_checks",
-                                                       "Jones_priors_matched_to_the_ord_biv_reference_priors_by_a_prior_model.rds"))
-                          matched <- matched$matched_priors[[paste0(key_of_the_reference, "_", test)]]
-                          mean_of_beta_mu_matched <-  matched$prior_beta_mu_mean
-                          mean_of_raw_scale_mu_matched <-  matched$prior_raw_scale_mu_mean
-                          mean_of_boxcox_lambda_matched <-  matched$prior_boxcox_lambda_mean
-                          SD_of_beta_mu_matched <-  matched$prior_beta_mu_SD
-                          SD_of_raw_scale_mu_matched <-  matched$prior_raw_scale_mu_SD
-                          SD_of_boxcox_lambda_matched <-  matched$prior_boxcox_lambda_SD
-                          ## (JONES_RAW_SCALE_MU_PRIOR_SD = a number: the SD of the prior of raw_scale_mu of the Jones model)
-                          if (nzchar(Sys.getenv("JONES_RAW_SCALE_MU_PRIOR_SD"))) {
-                                SD_of_raw_scale_mu_matched <- as.numeric(Sys.getenv("JONES_RAW_SCALE_MU_PRIOR_SD"))
-                          }
-                          ## (JONES_BOXCOX_LAMBDA_PRIOR_SD = a number: the SD of the prior of the Box-Cox parameters of the Jones model)
-                          if (nzchar(Sys.getenv("JONES_BOXCOX_LAMBDA_PRIOR_SD"))) {
-                                SD_of_boxcox_lambda_matched <- as.numeric(Sys.getenv("JONES_BOXCOX_LAMBDA_PRIOR_SD"))
-                          }
-                          if (!is.null(mean_of_beta_mu_matched)) priors$prior_beta_mu_mean[, 1] <-  mean_of_beta_mu_matched
-                          if (!is.null(mean_of_raw_scale_mu_matched)) priors$prior_raw_scale_mu_mean[, 1] <-  mean_of_raw_scale_mu_matched
-                          if (!is.null(mean_of_boxcox_lambda_matched)) priors$prior_boxcox_lambda_mean[] <-  mean_of_boxcox_lambda_matched
-                          if (!is.null(SD_of_beta_mu_matched)) priors$prior_beta_mu_SD[, 1] <-  SD_of_beta_mu_matched
-                          if (!is.null(SD_of_raw_scale_mu_matched)) priors$prior_raw_scale_mu_SD[, 1] <-  SD_of_raw_scale_mu_matched
-                          if (!is.null(SD_of_boxcox_lambda_matched)) priors$prior_boxcox_lambda_SD[] <-  SD_of_boxcox_lambda_matched
-                    }
+                    ## (the Box-Cox lambda prior of each test, as in the paper)
+                    priors$prior_boxcox_lambda_mean <- rep(c(HADS = 0.75, GAD_2 = 1.0, BAI = 0.5)[[test]], 2)
+                    priors$prior_boxcox_lambda_SD   <- rep(c(HADS = 0.1, GAD_2 = 0.1, BAI = 0.05)[[test]], 2)
 
           } else if (model_parameterisation == "Bivariate") {
                 
                     ##
-                    ## (the probit Se and Sp of each threshold: [1] Se, [2] Sp; "uniform_Se_and_Sp" is N(0, 1), i.e.
-                    ##  Uniform(0, 1) on Se and Sp at every threshold)
-                    if (alpha_pi == "one") {
-                      file_of_the_prior <-  file.path(sim_study_dir,
-                                                      "prior_derivation_tools_checks",
-                                                      paste0("Bivariate_flat_1_prior_by_Stan_sampling_",
-                                                             test,
-                                                             "_at_the_lower_bound_minus_15.rds"))
-                      derived_Bivariate <-  readRDS(file_of_the_prior)$fit_of_each_quantity
-                      priors$prior_mu_mean <-  list(derived_Bivariate$Se$mu_mean,
-                                                    derived_Bivariate$Sp$mu_mean)
-                      priors$prior_mu_SD <-  list(derived_Bivariate$Se$mu_SD,
-                                                  derived_Bivariate$Sp$mu_SD)
-                    } else if (alpha_pi == "uniform_Se_and_Sp") {
-                      priors$prior_mu_mean <-  list(rep(0, n_thr), rep(0, n_thr))
-                      priors$prior_mu_SD <-  list(rep(1, n_thr), rep(1, n_thr))
-                    } else {
-                      stop(paste0("No Bivariate prior is derived for alpha_pi = ", alpha_pi))
-                    }
+                    ## (its Se / Sp priors come from fn_induced_accuracy_priors below)
             
           }
           ##
-          ## ---- The direct Se/Sp prior: type 4, N(0, 1) on probit Sp and probit Se at every cutoff ----------------------------------
+          ## ---- The induced-accuracy priors: prior set 0 (alpha_pi = "one") or prior set 1 / 2 (PRIOR_SET) ----------------------------
           ##
-          ## (every model file is a Se_Sp_prior file, so the fields are always passed; the prior is on only for the
-          ##  alpha_pi = "one" cells with ordinal_prior_type "Se_Sp"; the pop-median models with "Dirichlet" replace
-          ##  these fields below with their own)
-          if (!any(candidate_route) || is_a_pop_median_model) {
-    
-                    # priors$use_Se_Sp_prior <- 1 ## switches the direct Se/Sp prior on. With 0, the model uses its own Dirichlet prior on the cutpoints, unchanged.
-                    # priors$use_Se_Sp_prior <- 0
-                    priors$use_Se_Sp_prior <- if (ordinal_prior_type == "Se_Sp" && alpha_pi == "one") 1 else 0
-                    ##
-                    priors$Se_Sp_prior_type <- 4 ## type 4 is a Normal on the probit scale of Sp and Se at the chosen cutoffs. Type 1 is a Dirichlet, types 2-3 are Betas.
-                    ##
-                    priors$n_chosen_max <- n_thr ## the row count of the padded arrays below; here every cutoff.
-                    priors$n_chosen <- c(n_thr, n_thr) ## how many cutoffs get a prior in each class: all of them for Sp and all of them for Se.
-                    ##
-                    priors$chosen_cutoffs <- rbind(1:n_thr, 1:n_thr) ## which cutoffs, one row per class (row 1 Sp, row 2 Se), in rising order.
-                    ##
-                    ## the type 1 numbers. Type 4 never reads them, but the Stan data block declares them, so they must be passed. Zeros pass its <lower=0.0> bound:
-                    priors$prior_Se_Sp_dirichlet_A <- list(rep(1, n_thr + 1), rep(1, n_thr + 1)) 
-                    ##
-                    priors$prior_Se_Sp_beta <- list(matrix(0, n_thr, 2), matrix(0, n_thr, 2)) ## the type 2-3 Beta numbers. Same reason: declared but unused under type 4.
-                    ##
-                    ## the type 4 numbers. Column 1 is the mean and column 2 the SD of probit(Sp_k) for class 1 and probit(Se_k) for class 2. Here mean 0 and SD 1 at every cutoff:
-                    priors$prior_Se_Sp_link_mean_SD <- list(cbind(rep(0, n_thr), rep(1, n_thr)),
-                                                            cbind(rep(0, n_thr), rep(1, n_thr)))
-
-
-          }
+          stopifnot(alpha_pi %in% c("one", "informative_from_the_literature"))
+          prior_set <- if (alpha_pi == "one") 0 else as.numeric(if (nzchar(Sys.getenv("PRIOR_SET"))) Sys.getenv("PRIOR_SET") else "1")
+          priors <- fn_induced_accuracy_priors(priors = priors,
+                                               model_parameterisation = model_parameterisation,
+                                               test = test,
+                                               n_thr = n_thr,
+                                               prior_set = prior_set)
           ##
           # tibbles_list_testing <- list()
           # ess_vec <- c()

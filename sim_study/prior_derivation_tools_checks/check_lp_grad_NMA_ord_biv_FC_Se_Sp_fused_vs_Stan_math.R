@@ -130,22 +130,22 @@ fn_Se_Sp_fields_NMA <- function(use_Se_Sp_prior,
                                 beta_ab_of_each_test_class,
                                 link_mean_SD_of_each_test_class) {
 
-      n_chosen_max <-  1
+      n_chosen_cutoffs_max <-  1
       for (t in seq_along(chosen_of_each_test_class)) {
             for (c in 1:2) {
-                  n_chosen_max <-  max(n_chosen_max, length(chosen_of_each_test_class[[t]][[c]]))
+                  n_chosen_cutoffs_max <-  max(n_chosen_cutoffs_max, length(chosen_of_each_test_class[[t]][[c]]))
             }
       }
-      n_chosen <-  matrix(0L, n_tests, 2)
+      n_chosen_cutoffs <-  matrix(0L, n_tests, 2)
       for (t in seq_len(n_tests)) {
             for (c in 1:2) {
-                  n_chosen[t, c] <-  length(chosen_of_each_test_class[[t]][[c]])
+                  n_chosen_cutoffs[t, c] <-  length(chosen_of_each_test_class[[t]][[c]])
             }
       }
-      chosen_cutoffs <-  array(1L, dim = c(n_tests, 2, n_chosen_max))
-      A_arr <-  array(1, dim = c(n_tests, 2, n_chosen_max + 1))
-      beta_ab_arr <-  array(1, dim = c(n_tests, 2, n_chosen_max, 2))
-      link_arr <-  array(0, dim = c(n_tests, 2, n_chosen_max, 2))
+      chosen_cutoffs <-  array(1L, dim = c(n_tests, 2, n_chosen_cutoffs_max))
+      A_arr <-  array(1, dim = c(n_tests, 2, n_chosen_cutoffs_max + 1))
+      beta_ab_arr <-  array(1, dim = c(n_tests, 2, n_chosen_cutoffs_max, 2))
+      link_arr <-  array(0, dim = c(n_tests, 2, n_chosen_cutoffs_max, 2))
       for (t in seq_len(n_tests)) {
             for (c in 1:2) {
                   m <-  length(chosen_of_each_test_class[[t]][[c]])
@@ -158,8 +158,8 @@ fn_Se_Sp_fields_NMA <- function(use_Se_Sp_prior,
       }
       list(use_Se_Sp_prior = use_Se_Sp_prior,
            Se_Sp_prior_type = Se_Sp_prior_type,
-           n_chosen_max = n_chosen_max,
-           n_chosen = n_chosen,
+           n_chosen_cutoffs_max = n_chosen_cutoffs_max,
+           n_chosen_cutoffs = n_chosen_cutoffs,
            chosen_cutoffs = chosen_cutoffs,
            prior_Se_Sp_dirichlet_A = A_arr,
            prior_Se_Sp_beta = beta_ab_arr,

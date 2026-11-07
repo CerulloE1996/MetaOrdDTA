@@ -123,8 +123,8 @@ if (is_a_pop_median_model) {
       prior_fields <-  list(
             use_Se_Sp_prior          = 0,
             Se_Sp_prior_type         = 4,
-            n_chosen_max             = 1,
-            n_chosen                 = c(0L, 0L),
+            n_chosen_cutoffs_max             = 1,
+            n_chosen_cutoffs                 = c(0L, 0L),
             chosen_cutoffs           = matrix(1L, 2, 1),
             prior_Se_Sp_dirichlet_A  = list(rep(0, 2), rep(0, 2)),
             prior_Se_Sp_beta         = list(matrix(0, 1, 2), matrix(0, 1, 2)),

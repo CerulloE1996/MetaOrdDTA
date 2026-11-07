@@ -87,29 +87,29 @@ fn_Se_Sp_fields <-  function(use_Se_Sp_prior,
                              beta_ab_of_each_class,
                              mean_SD_of_each_class) {
 
-      n_chosen <-  sapply(chosen_of_each_class, length)
-      n_chosen_max <-  max(n_chosen)
+      n_chosen_cutoffs <-  sapply(chosen_of_each_class, length)
+      n_chosen_cutoffs_max <-  max(n_chosen_cutoffs)
       fn_pad_rows <-  function(values,
                                n_rows,
                                padding) {
 
-            if (n_rows == 0) return(matrix(padding, n_chosen_max, length(padding), byrow = TRUE))
-            rbind(values, matrix(padding, n_chosen_max - n_rows, length(padding), byrow = TRUE))
+            if (n_rows == 0) return(matrix(padding, n_chosen_cutoffs_max, length(padding), byrow = TRUE))
+            rbind(values, matrix(padding, n_chosen_cutoffs_max - n_rows, length(padding), byrow = TRUE))
 
       }
       list(use_Se_Sp_prior = use_Se_Sp_prior,
            Se_Sp_prior_type = Se_Sp_prior_type,
-           n_chosen_max = n_chosen_max,
-           n_chosen = n_chosen,
+           n_chosen_cutoffs_max = n_chosen_cutoffs_max,
+           n_chosen_cutoffs = n_chosen_cutoffs,
            chosen_cutoffs = t(sapply(1:2, function(c) c(chosen_of_each_class[[c]],
-                                                         rep(1, n_chosen_max - n_chosen[c])))),
+                                                         rep(1, n_chosen_cutoffs_max - n_chosen_cutoffs[c])))),
            prior_Se_Sp_dirichlet_A = lapply(1:2, function(c) c(A_of_each_class[[c]],
-                                                                rep(1, n_chosen_max + 1 -
+                                                                rep(1, n_chosen_cutoffs_max + 1 -
                                                                        length(A_of_each_class[[c]])))),
-           prior_Se_Sp_beta = lapply(1:2, function(c) fn_pad_rows(beta_ab_of_each_class[[c]], n_chosen[c],
+           prior_Se_Sp_beta = lapply(1:2, function(c) fn_pad_rows(beta_ab_of_each_class[[c]], n_chosen_cutoffs[c],
                                                                    c(1, 1))),
            prior_Se_Sp_link_mean_SD = lapply(1:2, function(c) fn_pad_rows(mean_SD_of_each_class[[c]],
-                                                                           n_chosen[c], c(0, 1))))
+                                                                           n_chosen_cutoffs[c], c(0, 1))))
 
 }
 beta_ab_of_three <-  cbind(c(4, 6, 3), c(6, 3, 2))
