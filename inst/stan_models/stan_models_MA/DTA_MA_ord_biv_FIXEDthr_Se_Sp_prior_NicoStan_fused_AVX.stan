@@ -52,6 +52,10 @@ functions {
                                                                 data array[,,] int n, data array[,] int N_total,
                                                                 data array[] int n_obs_cutpoints,
                                                                 data array[] int K_fold_CV_indicator);
+        real nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf( vector C, 
+                                                                     vector alpha,
+                                                                     data int link,
+                                                                     data real location);
         vector nico_Phi(vector x);
         real nico_lkj_corr_cholesky_lpdf(matrix L, data real eta);
         real nico_dirichlet_lpdf(vector theta, vector alpha);
@@ -279,7 +283,7 @@ parameters {
         //// 
         real<lower=beta_corr_lb, upper=beta_corr_ub> beta_corr;  //// between-study corr (possibly restricted)  
         //// 
-        array[2] vector<lower=-15, upper=2.5>[n_thr] C_raw_vec; //// Global raw-cutpoints (unconstrained - nuisance block #2) 
+        array[2] vector<lower=-15.0, upper=2.5>[n_thr] C_raw_vec; //// Global raw-cutpoints (unconstrained - nuisance block #2) 
 }  
 
 
@@ -323,14 +327,17 @@ transformed parameters {
 }
 
 
-model { 
+model {
         ////
-        //// ---- Priors: 
+        //// ---- Priors:
         ////
-        // to_vector(beta_mu[1, 1:n_covariates_nd]) ~ nico_normal( to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd]),
-        //                                                         to_vector(prior_beta_mu_SD[1, 1:n_covariates_nd]));
-        // to_vector(beta_mu[2, 1:n_covariates_d])  ~ nico_normal( to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]),
-        //                                                         to_vector(prior_beta_mu_SD[2, 1:n_covariates_d]));
+        beta_mu[1, 1:n_covariates_nd] ~ nico_normal(
+                                          prior_beta_mu_mean[1, 1:n_covariates_nd],
+                                          prior_beta_mu_SD[1, 1:n_covariates_nd]);
+        beta_mu[2, 1:n_covariates_d]  ~ nico_normal(
+                                          prior_beta_mu_mean[2, 1:n_covariates_d],
+                                          prior_beta_mu_SD[2, 1:n_covariates_d]);
+        ////
         to_vector(beta_SD) ~ nico_normal(prior_beta_SD_mean, prior_beta_SD_SD);
         beta_L_Omega ~ nico_lkj_corr_cholesky(prior_beta_corr_LKJ); 
         //// 
@@ -350,37 +357,52 @@ model {
         for (c in 1:2) {
              // vector[n_thr] C_shifted = C[c] - C_anchor[c];
              if (use_Se_Sp_prior == 1 && n_chosen_cutoffs[c] > 0) {
-               
-                      matrix[n_chosen_cutoffs[c], 2] prior_beta_of_this_class = prior_Se_Sp_beta[c][1:n_chosen_cutoffs[c], ];
-                      matrix[n_chosen_cutoffs[c], 2] prior_link_mean_SD_of_this_class = prior_Se_Sp_link_mean_SD[c][1:n_chosen_cutoffs[c], ];
-                      ////
-                      if (c == 2) {
-                           prior_link_mean_SD_of_this_class[, 1] = - prior_link_mean_SD_of_this_class[, 1];
-                           if (Se_Sp_prior_type == 2) {
-                                prior_beta_of_this_class = append_col( prior_beta_of_this_class[, 2],
-                                                                       prior_beta_of_this_class[, 1]);
-                           }
-                      }
-                      target += nico_induced_dirichlet_with_Se_Sp_prior_lupdf(
-                                C[c] - beta_mu[c, 1] | prior_dirichlet_alpha[c], use_probit_link, 0.0,
-                                // C_shifted | prior_dirichlet_alpha[c], use_probit_link, 0.0,
-                                alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
-                                chosen_cutoffs[c, 1:n_chosen_cutoffs[c]], Se_Sp_prior_type,
-                                prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)], prior_beta_of_this_class,
-                                prior_link_mean_SD_of_this_class);
+             
+                    matrix[n_chosen_cutoffs[c], 2] prior_beta_of_this_class = prior_Se_Sp_beta[c][1:n_chosen_cutoffs[c], ];
+                    matrix[n_chosen_cutoffs[c], 2] prior_link_mean_SD_of_this_class = prior_Se_Sp_link_mean_SD[c][1:n_chosen_cutoffs[c], ];
+                    ////
+                    if (c == 2) {
+                         prior_link_mean_SD_of_this_class[, 1] = - prior_link_mean_SD_of_this_class[, 1];
+                         if (Se_Sp_prior_type == 2) {
+                              prior_beta_of_this_class = append_col( prior_beta_of_this_class[, 2],
+                                                                     prior_beta_of_this_class[, 1]);
+                         }
+                    }
+                    real Xbeta_baseline = (c == 1) ?
+                                          dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd])) :
+                                          dot_product(baseline_case_d, to_vector(beta_mu[2, 1:n_covariates_d]));
+                    target += nico_induced_dirichlet_with_Se_Sp_prior_lupdf(
+                              C[c] - Xbeta_baseline | prior_dirichlet_alpha[c],
+                              use_probit_link, 
+                              0.0,    // C_shifted | prior_dirichlet_alpha[c], use_probit_link, 0.0,
+                              alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
+                              chosen_cutoffs[c, 1:n_chosen_cutoffs[c]], 
+                              Se_Sp_prior_type,
+                              prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
+                              prior_beta_of_this_class,
+                              prior_link_mean_SD_of_this_class);
                             
              } else {
-               
-                      to_vector(beta_mu[1, 1:n_covariates_nd]) ~ nico_normal( to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd]),
-                                                                              to_vector(prior_beta_mu_SD[1, 1:n_covariates_nd]));
-                      to_vector(beta_mu[2, 1:n_covariates_d])  ~ nico_normal( to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]),
-                                                                              to_vector(prior_beta_mu_SD[2, 1:n_covariates_d]));
-                      //// (as induced_dirichlet_given_C, for each class)
-                      //// Note: this is centered at C_anchor[c] - prior_mean, not 0.0.
-                      target += nico_induced_dirichlet_with_Se_Sp_prior_lupdf(
-                                C[c] | prior_dirichlet_alpha[c], use_probit_link, prior_beta_mu_mean[c, 1]);
-                                // C_shifted | prior_dirichlet_alpha[c], use_probit_link, 0.0);
-                            
+                    ////
+                    //// ---- Priors for locations:
+                    ////
+                    ////
+                    vector[n_thr] C_shifted = C[c] - prior_beta_mu_mean[c, 1];
+                    ////
+                    vector[n_cat] Ind_Dir_ord_prob; //// = cumul_probs_to_ord_probs(Phi(C));
+                    if (use_probit_link == 1) Ind_Dir_ord_prob = cumul_probs_to_ord_probs(nico_Phi(C_shifted));
+                    else                      Ind_Dir_ord_prob = cumul_probs_to_ord_probs(nico_inv_logit(C_shifted));
+                    //// (as induced_dirichlet_given_C, for each class)
+                    //// Note: this is centered at C_anchor[c] - prior_mean, not 0.0.
+                    // target += nico_induced_dirichlet_with_Se_Sp_prior_lupdf(
+                    //           C[c] | prior_dirichlet_alpha[c], use_probit_link, prior_beta_mu_mean[c, 1]);
+                    // Ind_Dir_ord_prob ~ induced_dirichlet_given_C(
+                    //                    C_shifted, prior_dirichlet_alpha[c], use_probit_link);
+                    real Xbeta_baseline = (c == 1) ?
+                         dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd])) :
+                         dot_product(baseline_case_d, to_vector(beta_mu[2, 1:n_covariates_d]));
+                    target += nico_induced_dirichlet_prior_of_ordered_cutpoints_lupdf(
+                              C[c] - Xbeta_baseline | prior_dirichlet_alpha[c], use_probit_link, 0.0);
              }
         }
         //// 

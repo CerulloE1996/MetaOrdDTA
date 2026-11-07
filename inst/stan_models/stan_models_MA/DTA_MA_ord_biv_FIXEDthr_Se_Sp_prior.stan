@@ -195,10 +195,7 @@ parameters {
         //// 
         real<lower=beta_corr_lb, upper=beta_corr_ub> beta_corr;  //// between-study corr (possibly restricted)  
         //// 
-        array[2] vector<lower=-15, upper=2.5>[n_thr] C_raw_vec;   //// Global cutpoints ("raw" / unconstrained) 
-        /// array[2] vector[n_thr] C_raw_vec; 
-        ////
-        // matrix[n_studies, 2] beta_random;
+        array[2] vector<lower=-15.0, upper=2.5>[n_thr] C_raw_vec; //// Global raw-cutpoints (unconstrained - nuisance block #2) 
 }  
 
 
@@ -236,12 +233,12 @@ model {
         ////
         //// ---- Priors: 
         ////
-        // beta_mu[1, 1:n_covariates_nd] ~ normal(
-        //                                 prior_beta_mu_mean[1, 1:n_covariates_nd],
-        //                                 prior_beta_mu_SD[1, 1:n_covariates_nd]);
-        // beta_mu[2, 1:n_covariates_d]  ~ normal(
-        //                                 prior_beta_mu_mean[2, 1:n_covariates_d],
-        //                                 prior_beta_mu_SD[2, 1:n_covariates_d]);
+        beta_mu[1, 1:n_covariates_nd] ~ normal(
+                                          prior_beta_mu_mean[1, 1:n_covariates_nd],
+                                          prior_beta_mu_SD[1, 1:n_covariates_nd]);
+        beta_mu[2, 1:n_covariates_d]  ~ normal(
+                                          prior_beta_mu_mean[2, 1:n_covariates_d],
+                                          prior_beta_mu_SD[2, 1:n_covariates_d]);
         ////
         beta_SD ~ normal(prior_beta_SD_mean, prior_beta_SD_SD);
         beta_L_Omega ~ lkj_corr_cholesky(prior_beta_corr_LKJ); 
@@ -254,52 +251,47 @@ model {
         for (c in 1:2) {
              vector[n_thr] C_shifted = C[c] - C_anchor[c];
              if (use_Se_Sp_prior == 1 && n_chosen_cutoffs[c] > 0) {
-                  matrix[n_chosen_cutoffs[c], 2] prior_beta_of_this_class =
-                       prior_Se_Sp_beta[c][1:n_chosen_cutoffs[c], ];
-                  matrix[n_chosen_cutoffs[c], 2] prior_link_mean_SD_of_this_class =
-                       prior_Se_Sp_link_mean_SD[c][1:n_chosen_cutoffs[c], ];
-                  if (c == 2) {
-                       prior_link_mean_SD_of_this_class[, 1] = - prior_link_mean_SD_of_this_class[, 1];
-                       if (Se_Sp_prior_type == 2) {
-                            prior_beta_of_this_class = append_col(prior_beta_of_this_class[, 2],
-                                                                  prior_beta_of_this_class[, 1]);
-                       }
-                  }
-                  target += induced_dirichlet_with_Se_Sp_prior_lupdf(
-                            C[c] - beta_mu[c, 1] | prior_dirichlet_alpha[c],
-                            // C_shifted | prior_dirichlet_alpha[c],
-                            alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
-                            chosen_cutoffs[c, 1:n_chosen_cutoffs[c]], Se_Sp_prior_type,
-                            prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)], prior_beta_of_this_class,
-                            prior_link_mean_SD_of_this_class,
-                            use_probit_link);
+                 
+                    matrix[n_chosen_cutoffs[c], 2] prior_beta_of_this_class = prior_Se_Sp_beta[c][1:n_chosen_cutoffs[c], ];
+                    matrix[n_chosen_cutoffs[c], 2] prior_link_mean_SD_of_this_class = prior_Se_Sp_link_mean_SD[c][1:n_chosen_cutoffs[c], ];
+                    if (c == 2) {
+                         prior_link_mean_SD_of_this_class[, 1] = - prior_link_mean_SD_of_this_class[, 1];
+                         if (Se_Sp_prior_type == 2) {
+                              prior_beta_of_this_class = append_col(prior_beta_of_this_class[, 2],
+                                                                    prior_beta_of_this_class[, 1]);
+                         }
+                    }
+                    real Xbeta_baseline =  (c == 1) ?
+                                           dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd])) :
+                                           dot_product(baseline_case_d,  to_vector(beta_mu[2, 1:n_covariates_d]));
+                    target += induced_dirichlet_with_Se_Sp_prior_lupdf(
+                              C[c] - Xbeta_baseline | prior_dirichlet_alpha[c],
+                              alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
+                              chosen_cutoffs[c, 1:n_chosen_cutoffs[c]],
+                              Se_Sp_prior_type,
+                              prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)], 
+                              prior_beta_of_this_class,
+                              prior_link_mean_SD_of_this_class,
+                              use_probit_link);
+                            
              } else {
-                  beta_mu[1, 1:n_covariates_nd] ~ normal(
-                                                  prior_beta_mu_mean[1, 1:n_covariates_nd],
-                                                  prior_beta_mu_SD[1, 1:n_covariates_nd]);
-                  beta_mu[2, 1:n_covariates_d]  ~ normal(
-                                                  prior_beta_mu_mean[2, 1:n_covariates_d],
-                                                  prior_beta_mu_SD[2, 1:n_covariates_d]);
-                  ////
-                  vector[n_cat] Ind_Dir_ord_prob; //// = cumul_probs_to_ord_probs(Phi(C));
-                  if (use_probit_link == 1) Ind_Dir_ord_prob = cumul_probs_to_ord_probs(Phi(C_shifted));
-                  else                      Ind_Dir_ord_prob = cumul_probs_to_ord_probs(inv_logit(C_shifted));
-                  ////
-                  // real anchor_ct = prior_beta_mu_mean[c, 1]; // prior intercepts as anchor point
-                  // target += induced_dirichlet_lpdf(Ind_Dir_ord_prob | C[c], prior_dirichlet_alpha[c],
-                  //                                   1, anchor_ct);
-                  // target += induced_dirichlet_lpdf(C[c] | prior_dirichlet_alpha[c], anchor_ct);
-                  Ind_Dir_ord_prob ~ induced_dirichlet_given_C(
-                                     C_shifted, prior_dirichlet_alpha[c], use_probit_link);
-                  // more efficient than Betancourt et al. and seems to work fine.
+               
+                    vector[n_cat] Ind_Dir_ord_prob; //// = cumul_probs_to_ord_probs(Phi(C));
+                    if (use_probit_link == 1) Ind_Dir_ord_prob = cumul_probs_to_ord_probs(Phi(C_shifted));
+                    else                      Ind_Dir_ord_prob = cumul_probs_to_ord_probs(inv_logit(C_shifted));
+                    ////
+                    // real anchor_ct = prior_beta_mu_mean[c, 1]; // prior intercepts as anchor point
+                    // target += induced_dirichlet_lpdf(Ind_Dir_ord_prob | C[c], prior_dirichlet_alpha[c],
+                    //                                   1, anchor_ct);
+                    // target += induced_dirichlet_lpdf(C[c] | prior_dirichlet_alpha[c], anchor_ct);
+                    Ind_Dir_ord_prob ~ induced_dirichlet_given_C(
+                                       C_shifted, prior_dirichlet_alpha[c], use_probit_link);
+                    // more efficient than Betancourt et al. and works fine.
+                  
              }
         }
         //// 
         //// ---- Likelihood / Model:
-        ////
-        // for (s in 1:n_studies) {
-        //    beta_random[s, 1:2] ~ multi_normal_cholesky(rep_vector(0.0, 2), beta_L_Sigma);
-        // }
         ////
         target += std_normal_lupdf(to_vector(beta_z));
         for (c in 1:2) {

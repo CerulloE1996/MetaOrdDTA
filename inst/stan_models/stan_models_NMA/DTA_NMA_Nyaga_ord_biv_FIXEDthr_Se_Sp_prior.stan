@@ -190,7 +190,7 @@ parameters {
           array[n_index_tests] matrix[2, n_covariates_max] beta_mu; 
           ////
           // array[2] vector<lower=-7.5, upper=2.5>[n_total_C_per_class_if_fixed] C_raw_vec;  //// RAW LOG-DIFFS - Global cutpoints for each test (staggered array/matrix using "n_thr[t]" to index correctly)
-          array[2] vector<lower=-15, upper=2.5>[n_total_C_per_class_if_fixed] C_raw_vec;  //// RAW LOG-DIFFS - Global cutpoints for each test (staggered array/matrix using "n_thr[t]" to index correctly)
+          array[2] vector<lower=-15.0, upper=2.5>[n_total_C_per_class_if_fixed] C_raw_vec;  //// RAW LOG-DIFFS - Global cutpoints for each test (staggered array/matrix using "n_thr[t]" to index correctly)
           ////
           //// ---- "NMA" params:
           ////
@@ -354,8 +354,13 @@ model {
                                                                        prior_beta_of_this_class[, 1]);
                             }
                        }
+                       real Xbeta_baseline = (c == 1) ?
+                            dot_product(baseline_case_nd[t][1:n_covariates_nd[t]],
+                                        to_vector(beta_mu[t][1, 1:n_covariates_nd[t]])) :
+                            dot_product(baseline_case_d[t][1:n_covariates_d[t]],
+                                        to_vector(beta_mu[t][2, 1:n_covariates_d[t]]));
                        target += induced_dirichlet_with_Se_Sp_prior_lupdf(
-                                 C_shifted | to_vector(prior_dirichlet_alpha[c][t, 1:n_cat_t]),
+                                 C_vec_t - Xbeta_baseline | to_vector(prior_dirichlet_alpha[c][t, 1:n_cat_t]),
                                  alpha_of_the_segments[t, c][1:(n_chosen_cutoffs[t, c] + 1)],
                                  chosen_cutoffs[t, c, 1:n_chosen_cutoffs[t, c]], Se_Sp_prior_type,
                                  prior_Se_Sp_dirichlet_A[t, c][1:(n_chosen_cutoffs[t, c] + 1)],
