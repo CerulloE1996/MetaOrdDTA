@@ -1,4 +1,4 @@
-// NicoSIMD_AVX512 version of DTA_MA_ord_biv_RANDthr_kappa_popmed_Se_Sp_prior.stan written by NicoStan (source model md5 88200d07867ee5e4ab347c43a1d63165; NicoSIMD declarations md5 e3c567fd115d2ccf49ec504688009e6b; writer implementation md5 aef1406a74d6694a1d260c4cd31c7a35)
+// NicoSIMD_AVX512 version of DTA_MA_ord_biv_RANDthr_kappa_popmed_Se_Sp_prior.stan written by NicoStan (source model md5 fd3afb6296466a2cc631d3f1c6f270ae; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
 // NicoSIMD functions used: exp, log, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal_rng, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, log_diff_exp, std_normal_log_qf, student_t
 //// DTA_MA_ord_biv_RANDthr_kappa_popmed_Se_Sp_prior_Stan_math_only.stan
 //// The same data, parameters and target as the fused AVX file of this model with the Dirichlet prior of dirichlet_phi, on Stan::math only.
@@ -345,6 +345,7 @@ model {
                                                                     prior_beta_of_this_class[, 1]);
                          }
                     }
+                    real Xbeta_baseline = (c == 1) ? Xbeta_baseline_nd : Xbeta_baseline_d;
                     ////
                     //// (the shapes of the Beta of each cutpoint from alpha itself: sum(alpha) = kappa + 0.01 * n_cat)
                     ////
@@ -360,13 +361,13 @@ model {
                                                                                            P_upper_of_alpha[k],
                                                                                            alpha_0,
                                                                                            use_probit_link);
-                         C_mu[j]  = prior_beta_mu_mean[c, 1] + median_and_log_J[1]; // prior_beta_mu_mean = anchor.
+                         C_mu[j]  = Xbeta_baseline + median_and_log_J[1]; // Xbeta_baseline = anchor.
                          log_J[j] = median_and_log_J[2] + nico_log(kappa[c] / alpha_0);
                     }
                     ////
                     target += dirichlet_with_Se_Sp_prior_lupdf(
                               dirichlet_phi[c] | log_J,
-                              C_mu - ((c == 1) ? Xbeta_baseline_nd : Xbeta_baseline_d),
+                              C_mu - Xbeta_baseline,
                               prior_dirichlet_alpha[c],
                               alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
                               chosen_cutoffs[c, 1:n_chosen_cutoffs[c]], Se_Sp_prior_type,
@@ -405,9 +406,10 @@ model {
         ////      random-effect cutpoints), every study's cutpoints in one node per class, as
         ////      induced_dirichlet_given_C on each row:
         for (c in 1:2) {
-             //// (anchored at the prior mean of the intercept: prior intercepts as anchor point)
+             //// (anchored at Xbeta_baseline)
+             real Xbeta_baseline = (c == 1) ? Xbeta_baseline_nd : Xbeta_baseline_d;
              for (s in 1:n_studies) {
-                  target += induced_dirichlet_given_C_on_the_log_scale_lupdf(C[c][s, ] - prior_beta_mu_mean[c, 1] |
+                  target += induced_dirichlet_given_C_on_the_log_scale_lupdf(C[c][s, ] - Xbeta_baseline |
                                                                              alpha[c], use_probit_link);
              }
         }
@@ -500,8 +502,11 @@ generated quantities {
          real alpha_0 = sum(alpha[c]);
          vector[n_thr] P = cumulative_sum(alpha[c][1:n_thr]) / alpha_0;
          vector[n_thr] P_upper = reverse(cumulative_sum(reverse(alpha[c][2:n_cat]))) / alpha_0;
+         real Xbeta_baseline = (c == 1) ?
+              dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd])) :
+              dot_product(baseline_case_d, to_vector(beta_mu[2, 1:n_covariates_d]));
          for (k in 1:n_thr) {
-            C_mu[c][k] = prior_beta_mu_mean[c, 1] +
+            C_mu[c][k] = Xbeta_baseline +
                          dirichlet_cutpoint_median(P[k], P_upper[k], alpha_0, use_probit_link);
          }
       }
