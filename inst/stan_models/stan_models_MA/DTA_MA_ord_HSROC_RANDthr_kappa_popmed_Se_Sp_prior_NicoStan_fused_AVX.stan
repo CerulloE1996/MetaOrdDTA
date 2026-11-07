@@ -515,7 +515,7 @@ generated quantities {
          vector[n_thr] P = cumulative_sum(alpha[1:n_thr]) / alpha_0;
          vector[n_thr] P_upper = reverse(cumulative_sum(reverse(alpha[2:n_cat]))) / alpha_0;
          for (k in 1:n_thr) {
-            C_mu[k] = dirichlet_cutpoint_median(P[k], P_upper[k], alpha_0, use_probit_link);
+            C_mu[k] = nico_dirichlet_cutpoint_median_and_log_J(P[k], P_upper[k], alpha_0, use_probit_link)[1];
          }
       }
       ////
