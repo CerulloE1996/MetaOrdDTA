@@ -1,5 +1,5 @@
-// NicoSIMD_AVX512 version of DTA_NMA_Nyaga_Jones_Se_Sp_prior.stan written by NicoStan (source model md5 04058d468b29284a92357aad7a8c3197; NicoSIMD declarations md5 e3c567fd115d2ccf49ec504688009e6b; writer implementation md5 aef1406a74d6694a1d260c4cd31c7a35)
-// NicoSIMD functions used: exp, log, log1m, log1p_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal_rng, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, log_diff_exp
+// NicoSIMD_AVX512 version of DTA_NMA_Nyaga_Jones_Se_Sp_prior.stan written by NicoStan (source model md5 c0d74a930759a335b94059388b2a0e5d; NicoSIMD declarations md5 e3c567fd115d2ccf49ec504688009e6b; writer implementation md5 aef1406a74d6694a1d260c4cd31c7a35)
+// NicoSIMD functions used: exp, log, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal_rng, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, log_diff_exp, std_normal_log_qf
 
 
 functions {
@@ -8,6 +8,7 @@ functions {
     real nico_log(real x);
     real nico_log1m(real x);
     real nico_log1p_exp(real x);
+    real nico_log1m_exp(real x);
     real nico_inv_logit(real x);
     real nico_log_inv_logit(real x);
     real nico_Phi(real x);
@@ -19,6 +20,7 @@ functions {
     vector nico_log(vector x);
     vector nico_log1m(vector x);
     vector nico_log1p_exp(vector x);
+    vector nico_log1m_exp(vector x);
     vector nico_inv_logit(vector x);
     vector nico_log_inv_logit(vector x);
     vector nico_Phi(vector x);
@@ -30,6 +32,7 @@ functions {
     row_vector nico_log(row_vector x);
     row_vector nico_log1m(row_vector x);
     row_vector nico_log1p_exp(row_vector x);
+    row_vector nico_log1m_exp(row_vector x);
     row_vector nico_inv_logit(row_vector x);
     row_vector nico_log_inv_logit(row_vector x);
     row_vector nico_Phi(row_vector x);
@@ -41,6 +44,7 @@ functions {
     matrix nico_log(matrix x);
     matrix nico_log1m(matrix x);
     matrix nico_log1p_exp(matrix x);
+    matrix nico_log1m_exp(matrix x);
     matrix nico_inv_logit(matrix x);
     matrix nico_log_inv_logit(matrix x);
     matrix nico_Phi(matrix x);
@@ -72,6 +76,8 @@ functions {
     real nico_lkj_corr_cholesky_lpdf(matrix L, data real eta);
     real nico_log_diff_exp(real x, real y);
     vector nico_log_diff_exp(vector x, vector y);
+    real nico_std_normal_log_qf(real x);
+    vector nico_std_normal_log_qf(vector x);
         ////
         //// ---- Include files to compile the necessary custom (user-defined) Stan functions:
         ////

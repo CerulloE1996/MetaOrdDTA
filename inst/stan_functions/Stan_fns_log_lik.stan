@@ -27,7 +27,7 @@ real safe_binomial_lpmf( int x,
       } else if (x == n) {
         return n * log(p_safe);
       } else {
-        return binomial_lpmf(x | n, p_safe);
+        return binomial_lupmf(x | n, p_safe);
       }
   
 }   

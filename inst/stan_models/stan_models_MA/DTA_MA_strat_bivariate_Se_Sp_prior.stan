@@ -36,12 +36,12 @@ data {
         //// ---- (hyperparameters on the scale P = Se for c = 1 and P = Sp for c = 2)
         ////
         int<lower=0, upper=1> use_Se_Sp_prior;     //// 0 = the location prior at every threshold
-        int<lower=0, upper=n_thr> n_chosen_max;
-        array[2] int<lower=0, upper=n_chosen_max> n_chosen;
-        array[2, n_chosen_max] int<lower=1, upper=n_thr> chosen_cutoffs;
-        array[2] matrix<lower=0.0>[n_chosen_max, 2] prior_Se_Sp_beta;
+        int<lower=0, upper=n_thr> n_chosen_cutoffs_max;
+        array[2] int<lower=0, upper=n_chosen_cutoffs_max> n_chosen_cutoffs;
+        array[2, n_chosen_cutoffs_max] int<lower=1, upper=n_thr> chosen_cutoffs;
+        array[2] matrix<lower=0.0>[n_chosen_cutoffs_max, 2] prior_Se_Sp_beta;
         int<lower=2, upper=4> Se_Sp_prior_type;  //// 2 = Betas, 4 = link-scale Normal
-        array[2] matrix[n_chosen_max, 2] prior_Se_Sp_link_mean_SD;  //// Mean and SD of link(Se), link(Sp)
+        array[2] matrix[n_chosen_cutoffs_max, 2] prior_Se_Sp_link_mean_SD;  //// Mean and SD of link(Se), link(Sp)
         ////
         int use_probit_link;  // for consistency with your other models
 }
@@ -142,12 +142,12 @@ transformed data {
         for (k in 1:n_thr) {
             is_chosen[c, k] = 0;
         }
-        int k_prev = 0;
-        for (j in 1:n_chosen[c]) {
-            int k_j = chosen_cutoffs[c, j];
-            if (k_j <= k_prev) reject("chosen_cutoffs must rise: c = ", c);
-            is_chosen[c, k_j] = 1;
-            k_prev = k_j;
+        int k_previous = 0;
+        for (j in 1:n_chosen_cutoffs[c]) {
+            int k = chosen_cutoffs[c, j];
+            if (k <= k_previous) reject("chosen_cutoffs must rise: c = ", c);
+            is_chosen[c, k] = 1;
+            k_previous = k;
         }
     }
     ////
@@ -160,7 +160,7 @@ transformed data {
     }
     if (use_Se_Sp_prior == 1 && Se_Sp_prior_type == 4) {
         for (c in 1:2) {
-            for (j in 1:n_chosen[c]) {
+            for (j in 1:n_chosen_cutoffs[c]) {
                 if (prior_Se_Sp_link_mean_SD[c][j, 2] <= 0.0) {
                     reject("prior_Se_Sp_link_mean_SD must be positive: c = ", c, ", j = ", j);
                 }
@@ -244,17 +244,17 @@ model {
     ////
     if (use_Se_Sp_prior == 1) {
           for (c in 1:2) {
-                for (j in 1:n_chosen[c]) {
+                for (j in 1:n_chosen_cutoffs[c]) {
                       int k = chosen_cutoffs[c, j];
                       if (Se_Sp_prior_type == 4) {
-                            target += normal_lpdf(mu[k, c] |
+                            target += normal_lupdf(mu[k, c] |
                                                   prior_Se_Sp_link_mean_SD[c][j, 1],
                                                   prior_Se_Sp_link_mean_SD[c][j, 2]);
                       } else {
                             real P = (use_probit_link == 1) ? Phi(mu[k, c]) : inv_logit(mu[k, c]);
-                            target += beta_lpdf(P | prior_Se_Sp_beta[c, j, 1], prior_Se_Sp_beta[c, j, 2]);
+                            target += beta_lupdf(P | prior_Se_Sp_beta[c, j, 1], prior_Se_Sp_beta[c, j, 2]);
                             if (use_probit_link == 1) {
-                                  target += std_normal_lpdf(mu[k, c]);
+                                  target += std_normal_lupdf(mu[k, c]);
                             } else {
                                   target += log_inv_logit(mu[k, c]) + log1m_inv_logit(mu[k, c]);
                             }

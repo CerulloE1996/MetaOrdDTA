@@ -1256,6 +1256,191 @@ real dirichlet_cutpoint_median(real P_lower,
 
 }
 ////
+//// ---- The 64 comparisons of a binary search for x on [-745, 710] (1 where x is above the midpoint):
+////
+array[] int comparisons_of_a_binary_search(real x) {
+
+        array[64] int above;
+        real bottom = -745.0;
+        real top = 710.0;
+        for (k in 1:64) {
+             real midpoint = 0.5 * (bottom + top);
+             above[k] = (x > midpoint);
+             if (above[k] == 1) bottom = midpoint; else top = midpoint;
+        }
+        return above;
+
+}
+////
+//// ---- The value found by those comparisons (data, no derivative):
+////
+real value_of_a_binary_search(array[] int above) {
+
+        real bottom = -745.0;
+        real top = 710.0;
+        for (k in 1:size(above)) {
+             real midpoint = 0.5 * (bottom + top);
+             if (above[k] == 1) bottom = midpoint; else top = midpoint;
+        }
+        return 0.5 * (bottom + top);
+
+}
+////
+//// ---- log of the median of Beta(a, b) at the searched log(a) and log(b) (data, no derivative): inv_inc_beta,
+//// ---- or the limit for small a where inv_inc_beta gives 0:
+////
+real log_beta_median_of_the_searched_shapes(array[] int above_of_log_a,
+                                            array[] int above_of_log_b) {
+
+        real a = exp(value_of_a_binary_search(above_of_log_a));
+        real b = exp(value_of_a_binary_search(above_of_log_b));
+        real p = inv_inc_beta(a, b, 0.5);
+        if (p > 0.0) return log(p);
+        return (log(0.5) + log(a) + lbeta(a, b)) / a;
+
+}
+////
+//// ---- 2F1(1, a + b; a + 1; p) = sum of term_n, and its derivative in a + 1 = - sum of term_n * harmonic_n:
+////
+vector series_of_2F1_of_the_beta_median(real shape_a,
+                                        real shape_b,
+                                        real p) {
+
+        real term = 1.0;
+        real harmonic = 0.0;
+        real series = 1.0;
+        real d_series = 0.0;
+        real ratio = p * (shape_a + shape_b) / (shape_a + 1.0);
+        int n = 0;
+        while (n < 1000000 && term * (1.0 + harmonic) > 1e-16 * (1.0 - fmax(ratio, p)) * (series - d_series)) {
+             term *= ratio;
+             harmonic += 1.0 / (shape_a + 1.0 + n);
+             series += term;
+             d_series += - term * harmonic;
+             n += 1;
+             ratio = p * (shape_a + shape_b + n) / (shape_a + 1.0 + n);
+        }
+        return [series, d_series]';
+
+}
+////
+//// ---- log of the median p of Beta(a, b): its value from inv_inc_beta (data), then one Newton step on
+//// ---- log I_p(a, b) = log(0.5), I_p(a, b) = p^a (1 - p)^b 2F1(1, a + b; a + 1; p) / (a B(a, b)), so that its
+//// ---- derivative is - (d log I / d a, d log I / d b) / (d log I / d log p):
+////
+real beta_median_log_p_from_log_shapes(real log_shape_a,
+                                       real log_shape_b) {
+
+        real shape_a = exp(log_shape_a);
+        real shape_b = exp(log_shape_b);
+        real log_p_value = log_beta_median_of_the_searched_shapes(comparisons_of_a_binary_search(log_shape_a),
+                                                                  comparisons_of_a_binary_search(log_shape_b));
+        real log1m_p_value = log1m_exp(log_p_value);
+        vector[2] series = series_of_2F1_of_the_beta_median(shape_a, shape_b, exp(log_p_value));
+        real log_I = shape_a * log_p_value + shape_b * log1m_p_value - log_shape_a - lbeta(shape_a, shape_b)
+                     + log(series[1]);
+        return log_p_value - (log_I - log(0.5)) * exp(log(0.5) + lbeta(shape_a, shape_b) - shape_a * log_p_value
+                                                      - (shape_b - 1.0) * log1m_p_value);
+
+}
+////
+//// ---- The median of the Beta of a cutpoint under the Dirichlet, on the link scale, and the log of its derivative
+//// ---- with respect to P_lower (P_upper = 1 - P_lower; shapes kappa * P_lower and kappa * P_upper, the smaller
+//// ---- shape first, then reflected). The derivative of the median p of Beta(a, b) uses 2F1(1, a + b; a + 1; p)
+//// ---- and its derivative in its third argument, both summed from their series:
+////
+vector dirichlet_cutpoint_median_and_log_J(real P_lower,
+                                           real P_upper,
+                                           real kappa,
+                                           int use_probit_link) {
+
+        int reflect = (P_lower > P_upper);
+        real log_shape_a = log(kappa) + log((reflect == 1) ? P_upper : P_lower);
+        real log_shape_b = log(kappa) + log((reflect == 1) ? P_lower : P_upper);
+        real shape_a = exp(log_shape_a);
+        real shape_b = exp(log_shape_b);
+        real log_p = beta_median_log_p_from_log_shapes(log_shape_a, log_shape_b);
+        real log1m_p = log1m_exp(log_p);
+        vector[2] series = series_of_2F1_of_the_beta_median(shape_a, shape_b, exp(log_p));
+        real difference = log1m_p - log_p + digamma(shape_a + 1.0) - digamma(shape_b) - series[2] / series[1];
+        ////
+        real cutpoint;
+        real log_link_derivative;
+        if (use_probit_link == 1) {
+             cutpoint = std_normal_log_qf(log_p);
+             log_link_derivative = log_p - std_normal_lpdf(cutpoint);
+        } else {
+             cutpoint = log_p - log1m_p;
+             log_link_derivative = - log1m_p;
+        }
+        return [(reflect == 1) ? -cutpoint : cutpoint,
+                log(kappa) + log(difference) + log(0.5) + lbeta(shape_a, shape_b) - shape_a * log_p
+                - (shape_b - 1.0) * log1m_p + log_link_derivative]';
+
+}
+////
+//// ---- Dirichlet of dirichlet_phi with the Dirichlet of the segment sums (between chosen cutoffs) swapped for
+//// ---- a prior on baseline Sp (c = 1) or 1 - Se (c = 2) at the chosen cutoffs (C_baseline, with log_J the log
+//// ---- of the derivative of each from its segment sum):
+////
+real dirichlet_with_Se_Sp_prior_lpdf(vector phi,
+                                     vector log_J,
+                                     vector C_baseline,
+                                     vector alpha,
+                                     vector alpha_seg,
+                                     array[] int chosen,
+                                     int prior_type,
+                                     vector A_user,
+                                     matrix beta_ab,
+                                     matrix link_mean_SD,
+                                     int use_probit_link) {
+
+        int n_cat = num_elements(phi);
+        int m = num_elements(chosen);
+        vector[n_cat - 1] P = cumulative_sum(phi[1:(n_cat - 1)]);
+        vector[m] P_chosen = (use_probit_link == 1) ? Phi(C_baseline) : inv_logit(C_baseline);
+        vector[m + 1] q = cumul_probs_to_ord_probs(P_chosen);
+        vector[m + 1] q_anchor = cumul_probs_to_ord_probs(P[chosen]);
+        ////
+        //// ---- Dirichlet minus the Dirichlet of the segment sums:
+        ////
+        real log_prob = dirichlet_lpdf(phi | alpha);
+        log_prob += - dirichlet_lpdf(q_anchor | alpha_seg);
+        ////
+        //// ---- Jacobian to the selected baseline probabilities or link values:
+        ////
+        for (j in 1:m) {
+             log_prob += log_J[j];
+             if (prior_type != 4) {
+                  if (use_probit_link == 1) {
+                       log_prob += normal_lpdf(C_baseline[j] | 0, 1);
+                  } else {
+                       log_prob += log_inv_logit(C_baseline[j]) + log1m_inv_logit(C_baseline[j]);
+                  }
+             }
+        }
+        ////
+        //// ---- prior on P at the chosen cutoffs:
+        ////
+        if (prior_type == 1) {
+             //// Dirichlet on the segment sums:
+             log_prob += dirichlet_lpdf(q | A_user);
+        } else if (prior_type == 2) {
+             //// Beta on each P, restricted to rising P (normaliser constant):
+             log_prob += beta_lpdf(P_chosen | beta_ab[, 1], beta_ab[, 2]);
+        } else if (prior_type == 4) {
+             //// Normal on the link scale, restricted to rising P:
+             log_prob += normal_lpdf(C_baseline | link_mean_SD[, 1], link_mean_SD[, 2]);
+        } else {
+             //// Beta on each (P_j - P_{j-1}) / (1 - P_{j-1}):
+             vector[m] P_prev = append_row(0.0, P_chosen[1:(m - 1)]);
+             log_prob += beta_lpdf(q[1:m] ./ (1.0 - P_prev) | beta_ab[, 1], beta_ab[, 2]);
+             log_prob += - sum(log1m(P_prev));
+        }
+        return log_prob;
+
+}
+////
 //// ---- Induced Dirichlet with the Dirichlet of the segment sums (between chosen cutoffs) swapped for
 //// ---- a prior on baseline Sp (c = 1) or 1 - Se (c = 2) at the chosen cutoffs:
 ////

@@ -81,6 +81,8 @@ functions {
                                                        real kappa,
                                                        data int use_probit_link);
         //// (the nico_ functions of the NicoSIMD versions of the included files:)
+        real nico_std_normal_log_qf(real x);
+        vector nico_std_normal_log_qf(vector x);
         real nico_exp(real x);
         real nico_log1m(real x);
         real nico_log1p_exp(real x);
@@ -354,10 +356,6 @@ model {
         ////
         //// ---- Priors: 
         ////
-        to_vector(beta_mu[1, 1:n_covariates_nd]) ~ nico_normal( to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd]),
-                                                                to_vector(prior_beta_mu_SD[1, 1:n_covariates_nd]));
-        to_vector(beta_mu[2, 1:n_covariates_d])  ~ nico_normal( to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]),
-                                                                to_vector(prior_beta_mu_SD[2, 1:n_covariates_d]));
         ////
         to_vector(beta_SD) ~ nico_normal(prior_beta_SD_mean, prior_beta_SD_SD);
         beta_L_Omega ~ nico_lkj_corr_cholesky(prior_beta_corr_LKJ); 
@@ -370,40 +368,55 @@ model {
            target += -log_kappa[c];
            ////
            if (use_Se_Sp_prior == 1 && n_chosen_cutoffs[c] > 0) {
-                matrix[n_chosen_cutoffs[c], 2] prior_beta_of_this_class = prior_Se_Sp_beta[c][1:n_chosen_cutoffs[c], ];
-                matrix[n_chosen_cutoffs[c], 2] prior_link_mean_SD_of_this_class = prior_Se_Sp_link_mean_SD[c][1:n_chosen_cutoffs[c], ];
-                ////
-                if (c == 2) {
-                     prior_link_mean_SD_of_this_class[, 1] = - prior_link_mean_SD_of_this_class[, 1];
-                     if (Se_Sp_prior_type == 2) {
-                          prior_beta_of_this_class = append_col(prior_beta_of_this_class[, 2],
-                                                                prior_beta_of_this_class[, 1]);
-                     }
-                }
-                ////
-                //// (the shapes of the Beta of each cutpoint from alpha itself: sum(alpha) = kappa + 0.01 * n_cat)
-                real alpha_0 = sum(alpha[c]);
-                vector[n_thr] P = cumulative_sum(alpha[c][1:n_thr]) / alpha_0;
-                vector[n_thr] P_upper = reverse(cumulative_sum(reverse(alpha[c][2:n_cat]))) / alpha_0;
-                vector[n_chosen_cutoffs[c]] C_mu;
-                vector[n_chosen_cutoffs[c]] log_J;
-                for (j in 1:n_chosen_cutoffs[c]) {
-                     int k = chosen_cutoffs[c, j];
-                     vector[2] median_and_log_J = nico_dirichlet_cutpoint_median_and_log_J(P[k], P_upper[k], alpha_0,
-                                                                                          use_probit_link);
-                     C_mu[j] = prior_beta_mu_mean[c, 1] + median_and_log_J[1];
-                     log_J[j] = median_and_log_J[2] + nico_log(kappa[c] / alpha_0);
-                }
-                target += nico_dirichlet_with_Se_Sp_prior_lupdf(
-                          dirichlet_phi[c] | log_J, C_mu - ((c == 1) ? Xbeta_baseline_nd : Xbeta_baseline_d),
-                          prior_dirichlet_alpha[c],
-                          alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
-                          chosen_cutoffs[c, 1:n_chosen_cutoffs[c]], Se_Sp_prior_type,
-                          prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)], prior_beta_of_this_class,
-                          prior_link_mean_SD_of_this_class,
-                          use_probit_link);
+             
+                    matrix[n_chosen_cutoffs[c], 2] prior_beta_of_this_class = prior_Se_Sp_beta[c][1:n_chosen_cutoffs[c], ];
+                    matrix[n_chosen_cutoffs[c], 2] prior_link_mean_SD_of_this_class = prior_Se_Sp_link_mean_SD[c][1:n_chosen_cutoffs[c], ];
+                    ////
+                    if (c == 2) {
+                         prior_link_mean_SD_of_this_class[, 1] = - prior_link_mean_SD_of_this_class[, 1];
+                         if (Se_Sp_prior_type == 2) {
+                              prior_beta_of_this_class = append_col(prior_beta_of_this_class[, 2],
+                                                                    prior_beta_of_this_class[, 1]);
+                         }
+                    }
+                    ////
+                    //// (the shapes of the Beta of each cutpoint from alpha itself: sum(alpha) = kappa + 0.01 * n_cat)
+                    ////
+                    real alpha_0 = sum(alpha[c]);
+                    vector[n_thr] P_of_alpha = cumulative_sum(alpha[c][1:n_thr]) / alpha_0;
+                    vector[n_thr] P_upper_of_alpha = reverse(cumulative_sum(reverse(alpha[c][2:n_cat]))) / alpha_0;
+                    vector[n_chosen_cutoffs[c]] C_mu;
+                    vector[n_chosen_cutoffs[c]] log_J;
+                    ////
+                    for (j in 1:n_chosen_cutoffs[c]) {
+                         int k = chosen_cutoffs[c, j];
+                         vector[2] median_and_log_J = nico_dirichlet_cutpoint_median_and_log_J( P_of_alpha[k],
+                                                                                                P_upper_of_alpha[k],
+                                                                                                alpha_0,
+                                                                                                use_probit_link);
+                         C_mu[j]  = prior_beta_mu_mean[c, 1] + median_and_log_J[1]; // prior_beta_mu_mean = anchor.
+                         log_J[j] = median_and_log_J[2] + nico_log(kappa[c] / alpha_0);
+                    }
+                    ////
+                    target += nico_dirichlet_with_Se_Sp_prior_lupdf(
+                              dirichlet_phi[c] | log_J, 
+                              C_mu - ((c == 1) ? Xbeta_baseline_nd : Xbeta_baseline_d),
+                              prior_dirichlet_alpha[c],
+                              alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
+                              chosen_cutoffs[c, 1:n_chosen_cutoffs[c]], Se_Sp_prior_type,
+                              prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)], prior_beta_of_this_class,
+                              prior_link_mean_SD_of_this_class,
+                              use_probit_link);
+                          
            } else {
-                dirichlet_phi[c] ~ nico_dirichlet(prior_dirichlet_alpha[c]);
+             
+                     to_vector(beta_mu[1, 1:n_covariates_nd]) ~ nico_normal( to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd]),
+                                                                             to_vector(prior_beta_mu_SD[1, 1:n_covariates_nd]));
+                     to_vector(beta_mu[2, 1:n_covariates_d])  ~ nico_normal( to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]),
+                                                                             to_vector(prior_beta_mu_SD[2, 1:n_covariates_d]));
+                     ////                       
+                     dirichlet_phi[c] ~ nico_dirichlet(prior_dirichlet_alpha[c]);
+                
            }
         }
         ////
@@ -445,8 +458,7 @@ model {
             //// ---- every term in one autodiff node:
             ////      nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf
             ////
-            vector[2 * n_studies * n_thr] cutpoints_of_both_classes = append_row(to_vector(C[1]),
-                                                                                 to_vector(C[2]));
+            vector[2 * n_studies * n_thr] cutpoints_of_both_classes = append_row(to_vector(C[1]), to_vector(C[2]));
             vector[2 * n_studies] locations_of_both_classes = to_vector(Xbeta);
             //// (as map_latent_surv_to_random_hetero_C: location - C)
             vector[n_terms] latent_of_each_term =
@@ -455,8 +467,11 @@ model {
             ////
             target += nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lupmf(
                             count_above_the_cutpoint_of_each_term |
-                            count_above_the_previous_cutpoint_of_each_term, latent_of_each_term,
-                            is_the_first_reported_cutpoint_of_each_term, use_probit_link, 1e-10);
+                            count_above_the_previous_cutpoint_of_each_term,
+                            latent_of_each_term,
+                            is_the_first_reported_cutpoint_of_each_term, 
+                            use_probit_link,
+                            1e-10);
         }
 
 }

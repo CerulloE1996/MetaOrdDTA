@@ -39,13 +39,13 @@ functions {
         ////
         //// ---- Include files to compile the necessary custom (user-defined) Stan functions:
         ////
-        #include "Stan_fns_basic.stan"
-        #include "Stan_fns_Box_Cox.stan"
-        #include "Stan_fns_corr.stan"
-        #include "Stan_fns_ordinal.stan"
-        #include "Stan_fns_log_lik.stan"
-        #include "Stan_fns_Jacobian.stan"
-        #include "Stan_fns_model_fit.stan"
+        #include "Stan_fns_basic_NicoSIMD_AVX.stan"
+        #include "Stan_fns_Box_Cox_NicoSIMD_AVX.stan"
+        #include "Stan_fns_corr_NicoSIMD_AVX.stan"
+        #include "Stan_fns_ordinal_NicoSIMD_AVX.stan"
+        #include "Stan_fns_log_lik_NicoSIMD_AVX.stan"
+        #include "Stan_fns_Jacobian_NicoSIMD_AVX.stan"
+        #include "Stan_fns_model_fit_NicoSIMD_AVX.stan"
         ////
         //// ---- NicoSIMD's AVX functions (their bodies in NicoSIMD's user header):
         ////
@@ -54,6 +54,46 @@ functions {
               data real bound);
         vector nico_Phi(vector x);
         vector nico_inv_logit(vector x);
+        //// (the nico_ functions of the NicoSIMD versions of the included files:)
+        real nico_std_normal_log_qf(real x);
+        vector nico_std_normal_log_qf(vector x);
+        real nico_log1m_exp(real x);
+        vector nico_log1m_exp(vector x);
+        row_vector nico_log1m_exp(row_vector x);
+        matrix nico_log1m_exp(matrix x);
+        real nico_exp(real x);
+        real nico_log(real x);
+        real nico_log1m(real x);
+        real nico_log1p_exp(real x);
+        real nico_inv_Phi(real x);
+        real nico_tanh(real x);
+        real nico_logit(real x);
+        vector nico_exp(vector x);
+        vector nico_log(vector x);
+        vector nico_log1m(vector x);
+        vector nico_log1p_exp(vector x);
+        vector nico_inv_Phi(vector x);
+        vector nico_tanh(vector x);
+        vector nico_logit(vector x);
+        row_vector nico_exp(row_vector x);
+        row_vector nico_log(row_vector x);
+        row_vector nico_log1m(row_vector x);
+        row_vector nico_log1p_exp(row_vector x);
+        row_vector nico_inv_Phi(row_vector x);
+        row_vector nico_tanh(row_vector x);
+        row_vector nico_logit(row_vector x);
+        matrix nico_exp(matrix x);
+        matrix nico_log(matrix x);
+        matrix nico_log1m(matrix x);
+        matrix nico_log1p_exp(matrix x);
+        matrix nico_inv_Phi(matrix x);
+        matrix nico_tanh(matrix x);
+        matrix nico_logit(matrix x);
+        real nico_lgamma(data real x);
+        vector nico_lgamma(vector x);
+        real nico_dirichlet_lpdf(vector theta, vector alpha);
+        real nico_log_diff_exp(real x, real y);
+        vector nico_log_diff_exp(vector x, vector y);
 }
 
 
@@ -74,12 +114,12 @@ data {
         //// ---- (hyperparameters on the scale P = Se for c = 1 and P = Sp for c = 2)
         ////
         int<lower=0, upper=1> use_Se_Sp_prior;     //// 0 = the location prior at every threshold
-        int<lower=0, upper=n_thr> n_chosen_max;
-        array[2] int<lower=0, upper=n_chosen_max> n_chosen;
-        array[2, n_chosen_max] int<lower=1, upper=n_thr> chosen_cutoffs;
-        array[2] matrix<lower=0.0>[n_chosen_max, 2] prior_Se_Sp_beta;
+        int<lower=0, upper=n_thr> n_chosen_cutoffs_max;
+        array[2] int<lower=0, upper=n_chosen_cutoffs_max> n_chosen_cutoffs;
+        array[2, n_chosen_cutoffs_max] int<lower=1, upper=n_thr> chosen_cutoffs;
+        array[2] matrix<lower=0.0>[n_chosen_cutoffs_max, 2] prior_Se_Sp_beta;
         int<lower=2, upper=4> Se_Sp_prior_type;  //// 2 = Betas, 4 = link-scale Normal
-        array[2] matrix[n_chosen_max, 2] prior_Se_Sp_link_mean_SD;  //// Mean and SD of link(Se), link(Sp)
+        array[2] matrix[n_chosen_cutoffs_max, 2] prior_Se_Sp_link_mean_SD;  //// Mean and SD of link(Se), link(Sp)
         ////
         int use_probit_link;  // for consistency with your other models
 }
@@ -194,12 +234,12 @@ transformed data {
         for (k in 1:n_thr) {
             is_chosen[c, k] = 0;
         }
-        int k_prev = 0;
-        for (j in 1:n_chosen[c]) {
-            int k_j = chosen_cutoffs[c, j];
-            if (k_j <= k_prev) reject("chosen_cutoffs must rise: c = ", c);
-            is_chosen[c, k_j] = 1;
-            k_prev = k_j;
+        int k_previous = 0;
+        for (j in 1:n_chosen_cutoffs[c]) {
+            int k = chosen_cutoffs[c, j];
+            if (k <= k_previous) reject("chosen_cutoffs must rise: c = ", c);
+            is_chosen[c, k] = 1;
+            k_previous = k;
         }
     }
     ////
@@ -212,7 +252,7 @@ transformed data {
     }
     if (use_Se_Sp_prior == 1 && Se_Sp_prior_type == 4) {
         for (c in 1:2) {
-            for (j in 1:n_chosen[c]) {
+            for (j in 1:n_chosen_cutoffs[c]) {
                 if (prior_Se_Sp_link_mean_SD[c][j, 2] <= 0.0) {
                     reject("prior_Se_Sp_link_mean_SD must be positive: c = ", c, ", j = ", j);
                 }
@@ -283,17 +323,17 @@ model {
     ////
     if (use_Se_Sp_prior == 1) {
           for (c in 1:2) {
-                for (j in 1:n_chosen[c]) {
+                for (j in 1:n_chosen_cutoffs[c]) {
                       int k = chosen_cutoffs[c, j];
                       if (Se_Sp_prior_type == 4) {
-                            target += nico_normal_lpdf(mu[k, c] |
+                            target += nico_normal_lupdf(mu[k, c] |
                                                   prior_Se_Sp_link_mean_SD[c][j, 1],
                                                   prior_Se_Sp_link_mean_SD[c][j, 2]);
                       } else {
                             real P = (use_probit_link == 1) ? nico_Phi(mu[k, c]) : nico_inv_logit(mu[k, c]);
-                            target += nico_beta_lpdf(P | prior_Se_Sp_beta[c, j, 1], prior_Se_Sp_beta[c, j, 2]);
+                            target += nico_beta_lupdf(P | prior_Se_Sp_beta[c, j, 1], prior_Se_Sp_beta[c, j, 2]);
                             if (use_probit_link == 1) {
-                                  target += nico_normal_lpdf(mu[k, c] | 0, 1);
+                                  target += nico_normal_lupdf(mu[k, c] | 0, 1);
                             } else {
                                   target += nico_log_inv_logit(mu[k, c]) + nico_log1m_inv_logit(mu[k, c]);
                             }
