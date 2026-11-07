@@ -532,7 +532,7 @@ generated quantities {
               dot_product(baseline_case_d, to_vector(beta_mu[2, 1:n_covariates_d]));
          for (k in 1:n_thr) {
             C_mu[c][k] = Xbeta_baseline +
-                         dirichlet_cutpoint_median(P[k], P_upper[k], alpha_0, use_probit_link);
+                         nico_dirichlet_cutpoint_median_and_log_J(P[k], P_upper[k], alpha_0, use_probit_link)[1];
          }
       }
       //

@@ -34,6 +34,8 @@ functions {
         real nico_induced_dirichlet_with_Se_Sp_prior_lpdf(matrix C, vector alpha, data int link,
                                                           data real location);
         real nico_log_det_jacobian_of_cutpoints_from_raw_differences(matrix C_raw, data int softplus);
+        vector nico_dirichlet_cutpoint_median_and_log_J(real P_lower, real P_upper, real kappa,
+                                                        data int use_probit_link);
         vector nico_exp(vector x);
         matrix nico_exp(matrix x);
         matrix nico_log1p_exp(matrix x);
@@ -824,7 +826,7 @@ generated quantities {
                        dot_product(baseline_case_d[t][1:n_covariates_d[t]], to_vector(beta_mu[t][2, 1:n_covariates_d[t]]));
                   for (k in 1:n_thr[t]) {
                       C_mu[c][t, k] = Xbeta_baseline +
-                                      dirichlet_cutpoint_median(P[k], P_upper[k], alpha_0, use_probit_link);
+                                      nico_dirichlet_cutpoint_median_and_log_J(P[k], P_upper[k], alpha_0, use_probit_link)[1];
                   }
               }
           }
