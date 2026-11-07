@@ -13,23 +13,6 @@ functions {
         #include "Stan_fns_simplex.stan"
         #include "Stan_fns_Jacobian.stan"
         #include "Stan_fns_model_fit.stan"
-        ////
-        //// ---- The median of the Beta of a cutpoint under the Dirichlet, on the link scale
-        ////      (shapes kappa * P_lower and kappa * P_upper; the smaller shape first, then reflected):
-        ////
-        real dirichlet_cutpoint_median(real P_lower,
-                                       real P_upper,
-                                       real kappa,
-                                       int use_probit_link) {
-
-                int reflect = (P_lower > P_upper);
-                real shape_a = kappa * ((reflect == 1) ? P_upper : P_lower);
-                real shape_b = kappa * ((reflect == 1) ? P_lower : P_upper);
-                real p = inv_inc_beta(shape_a, shape_b, 0.5);
-                real cutpoint = (use_probit_link == 1) ? inv_Phi(p) : logit(p);
-                return (reflect == 1) ? -cutpoint : cutpoint;
-
-        }
 }
 
 
@@ -75,12 +58,12 @@ data {
         ////
         int<lower=0, upper=1> use_Se_Sp_prior;     //// 0 = original dirichlet_phi prior
         int<lower=1, upper=4> Se_Sp_prior_type;    //// 1 = Dirichlet, 2-3 = Betas, 4 = link-scale Normal
-        int<lower=0, upper=n_thr> n_chosen_max;
-        array[2] int<lower=0, upper=n_chosen_max> n_chosen;
-        array[2, n_chosen_max] int<lower=1, upper=n_thr> chosen_cutoffs;
-        array[2] vector<lower=0.0>[n_chosen_max + 1] prior_Se_Sp_dirichlet_A;
-        array[2] matrix<lower=0.0>[n_chosen_max, 2] prior_Se_Sp_beta;
-        array[2] matrix[n_chosen_max, 2] prior_Se_Sp_link_mean_SD;  //// Mean and SD of link(Sp), link(Se)
+        int<lower=0, upper=n_thr> n_chosen_cutoffs_max;
+        array[2] int<lower=0, upper=n_chosen_cutoffs_max> n_chosen_cutoffs;
+        array[2, n_chosen_cutoffs_max] int<lower=1, upper=n_thr> chosen_cutoffs;
+        array[2] vector<lower=0.0>[n_chosen_cutoffs_max + 1] prior_Se_Sp_dirichlet_A;
+        array[2] matrix<lower=0.0>[n_chosen_cutoffs_max, 2] prior_Se_Sp_beta;
+        array[2] matrix[n_chosen_cutoffs_max, 2] prior_Se_Sp_link_mean_SD;  //// Mean and SD of link(Sp), link(Se)
         ////
         //// ---- Other:
         ////
@@ -121,32 +104,33 @@ transformed data {
         ////
         //// ---- Sums of prior_dirichlet_alpha over the segments between chosen cutoffs:
         ////
-        array[2] vector[n_chosen_max + 1] alpha_seg;
+        array[2] vector[n_chosen_cutoffs_max + 1] alpha_of_the_segments;
         for (c in 1:2) {
-              alpha_seg[c] = rep_vector(0.0, n_chosen_max + 1);
-              int k_prev = 0;
-              for (j in 1:n_chosen[c]) {
-                   int k_j = chosen_cutoffs[c, j];
-                   if (k_j <= k_prev) reject("chosen_cutoffs must rise: c = ", c);
+              alpha_of_the_segments[c] = rep_vector(0.0, n_chosen_cutoffs_max + 1);
+              int k_previous = 0;
+              for (j in 1:n_chosen_cutoffs[c]) {
+                   int k = chosen_cutoffs[c, j];
+                   if (k <= k_previous) reject("chosen_cutoffs must rise: c = ", c);
                    if (use_Se_Sp_prior == 1 && Se_Sp_prior_type == 4 &&
                        prior_Se_Sp_link_mean_SD[c][j, 2] <= 0.0) {
                         reject("The link-scale prior SD must be positive: c = ", c, ", j = ", j);
                    }
-                   alpha_seg[c][j] = sum(prior_dirichlet_alpha[(k_prev + 1):k_j]);
-                   k_prev = k_j;
+                   alpha_of_the_segments[c][j] = sum(prior_dirichlet_alpha[(k_previous + 1):k]);
+                   k_previous = k;
               }
-              alpha_seg[c][n_chosen[c] + 1] = sum(prior_dirichlet_alpha[(k_prev + 1):n_cat]);
+              alpha_of_the_segments[c][n_chosen_cutoffs[c] + 1] =
+                   sum(prior_dirichlet_alpha[(k_previous + 1):n_cat]);
         }
         ////
         //// ---- Class on the cutpoints (p_class) and class on the baseline location / raw scale (q_class):
         ////
-        int p_class = (n_chosen[2] > n_chosen[1]) ? 2 : 1;
+        int p_class = (n_chosen_cutoffs[2] > n_chosen_cutoffs[1]) ? 2 : 1;
         int q_class = 3 - p_class;
-        int n_q = (use_Se_Sp_prior == 1) ? n_chosen[q_class] : 0;
+        int n_q = (use_Se_Sp_prior == 1) ? n_chosen_cutoffs[q_class] : 0;
         int n_q_exact = min(n_q, 2);
         for (j in 1:n_q_exact) {
              int found = 0;
-             for (i in 1:n_chosen[p_class]) {
+             for (i in 1:n_chosen_cutoffs[p_class]) {
                   if (chosen_cutoffs[p_class, i] == chosen_cutoffs[q_class, j]) found = 1;
              }
              if (found == 0) reject("chosen_cutoffs of c = ", q_class, " must be among those of c = ", p_class);
@@ -236,28 +220,24 @@ model {
         //                           prior_beta_mu_mean[1:n_covariates], 
         //                           prior_beta_mu_SD[1:n_covariates]);
         if (first_beta_mu <= n_covariates) {
-             beta_mu[first_beta_mu:n_covariates] ~ normal(prior_beta_mu_mean[first_beta_mu:n_covariates],
-                                                                prior_beta_mu_SD[first_beta_mu:n_covariates]);
+             beta_mu[first_beta_mu:n_covariates] ~ normal( prior_beta_mu_mean[first_beta_mu:n_covariates],
+                                                           prior_beta_mu_SD[first_beta_mu:n_covariates]);
         }
-        beta_SD ~ normal(
-                  prior_beta_SD_mean, 
-                  prior_beta_SD_SD);
+        beta_SD ~ normal( prior_beta_SD_mean, prior_beta_SD_SD);
         ////
         // raw_scale_mu[1:n_covariates] ~ normal(
         //                                prior_raw_scale_mu_mean[1:n_covariates], 
         //                                prior_raw_scale_mu_SD[1:n_covariates]);
         if (first_raw_scale_mu <= n_covariates) {
-             raw_scale_mu[first_raw_scale_mu:n_covariates] ~ normal(
-                                  prior_raw_scale_mu_mean[first_raw_scale_mu:n_covariates],
-                                  prior_raw_scale_mu_SD[first_raw_scale_mu:n_covariates]);
+             raw_scale_mu[first_raw_scale_mu:n_covariates] ~ normal( prior_raw_scale_mu_mean[first_raw_scale_mu:n_covariates],
+                                                                     prior_raw_scale_mu_SD[first_raw_scale_mu:n_covariates]);
         }
-        raw_scale_SD ~ normal(
-                       prior_raw_scale_SD_mean, 
-                       prior_raw_scale_SD_SD);
+        raw_scale_SD ~ normal( prior_raw_scale_SD_mean, prior_raw_scale_SD_SD);
         ////
         {
            log_kappa ~ student_t(prior_kappa_dof, prior_kappa_mean, prior_kappa_SD);
            target += -log_kappa;
+           ////
            dirichlet_phi ~ dirichlet(prior_dirichlet_alpha);
         }
         ////
@@ -272,7 +252,9 @@ model {
         //                         to_vector(C[s, ]), alpha, use_probit_link);
         // }
 
-        //// (every study's cutpoints in one node, as induced_dirichlet_given_C on each row)
+        //// ---- Induced-dirichlet between study ** model ** (NOT a prior: part of the likelihood since
+        ////      random-effect cutpoints), every study's cutpoints in one node, as
+        ////      induced_dirichlet_given_C on each row:
         //// (anchored at the prior mean of the mid-location)
         for (s in 1:n_studies) {
              target += induced_dirichlet_given_C_on_the_log_scale_lupdf(C[s, ] -
@@ -283,14 +265,9 @@ model {
         ////
         //// ---- Likelihood / Model:
         ////
-        // target += std_normal_lpdf(to_vector(beta_z)); // part of between-study model, NOT prior
-
         target += normal_lupdf(to_vector(beta_z) | 0, 1); // part of between-study model, NOT prior
-        // target += std_normal_lpdf(to_vector(raw_scale_z)); // part of between-study model, NOT prior
-
         target += normal_lupdf(to_vector(raw_scale_z) | 0, 1); // part of between-study model, NOT prior
-        // target += raw_scale_to_scale_log_det_J_lp(raw_scale, softplus); // no Jacobian needed for R&G models as it cancels out (since + then -).
-        // target += raw_C_to_C_log_det_J_lp(C_raw, softplus);
+        ////
         target += raw_C_to_C_log_det_J_lp(C_raw, softplus);
         ////
         //// ---- Log-likelihood:

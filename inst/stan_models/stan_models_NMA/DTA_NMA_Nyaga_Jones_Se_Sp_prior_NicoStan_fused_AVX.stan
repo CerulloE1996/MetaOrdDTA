@@ -68,6 +68,12 @@ functions {
         real nico_Phi(real x);
         real nico_inv_logit(real x);
         //// (the nico_ functions of the NicoSIMD versions of the included files:)
+        real nico_std_normal_log_qf(real x);
+        vector nico_std_normal_log_qf(vector x);
+        real nico_log1m_exp(real x);
+        vector nico_log1m_exp(vector x);
+        row_vector nico_log1m_exp(row_vector x);
+        matrix nico_log1m_exp(matrix x);
         real nico_log1m(real x);
         real nico_inv_Phi(real x);
         real nico_tanh(real x);

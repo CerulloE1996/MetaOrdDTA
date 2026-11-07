@@ -67,58 +67,6 @@ functions {
         //           
         // }
 
-        ////
-        //// ---- Induced Dirichlet with the Dirichlet of the segment sums (between chosen cutoffs) swapped for
-        //// ---- a prior on Sp (c = 1) or 1 - Se (c = 2) at the chosen cutoffs, all at the constant anchor:
-        ////
-        real induced_dirichlet_with_Se_Sp_prior_lpdf(vector C_shifted,
-                                                     vector alpha,
-                                                     vector alpha_seg,
-                                                     array[] int chosen,
-                                                     int prior_type,
-                                                     vector A_user,
-                                                     matrix beta_ab,
-                                                     matrix link_mean_SD,
-                                                     int use_probit_link) {
-
-                int n_thr = num_elements(C_shifted);
-                int m = num_elements(chosen);
-                vector[n_thr] P = (use_probit_link == 1) ? Phi(C_shifted) : inv_logit(C_shifted);
-                vector[n_thr + 1] p_ord = cumul_probs_to_ord_probs(P);
-                vector[m] P_chosen = P[chosen];
-                vector[m + 1] q = cumul_probs_to_ord_probs(P_chosen);
-                ////
-                //// ---- induced Dirichlet minus the Dirichlet of the segment sums:
-                ////
-                real log_prob = induced_dirichlet_given_C_lpdf(p_ord | C_shifted, alpha, use_probit_link);
-                log_prob += - dirichlet_lpdf(q | alpha_seg);
-                ////
-                //// ---- prior on P at the chosen cutoffs:
-                ////
-                if (prior_type == 1) {
-                     //// Dirichlet on the segment sums:
-                     log_prob += dirichlet_lpdf(q | A_user);
-                } else if (prior_type == 2) {
-                     //// Beta on each P, restricted to rising P (normaliser constant):
-                     log_prob += beta_lpdf(P_chosen | beta_ab[, 1], beta_ab[, 2]);
-                } else if (prior_type == 4) {
-                     //// Normal on the link scale, restricted to rising P (with the Jacobian from P to the link):
-                     log_prob += normal_lpdf(C_shifted[chosen] | link_mean_SD[, 1], link_mean_SD[, 2]);
-                     if (use_probit_link == 1) {
-                          log_prob += - std_normal_lpdf(C_shifted[chosen]);
-                     } else {
-                          log_prob += - sum(log_inv_logit(C_shifted[chosen]) +
-                                            log1m_inv_logit(C_shifted[chosen]));
-                     }
-                } else {
-                     //// Beta on each (P_j - P_{j-1}) / (1 - P_{j-1}):
-                     vector[m] P_prev = append_row(0.0, P_chosen[1:(m - 1)]);
-                     log_prob += beta_lpdf(q[1:m] ./ (1.0 - P_prev) | beta_ab[, 1], beta_ab[, 2]);
-                     log_prob += - sum(log1m(P_prev));
-                }
-                return log_prob;
-
-        }
 }
 
 
@@ -166,18 +114,18 @@ data {
         //// ---- Types 1 and 3 use P = Sp and 1 - Se; types 2 and 4 use Sp and Se:
         ////
         //// ---- alpha = (1, ..., 1) through this prior (the same density, up to a constant): use_Se_Sp_prior = 1,
-        //// ---- Se_Sp_prior_type = 4, every cutoff chosen in both classes (n_chosen = (n_thr, n_thr)), and
+        //// ---- Se_Sp_prior_type = 4, every cutoff chosen in both classes (n_chosen_cutoffs = (n_thr, n_thr)), and
         //// ---- prior_Se_Sp_link_mean_SD = (0, 1) at every cutoff, i.e. C_k ~ normal(anchor, 1) for every k, kept
         //// ---- in rising order (anchor = prior_beta_mu_mean[c, 1]; a single chosen cutoff is NOT alpha = 1):
         ////
         int<lower=0, upper=1> use_Se_Sp_prior;     //// 0 = original cutpoint prior
         int<lower=1, upper=4> Se_Sp_prior_type;    //// 1 = Dirichlet, 2-3 = Betas, 4 = link-scale Normal
-        int<lower=0, upper=n_thr> n_chosen_max;
-        array[2] int<lower=0, upper=n_chosen_max> n_chosen;
-        array[2, n_chosen_max] int<lower=1, upper=n_thr> chosen_cutoffs;
-        array[2] vector<lower=0.0>[n_chosen_max + 1] prior_Se_Sp_dirichlet_A;
-        array[2] matrix<lower=0.0>[n_chosen_max, 2] prior_Se_Sp_beta;
-        array[2] matrix[n_chosen_max, 2] prior_Se_Sp_link_mean_SD;  //// Mean and SD of link(Sp), link(Se)
+        int<lower=0, upper=n_thr> n_chosen_cutoffs_max;
+        array[2] int<lower=0, upper=n_chosen_cutoffs_max> n_chosen_cutoffs;
+        array[2, n_chosen_cutoffs_max] int<lower=1, upper=n_thr> chosen_cutoffs;
+        array[2] vector<lower=0.0>[n_chosen_cutoffs_max + 1] prior_Se_Sp_dirichlet_A;
+        array[2] matrix<lower=0.0>[n_chosen_cutoffs_max, 2] prior_Se_Sp_beta;
+        array[2] matrix[n_chosen_cutoffs_max, 2] prior_Se_Sp_link_mean_SD;  //// Mean and SD of link(Sp), link(Se)
         ////
         //// ---- Other:
         //// 
@@ -220,21 +168,22 @@ transformed data {
         ////
         //// ---- Sums of prior_dirichlet_alpha over the segments between chosen cutoffs:
         ////
-        array[2] vector[n_chosen_max + 1] alpha_seg;
+        array[2] vector[n_chosen_cutoffs_max + 1] alpha_of_the_segments;
         for (c in 1:2) {
-              alpha_seg[c] = rep_vector(0.0, n_chosen_max + 1);
-              int k_prev = 0;
-              for (j in 1:n_chosen[c]) {
-                   int k_j = chosen_cutoffs[c, j];
-                   if (k_j <= k_prev) reject("chosen_cutoffs must rise: c = ", c);
+              alpha_of_the_segments[c] = rep_vector(0.0, n_chosen_cutoffs_max + 1);
+              int k_previous = 0;
+              for (j in 1:n_chosen_cutoffs[c]) {
+                   int k = chosen_cutoffs[c, j];
+                   if (k <= k_previous) reject("chosen_cutoffs must rise: c = ", c);
                    if (use_Se_Sp_prior == 1 && Se_Sp_prior_type == 4 &&
                        prior_Se_Sp_link_mean_SD[c][j, 2] <= 0.0) {
                         reject("The link-scale prior SD must be positive: c = ", c, ", j = ", j);
                    }
-                   alpha_seg[c][j] = sum(prior_dirichlet_alpha[c][(k_prev + 1):k_j]);
-                   k_prev = k_j;
+                   alpha_of_the_segments[c][j] = sum(prior_dirichlet_alpha[c][(k_previous + 1):k]);
+                   k_previous = k;
               }
-              alpha_seg[c][n_chosen[c] + 1] = sum(prior_dirichlet_alpha[c][(k_prev + 1):n_cat]);
+              alpha_of_the_segments[c][n_chosen_cutoffs[c] + 1] =
+                   sum(prior_dirichlet_alpha[c][(k_previous + 1):n_cat]);
         }
 }
 
@@ -287,14 +236,14 @@ model {
         ////
         //// ---- Priors: 
         ////
-        beta_mu[1, 1:n_covariates_nd] ~ normal(
-                                        prior_beta_mu_mean[1, 1:n_covariates_nd], 
-                                        prior_beta_mu_SD[1, 1:n_covariates_nd]);  
-        beta_mu[2, 1:n_covariates_d]  ~ normal(
-                                        prior_beta_mu_mean[2, 1:n_covariates_d],  
-                                        prior_beta_mu_SD[2, 1:n_covariates_d]);
+        // beta_mu[1, 1:n_covariates_nd] ~ normal(
+        //                                 prior_beta_mu_mean[1, 1:n_covariates_nd],
+        //                                 prior_beta_mu_SD[1, 1:n_covariates_nd]);
+        // beta_mu[2, 1:n_covariates_d]  ~ normal(
+        //                                 prior_beta_mu_mean[2, 1:n_covariates_d],
+        //                                 prior_beta_mu_SD[2, 1:n_covariates_d]);
         ////
-        beta_SD ~ normal(prior_beta_SD_mean, prior_beta_SD_SD); 
+        beta_SD ~ normal(prior_beta_SD_mean, prior_beta_SD_SD);
         beta_L_Omega ~ lkj_corr_cholesky(prior_beta_corr_LKJ); 
         //// 
         //// ---- Induced-dirichlet ** Prior ** model:
@@ -304,24 +253,34 @@ model {
         ////
         for (c in 1:2) {
              vector[n_thr] C_shifted = C[c] - C_anchor[c];
-             if (use_Se_Sp_prior == 1 && n_chosen[c] > 0) {
-                  int m = n_chosen[c];
-                  matrix[m, 2] beta_ab = prior_Se_Sp_beta[c][1:m, ];
-                  matrix[m, 2] link_mean_SD = prior_Se_Sp_link_mean_SD[c][1:m, ];
+             if (use_Se_Sp_prior == 1 && n_chosen_cutoffs[c] > 0) {
+                  matrix[n_chosen_cutoffs[c], 2] prior_beta_of_this_class =
+                       prior_Se_Sp_beta[c][1:n_chosen_cutoffs[c], ];
+                  matrix[n_chosen_cutoffs[c], 2] prior_link_mean_SD_of_this_class =
+                       prior_Se_Sp_link_mean_SD[c][1:n_chosen_cutoffs[c], ];
                   if (c == 2) {
-                       link_mean_SD[, 1] = - link_mean_SD[, 1];
+                       prior_link_mean_SD_of_this_class[, 1] = - prior_link_mean_SD_of_this_class[, 1];
                        if (Se_Sp_prior_type == 2) {
-                            beta_ab = append_col(beta_ab[, 2], beta_ab[, 1]);
+                            prior_beta_of_this_class = append_col(prior_beta_of_this_class[, 2],
+                                                                  prior_beta_of_this_class[, 1]);
                        }
                   }
-                  target += induced_dirichlet_with_Se_Sp_prior_lpdf(
-                            C_shifted | prior_dirichlet_alpha[c],
-                            alpha_seg[c][1:(m + 1)],
-                            chosen_cutoffs[c, 1:m], Se_Sp_prior_type,
-                            prior_Se_Sp_dirichlet_A[c][1:(m + 1)], beta_ab,
-                            link_mean_SD,
+                  target += induced_dirichlet_with_Se_Sp_prior_lupdf(
+                            C[c] - beta_mu[c, 1] | prior_dirichlet_alpha[c],
+                            // C_shifted | prior_dirichlet_alpha[c],
+                            alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
+                            chosen_cutoffs[c, 1:n_chosen_cutoffs[c]], Se_Sp_prior_type,
+                            prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)], prior_beta_of_this_class,
+                            prior_link_mean_SD_of_this_class,
                             use_probit_link);
              } else {
+                  beta_mu[1, 1:n_covariates_nd] ~ normal(
+                                                  prior_beta_mu_mean[1, 1:n_covariates_nd],
+                                                  prior_beta_mu_SD[1, 1:n_covariates_nd]);
+                  beta_mu[2, 1:n_covariates_d]  ~ normal(
+                                                  prior_beta_mu_mean[2, 1:n_covariates_d],
+                                                  prior_beta_mu_SD[2, 1:n_covariates_d]);
+                  ////
                   vector[n_cat] Ind_Dir_ord_prob; //// = cumul_probs_to_ord_probs(Phi(C));
                   if (use_probit_link == 1) Ind_Dir_ord_prob = cumul_probs_to_ord_probs(Phi(C_shifted));
                   else                      Ind_Dir_ord_prob = cumul_probs_to_ord_probs(inv_logit(C_shifted));
@@ -342,7 +301,7 @@ model {
         //    beta_random[s, 1:2] ~ multi_normal_cholesky(rep_vector(0.0, 2), beta_L_Sigma);
         // }
         ////
-        target += std_normal_lpdf(to_vector(beta_z));
+        target += std_normal_lupdf(to_vector(beta_z));
         for (c in 1:2) {
                 target += raw_C_to_C_log_det_J_lp(C_raw_vec[c], softplus);
         }
