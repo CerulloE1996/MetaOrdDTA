@@ -1,4 +1,4 @@
-// NicoSIMD_AVX512 version of DTA_NMA_Nyaga_ord_biv_FIXEDthr_Se_Sp_prior.stan written by NicoStan (source model md5 cf27b1cf257db57070c8b5a732bc990d; NicoSIMD declarations md5 e3c567fd115d2ccf49ec504688009e6b; writer implementation md5 aef1406a74d6694a1d260c4cd31c7a35)
+// NicoSIMD_AVX512 version of DTA_NMA_Nyaga_ord_biv_FIXEDthr_Se_Sp_prior.stan written by NicoStan (source model md5 1d3b1e5fa18c87945365a5d00708d4af; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
 // NicoSIMD functions used: exp, log, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal_rng, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, log_diff_exp, std_normal_log_qf
 
 
@@ -267,7 +267,7 @@ parameters {
           array[n_index_tests] matrix[2, n_covariates_max] beta_mu; 
           ////
           // array[2] vector<lower=-7.5, upper=2.5>[n_total_C_per_class_if_fixed] C_raw_vec;  //// RAW LOG-DIFFS - Global cutpoints for each test (staggered array/matrix using "n_thr[t]" to index correctly)
-          array[2] vector<lower=-15, upper=2.5>[n_total_C_per_class_if_fixed] C_raw_vec;  //// RAW LOG-DIFFS - Global cutpoints for each test (staggered array/matrix using "n_thr[t]" to index correctly)
+          array[2] vector<lower=-15.0, upper=2.5>[n_total_C_per_class_if_fixed] C_raw_vec;  //// RAW LOG-DIFFS - Global cutpoints for each test (staggered array/matrix using "n_thr[t]" to index correctly)
           ////
           //// ---- "NMA" params:
           ////
@@ -431,8 +431,13 @@ model {
                                                                        prior_beta_of_this_class[, 1]);
                             }
                        }
+                       real Xbeta_baseline = (c == 1) ?
+                            dot_product(baseline_case_nd[t][1:n_covariates_nd[t]],
+                                        to_vector(beta_mu[t][1, 1:n_covariates_nd[t]])) :
+                            dot_product(baseline_case_d[t][1:n_covariates_d[t]],
+                                        to_vector(beta_mu[t][2, 1:n_covariates_d[t]]));
                        target += induced_dirichlet_with_Se_Sp_prior_lupdf(
-                                 C_shifted | to_vector(prior_dirichlet_alpha[c][t, 1:n_cat_t]),
+                                 C_vec_t - Xbeta_baseline | to_vector(prior_dirichlet_alpha[c][t, 1:n_cat_t]),
                                  alpha_of_the_segments[t, c][1:(n_chosen_cutoffs[t, c] + 1)],
                                  chosen_cutoffs[t, c, 1:n_chosen_cutoffs[t, c]], Se_Sp_prior_type,
                                  prior_Se_Sp_dirichlet_A[t, c][1:(n_chosen_cutoffs[t, c] + 1)],
