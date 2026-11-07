@@ -7,9 +7,10 @@
 ##      nothing typed at the other cutoffs. Class order: Sp then Se in the ordinal and Jones models, Se then Sp in
 ##      the stratified-bivariate model. priors$Se_Sp_prior$type picks the prior (Stan's Se_Sp_prior_type):
 ##      4 (default) the Normal on the link scale from median / lower / upper; 1 a Dirichlet on the segment sums
-##      (each class gives A, a vector of length n_chosen + 1); 2 a Beta on each Sp_k / Se_k and 3 a Beta on each
-##      conditional step (each class gives beta, an n_chosen x 2 matrix of a and b). Without priors$Se_Sp_prior
-##      the same fields are passed with use_Se_Sp_prior = 0: the model's own prior on the cutpoints.
+##      (each class gives A, a vector of length n_chosen_cutoffs + 1); 2 a Beta on each Sp_k / Se_k and 3 a Beta
+##      on each conditional step (each class gives beta, an n_chosen_cutoffs x 2 matrix of a and b). Without
+##      priors$Se_Sp_prior the same fields are passed with use_Se_Sp_prior = 0: the model's own prior on the
+##      cutpoints.
 ##
 #' R_fn_set_Se_Sp_prior_MA
 #' @keywords internal
@@ -26,8 +27,8 @@ R_fn_set_Se_Sp_prior_MA <-  function(priors,
       if (is.null(priors[["Se_Sp_prior"]])) {
             priors$use_Se_Sp_prior <-  0
             priors$Se_Sp_prior_type <-  4
-            priors$n_chosen_max <-  n_thr
-            priors$n_chosen <-  c(n_thr, n_thr)
+            priors$n_chosen_cutoffs_max <-  n_thr
+            priors$n_chosen_cutoffs <-  c(n_thr, n_thr)
             priors$chosen_cutoffs <-  rbind(1:n_thr, 1:n_thr)
             priors$prior_Se_Sp_dirichlet_A <-  list(rep(1, n_thr + 1), rep(1, n_thr + 1))
             priors$prior_Se_Sp_beta <-  list(matrix(0, n_thr, 2), matrix(0, n_thr, 2))
@@ -51,9 +52,9 @@ R_fn_set_Se_Sp_prior_MA <-  function(priors,
             stopifnot(!is.null(priors[["Se_Sp_prior"]][[class]]),
                       all(fields_of_the_type %in% names(priors[["Se_Sp_prior"]][[class]])))
       }
-      n_chosen <-  sapply(classes, function(class) length(priors[["Se_Sp_prior"]][[class]]$cutoffs))
-      n_chosen_max <-  max(n_chosen)
-      stopifnot(n_chosen_max >= 1, n_chosen_max <= n_thr)
+      n_chosen_cutoffs <-  sapply(classes, function(class) length(priors[["Se_Sp_prior"]][[class]]$cutoffs))
+      n_chosen_cutoffs_max <-  max(n_chosen_cutoffs)
+      stopifnot(n_chosen_cutoffs_max >= 1, n_chosen_cutoffs_max <= n_thr)
       ##
       ## ---- the Normal on the link scale (probit or logit) of each class at its cutoffs:
       ##
@@ -65,25 +66,27 @@ R_fn_set_Se_Sp_prior_MA <-  function(priors,
                        (2 * stats::qnorm(0.975)))
 
       }
-      chosen_cutoffs <-  matrix(1L, 2, n_chosen_max)
-      link_mean_SD <-  list(matrix(0, n_chosen_max, 2), matrix(0, n_chosen_max, 2))
-      dirichlet_A <-  list(rep(1, n_chosen_max + 1), rep(1, n_chosen_max + 1))
-      beta_ab <-  list(matrix(0, n_chosen_max, 2), matrix(0, n_chosen_max, 2))
+      chosen_cutoffs <-  matrix(1L, 2, n_chosen_cutoffs_max)
+      prior_Se_Sp_link_mean_SD <-  list(matrix(0, n_chosen_cutoffs_max, 2), matrix(0, n_chosen_cutoffs_max, 2))
+      dirichlet_A <-  list(rep(1, n_chosen_cutoffs_max + 1), rep(1, n_chosen_cutoffs_max + 1))
+      prior_Se_Sp_beta <-  list(matrix(0, n_chosen_cutoffs_max, 2), matrix(0, n_chosen_cutoffs_max, 2))
       for (c in 1:2) {
             prior_of_the_class <-  priors[["Se_Sp_prior"]][[classes[c]]]
             stopifnot(all(prior_of_the_class$cutoffs %in% 1:n_thr))
-            chosen_cutoffs[c, seq_len(n_chosen[c])] <-  as.integer(prior_of_the_class$cutoffs)
+            chosen_cutoffs[c, seq_len(n_chosen_cutoffs[c])] <-  as.integer(prior_of_the_class$cutoffs)
             if (type == 4) {
                   stopifnot(all(prior_of_the_class$lower < prior_of_the_class$median),
                             all(prior_of_the_class$median < prior_of_the_class$upper))
-                  link_mean_SD[[c]][seq_len(n_chosen[c]), ] <-  fn_link_mean_and_SD(prior_of_the_class)
+                  prior_Se_Sp_link_mean_SD[[c]][seq_len(n_chosen_cutoffs[c]), ] <-
+                        fn_link_mean_and_SD(prior_of_the_class)
             } else if (type == 1) {
-                  stopifnot(length(prior_of_the_class$A) == n_chosen[c] + 1, all(prior_of_the_class$A > 0))
-                  dirichlet_A[[c]][seq_len(n_chosen[c] + 1)] <-  prior_of_the_class$A
+                  stopifnot(length(prior_of_the_class$A) == n_chosen_cutoffs[c] + 1,
+                            all(prior_of_the_class$A > 0))
+                  dirichlet_A[[c]][seq_len(n_chosen_cutoffs[c] + 1)] <-  prior_of_the_class$A
             } else {
-                  stopifnot(all(dim(prior_of_the_class$beta) == c(n_chosen[c], 2)),
+                  stopifnot(all(dim(prior_of_the_class$beta) == c(n_chosen_cutoffs[c], 2)),
                             all(prior_of_the_class$beta > 0))
-                  beta_ab[[c]][seq_len(n_chosen[c]), ] <-  prior_of_the_class$beta
+                  prior_Se_Sp_beta[[c]][seq_len(n_chosen_cutoffs[c]), ] <-  prior_of_the_class$beta
             }
       }
       ##
@@ -91,12 +94,12 @@ R_fn_set_Se_Sp_prior_MA <-  function(priors,
       ##
       priors$use_Se_Sp_prior <-  1
       priors$Se_Sp_prior_type <-  type
-      priors$n_chosen_max <-  n_chosen_max
-      priors$n_chosen <-  unname(n_chosen)
+      priors$n_chosen_cutoffs_max <-  n_chosen_cutoffs_max
+      priors$n_chosen_cutoffs <-  unname(n_chosen_cutoffs)
       priors$chosen_cutoffs <-  chosen_cutoffs
       priors$prior_Se_Sp_dirichlet_A <-  dirichlet_A
-      priors$prior_Se_Sp_beta <-  beta_ab
-      priors$prior_Se_Sp_link_mean_SD <-  link_mean_SD
+      priors$prior_Se_Sp_beta <-  prior_Se_Sp_beta
+      priors$prior_Se_Sp_link_mean_SD <-  prior_Se_Sp_link_mean_SD
       ##
       cutoffs_of_each_class <-  sapply(classes, function(class) {
             paste(priors[["Se_Sp_prior"]][[class]]$cutoffs, collapse = ", ")

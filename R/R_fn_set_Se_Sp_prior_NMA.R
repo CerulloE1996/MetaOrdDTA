@@ -23,8 +23,8 @@ R_fn_set_Se_Sp_prior_NMA <-  function(priors,
       priors[["Se_Sp_prior"]] <-  NULL
       priors$use_Se_Sp_prior <-  0
       priors$Se_Sp_prior_type <-  4
-      priors$n_chosen_max <-  n_thr_max
-      priors$n_chosen <-  cbind(n_thr, n_thr)
+      priors$n_chosen_cutoffs_max <-  n_thr_max
+      priors$n_chosen_cutoffs <-  cbind(n_thr, n_thr)
       priors$chosen_cutoffs <-  array(1L, dim = c(n_index_tests, 2, n_thr_max))
       priors$prior_Se_Sp_dirichlet_A <-  array(1, dim = c(n_index_tests, 2, n_thr_max + 1))
       priors$prior_Se_Sp_beta <-  array(0, dim = c(n_index_tests, 2, n_thr_max, 2))
@@ -53,17 +53,19 @@ R_fn_set_Se_Sp_prior_NMA <-  function(priors,
                   type <-  of_the_test$Se_Sp_prior_type
             }
             stopifnot(type == of_the_test$Se_Sp_prior_type)
-            priors$n_chosen[t, ] <-  of_the_test$n_chosen
+            priors$n_chosen_cutoffs[t, ] <-  of_the_test$n_chosen_cutoffs
             for (c in 1:2) {
-                  m <-  of_the_test$n_chosen[c]
+                  n_chosen_cutoffs_of_this_class <-  of_the_test$n_chosen_cutoffs[c]
                   priors$chosen_cutoffs[t, c, ] <-  1L
-                  priors$chosen_cutoffs[t, c, seq_len(m)] <-  of_the_test$chosen_cutoffs[c, seq_len(m)]
+                  priors$chosen_cutoffs[t, c, seq_len(n_chosen_cutoffs_of_this_class)] <-
+                        of_the_test$chosen_cutoffs[c, seq_len(n_chosen_cutoffs_of_this_class)]
                   priors$prior_Se_Sp_dirichlet_A[t, c, ] <-  1
-                  priors$prior_Se_Sp_dirichlet_A[t, c, seq_len(m + 1)] <-
-                        of_the_test$prior_Se_Sp_dirichlet_A[[c]][seq_len(m + 1)]
-                  priors$prior_Se_Sp_beta[t, c, seq_len(m), ] <-  of_the_test$prior_Se_Sp_beta[[c]][seq_len(m), ]
-                  priors$prior_Se_Sp_link_mean_SD[t, c, seq_len(m), ] <-
-                        of_the_test$prior_Se_Sp_link_mean_SD[[c]][seq_len(m), ]
+                  priors$prior_Se_Sp_dirichlet_A[t, c, seq_len(n_chosen_cutoffs_of_this_class + 1)] <-
+                        of_the_test$prior_Se_Sp_dirichlet_A[[c]][seq_len(n_chosen_cutoffs_of_this_class + 1)]
+                  priors$prior_Se_Sp_beta[t, c, seq_len(n_chosen_cutoffs_of_this_class), ] <-
+                        of_the_test$prior_Se_Sp_beta[[c]][seq_len(n_chosen_cutoffs_of_this_class), ]
+                  priors$prior_Se_Sp_link_mean_SD[t, c, seq_len(n_chosen_cutoffs_of_this_class), ] <-
+                        of_the_test$prior_Se_Sp_link_mean_SD[[c]][seq_len(n_chosen_cutoffs_of_this_class), ]
             }
       }
       priors$use_Se_Sp_prior <-  1

@@ -611,8 +611,8 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                     ##
                     ## ---- The pop-median model, its user header and its Se / Sp prior fields, the prior off -------------------------
                     ##
-                    ## (the fields of R_fn_set_Se_Sp_prior_MA.R:44-65 with n_chosen_max = 1, nothing chosen and
-                    ##  use_Se_Sp_prior = 0; the worker takes them at run_MULTIPLE_MetaOrd_simulation.R:62-81,
+                    ## (the fields of R_fn_set_Se_Sp_prior_MA.R:44-65 with n_chosen_cutoffs_max = 1, nothing chosen
+                    ##  and use_Se_Sp_prior = 0; the worker takes them at run_MULTIPLE_MetaOrd_simulation.R:62-81,
                     ##  142-145, 157-159 and 540-542)
                     if (sim_study_type == "RC_ord_biv_median_vs_pop_median" &&
                         scenario_row$RC_ord_biv_model == "pop_median") {
@@ -626,8 +626,8 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                           scenario_row$prior_fields <- list(list(
                                 use_Se_Sp_prior          = 0,
                                 Se_Sp_prior_type         = 4,
-                                n_chosen_max             = 1,
-                                n_chosen                 = c(0L, 0L),
+                                n_chosen_cutoffs_max             = 1,
+                                n_chosen_cutoffs                 = c(0L, 0L),
                                 chosen_cutoffs           = matrix(1L, 2, 1),
                                 prior_Se_Sp_dirichlet_A  = list(rep(0, 2), rep(0, 2)),
                                 prior_Se_Sp_beta         = list(matrix(0, 1, 2), matrix(0, 1, 2)),
@@ -647,8 +647,8 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                           scenario_row$prior_fields <- list(list(
                                 use_Se_Sp_prior          = 0,
                                 Se_Sp_prior_type         = 4,
-                                n_chosen_max             = 1,
-                                n_chosen                 = c(0L, 0L),
+                                n_chosen_cutoffs_max             = 1,
+                                n_chosen_cutoffs                 = c(0L, 0L),
                                 chosen_cutoffs           = matrix(1L, 2, 1),
                                 prior_Se_Sp_dirichlet_A  = list(rep(0, 2), rep(0, 2)),
                                 prior_Se_Sp_beta         = list(matrix(0, 1, 2), matrix(0, 1, 2)),
@@ -675,8 +675,8 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                               scenario_row$prior_fields <- list(list(
                                     use_Se_Sp_prior          = 0,
                                     Se_Sp_prior_type         = 4,
-                                    n_chosen_max             = 1,
-                                    n_chosen                 = c(0L, 0L),
+                                    n_chosen_cutoffs_max             = 1,
+                                    n_chosen_cutoffs                 = c(0L, 0L),
                                     chosen_cutoffs           = matrix(1L, 2, 1),
                                     prior_Se_Sp_dirichlet_A  = list(rep(0, 2), rep(0, 2)),
                                     prior_Se_Sp_beta         = list(matrix(0, 1, 2), matrix(0, 1, 2)),

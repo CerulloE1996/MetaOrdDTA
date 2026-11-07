@@ -1549,12 +1549,14 @@ fn_induced_accuracy_priors <- function(priors,
               GAD_2 = list(cutoffs = c(2, 3),
                            Se_mean = list(c(1.04, 0.39), c(1.55, 0.77)), Se_SD = c(0.26, 0.20),
                            Sp_mean = list(c(0.47, 1.08), c(0.86, 1.61)), Sp_SD = c(0.20, 0.27)),
-              HADS  = list(cutoffs = c(8, 11),
-                           Se_mean = list(c(0.92, 0.18), c(1.39, 0.55)), Se_SD = c(0.24, 0.19),
-                           Sp_mean = list(c(0.61, 1.28), c(1.02, 1.89)), Sp_SD = c(0.21, 0.31)),
-              BAI   = list(cutoffs = c(8, 16, 26),
-                           Se_mean = list(c(1.41, 0.67, -0.08), c(2.07, 1.10, 0.31)), Se_SD = c(0.34, 0.21, 0.19),
-                           Sp_mean = list(c(0.13, 0.88, 1.48), c(0.50, 1.34, 2.18)), Sp_SD = c(0.19, 0.24, 0.36))
+              HADS  = list(cutoffs = c(7, 8, 11),
+                           Se_mean = list(c(1.17, 0.92, 0.18), c(1.74, 1.39, 0.55)), Se_SD = c(0.29, 0.24, 0.19),
+                           Sp_mean = list(c(0.36, 0.61, 1.28), c(0.74, 1.02, 1.89)), Sp_SD = c(0.20, 0.21, 0.31)),
+              BAI   = list(cutoffs = c(8, 10, 13, 16),
+                           Se_mean = list(c(1.41, 1.23, 0.95, 0.67), c(2.07, 1.81, 1.44, 1.10)),
+                           Se_SD = c(0.34, 0.30, 0.25, 0.21),
+                           Sp_mean = list(c(0.13, 0.33, 0.61, 0.88), c(0.50, 0.71, 1.02, 1.34)),
+                           Sp_SD = c(0.19, 0.19, 0.21, 0.24))
         )[[test]]
         ## (the band of thresholds of each test, and the SD of the O-biv-FC intercept prior of each set)
         band <-  list(GAD_2 = 1:6, HADS = 3:17, BAI = 5:43)[[test]]
@@ -1580,6 +1582,7 @@ fn_induced_accuracy_priors <- function(priors,
                     mean_of_Se <-  rep(0, 2)
                     SD_of_Se <-  rep(1, 2)
               } else {
+                    Se_Sp_prior_type <-  2
                     cutoffs <-  1:n_thr
                     mean_of_Sp <-  rep(0, n_thr)
                     SD_of_Sp <-  rep(1, n_thr)
@@ -1607,8 +1610,11 @@ fn_induced_accuracy_priors <- function(priors,
         ## (type 1: the Dirichlet(1, ..., 1) of the n_thr + 1 categories summed over the segments between the cutoffs)
         priors$prior_Se_Sp_dirichlet_A <-  list(diff(c(0, cutoffs, n_thr + 1)), diff(c(0, cutoffs, n_thr + 1)))
         ## (type 2: Sp_k ~ Beta(k, K + 1 - k) in row 1 and Se_k ~ Beta(K + 1 - k, k) in row 2)
-        priors$prior_Se_Sp_beta <-  list(cbind(cutoffs, n_thr + 1 - cutoffs, deparse.level = 0),
-                                         cbind(n_thr + 1 - cutoffs, cutoffs, deparse.level = 0))
+        beta_of_Sp <-  cbind(cutoffs, n_thr + 1 - cutoffs, deparse.level = 0)
+        beta_of_Se <-  cbind(n_thr + 1 - cutoffs, cutoffs, deparse.level = 0)
+        priors$prior_Se_Sp_beta <-  if (model_parameterisation == "Bivariate")
+                                          list(beta_of_Se, beta_of_Sp) else
+                                          list(beta_of_Sp, beta_of_Se)
         priors$prior_Se_Sp_link_mean_SD <-  if (model_parameterisation == "Bivariate")
                                                   list(link_mean_SD_of_Se, link_mean_SD_of_Sp) else
                                                   list(link_mean_SD_of_Sp, link_mean_SD_of_Se)

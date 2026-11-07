@@ -74,8 +74,8 @@ Stan_data <- c(Stan_data, priors)
 Stan_data <- MetaOrdDTA:::R_fn_remove_duplicates_from_list(Stan_data)
 Stan_data$use_Se_Sp_prior <- 1
 Stan_data$Se_Sp_prior_type <- Se_Sp_prior_type
-Stan_data$n_chosen_max <- length(chosen_cutoffs)
-Stan_data$n_chosen <- rep(length(chosen_cutoffs), 2)
+Stan_data$n_chosen_cutoffs_max <- length(chosen_cutoffs)
+Stan_data$n_chosen_cutoffs <- rep(length(chosen_cutoffs), 2)
 Stan_data$chosen_cutoffs <- rbind(chosen_cutoffs, chosen_cutoffs)
 Stan_data$prior_Se_Sp_dirichlet_A <- priors$prior_dirichlet_alpha
 Stan_data$prior_Se_Sp_beta <- list(matrix(0, length(chosen_cutoffs), 2), matrix(0, length(chosen_cutoffs), 2))

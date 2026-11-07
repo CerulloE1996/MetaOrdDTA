@@ -433,29 +433,29 @@ fn_Se_Sp_prior_fields <-  function(priors,
       }
       n_Sp <-  length(chosen_Sp)
       n_Se <-  length(chosen_Se)
-      n_chosen_max <-  max(n_Sp, n_Se)
-      fn_pad_cutoffs <-  function(chosen) c(chosen, rep(1L, n_chosen_max - length(chosen)))
-      fn_pad_link <-  function(link) rbind(link, cbind(rep(0, n_chosen_max - nrow(link)),
-                                                       rep(1, n_chosen_max - nrow(link))))
+      n_chosen_cutoffs_max <-  max(n_Sp, n_Se)
+      fn_pad_cutoffs <-  function(chosen) c(chosen, rep(1L, n_chosen_cutoffs_max - length(chosen)))
+      fn_pad_link <-  function(link) rbind(link, cbind(rep(0, n_chosen_cutoffs_max - nrow(link)),
+                                                       rep(1, n_chosen_cutoffs_max - nrow(link))))
       priors$use_Se_Sp_prior <-  1
       priors$Se_Sp_prior_type <-  Se_Sp_prior_type
-      priors$n_chosen_max <-  n_chosen_max
-      priors$prior_Se_Sp_beta <-  list(matrix(0, n_chosen_max, 2), matrix(0, n_chosen_max, 2))
+      priors$n_chosen_cutoffs_max <-  n_chosen_cutoffs_max
+      priors$prior_Se_Sp_beta <-  list(matrix(0, n_chosen_cutoffs_max, 2), matrix(0, n_chosen_cutoffs_max, 2))
       ##
       ## ---- Class order: Se then Sp, else Sp then Se --------------------------------------------------------------------------------
       ##
       if (settings$Se_first) {
-            priors$n_chosen <-  c(n_Se, n_Sp)
+            priors$n_chosen_cutoffs <-  c(n_Se, n_Sp)
             priors$chosen_cutoffs <-  rbind(fn_pad_cutoffs(chosen_Se), fn_pad_cutoffs(chosen_Sp))
             priors$prior_Se_Sp_link_mean_SD <-  list(fn_pad_link(link_Se), fn_pad_link(link_Sp))
       } else {
-            priors$n_chosen <-  c(n_Sp, n_Se)
+            priors$n_chosen_cutoffs <-  c(n_Sp, n_Se)
             priors$chosen_cutoffs <-  rbind(fn_pad_cutoffs(chosen_Sp), fn_pad_cutoffs(chosen_Se))
             ##
             ## ---- The ordinal models: the Dirichlet fields --------------------------------------------------------------------------
             ##
             if (!settings$cts) {
-                  priors$prior_Se_Sp_dirichlet_A <-  list(rep(0, n_chosen_max + 1), rep(0, n_chosen_max + 1))
+                  priors$prior_Se_Sp_dirichlet_A <-  list(rep(0, n_chosen_cutoffs_max + 1), rep(0, n_chosen_cutoffs_max + 1))
             }
             priors$prior_Se_Sp_link_mean_SD <-  list(fn_pad_link(link_Sp), fn_pad_link(link_Se))
       }
