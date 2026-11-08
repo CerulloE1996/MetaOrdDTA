@@ -1,4 +1,4 @@
-// NicoSIMD_AVX512 version of DTA_NMA_Nyaga_Jones_Se_Sp_prior.stan written by NicoStan (source model md5 c0d74a930759a335b94059388b2a0e5d; NicoSIMD declarations md5 e3c567fd115d2ccf49ec504688009e6b; writer implementation md5 aef1406a74d6694a1d260c4cd31c7a35)
+// NicoSIMD_AVX512 version of DTA_NMA_Nyaga_Jones_Se_Sp_prior.stan written by NicoStan (source model md5 976c1c7b4b137422992ebfca50f33e9c; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
 // NicoSIMD functions used: exp, log, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal_rng, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, log_diff_exp, std_normal_log_qf
 
 
@@ -452,8 +452,14 @@ model {
         ////
         //// ---- Priors:
         ////
+        //// (lambda of a test and class gets its own prior only where the Se / Sp prior cannot set it:
+        ////  no Box-Cox, no Se / Sp prior, or fewer than 2 chosen cutoffs)
         for (c in 1:2) {
-           lambda[c] ~ nico_normal(prior_boxcox_lambda_mean[c], prior_boxcox_lambda_SD[c]);
+           for (t in 1:n_index_tests) {
+                if (box_cox == 0 || use_Se_Sp_prior == 0 || n_chosen_cutoffs[t, c] < 2) {
+                     lambda[c][t] ~ nico_normal(prior_boxcox_lambda_mean[c][t], prior_boxcox_lambda_SD[c][t]);
+                }
+           }
         }
         ////
         for (t in 1:n_index_tests) {
@@ -529,6 +535,44 @@ model {
                                                         prior_raw_scale_mu_SD[t][c, 1]);
                                  target += nico_log(abs(baseline[1])) + nico_log(C_gap) +
                                            log_scale_derivative - 2.0 * nico_log(scale);
+                                 ////
+                                 //// ---- Lambda has no prior of its own: between the chosen cutoffs, the flat Dirichlet(1, ..., 1)
+                                 //// ---- prior as close as the Box-Cox curve allows. With 2 chosen cutoffs: the length, along
+                                 //// ---- lambda, of the curve of the probabilities of all categories, the chosen cutoffs held;
+                                 //// ---- with 3 or more: the Jacobian of the third chosen cutoff with respect to lambda:
+                                 ////
+                                 if (box_cox == 1) {
+                                      int k_1 = chosen_cutoffs[t, c, 1];
+                                      int k_2 = chosen_cutoffs[t, c, 2];
+                                      real lambda_t = lambda[c][t];
+                                      vector[n_thr[t]] dB_dlambda;
+                                      for (k in 1:n_thr[t]) {
+                                           real log_x = nico_log(cts_thr_values[t][k]);
+                                           dB_dlambda[k] = (abs(lambda_t) < 1e-4) ?
+                                                           0.5 * square(log_x) + lambda_t * pow(log_x, 3.0) / 3.0 :
+                                                           (nico_exp(lambda_t * log_x) * (lambda_t * log_x - 1.0) + 1.0) /
+                                                           square(lambda_t);
+                                      }
+                                      real B_gap = C_vec_t[k_2] - C_vec_t[k_1];
+                                      vector[n_thr[t]] d_rho_d_lambda = ((dB_dlambda - dB_dlambda[k_1]) * B_gap -
+                                                                         (C_vec_t - C_vec_t[k_1]) *
+                                                                         (dB_dlambda[k_2] - dB_dlambda[k_1])) / square(B_gap);
+                                      real log_z_gap = nico_log(C_baseline[2] - C_baseline[1]);
+                                      if (n_chosen_cutoffs[t, c] == 2) {
+                                           vector[n_thr[t]] z = (C_vec_t - location) / scale;
+                                           vector[n_thr[t]] f_of_z = (use_probit_link == 1) ?
+                                                                     nico_exp(-0.5 * square(z) - 0.9189385332046728) :
+                                                                     nico_inv_logit(z) .* nico_inv_logit(-z);
+                                           vector[n_thr[t]] dP_dlambda = f_of_z .* d_rho_d_lambda;
+                                           dP_dlambda[k_1] = 0.0;
+                                           dP_dlambda[k_2] = 0.0;
+                                           vector[n_thr[t] + 1] d_increments = append_row(dP_dlambda, 0.0) -
+                                                                               append_row(0.0, dP_dlambda);
+                                           target += log_z_gap + 0.5 * nico_log(dot_self(d_increments));
+                                      } else {
+                                           target += log_z_gap + nico_log(abs(d_rho_d_lambda[chosen_cutoffs[t, c, 3]]));
+                                      }
+                                 }
                             }
                        }
                   }

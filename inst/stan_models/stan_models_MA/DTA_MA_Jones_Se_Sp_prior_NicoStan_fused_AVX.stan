@@ -104,6 +104,13 @@ functions {
         real nico_dirichlet_lpdf(vector theta, vector alpha);
         real nico_log_diff_exp(real x, real y);
         vector nico_log_diff_exp(vector x, vector y);
+        real nico_Box_Cox_lambda_log_density_of_the_flat_Dirichlet(real lambda,
+                                                                  real location,
+                                                                  real scale,
+                                                                  data vector x,
+                                                                  data array[] int chosen_cutoffs,
+                                                                  data int use_probit_link,
+                                                                  data int rescale_to_minus_2_to_2);
 }
 
 
@@ -276,6 +283,11 @@ transformed data {
                     }
               }
         }
+        ////
+        //// ---- The thresholds shifted to positive, as for the Box-Cox cutpoints:
+        ////
+        vector[n_thr] cts_thr_shifted_data = cts_thr_values +
+                                             ((min(cts_thr_values) <= 0) ? abs(min(cts_thr_values)) + 1.0 : 0.0);
 }
 
 
@@ -404,6 +416,13 @@ model {
                             real C_gap = C[c][chosen_cutoffs[c, 2]] - C[c][chosen_cutoffs[c, 1]];
                             target += nico_log(abs(baseline[1])) + nico_log(C_gap) +  // !?!??!
                                       log_scale_derivative - 2.0 * nico_log(scale);   // !?!??!
+                            ////
+                            //// ---- Lambda has no prior of its own: the flat Dirichlet(1, ..., 1) between the chosen
+                            //// ---- cutoffs, as close as the Box-Cox curve allows:
+                            ////
+                            target += nico_Box_Cox_lambda_log_density_of_the_flat_Dirichlet(
+                                      lambda[c], location, scale, cts_thr_shifted_data,
+                                      chosen_cutoffs[c, 1:n_chosen_cutoffs[c]], use_probit_link, 1);
                        }
                   }
               }
@@ -424,9 +443,14 @@ model {
                                                                            to_vector(prior_raw_scale_mu_SD[2, 1:n_covariates_d]));
         }
         ////
-        //// ---- Prior for box-cox parameters:
+        //// ---- Prior for box-cox parameters (only where fewer than 2 cutoffs are chosen, as the Se / Sp prior
+        //// ---- then cannot set lambda):
         ////
-        lambda ~ nico_normal(prior_boxcox_lambda_mean, prior_boxcox_lambda_SD);
+        for (c in 1:2) {
+             if (use_Se_Sp_prior == 0 || n_chosen_cutoffs[c] < 2) {
+                  lambda[c] ~ nico_normal(prior_boxcox_lambda_mean[c], prior_boxcox_lambda_SD[c]);
+             }
+        }
         ////
         //// ---- Likelihood / Model:
         ////

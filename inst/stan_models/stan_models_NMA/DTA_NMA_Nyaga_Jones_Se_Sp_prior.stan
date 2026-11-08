@@ -375,8 +375,14 @@ model {
         ////
         //// ---- Priors:
         ////
+        //// (lambda of a test and class gets its own prior only where the Se / Sp prior cannot set it:
+        ////  no Box-Cox, no Se / Sp prior, or fewer than 2 chosen cutoffs)
         for (c in 1:2) {
-           lambda[c] ~ normal(prior_boxcox_lambda_mean[c], prior_boxcox_lambda_SD[c]);
+           for (t in 1:n_index_tests) {
+                if (box_cox == 0 || use_Se_Sp_prior == 0 || n_chosen_cutoffs[t, c] < 2) {
+                     lambda[c][t] ~ normal(prior_boxcox_lambda_mean[c][t], prior_boxcox_lambda_SD[c][t]);
+                }
+           }
         }
         ////
         for (t in 1:n_index_tests) {
@@ -452,6 +458,44 @@ model {
                                                         prior_raw_scale_mu_SD[t][c, 1]);
                                  target += log(abs(baseline[1])) + log(C_gap) +
                                            log_scale_derivative - 2.0 * log(scale);
+                                 ////
+                                 //// ---- Lambda has no prior of its own: between the chosen cutoffs, the flat Dirichlet(1, ..., 1)
+                                 //// ---- prior as close as the Box-Cox curve allows. With 2 chosen cutoffs: the length, along
+                                 //// ---- lambda, of the curve of the probabilities of all categories, the chosen cutoffs held;
+                                 //// ---- with 3 or more: the Jacobian of the third chosen cutoff with respect to lambda:
+                                 ////
+                                 if (box_cox == 1) {
+                                      int k_1 = chosen_cutoffs[t, c, 1];
+                                      int k_2 = chosen_cutoffs[t, c, 2];
+                                      real lambda_t = lambda[c][t];
+                                      vector[n_thr[t]] dB_dlambda;
+                                      for (k in 1:n_thr[t]) {
+                                           real log_x = log(cts_thr_values[t][k]);
+                                           dB_dlambda[k] = (abs(lambda_t) < 1e-4) ?
+                                                           0.5 * square(log_x) + lambda_t * pow(log_x, 3.0) / 3.0 :
+                                                           (exp(lambda_t * log_x) * (lambda_t * log_x - 1.0) + 1.0) /
+                                                           square(lambda_t);
+                                      }
+                                      real B_gap = C_vec_t[k_2] - C_vec_t[k_1];
+                                      vector[n_thr[t]] d_rho_d_lambda = ((dB_dlambda - dB_dlambda[k_1]) * B_gap -
+                                                                         (C_vec_t - C_vec_t[k_1]) *
+                                                                         (dB_dlambda[k_2] - dB_dlambda[k_1])) / square(B_gap);
+                                      real log_z_gap = log(C_baseline[2] - C_baseline[1]);
+                                      if (n_chosen_cutoffs[t, c] == 2) {
+                                           vector[n_thr[t]] z = (C_vec_t - location) / scale;
+                                           vector[n_thr[t]] f_of_z = (use_probit_link == 1) ?
+                                                                     exp(-0.5 * square(z) - 0.9189385332046728) :
+                                                                     inv_logit(z) .* inv_logit(-z);
+                                           vector[n_thr[t]] dP_dlambda = f_of_z .* d_rho_d_lambda;
+                                           dP_dlambda[k_1] = 0.0;
+                                           dP_dlambda[k_2] = 0.0;
+                                           vector[n_thr[t] + 1] d_increments = append_row(dP_dlambda, 0.0) -
+                                                                               append_row(0.0, dP_dlambda);
+                                           target += log_z_gap + 0.5 * log(dot_self(d_increments));
+                                      } else {
+                                           target += log_z_gap + log(abs(d_rho_d_lambda[chosen_cutoffs[t, c, 3]]));
+                                      }
+                                 }
                             }
                        }
                   }
