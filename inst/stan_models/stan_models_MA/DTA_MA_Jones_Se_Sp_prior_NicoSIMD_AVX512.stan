@@ -304,19 +304,9 @@ transformed parameters {
 
 
 model {
-        ////
-        //// ---- Priors for locations:
-        ////
-        beta_mu[1, 1:n_covariates_nd] ~ nico_normal(prior_beta_mu_mean[1, 1:n_covariates_nd], prior_beta_mu_SD[1, 1:n_covariates_nd]);  
-        beta_mu[2, 1:n_covariates_d]  ~ nico_normal(prior_beta_mu_mean[2, 1:n_covariates_d],  prior_beta_mu_SD[2, 1:n_covariates_d]);
-        ////
+  
         beta_SD    ~ normal(prior_beta_SD_mean, prior_beta_SD_SD); 
         beta_L_Omega ~ nico_lkj_corr_cholesky(prior_beta_corr_LKJ);
-        ////
-        //// ---- Priors for scales:
-        ////
-        raw_scale_mu[1, 1:n_covariates_nd] ~ nico_normal(prior_raw_scale_mu_mean[1, 1:n_covariates_nd], prior_raw_scale_mu_SD[1, 1:n_covariates_nd]);  
-        raw_scale_mu[2, 1:n_covariates_d]  ~ nico_normal(prior_raw_scale_mu_mean[2, 1:n_covariates_d],  prior_raw_scale_mu_SD[2, 1:n_covariates_d]);
         ////
         raw_scale_SD    ~ normal(prior_raw_scale_SD_mean, prior_raw_scale_SD_SD);
         raw_scale_L_Omega ~ nico_lkj_corr_cholesky(prior_raw_scale_corr_LKJ);
@@ -325,21 +315,18 @@ model {
         //// ---- Replace selected baseline location and scale priors:
         ////
         if (use_Se_Sp_prior == 1) {
-             for (c in 1:2) {
+              for (c in 1:2) {
                   if (n_chosen_cutoffs[c] > 0) {
                        int n_covariates_c = (c == 1) ? n_covariates_nd : n_covariates_d;
                        vector[n_covariates_c] baseline = (c == 1) ? baseline_case_nd : baseline_case_d;
-                       real location = dot_product(baseline, to_vector(beta_mu[c, 1:n_covariates_c]));
+                       real location  = dot_product(baseline, to_vector(beta_mu[c, 1:n_covariates_c]));
                        real raw_scale = dot_product(baseline, to_vector(raw_scale_mu[c, 1:n_covariates_c]));
                        ////
                        real scale = (softplus == 1) ? softplus_scaled(raw_scale) : nico_exp(raw_scale);
                        ////
-                       vector[n_chosen_cutoffs[c]] C_baseline =
-                            (C[c][chosen_cutoffs[c, 1:n_chosen_cutoffs[c]]] - location) / scale;
-                       matrix[n_chosen_cutoffs[c], 2] prior_beta_of_this_class =
-                            prior_Se_Sp_beta[c][1:n_chosen_cutoffs[c], ];
-                       matrix[n_chosen_cutoffs[c], 2] prior_link_mean_SD_of_this_class =
-                            prior_Se_Sp_link_mean_SD[c][1:n_chosen_cutoffs[c], ];
+                       vector[n_chosen_cutoffs[c]] C_baseline = (C[c][chosen_cutoffs[c, 1:n_chosen_cutoffs[c]]] - location) / scale;
+                       matrix[n_chosen_cutoffs[c], 2] prior_beta_of_this_class = prior_Se_Sp_beta[c][1:n_chosen_cutoffs[c], ];
+                       matrix[n_chosen_cutoffs[c], 2] prior_link_mean_SD_of_this_class = prior_Se_Sp_link_mean_SD[c][1:n_chosen_cutoffs[c], ];
                        if (c == 2) {
                             prior_link_mean_SD_of_this_class[, 1] = -prior_link_mean_SD_of_this_class[, 1];
                             if (Se_Sp_prior_type == 2) {
@@ -347,7 +334,7 @@ model {
                                                                        prior_beta_of_this_class[, 1]);
                             }
                        }
-                       target += -nico_normal_lupdf(beta_mu[c, 1] | prior_beta_mu_mean[c, 1], prior_beta_mu_SD[c, 1]);
+                       // target += -nico_normal_lupdf(beta_mu[c, 1] | prior_beta_mu_mean[c, 1], prior_beta_mu_SD[c, 1]);
                        target += Se_Sp_prior_at_chosen_cutoffs_lupdf(
                                  C_baseline | Se_Sp_prior_type, prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
                                  prior_beta_of_this_class, prior_link_mean_SD_of_this_class, use_probit_link);
@@ -355,16 +342,28 @@ model {
                        ////
                        if (n_chosen_cutoffs[c] >= 2) {
                             real log_scale_derivative = (softplus == 1) ?
-                                  nico_log_inv_logit(raw_scale) - nico_log(nico_log(2.0)) : raw_scale;
+                                                        nico_log_inv_logit(raw_scale) - nico_log(nico_log(2.0)) :
+                                                        raw_scale;
                             real C_gap = C[c][chosen_cutoffs[c, 2]] - C[c][chosen_cutoffs[c, 1]];
-                            target += -nico_normal_lupdf(raw_scale_mu[c, 1] |
-                                                   prior_raw_scale_mu_mean[c, 1],
-                                                   prior_raw_scale_mu_SD[c, 1]);
+                            // target += -nico_normal_lupdf(raw_scale_mu[c, 1] |
+                            //                        prior_raw_scale_mu_mean[c, 1],
+                            //                        prior_raw_scale_mu_SD[c, 1]);
                             target += nico_log(abs(baseline[1])) + nico_log(C_gap) +
                                       log_scale_derivative - 2.0 * nico_log(scale);
                        }
                   }
-             }
+              }
+        } else {
+              ////
+              //// ---- Priors for locations:
+              ////
+              beta_mu[1, 1:n_covariates_nd] ~ nico_normal(prior_beta_mu_mean[1, 1:n_covariates_nd], prior_beta_mu_SD[1, 1:n_covariates_nd]);  
+              beta_mu[2, 1:n_covariates_d]  ~ nico_normal(prior_beta_mu_mean[2, 1:n_covariates_d],  prior_beta_mu_SD[2, 1:n_covariates_d]);
+              ////
+              //// ---- Priors for scales:
+              ////
+              raw_scale_mu[1, 1:n_covariates_nd] ~ nico_normal(prior_raw_scale_mu_mean[1, 1:n_covariates_nd], prior_raw_scale_mu_SD[1, 1:n_covariates_nd]);  
+              raw_scale_mu[2, 1:n_covariates_d]  ~ nico_normal(prior_raw_scale_mu_mean[2, 1:n_covariates_d],  prior_raw_scale_mu_SD[2, 1:n_covariates_d]);
         }
         ////
         //// ---- Prior for box-cox parameters:

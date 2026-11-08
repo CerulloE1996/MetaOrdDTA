@@ -361,22 +361,8 @@ transformed parameters {
 
 model {
         ////
-        //// ---- Priors for locations:
-        ////
-        to_vector(beta_mu[1, 1:n_covariates_nd]) ~ nico_normal( to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd]),
-                                                                to_vector(prior_beta_mu_SD[1, 1:n_covariates_nd]));
-        to_vector(beta_mu[2, 1:n_covariates_d])  ~ nico_normal( to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]),
-                                                                to_vector(prior_beta_mu_SD[2, 1:n_covariates_d]));
-        ////
         to_vector(beta_SD) ~ nico_normal(prior_beta_SD_mean, prior_beta_SD_SD);
         beta_L_Omega ~ nico_lkj_corr_cholesky(prior_beta_corr_LKJ);
-        ////
-        //// ---- Priors for scales:
-        ////
-        to_vector(raw_scale_mu[1, 1:n_covariates_nd]) ~ nico_normal( to_vector(prior_raw_scale_mu_mean[1, 1:n_covariates_nd]),
-                                                                     to_vector(prior_raw_scale_mu_SD[1, 1:n_covariates_nd]));
-        to_vector(raw_scale_mu[2, 1:n_covariates_d])  ~ nico_normal( to_vector(prior_raw_scale_mu_mean[2, 1:n_covariates_d]),
-                                                                     to_vector(prior_raw_scale_mu_SD[2, 1:n_covariates_d]));
         ////
         to_vector(raw_scale_SD) ~ nico_normal(prior_raw_scale_SD_mean, prior_raw_scale_SD_SD);
         raw_scale_L_Omega ~ nico_lkj_corr_cholesky(prior_raw_scale_corr_LKJ);
@@ -385,46 +371,57 @@ model {
         //// ---- Replace selected baseline location and scale priors:
         ////
         if (use_Se_Sp_prior == 1) {
-             for (c in 1:2) {
+              for (c in 1:2) {
                   if (n_chosen_cutoffs[c] > 0) {
                        int n_covariates_c = (c == 1) ? n_covariates_nd : n_covariates_d;
                        vector[n_covariates_c] baseline = (c == 1) ? baseline_case_nd : baseline_case_d;
-                       real location = dot_product(baseline, to_vector(beta_mu[c, 1:n_covariates_c]));
+                       real location  = dot_product(baseline, to_vector(beta_mu[c, 1:n_covariates_c]));
                        real raw_scale = dot_product(baseline, to_vector(raw_scale_mu[c, 1:n_covariates_c]));
                        ///
                        real scale = (softplus == 1) ? 1.4426950408889634 * nico_log1p_exp(raw_scale) : nico_exp(raw_scale);
                        ////
-                       vector[n_chosen_cutoffs[c]] C_baseline =
-                            (C[c][chosen_cutoffs[c, 1:n_chosen_cutoffs[c]]] - location) / scale;
-                       matrix[n_chosen_cutoffs[c], 2] prior_beta_of_this_class =
-                            prior_Se_Sp_beta[c][1:n_chosen_cutoffs[c], ];
-                       matrix[n_chosen_cutoffs[c], 2] prior_link_mean_SD_of_this_class =
-                            prior_Se_Sp_link_mean_SD[c][1:n_chosen_cutoffs[c], ];
+                       vector[n_chosen_cutoffs[c]] C_baseline = (C[c][chosen_cutoffs[c, 1:n_chosen_cutoffs[c]]] - location) / scale;
+                       matrix[n_chosen_cutoffs[c], 2] prior_beta_of_this_class = prior_Se_Sp_beta[c][1:n_chosen_cutoffs[c], ];
+                       matrix[n_chosen_cutoffs[c], 2] prior_link_mean_SD_of_this_class = prior_Se_Sp_link_mean_SD[c][1:n_chosen_cutoffs[c], ];
+                       ////
                        if (c == 2) {
                             prior_link_mean_SD_of_this_class[, 1] = -prior_link_mean_SD_of_this_class[, 1];
                             if (Se_Sp_prior_type == 2) {
-                                 prior_beta_of_this_class = append_col(prior_beta_of_this_class[, 2],
-                                                                       prior_beta_of_this_class[, 1]);
+                                 prior_beta_of_this_class = append_col(prior_beta_of_this_class[, 2], prior_beta_of_this_class[, 1]);
                             }
                        }
-                       target += -nico_normal_lupdf(beta_mu[c, 1] | prior_beta_mu_mean[c, 1], prior_beta_mu_SD[c, 1]);
                        target += nico_Se_Sp_prior_at_chosen_cutoffs_lupdf(
-                                 C_baseline | Se_Sp_prior_type, prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
-                                 prior_beta_of_this_class, prior_link_mean_SD_of_this_class, use_probit_link);
-                       target += nico_log(abs(baseline[1])) - nico_log(scale);
+                                 C_baseline | Se_Sp_prior_type,
+                                 prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
+                                 prior_beta_of_this_class,
+                                 prior_link_mean_SD_of_this_class,
+                                 use_probit_link);
+                       target += nico_log(abs(baseline[1])) - nico_log(scale); // !?!??!
                        ////
                        if (n_chosen_cutoffs[c] >= 2) {
                             real log_scale_derivative = (softplus == 1) ?
-                                  nico_log_inv_logit(raw_scale) - nico_log(nico_log(2.0)) : raw_scale;
+                                                        nico_log_inv_logit(raw_scale) - nico_log(nico_log(2.0)) : raw_scale;
                             real C_gap = C[c][chosen_cutoffs[c, 2]] - C[c][chosen_cutoffs[c, 1]];
-                            target += -nico_normal_lupdf(raw_scale_mu[c, 1] |
-                                                   prior_raw_scale_mu_mean[c, 1],
-                                                   prior_raw_scale_mu_SD[c, 1]);
-                            target += nico_log(abs(baseline[1])) + nico_log(C_gap) +
-                                      log_scale_derivative - 2.0 * nico_log(scale);
+                            target += nico_log(abs(baseline[1])) + nico_log(C_gap) +  // !?!??!
+                                      log_scale_derivative - 2.0 * nico_log(scale);   // !?!??!
                        }
                   }
-             }
+              }
+        } else {
+              ////
+              //// ---- Priors for locations:
+              ////
+              to_vector(beta_mu[1, 1:n_covariates_nd]) ~ nico_normal( to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd]),
+                                                                      to_vector(prior_beta_mu_SD[1, 1:n_covariates_nd]));
+              to_vector(beta_mu[2, 1:n_covariates_d])  ~ nico_normal( to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]),
+                                                                      to_vector(prior_beta_mu_SD[2, 1:n_covariates_d]));
+              ////
+              //// ---- Priors for scales:
+              ////
+              to_vector(raw_scale_mu[1, 1:n_covariates_nd]) ~ nico_normal( to_vector(prior_raw_scale_mu_mean[1, 1:n_covariates_nd]),
+                                                                           to_vector(prior_raw_scale_mu_SD[1, 1:n_covariates_nd]));
+              to_vector(raw_scale_mu[2, 1:n_covariates_d])  ~ nico_normal( to_vector(prior_raw_scale_mu_mean[2, 1:n_covariates_d]),
+                                                                           to_vector(prior_raw_scale_mu_SD[2, 1:n_covariates_d]));
         }
         ////
         //// ---- Prior for box-cox parameters:
@@ -440,18 +437,6 @@ model {
         ////
         //// ---- Log-likelihood:
         ////
-        // {
-        //     ////
-        //     //// ---- Get the cutpoint index (k) to map "latent_surv[c][s, cut_i]" to correct cutpoint "C[k]":
-        //     ////
-        //     array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_to_fixed_hetero_C(
-        //                                                     C, Xbeta, Xscale, n_studies,
-        //                                                     n_obs_cutpoints, cutpoint_index);
-        //     target += compute_log_lik_binomial_fact_lp(
-        //               latent_surv, use_probit_link, n_thr, n_studies,
-        //               x_2, n, N_total, n_obs_cutpoints,
-        //               K_fold_CV_indicator);
-        // }
         {
             ////
             //// ---- every term in one autodiff node: nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf
