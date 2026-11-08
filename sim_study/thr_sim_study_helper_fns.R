@@ -1589,6 +1589,28 @@ fn_induced_accuracy_priors <- function(priors,
                     mean_of_Se <-  rep(0, n_thr)
                     SD_of_Se <-  rep(1, n_thr)
               }
+        } else if (model_parameterisation == "Jones") {
+              ##
+              ## ---- Jones: N(a, b) on probit Sp and probit Se at the two band ends, and the Box-Cox lambda prior of each
+              ##      class, those whose induced Se and Sp on the band are closest to the O-biv-FC prior of the same set
+              ##      (columns: Sp at the band ends, their SDs, Se at the band ends, their SDs, lambda mean and SD of Sp
+              ##      then of Se):
+              ##
+              Jones_band_end_priors <-  list(
+                    GAD_2 = list(c(-0.547, 1.496, 0.473, 0.157, 1.353, -1.107, 0.202, 0.541, -0.615, 0.079, 1.061, 0.060),
+                                 c(-0.339, 1.776, 0.599, 0.091, 1.924, -1.133, 0.116, 0.697, -1.072, 0.174, 1.290, 0.241)),
+                    HADS  = list(c(-0.764, 1.828, 0.347, 0.197, 2.045, -0.766, 0.275, 0.272, 0.237, 0.025, 0.684, 0.003),
+                                 c(-0.617, 2.904, 0.395, 0.181, 2.531, -0.542, 0.145, 0.304, 0.476, 0.010, 0.687, 0.106)),
+                    BAI   = list(c(-0.535, 1.608, 0.236, 0.237, 1.917, -0.433, 0.198, 0.159, -0.375, 0.005, 0.033, 0.220),
+                                 c(-0.269, 1.918, 0.288, 0.185, 2.527, -0.300, 0.179, 0.164, -0.512, 0.023, 0.164, 0.203))
+              )[[test]][[prior_set]]
+              cutoffs <-  range(band)
+              mean_of_Sp <-  Jones_band_end_priors[1:2]
+              SD_of_Sp <-  Jones_band_end_priors[3:4]
+              mean_of_Se <-  Jones_band_end_priors[5:6]
+              SD_of_Se <-  Jones_band_end_priors[7:8]
+              priors$prior_boxcox_lambda_mean <-  Jones_band_end_priors[c(9, 11)]
+              priors$prior_boxcox_lambda_SD <-  Jones_band_end_priors[c(10, 12)]
         } else {
               cutoffs <-  literature_priors$cutoffs
               mean_of_Sp <-  literature_priors$Sp_mean[[prior_set]]
