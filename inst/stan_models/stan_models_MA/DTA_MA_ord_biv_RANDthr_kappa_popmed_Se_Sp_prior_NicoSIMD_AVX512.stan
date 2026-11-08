@@ -1,4 +1,4 @@
-// NicoSIMD_AVX512 version of DTA_MA_ord_biv_RANDthr_kappa_popmed_Se_Sp_prior.stan written by NicoStan (source model md5 fd3afb6296466a2cc631d3f1c6f270ae; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
+// NicoSIMD_AVX512 version of DTA_MA_ord_biv_RANDthr_kappa_popmed_Se_Sp_prior.stan written by NicoStan (source model md5 b1b025ff4975670567983b50b7ca91cb; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
 // NicoSIMD functions used: exp, log, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal_rng, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, log_diff_exp, std_normal_log_qf, student_t
 //// DTA_MA_ord_biv_RANDthr_kappa_popmed_Se_Sp_prior_Stan_math_only.stan
 //// The same data, parameters and target as the fused AVX file of this model with the Dirichlet prior of dirichlet_phi, on Stan::math only.
@@ -302,12 +302,12 @@ model {
         ////
         //// ---- Priors: 
         ////
-        // beta_mu[1, 1:n_covariates_nd] ~ normal(
-        //                                 prior_beta_mu_mean[1, 1:n_covariates_nd],
-        //                                 prior_beta_mu_SD[1, 1:n_covariates_nd]);
-        // beta_mu[2, 1:n_covariates_d]  ~ normal(
-        //                                 prior_beta_mu_mean[2, 1:n_covariates_d],
-        //                                 prior_beta_mu_SD[2, 1:n_covariates_d]);
+        beta_mu[1, 1:n_covariates_nd] ~ nico_normal(
+                                          prior_beta_mu_mean[1, 1:n_covariates_nd],
+                                          prior_beta_mu_SD[1, 1:n_covariates_nd]);
+        beta_mu[2, 1:n_covariates_d]  ~ nico_normal(
+                                          prior_beta_mu_mean[2, 1:n_covariates_d],
+                                          prior_beta_mu_SD[2, 1:n_covariates_d]);
         // ////
         // beta_SD ~ normal(prior_beta_SD_mean, prior_beta_SD_SD);
 
@@ -377,13 +377,6 @@ model {
 
            } else {
 
-                     to_vector(beta_mu[1, 1:n_covariates_nd]) ~ nico_normal(
-                                                                 to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd]),
-                                                                 to_vector(prior_beta_mu_SD[1, 1:n_covariates_nd]));
-                     to_vector(beta_mu[2, 1:n_covariates_d])  ~ nico_normal(
-                                                                 to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]),
-                                                                 to_vector(prior_beta_mu_SD[2, 1:n_covariates_d]));
-                     ////
                      dirichlet_phi[c] ~ nico_dirichlet(prior_dirichlet_alpha[c]);
 
            }

@@ -216,12 +216,12 @@ model {
         ////
         //// ---- Priors: 
         ////
-        // beta_mu[1, 1:n_covariates_nd] ~ normal(
-        //                                 prior_beta_mu_mean[1, 1:n_covariates_nd],
-        //                                 prior_beta_mu_SD[1, 1:n_covariates_nd]);
-        // beta_mu[2, 1:n_covariates_d]  ~ normal(
-        //                                 prior_beta_mu_mean[2, 1:n_covariates_d],
-        //                                 prior_beta_mu_SD[2, 1:n_covariates_d]);
+        beta_mu[1, 1:n_covariates_nd] ~ normal(
+                                          prior_beta_mu_mean[1, 1:n_covariates_nd],
+                                          prior_beta_mu_SD[1, 1:n_covariates_nd]);
+        beta_mu[2, 1:n_covariates_d]  ~ normal(
+                                          prior_beta_mu_mean[2, 1:n_covariates_d],
+                                          prior_beta_mu_SD[2, 1:n_covariates_d]);
         // ////
         // beta_SD ~ normal(prior_beta_SD_mean, prior_beta_SD_SD);
 
@@ -291,13 +291,6 @@ model {
 
            } else {
 
-                     to_vector(beta_mu[1, 1:n_covariates_nd]) ~ normal(
-                                                                 to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd]),
-                                                                 to_vector(prior_beta_mu_SD[1, 1:n_covariates_nd]));
-                     to_vector(beta_mu[2, 1:n_covariates_d])  ~ normal(
-                                                                 to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]),
-                                                                 to_vector(prior_beta_mu_SD[2, 1:n_covariates_d]));
-                     ////
                      dirichlet_phi[c] ~ dirichlet(prior_dirichlet_alpha[c]);
 
            }
