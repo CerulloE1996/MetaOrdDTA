@@ -417,6 +417,73 @@ model {
                        C_baseline[c] = (C_mu + Xbeta_of_line[c]) * scale_of_line[c];
                   }
                   ////
+                  //// ---- Between the chosen cutoffs: the Dirichlet(prior_dirichlet_alpha) of each segment on the increments of
+                  //// ---- P_of_C_mu = (Sp + 1 - Se) / 2 at C_mu, both classes' own probabilities at the population medians, in place of the
+                  //// ---- increments of the cumulative dirichlet_phi (the prior at the chosen cutoffs is unchanged):
+                  ////
+                  if (n_chosen_cutoffs[p_class] < n_thr) {
+                       vector[n_thr] P_of_C_mu;
+                       vector[n_thr] P_upper_of_C_mu;
+                       vector[n_thr] log_J_of_P_of_C_mu;
+                       real log_scale_nd = nico_log(scale_of_line[1]);
+                       real log_scale_d = nico_log(scale_of_line[2]);
+                       real log_kappa_over_alpha_0 = nico_log(kappa / alpha_0);
+                       for (k in 1:n_thr) {
+                            vector[2] median_and_log_J_of_k = nico_dirichlet_cutpoint_median_and_log_J(P_of_alpha[k],
+                                                                                                        P_upper_of_alpha[k],
+                                                                                                        alpha_0,
+                                                                                                        use_probit_link);
+                            real link_Sp = (median_and_log_J_of_k[1] + Xbeta_of_line[1]) * scale_of_line[1];
+                            real link_1m_Se = (median_and_log_J_of_k[1] + Xbeta_of_line[2]) * scale_of_line[2];
+                            real log_f_Sp;
+                            real log_f_1m_Se;
+                            if (use_probit_link == 1) {
+                                 P_of_C_mu[k] = 0.5 * (nico_Phi(link_Sp) + nico_Phi(link_1m_Se));
+                                 P_upper_of_C_mu[k] = 0.5 * (nico_Phi(-link_Sp) + nico_Phi(-link_1m_Se));
+                                 log_f_Sp = -0.5 * square(link_Sp) - 0.9189385332046728;
+                                 log_f_1m_Se = -0.5 * square(link_1m_Se) - 0.9189385332046728;
+                            } else {
+                                 P_of_C_mu[k] = 0.5 * (nico_inv_logit(link_Sp) + nico_inv_logit(link_1m_Se));
+                                 P_upper_of_C_mu[k] = 0.5 * (nico_inv_logit(-link_Sp) + nico_inv_logit(-link_1m_Se));
+                                 log_f_Sp = nico_log_inv_logit(link_Sp) + nico_log1m_inv_logit(link_Sp);
+                                 log_f_1m_Se = nico_log_inv_logit(link_1m_Se) + nico_log1m_inv_logit(link_1m_Se);
+                            }
+                            //// (log d P_of_C_mu / d cumulative phi = log((f(link_Sp) * scale_nd + f(link_1m_Se) * scale_d) / 2) + log dC_mu / d P)
+                            real log_term_Sp = log_f_Sp + log_scale_nd;
+                            real log_term_1m_Se = log_f_1m_Se + log_scale_d;
+                            log_J_of_P_of_C_mu[k] = fmax(log_term_Sp, log_term_1m_Se) + nico_log1p_exp(-abs(log_term_Sp - log_term_1m_Se)) -
+                                             0.6931471805599453 + median_and_log_J_of_k[2] + log_kappa_over_alpha_0;
+                       }
+                       ////
+                       //// ---- Each segment with cutoffs inside it: log(new conditional) - log(Dirichlet of dirichlet_phi given the segment sum):
+                       ////
+                       int k_lower_end = 0;
+                       for (j in 1:(n_chosen_cutoffs[p_class] + 1)) {
+                            int k_upper_end = (j <= n_chosen_cutoffs[p_class]) ? chosen_cutoffs[p_class, j] : n_cat;
+                            if (k_upper_end - k_lower_end > 1) {
+                                 real P_of_C_mu_of_the_segment = (k_lower_end == 0) ? P_of_C_mu[k_upper_end] :
+                                                         (k_upper_end == n_cat) ? P_upper_of_C_mu[k_lower_end] :
+                                                         (P_of_C_mu[k_lower_end] > 0.5) ? (P_upper_of_C_mu[k_lower_end] - P_upper_of_C_mu[k_upper_end]) :
+                                                                                        (P_of_C_mu[k_upper_end] - P_of_C_mu[k_lower_end]);
+                                 real phi_of_the_segment = sum(dirichlet_phi[(k_lower_end + 1):k_upper_end]);
+                                 target += sum(log_J_of_P_of_C_mu[(k_lower_end + 1):(k_upper_end - 1)]) -
+                                           (sum(prior_dirichlet_alpha[(k_lower_end + 1):k_upper_end]) - 1.0) *
+                                           (nico_log(P_of_C_mu_of_the_segment) - nico_log(phi_of_the_segment));
+                                 for (i in (k_lower_end + 1):k_upper_end) {
+                                      if (prior_dirichlet_alpha[i] != 1.0) {
+                                           real P_of_C_mu_of_the_category = (i == n_cat) ? P_upper_of_C_mu[n_thr] :
+                                                                    (i == 1) ? P_of_C_mu[1] :
+                                                                    (P_of_C_mu[i - 1] > 0.5) ? (P_upper_of_C_mu[i - 1] - P_upper_of_C_mu[i]) :
+                                                                                             (P_of_C_mu[i] - P_of_C_mu[i - 1]);
+                                           target += (prior_dirichlet_alpha[i] - 1.0) *
+                                                     (nico_log(P_of_C_mu_of_the_category) - nico_log(dirichlet_phi[i]));
+                                      }
+                                 }
+                            }
+                            k_lower_end = k_upper_end;
+                       }
+                  }
+                  ////
                   //// ---- Class p_class: the Dirichlet of dirichlet_phi with its prior at the chosen cutoffs:
                   ////
                   {
