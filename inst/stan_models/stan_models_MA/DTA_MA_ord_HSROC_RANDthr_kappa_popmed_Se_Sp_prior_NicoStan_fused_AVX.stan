@@ -26,6 +26,11 @@ functions {
                                                   data int Se_Sp_prior_type, vector prior_Se_Sp_dirichlet_A,
                                                   matrix prior_Se_Sp_beta, matrix prior_Se_Sp_link_mean_SD,
                                                   data int link);
+        real nico_Se_Sp_prior_at_chosen_cutoffs_lpdf(vector x, data int Se_Sp_prior_type,
+                                                     vector prior_Se_Sp_dirichlet_A,
+                                                     matrix prior_Se_Sp_beta,
+                                                     matrix prior_Se_Sp_link_mean_SD,
+                                                     data int link);
         vector nico_exp(vector x);
         vector nico_log1p_exp(vector x);
         vector nico_log_inv_logit(vector x);
@@ -259,6 +264,40 @@ transformed data {
         //// ---- Class on the cutpoints (p_class):
         ////
         int p_class = (n_chosen_cutoffs[2] > n_chosen_cutoffs[1]) ? 2 : 1;
+        ////
+        //// ---- Unit probability priors at every cutoff, with exponential scales and the probit link:
+        ////
+        int joint_unit_probability_prior = use_Se_Sp_prior == 1 &&
+                                             (Se_Sp_prior_type == 1 || Se_Sp_prior_type == 2) &&
+                                             use_probit_link == 1 && softplus == 0 && n_thr > 1 &&
+                                             n_chosen_cutoffs[1] == n_thr && n_chosen_cutoffs[2] == n_thr;
+        if (joint_unit_probability_prior == 1) {
+              for (c in 1:2) {
+                    for (j in 1:n_thr) {
+                          if (chosen_cutoffs[c, j] != j) joint_unit_probability_prior = 0;
+                          if (Se_Sp_prior_type == 2 && (prior_Se_Sp_beta[c][j, 1] != 1.0 ||
+                              prior_Se_Sp_beta[c][j, 2] != 1.0)) joint_unit_probability_prior = 0;
+                    }
+                    if (Se_Sp_prior_type == 1) {
+                          for (j in 1:(n_thr + 1)) {
+                                if (prior_Se_Sp_dirichlet_A[c][j] != 1.0)
+                                      joint_unit_probability_prior = 0;
+                          }
+                    }
+              }
+        }
+        ////
+        //// ---- Joint link-scale priors at shared cutoffs:
+        ////
+        int joint_link_prior = use_Se_Sp_prior == 1 && Se_Sp_prior_type == 4 &&
+                               n_chosen_cutoffs[1] >= 2 &&
+                               n_chosen_cutoffs[1] == n_chosen_cutoffs[2];
+        if (joint_link_prior == 1) {
+              for (j in 1:n_chosen_cutoffs[1]) {
+                    if (chosen_cutoffs[1, j] != chosen_cutoffs[2, j]) joint_link_prior = 0;
+              }
+              if (baseline_case[1] == 0.0) joint_link_prior = 0;
+        }
 
 }
 
@@ -401,7 +440,68 @@ model {
                      ////
                      //// ---- Jacobian from C_mu to the scaled line at the chosen cutpoints:
                      ////
-                     target += n_chosen_cutoffs[p_class] * nico_log(scale_of_line[p_class]);
+                     if (joint_unit_probability_prior == 0 && joint_link_prior == 0) {
+                          target += n_chosen_cutoffs[p_class] * nico_log(scale_of_line[p_class]);
+                     }
+                  }
+                  ////
+                  //// ---- The other class: its Se/Sp prior at the same cutoff, through Xbeta_baseline_c (beta_mu[1]);
+                  //// ---- the Jacobian of (P, b) -> (C_baseline[1], C_baseline[2]) is 2 * scale_nd * scale_d * |dm/dP|,
+                  //// ---- of which the terms of p_class above hold scale_of_line[p_class] * |dm/dP|:
+                  ////
+                  {
+                     int q_class = 3 - p_class;
+                     matrix[n_chosen_cutoffs[q_class], 2] prior_beta_of_this_class = prior_Se_Sp_beta[q_class][1:n_chosen_cutoffs[q_class], ];
+                     matrix[n_chosen_cutoffs[q_class], 2] prior_link_mean_SD_of_this_class = prior_Se_Sp_link_mean_SD[q_class][1:n_chosen_cutoffs[q_class], ];
+                     if (q_class == 2) {
+                          prior_link_mean_SD_of_this_class[, 1] = - prior_link_mean_SD_of_this_class[, 1];
+                          if (Se_Sp_prior_type == 2) {
+                               prior_beta_of_this_class = append_col(prior_beta_of_this_class[, 2],
+                                                                     prior_beta_of_this_class[, 1]);
+                          }
+                     }
+                     target += nico_Se_Sp_prior_at_chosen_cutoffs_lupdf(
+                               C_baseline[q_class] | Se_Sp_prior_type,
+                               prior_Se_Sp_dirichlet_A[q_class][1:(n_chosen_cutoffs[q_class] + 1)], prior_beta_of_this_class,
+                               prior_link_mean_SD_of_this_class,
+                               use_probit_link);
+                     if (joint_unit_probability_prior == 1) {
+                          //// Both ordered Normal lines share their centred direction, not their means or radii.
+                          target += nico_log(4.0) + 0.5 * (n_thr - 1) *
+                                    nico_log(dot_self(C_mu - mean(C_mu)));
+                     } else if (joint_link_prior == 1) {
+                          //// Link-space volume of both lines with respect to C_mu, location and raw scale.
+                          real a = scale_of_line[1];
+                          real d = scale_of_line[2];
+                          real da = a;
+                          real dd = -d;
+                          if (softplus == 1) {
+                               da = 1.4426950408889634 * nico_inv_logit(Xraw_scale_baseline_c);
+                               dd = -1.4426950408889634 * nico_inv_logit(-Xraw_scale_baseline_c);
+                          }
+                          target += nico_log(2.0 * a * d * (da * d - a * dd)) +
+                                    0.5 * nico_log(n_chosen_cutoffs[p_class] *
+                                              dot_self(C_mu - mean(C_mu))) +
+                                    0.5 * (n_chosen_cutoffs[p_class] - 2) *
+                                    nico_log(square(a) + square(d));
+                     } else {
+                          target += nico_log(2.0 * scale_of_line[q_class]);
+                     }
+                  }
+                  if (n_covariates > 1) {
+                       beta_mu[2:n_covariates] ~ nico_normal( prior_beta_mu_mean[2:n_covariates],
+                                                         prior_beta_mu_SD[2:n_covariates]);
+                  }
+                  if (joint_unit_probability_prior == 1 || joint_link_prior == 1) {
+                       if (n_covariates > 1) {
+                            raw_scale_mu[2:n_covariates] ~ nico_normal(
+                                  prior_raw_scale_mu_mean[2:n_covariates],
+                                  prior_raw_scale_mu_SD[2:n_covariates]);
+                       }
+                  } else {
+                       raw_scale_mu[1:n_covariates] ~ nico_normal(
+                             prior_raw_scale_mu_mean[1:n_covariates],
+                             prior_raw_scale_mu_SD[1:n_covariates]);
                   }
                   
            } else {
