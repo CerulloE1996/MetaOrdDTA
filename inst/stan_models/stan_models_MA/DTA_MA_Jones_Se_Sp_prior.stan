@@ -258,17 +258,15 @@ model {
                   if (n_chosen_cutoffs[c] > 0) {
                        int n_covariates_c = (c == 1) ? n_covariates_nd : n_covariates_d;
                        vector[n_covariates_c] baseline = (c == 1) ? baseline_case_nd : baseline_case_d;
-                       real location = dot_product(baseline, to_vector(beta_mu[c, 1:n_covariates_c]));
+                       real location  = dot_product(baseline, to_vector(beta_mu[c, 1:n_covariates_c]));
                        real raw_scale = dot_product(baseline, to_vector(raw_scale_mu[c, 1:n_covariates_c]));
                        ////
                        real scale = (softplus == 1) ? softplus_scaled(raw_scale) : exp(raw_scale);
                        ////
-                       vector[n_chosen_cutoffs[c]] C_baseline =
-                            (C[c][chosen_cutoffs[c, 1:n_chosen_cutoffs[c]]] - location) / scale;
-                       matrix[n_chosen_cutoffs[c], 2] prior_beta_of_this_class =
-                            prior_Se_Sp_beta[c][1:n_chosen_cutoffs[c], ];
-                       matrix[n_chosen_cutoffs[c], 2] prior_link_mean_SD_of_this_class =
-                            prior_Se_Sp_link_mean_SD[c][1:n_chosen_cutoffs[c], ];
+                       vector[n_chosen_cutoffs[c]] C_baseline = (C[c][chosen_cutoffs[c, 1:n_chosen_cutoffs[c]]] - location) / scale;
+                       matrix[n_chosen_cutoffs[c], 2] prior_beta_of_this_class = prior_Se_Sp_beta[c][1:n_chosen_cutoffs[c], ];
+                       matrix[n_chosen_cutoffs[c], 2] prior_link_mean_SD_of_this_class = prior_Se_Sp_link_mean_SD[c][1:n_chosen_cutoffs[c], ];
+                       ////
                        if (c == 2) {
                             prior_link_mean_SD_of_this_class[, 1] = -prior_link_mean_SD_of_this_class[, 1];
                             if (Se_Sp_prior_type == 2) {
@@ -277,28 +275,72 @@ model {
                             }
                        }
                        target += -normal_lupdf(beta_mu[c, 1] | prior_beta_mu_mean[c, 1], prior_beta_mu_SD[c, 1]);
-                       target += Se_Sp_prior_at_chosen_cutoffs_lupdf(
-                                 C_baseline | Se_Sp_prior_type, prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
-                                 prior_beta_of_this_class, prior_link_mean_SD_of_this_class, use_probit_link);
+                       target += Se_Sp_prior_at_chosen_cutoffs_lupdf(  C_baseline | Se_Sp_prior_type, 
+                                                                       prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
+                                                                       prior_beta_of_this_class, 
+                                                                       prior_link_mean_SD_of_this_class, 
+                                                                       use_probit_link);
                        target += log(abs(baseline[1])) - log(scale);
                        ////
                        if (n_chosen_cutoffs[c] >= 2) {
                             real log_scale_derivative = (softplus == 1) ?
-                                  log_inv_logit(raw_scale) - log(log(2.0)) : raw_scale;
+                                                        log_inv_logit(raw_scale) - log(log(2.0)) : raw_scale;
                             real C_gap = C[c][chosen_cutoffs[c, 2]] - C[c][chosen_cutoffs[c, 1]];
                             target += -normal_lupdf(raw_scale_mu[c, 1] |
                                                    prior_raw_scale_mu_mean[c, 1],
                                                    prior_raw_scale_mu_SD[c, 1]);
                             target += log(abs(baseline[1])) + log(C_gap) +
                                       log_scale_derivative - 2.0 * log(scale);
+                            ////
+                            //// ---- Lambda has no prior of its own: between the chosen cutoffs, the flat Dirichlet(1, ..., 1)
+                            //// ---- prior as close as the Box-Cox curve allows. With 2 chosen cutoffs: the length, along
+                            //// ---- lambda, of the curve of the probabilities of all categories, the chosen cutoffs held; with
+                            //// ---- 3 or more: the Jacobian of the third chosen cutoff with respect to lambda:
+                            ////
+                            {
+                                 int k_1 = chosen_cutoffs[c, 1];
+                                 int k_2 = chosen_cutoffs[c, 2];
+                                 vector[n_thr] dB_dlambda;
+                                 for (k in 1:n_thr) {
+                                      real log_x = log(cts_thr_shifted[k]);
+                                      dB_dlambda[k] = (abs(lambda[c]) < 1e-4) ?
+                                                      0.5 * square(log_x) + lambda[c] * pow(log_x, 3.0) / 3.0 :
+                                                      (exp(lambda[c] * log_x) * (lambda[c] * log_x - 1.0) + 1.0) /
+                                                      square(lambda[c]);
+                                 }
+                                 real B_gap = C_raw[c][k_2] - C_raw[c][k_1];
+                                 vector[n_thr] d_rho_d_lambda = ((dB_dlambda - dB_dlambda[k_1]) * B_gap -
+                                                                 (C_raw[c] - C_raw[c][k_1]) *
+                                                                 (dB_dlambda[k_2] - dB_dlambda[k_1])) / square(B_gap);
+                                 real log_z_gap = log(C_baseline[2] - C_baseline[1]);
+                                 if (n_chosen_cutoffs[c] == 2) {
+                                      vector[n_thr] z = (C[c] - location) / scale;
+                                      vector[n_thr] f_of_z = (use_probit_link == 1) ?
+                                                             exp(-0.5 * square(z) - 0.9189385332046728) :
+                                                             inv_logit(z) .* inv_logit(-z);
+                                      vector[n_thr] dP_dlambda = f_of_z .* d_rho_d_lambda;
+                                      dP_dlambda[k_1] = 0.0;
+                                      dP_dlambda[k_2] = 0.0;
+                                      vector[n_thr + 1] d_increments = append_row(dP_dlambda, 0.0) -
+                                                                       append_row(0.0, dP_dlambda);
+                                      target += log_z_gap + 0.5 * log(dot_self(d_increments));
+                                 } else {
+                                      target += log_z_gap + log(abs(d_rho_d_lambda[chosen_cutoffs[c, 3]]));
+                                 }
+                            }
                        }
                   }
              }
         }
         ////
-        //// ---- Prior for box-cox parameters:
+        //// ---- Prior for box-cox parameters (only where fewer than 2 cutoffs are chosen, as the Se / Sp prior
+        //// ---- then cannot set lambda):
         ////
-        lambda ~ normal(prior_boxcox_lambda_mean, prior_boxcox_lambda_SD);
+        for (c in 1:2) {
+             if (use_Se_Sp_prior == 0 || n_chosen_cutoffs[c] < 2) {
+                  lambda[c] ~ normal(prior_boxcox_lambda_mean[c], prior_boxcox_lambda_SD[c]);
+             }
+        }
         ////
         //// ---- Likelihood / Model:
         ////

@@ -116,6 +116,13 @@ functions {
         real nico_dirichlet_lpdf(vector theta, vector alpha);
         real nico_log_diff_exp(real x, real y);
         vector nico_log_diff_exp(vector x, vector y);
+        real nico_Box_Cox_lambda_log_density_of_the_flat_Dirichlet(real lambda,
+                                                                  real location,
+                                                                  real scale,
+                                                                  data vector x,
+                                                                  data array[] int chosen_cutoffs,
+                                                                  data int use_probit_link,
+                                                                  data int rescale_to_minus_2_to_2);
 }
 
  
@@ -559,8 +566,14 @@ model {
         ////
         //// ---- Priors:
         ////
+        //// (lambda of a test and class gets its own prior only where the Se / Sp prior cannot set it:
+        ////  no Box-Cox, no Se / Sp prior, or fewer than 2 chosen cutoffs)
         for (c in 1:2) {
-           lambda[c] ~ nico_normal(prior_boxcox_lambda_mean[c], prior_boxcox_lambda_SD[c]);
+           for (t in 1:n_index_tests) {
+                if (box_cox == 0 || use_Se_Sp_prior == 0 || n_chosen_cutoffs[t, c] < 2) {
+                     lambda[c][t] ~ nico_normal(prior_boxcox_lambda_mean[c][t], prior_boxcox_lambda_SD[c][t]);
+                }
+           }
         }
         ////
         for (t in 1:n_index_tests) {
@@ -649,6 +662,15 @@ model {
                                                         prior_raw_scale_mu_SD[t][c, 1]);
                                  target += nico_log(abs(baseline[1])) + nico_log(C_gap) +
                                            log_scale_derivative - 2.0 * nico_log(scale);
+                                 ////
+                                 //// ---- Lambda has no prior of its own: the flat Dirichlet(1, ..., 1) between the chosen
+                                 //// ---- cutoffs, as close as the Box-Cox curve allows:
+                                 ////
+                                 if (box_cox == 1) {
+                                      target += nico_Box_Cox_lambda_log_density_of_the_flat_Dirichlet(
+                                                lambda[c][t], location, scale, cts_thr_values[t][1:n_thr[t]],
+                                                chosen_cutoffs[t, c, 1:n_chosen_cutoffs[t, c]], use_probit_link, 0);
+                                 }
                             }
                        }
                   }

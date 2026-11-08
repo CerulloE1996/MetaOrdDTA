@@ -1,4 +1,4 @@
-// NicoSIMD_AVX512 version of DTA_MA_Jones_Se_Sp_prior.stan written by NicoStan (source model md5 59552de89c5eeeb5d7632cd3694a6a56; NicoSIMD declarations md5 e3c567fd115d2ccf49ec504688009e6b; writer implementation md5 aef1406a74d6694a1d260c4cd31c7a35)
+// NicoSIMD_AVX512 version of DTA_MA_Jones_Se_Sp_prior.stan written by NicoStan (source model md5 bda97b3a4c7a0a7b4bfea6e30365dd14; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
 // NicoSIMD functions used: exp, log, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, log_diff_exp, std_normal_log_qf
 
 
@@ -304,9 +304,19 @@ transformed parameters {
 
 
 model {
-  
+        ////
+        //// ---- Priors for locations:
+        ////
+        beta_mu[1, 1:n_covariates_nd] ~ nico_normal(prior_beta_mu_mean[1, 1:n_covariates_nd], prior_beta_mu_SD[1, 1:n_covariates_nd]);  
+        beta_mu[2, 1:n_covariates_d]  ~ nico_normal(prior_beta_mu_mean[2, 1:n_covariates_d],  prior_beta_mu_SD[2, 1:n_covariates_d]);
+        ////
         beta_SD    ~ normal(prior_beta_SD_mean, prior_beta_SD_SD); 
         beta_L_Omega ~ nico_lkj_corr_cholesky(prior_beta_corr_LKJ);
+        ////
+        //// ---- Priors for scales:
+        ////
+        raw_scale_mu[1, 1:n_covariates_nd] ~ nico_normal(prior_raw_scale_mu_mean[1, 1:n_covariates_nd], prior_raw_scale_mu_SD[1, 1:n_covariates_nd]);  
+        raw_scale_mu[2, 1:n_covariates_d]  ~ nico_normal(prior_raw_scale_mu_mean[2, 1:n_covariates_d],  prior_raw_scale_mu_SD[2, 1:n_covariates_d]);
         ////
         raw_scale_SD    ~ normal(prior_raw_scale_SD_mean, prior_raw_scale_SD_SD);
         raw_scale_L_Omega ~ nico_lkj_corr_cholesky(prior_raw_scale_corr_LKJ);
@@ -315,7 +325,7 @@ model {
         //// ---- Replace selected baseline location and scale priors:
         ////
         if (use_Se_Sp_prior == 1) {
-              for (c in 1:2) {
+             for (c in 1:2) {
                   if (n_chosen_cutoffs[c] > 0) {
                        int n_covariates_c = (c == 1) ? n_covariates_nd : n_covariates_d;
                        vector[n_covariates_c] baseline = (c == 1) ? baseline_case_nd : baseline_case_d;
@@ -327,6 +337,7 @@ model {
                        vector[n_chosen_cutoffs[c]] C_baseline = (C[c][chosen_cutoffs[c, 1:n_chosen_cutoffs[c]]] - location) / scale;
                        matrix[n_chosen_cutoffs[c], 2] prior_beta_of_this_class = prior_Se_Sp_beta[c][1:n_chosen_cutoffs[c], ];
                        matrix[n_chosen_cutoffs[c], 2] prior_link_mean_SD_of_this_class = prior_Se_Sp_link_mean_SD[c][1:n_chosen_cutoffs[c], ];
+                       ////
                        if (c == 2) {
                             prior_link_mean_SD_of_this_class[, 1] = -prior_link_mean_SD_of_this_class[, 1];
                             if (Se_Sp_prior_type == 2) {
@@ -334,41 +345,73 @@ model {
                                                                        prior_beta_of_this_class[, 1]);
                             }
                        }
-                       // target += -nico_normal_lupdf(beta_mu[c, 1] | prior_beta_mu_mean[c, 1], prior_beta_mu_SD[c, 1]);
-                       target += Se_Sp_prior_at_chosen_cutoffs_lupdf(
-                                 C_baseline | Se_Sp_prior_type, prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
-                                 prior_beta_of_this_class, prior_link_mean_SD_of_this_class, use_probit_link);
+                       target += -nico_normal_lupdf(beta_mu[c, 1] | prior_beta_mu_mean[c, 1], prior_beta_mu_SD[c, 1]);
+                       target += Se_Sp_prior_at_chosen_cutoffs_lupdf(  C_baseline | Se_Sp_prior_type, 
+                                                                       prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
+                                                                       prior_beta_of_this_class, 
+                                                                       prior_link_mean_SD_of_this_class, 
+                                                                       use_probit_link);
                        target += nico_log(abs(baseline[1])) - nico_log(scale);
                        ////
                        if (n_chosen_cutoffs[c] >= 2) {
                             real log_scale_derivative = (softplus == 1) ?
-                                                        nico_log_inv_logit(raw_scale) - nico_log(nico_log(2.0)) :
-                                                        raw_scale;
+                                                        nico_log_inv_logit(raw_scale) - nico_log(nico_log(2.0)) : raw_scale;
                             real C_gap = C[c][chosen_cutoffs[c, 2]] - C[c][chosen_cutoffs[c, 1]];
-                            // target += -nico_normal_lupdf(raw_scale_mu[c, 1] |
-                            //                        prior_raw_scale_mu_mean[c, 1],
-                            //                        prior_raw_scale_mu_SD[c, 1]);
+                            target += -nico_normal_lupdf(raw_scale_mu[c, 1] |
+                                                   prior_raw_scale_mu_mean[c, 1],
+                                                   prior_raw_scale_mu_SD[c, 1]);
                             target += nico_log(abs(baseline[1])) + nico_log(C_gap) +
                                       log_scale_derivative - 2.0 * nico_log(scale);
+                            ////
+                            //// ---- Lambda has no prior of its own: between the chosen cutoffs, the flat Dirichlet(1, ..., 1)
+                            //// ---- prior as close as the Box-Cox curve allows. With 2 chosen cutoffs: the length, along
+                            //// ---- lambda, of the curve of the probabilities of all categories, the chosen cutoffs held; with
+                            //// ---- 3 or more: the Jacobian of the third chosen cutoff with respect to lambda:
+                            ////
+                            {
+                                 int k_1 = chosen_cutoffs[c, 1];
+                                 int k_2 = chosen_cutoffs[c, 2];
+                                 vector[n_thr] dB_dlambda;
+                                 for (k in 1:n_thr) {
+                                      real log_x = nico_log(cts_thr_shifted[k]);
+                                      dB_dlambda[k] = (abs(lambda[c]) < 1e-4) ?
+                                                      0.5 * square(log_x) + lambda[c] * pow(log_x, 3.0) / 3.0 :
+                                                      (nico_exp(lambda[c] * log_x) * (lambda[c] * log_x - 1.0) + 1.0) /
+                                                      square(lambda[c]);
+                                 }
+                                 real B_gap = C_raw[c][k_2] - C_raw[c][k_1];
+                                 vector[n_thr] d_rho_d_lambda = ((dB_dlambda - dB_dlambda[k_1]) * B_gap -
+                                                                 (C_raw[c] - C_raw[c][k_1]) *
+                                                                 (dB_dlambda[k_2] - dB_dlambda[k_1])) / square(B_gap);
+                                 real log_z_gap = nico_log(C_baseline[2] - C_baseline[1]);
+                                 if (n_chosen_cutoffs[c] == 2) {
+                                      vector[n_thr] z = (C[c] - location) / scale;
+                                      vector[n_thr] f_of_z = (use_probit_link == 1) ?
+                                                             nico_exp(-0.5 * square(z) - 0.9189385332046728) :
+                                                             nico_inv_logit(z) .* nico_inv_logit(-z);
+                                      vector[n_thr] dP_dlambda = f_of_z .* d_rho_d_lambda;
+                                      dP_dlambda[k_1] = 0.0;
+                                      dP_dlambda[k_2] = 0.0;
+                                      vector[n_thr + 1] d_increments = append_row(dP_dlambda, 0.0) -
+                                                                       append_row(0.0, dP_dlambda);
+                                      target += log_z_gap + 0.5 * nico_log(dot_self(d_increments));
+                                 } else {
+                                      target += log_z_gap + nico_log(abs(d_rho_d_lambda[chosen_cutoffs[c, 3]]));
+                                 }
+                            }
                        }
                   }
-              }
-        } else {
-              ////
-              //// ---- Priors for locations:
-              ////
-              beta_mu[1, 1:n_covariates_nd] ~ nico_normal(prior_beta_mu_mean[1, 1:n_covariates_nd], prior_beta_mu_SD[1, 1:n_covariates_nd]);  
-              beta_mu[2, 1:n_covariates_d]  ~ nico_normal(prior_beta_mu_mean[2, 1:n_covariates_d],  prior_beta_mu_SD[2, 1:n_covariates_d]);
-              ////
-              //// ---- Priors for scales:
-              ////
-              raw_scale_mu[1, 1:n_covariates_nd] ~ nico_normal(prior_raw_scale_mu_mean[1, 1:n_covariates_nd], prior_raw_scale_mu_SD[1, 1:n_covariates_nd]);  
-              raw_scale_mu[2, 1:n_covariates_d]  ~ nico_normal(prior_raw_scale_mu_mean[2, 1:n_covariates_d],  prior_raw_scale_mu_SD[2, 1:n_covariates_d]);
+             }
         }
         ////
-        //// ---- Prior for box-cox parameters:
+        //// ---- Prior for box-cox parameters (only where fewer than 2 cutoffs are chosen, as the Se / Sp prior
+        //// ---- then cannot set lambda):
         ////
-        lambda ~ nico_normal(prior_boxcox_lambda_mean, prior_boxcox_lambda_SD);
+        for (c in 1:2) {
+             if (use_Se_Sp_prior == 0 || n_chosen_cutoffs[c] < 2) {
+                  lambda[c] ~ nico_normal(prior_boxcox_lambda_mean[c], prior_boxcox_lambda_SD[c]);
+             }
+        }
         ////
         //// ---- Likelihood / Model:
         ////
