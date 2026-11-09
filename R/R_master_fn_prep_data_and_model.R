@@ -119,6 +119,20 @@ prep_data_and_model <- function(  debugging,
               ##
               ##
               ##
+              ## (the bounds of C_raw: exp() steps between exp(-15) and exp(2.5); with softplus, the C_raw
+              ##  that give the same steps)
+              use_softplus <-  (advanced_model_options$softplus == TRUE)
+              advanced_model_options$C_raw_lower <-  MetaOrdDTA:::if_null_then_set_to(
+                                                           advanced_model_options$C_raw_lower,
+                                                           if (use_softplus) log(expm1(exp(-15.0))) else -15.0)
+              print(paste("advanced_model_options$C_raw_lower = ", advanced_model_options$C_raw_lower))
+              advanced_model_options$C_raw_upper <-  MetaOrdDTA:::if_null_then_set_to(
+                                                           advanced_model_options$C_raw_upper,
+                                                           if (use_softplus) log(expm1(exp(2.5))) else 2.5)
+              print(paste("advanced_model_options$C_raw_upper = ", advanced_model_options$C_raw_upper))
+              ##
+              ##
+              ##
               advanced_model_options$compound_symmetry <-  MetaOrdDTA:::if_null_then_set_to( advanced_model_options$compound_symmetry, FALSE)
               print(paste("advanced_model_options$compound_symmetry = ", advanced_model_options$compound_symmetry))
               ##
@@ -165,6 +179,8 @@ prep_data_and_model <- function(  debugging,
           ##
           internal_obj$outs_data$stan_data_list$box_cox  <- advanced_model_options$box_cox
           internal_obj$outs_data$stan_data_list$softplus <- advanced_model_options$softplus
+          internal_obj$outs_data$stan_data_list$C_raw_lower <- advanced_model_options$C_raw_lower
+          internal_obj$outs_data$stan_data_list$C_raw_upper <- advanced_model_options$C_raw_upper
           ##
           if (basic_model_options$network == FALSE) { 
                  internal_obj$outs_data$n_tests <- 1

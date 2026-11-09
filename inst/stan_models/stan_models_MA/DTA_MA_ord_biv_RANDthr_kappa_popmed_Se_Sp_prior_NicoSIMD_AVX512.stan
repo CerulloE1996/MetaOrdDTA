@@ -159,6 +159,8 @@ data {
         ////
         real<lower=0.0> kappa_lb;
         int<lower=0, upper=1> softplus;
+        real C_raw_lower;
+        real C_raw_upper;
         ////
         int use_probit_link;
         ////
@@ -220,7 +222,7 @@ parameters {
         ////
         real<lower=beta_corr_lb, upper=beta_corr_ub> beta_corr;  //// between-study corr (possibly restricted)
         ////
-        array[2] matrix<lower=-15, upper=2.5>[n_studies, n_thr] C_raw; //// restricting solves divs/numerical stab. issues w/ lots of sparse categories!
+        array[2] matrix<lower=C_raw_lower, upper=C_raw_upper>[n_studies, n_thr] C_raw; //// restricting solves divs/numerical stab. issues w/ lots of sparse categories!
         vector<lower=1.0>[2] kappa;
         array[2] simplex[n_cat] dirichlet_phi;
         // array[2] simplex[n_thr] raw_dirichlet_phi;

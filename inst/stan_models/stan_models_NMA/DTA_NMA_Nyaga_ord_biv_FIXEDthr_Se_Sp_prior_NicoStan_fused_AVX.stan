@@ -202,6 +202,8 @@ data {
           //// ---- Other:
           ////
           int<lower=0, upper=1> softplus;
+          real C_raw_lower;
+          real C_raw_upper;
           ////
           int use_probit_link;
           ////
@@ -359,7 +361,7 @@ parameters {
           array[n_index_tests] matrix[2, n_covariates_max] beta_mu; 
           ////
           // array[2] vector<lower=-7.5, upper=2.5>[n_total_C_per_class_if_fixed] C_raw_vec;  //// RAW LOG-DIFFS - Global cutpoints for each test (staggered array/matrix using "n_thr[t]" to index correctly)
-          array[2] vector<lower=-15.0, upper=2.5>[n_total_C_per_class_if_fixed] C_raw_vec;  //// RAW LOG-DIFFS - Global cutpoints for each test (staggered array/matrix using "n_thr[t]" to index correctly)
+          array[2] vector<lower=C_raw_lower, upper=C_raw_upper>[n_total_C_per_class_if_fixed] C_raw_vec;  //// RAW LOG-DIFFS - Global cutpoints for each test (staggered array/matrix using "n_thr[t]" to index correctly)
           ////
           //// ---- "NMA" params:
           ////

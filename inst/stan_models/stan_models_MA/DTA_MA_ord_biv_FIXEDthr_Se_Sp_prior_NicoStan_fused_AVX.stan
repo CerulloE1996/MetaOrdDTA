@@ -182,6 +182,8 @@ data {
         //// ---- Other:
         //// 
         int<lower=0, upper=1> softplus; 
+        real C_raw_lower;
+        real C_raw_upper;
         ////
         int use_probit_link;
         ////
@@ -283,7 +285,7 @@ parameters {
         //// 
         real<lower=beta_corr_lb, upper=beta_corr_ub> beta_corr;  //// between-study corr (possibly restricted)  
         //// 
-        array[2] vector<lower=-15.0, upper=2.5>[n_thr] C_raw_vec; //// Global raw-cutpoints (unconstrained - nuisance block #2) 
+        array[2] vector<lower=C_raw_lower, upper=C_raw_upper>[n_thr] C_raw_vec; //// Global raw-cutpoints (unconstrained - nuisance block #2) 
 }  
 
 

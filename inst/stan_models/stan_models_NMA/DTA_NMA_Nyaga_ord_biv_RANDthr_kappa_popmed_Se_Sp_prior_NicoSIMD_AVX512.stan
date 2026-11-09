@@ -171,6 +171,8 @@ data {
           //// ---- Other:
           ////
           int<lower=0, upper=1> softplus;
+          real C_raw_lower;
+          real C_raw_upper;
           ////
           int use_probit_link;
           ////
@@ -289,7 +291,7 @@ parameters {
           //// ---- Cutpoints and Induced-Dirichlet params:
           //// 
           // array[2] vector<lower=-7.5, upper=2.5>[n_total_study_thresh] C_raw_vec;  //// RAW LOG-DIFFS
-          array[2] vector<lower=-15, upper=2.5>[n_total_study_thresh] C_raw_vec;  //// RAW LOG-DIFFS
+          array[2] vector<lower=C_raw_lower, upper=C_raw_upper>[n_total_study_thresh] C_raw_vec;  //// RAW LOG-DIFFS
           array[2] vector<lower=-5.0, upper=5.0>[n_total_C_per_class_if_fixed] raw_dirichlet_phi_vec; // props/probs
           // array[2] vector<lower=0.0, upper=10.0>[n_index_tests] log_kappa; 
           array[2] vector<lower=kappa_lb, upper=kappa_ub>[n_index_tests] kappa;

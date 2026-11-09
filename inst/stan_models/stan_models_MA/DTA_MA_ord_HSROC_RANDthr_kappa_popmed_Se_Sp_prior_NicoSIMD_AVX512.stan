@@ -154,6 +154,8 @@ data {
         ////
         real<lower=0.0> kappa_lb;
         int<lower=0, upper=1> softplus;
+        real C_raw_lower;
+        real C_raw_upper;
         ////
         int use_probit_link;
         ////
@@ -257,7 +259,7 @@ parameters {
         real<lower=0.0> raw_scale_SD;   
         vector[n_studies] raw_scale_z;
         ////
-        matrix<lower=-15, upper=2.5>[n_studies, n_thr] C_raw; //// restricting solves divs/numerical stab. issues w/ lots of sparse categories!
+        matrix<lower=C_raw_lower, upper=C_raw_upper>[n_studies, n_thr] C_raw; //// restricting solves divs/numerical stab. issues w/ lots of sparse categories!
         real<lower=1.0> kappa;
         simplex[n_cat] dirichlet_phi; // props/probs
 }
