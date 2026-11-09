@@ -371,6 +371,7 @@ model {
                     real Xbeta_baseline = (c == 1) ?
                                           dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd])) :
                                           dot_product(baseline_case_d, to_vector(beta_mu[2, 1:n_covariates_d]));
+                    ////
                     target += nico_induced_dirichlet_with_Se_Sp_prior_lupdf(
                               C[c] - Xbeta_baseline | prior_dirichlet_alpha[c],
                               use_probit_link, 
