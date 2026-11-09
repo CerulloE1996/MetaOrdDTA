@@ -421,6 +421,41 @@ run_multiple_sims <- function(MCMC_seed,
 
           }
           ##
+          ## ---- Stratified bivariate: the iterations per chain (4 chains) of each cell ---------------------------------------------------
+          ##
+          ## (min ESS 2500 at 10 studies and 500 at 50 studies, from the 10th percentile of the min ESS
+          ##  of 10 fits of 1000 iterations)
+          if (model_parameterisation == "Bivariate" &&
+              N_per_study_mean == 500) {
+
+                      n_iter_of_each_cell <- rbind(
+                            ##         test     DGM                 n_studies  n_iter
+                            data.frame(test = "BAI",   DGM = "ord_biv_fixed_C",  n_studies = 10, n_iter = 8800),
+                            data.frame(test = "BAI",   DGM = "ord_biv_random_C", n_studies = 10, n_iter = 9600),
+                            data.frame(test = "BAI",   DGM = "R&G_random_C",     n_studies = 10, n_iter = 7900),
+                            data.frame(test = "GAD_2", DGM = "ord_biv_fixed_C",  n_studies = 10, n_iter = 6450),
+                            data.frame(test = "GAD_2", DGM = "ord_biv_random_C", n_studies = 10, n_iter = 3600),
+                            data.frame(test = "GAD_2", DGM = "R&G_random_C",     n_studies = 10, n_iter = 4000),
+                            data.frame(test = "HADS",  DGM = "ord_biv_fixed_C",  n_studies = 10, n_iter = 7200),
+                            data.frame(test = "HADS",  DGM = "ord_biv_random_C", n_studies = 10, n_iter = 8800),
+                            data.frame(test = "HADS",  DGM = "R&G_random_C",     n_studies = 10, n_iter = 13600),
+                            data.frame(test = "BAI",   DGM = "ord_biv_fixed_C",  n_studies = 50, n_iter = 1800),
+                            data.frame(test = "BAI",   DGM = "ord_biv_random_C", n_studies = 50, n_iter = 1850),
+                            data.frame(test = "BAI",   DGM = "R&G_random_C",     n_studies = 50, n_iter = 1400),
+                            data.frame(test = "GAD_2", DGM = "ord_biv_fixed_C",  n_studies = 50, n_iter = 700),
+                            data.frame(test = "GAD_2", DGM = "ord_biv_random_C", n_studies = 50, n_iter = 1000),
+                            data.frame(test = "GAD_2", DGM = "R&G_random_C",     n_studies = 50, n_iter = 800),
+                            data.frame(test = "HADS",  DGM = "ord_biv_fixed_C",  n_studies = 50, n_iter = 1550),
+                            data.frame(test = "HADS",  DGM = "ord_biv_random_C", n_studies = 50, n_iter = 1550),
+                            data.frame(test = "HADS",  DGM = "R&G_random_C",     n_studies = 50, n_iter = 1000))
+                      row_of_this_cell <- which(n_iter_of_each_cell$test == test &
+                                                n_iter_of_each_cell$DGM == DGM &
+                                                n_iter_of_each_cell$n_studies == n_studies)
+                      stopifnot(length(row_of_this_cell) == 1)
+                      n_iter_for_4_chains <- n_iter_of_each_cell$n_iter[row_of_this_cell]
+
+          }
+          ##
           if (nzchar(Sys.getenv("N_ITER_FOR_4_CHAINS"))) {
                 n_iter_for_4_chains <- as.integer(Sys.getenv("N_ITER_FOR_4_CHAINS"))
           }
