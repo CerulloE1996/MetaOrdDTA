@@ -38,6 +38,7 @@ fn_iterations_of_one_cell <- function(files_of_the_gate_tables_of_the_cell) {
                  n_studies = as.integer(sub(".*n_studies_([0-9]+)param.*", "\\1", cell)),
                  model = sub(".*param_(.*)soft_.*", "\\1", cell),
                  random_thresholds = as.logical(sub(".*rand_thr_(TRUE|FALSE).*", "\\1", cell)),
+                 prior_set = if (grepl("alpha_pi_one", cell)) "set_0" else sub(".*(set_[0-2]).*", "\\1", cell),
                  fits = nrow(gate),
                  threshold = threshold,
                  min_ESS_median = round(median(gate$min_ESS)),
@@ -56,7 +57,8 @@ iterations_of_every_cell <- do.call(rbind, lapply(split(files_of_the_gate_tables
                                                   fn_iterations_of_one_cell))
 ## (only cells with all their fits)
 iterations_of_every_cell <- iterations_of_every_cell[iterations_of_every_cell$fits >= n_seeds, ]
-iterations_of_every_cell <- iterations_of_every_cell[order(iterations_of_every_cell$model,
+iterations_of_every_cell <- iterations_of_every_cell[order(iterations_of_every_cell$prior_set,
+                                                           iterations_of_every_cell$model,
                                                            iterations_of_every_cell$random_thresholds,
                                                            iterations_of_every_cell$DGM,
                                                            iterations_of_every_cell$test,
@@ -71,7 +73,8 @@ settings <- data.frame(test = iterations_of_every_cell$test,
                        n_studies = iterations_of_every_cell$n_studies,
                        model = iterations_of_every_cell$model,
                        random_thresholds = iterations_of_every_cell$random_thresholds,
-                       settings = paste0("N_ITER_FOR_4_CHAINS=", iterations_of_every_cell$n_iter_new),
+                       prior_set = iterations_of_every_cell$prior_set,
+                       settings =paste0("N_ITER_FOR_4_CHAINS=", iterations_of_every_cell$n_iter_new),
                        stringsAsFactors = FALSE)
 write.csv(settings, settings_file_after_the_pilot, row.names = FALSE)
 cat("\ncells in the settings table:", nrow(settings), "\nwritten:", settings_file_after_the_pilot, "\n")

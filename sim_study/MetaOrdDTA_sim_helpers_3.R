@@ -33,7 +33,7 @@ create_file_name_string <- function( scenario_row,
              "param_", scenario_row$model_parameterisation,  # No underscore before param
              "soft_", scenario_row$softplus,  # No underscore before soft
              "rand_thr_", scenario_row$random_thresholds,  # No underscore before rand_thr
-             "alpha_pi_", scenario_row$alpha_pi)  # No underscore before alpha_pi
+             scenario_row$prior_set)
 
 }
 
@@ -509,7 +509,7 @@ create_MetaOrd_scenarios <- function() {
         DGM = c("ord_biv_fixed_C", "Jones", "ord_biv_random_C", "R&G_random_C"),
         n_studies = c(10, 50),
         model_parameterisation = c("Jones", "ord_bivariate", "Bivariate", "R&G"),
-        alpha_pi = c("one", "flat", "informative", "informative_from_the_literature"),
+        prior_set = c("set_0", "set_1", "set_2"),
         # box_cox = c(FALSE, TRUE),
         softplus = c(FALSE),
         random_thresholds = c(FALSE, TRUE),
@@ -519,11 +519,6 @@ create_MetaOrd_scenarios <- function() {
         # Filter out invalid combinations (from the original code logic)
         filter(
           # !(model_parameterisation == "Jones" & box_cox == FALSE),
-          !((DGM %in% c("Jones", "R&G_random_C")) & (alpha_pi %in% c("informative",
-                                                                      "informative_from_the_literature"))),
-          !((model_parameterisation %in% c("Jones", "Bivariate")) &
-              (alpha_pi %in% c("informative", "informative_from_the_literature"))),
-          !((model_parameterisation == "R&G") & (alpha_pi == "informative")),
           # !(DGM == "ord_biv_fixed_C" & (random_thresholds == TRUE)),
           !((DGM == "Jones") & (random_thresholds == TRUE)),
           !(model_parameterisation == "Bivariate" & random_thresholds == TRUE),
@@ -569,7 +564,7 @@ create_run_matrix_for_MetaOrd <- function(scenario_df,
             index_test_MA = scenario_row$index_test_MA,
             n_studies = scenario_row$n_studies,
             model_parameterisation = scenario_row$model_parameterisation,
-            alpha_pi = scenario_row$alpha_pi,
+            prior_set = scenario_row$prior_set,
             box_cox = scenario_row$box_cox,
             softplus = scenario_row$softplus,
             random_thresholds = scenario_row$random_thresholds,
