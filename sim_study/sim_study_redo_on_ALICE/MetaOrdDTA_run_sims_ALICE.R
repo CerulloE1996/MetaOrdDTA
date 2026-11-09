@@ -752,7 +752,8 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                     n_sims_total <- n_sims_total  # or outs$min_sims_needed
                     # n_threads_to_use <- 180
                     n_threads_to_use <- if (machine_of_this_run == "laptop") 16 else n_threads_to_use_HPC
-                    n_chains_per_worker <- 4
+                    n_chains_per_worker <- if (nzchar(Sys.getenv("SIM_N_CHAINS_PER_WORKER"))) {
+                                                 as.integer(Sys.getenv("SIM_N_CHAINS_PER_WORKER")) } else 4
                     n_workers <- floor(n_threads_to_use / n_chains_per_worker) ; n_workers
                     sims_per_batch <- n_sims_total ## 8 * n_threads_to_use / n_chains_per_worker
                     ##
