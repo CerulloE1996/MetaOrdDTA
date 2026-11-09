@@ -16,7 +16,11 @@ folders_of_the_pilot <- if (length(arguments) > 0) arguments else
                         file.path(root, c("pilot_10_seeds_per_cell_prior_mean_anchor_9_Nov",
                                           "pilot_10_seeds_per_cell_prior_mean_anchor_9_Nov_copy_from_ALICE"))
 folder_of_the_tables <- "/home/enzocerullo/Documents/Work/PhD_work/R_packages/MetaOrdDTA/sim_study/sim_study_redo_on_ALICE"
-settings_file <- file.path(folder_of_the_tables, "settings_of_every_cell_of_the_whole_sim.csv")
+## (BASE_SETTINGS_FILE: the table the pilot updates, by default the one from before the pilot)
+settings_file <- if (nzchar(Sys.getenv("BASE_SETTINGS_FILE"))) Sys.getenv("BASE_SETTINGS_FILE") else
+                 file.path(folder_of_the_tables, "settings_of_every_cell_of_the_whole_sim.csv")
+## (EXTRA_SETTINGS_OF_THE_PILOT_CELLS, e.g. "ADAPT_DELTA=0.90": set in the rows of the cells of this pilot)
+extra_settings <- strsplit(Sys.getenv("EXTRA_SETTINGS_OF_THE_PILOT_CELLS"), " ")[[1]]
 settings_file_after_the_pilot <- file.path(folder_of_the_tables, "settings_of_every_cell_of_the_whole_sim_after_the_pilot.csv")
 n_chains <- 4
 ## (the launcher's defaults, for a cell the table lacks)
@@ -78,16 +82,20 @@ for (i in seq_len(nrow(iterations_of_every_cell))) {
       cell <- iterations_of_every_cell[i, ]
       row <- which(settings$test == cell$test & settings$DGM == cell$DGM & settings$n_studies == cell$n_studies &
                    settings$model == cell$model & settings$random_thresholds == cell$random_thresholds)
-      new_setting <- paste0("N_ITER_FOR_4_CHAINS=", cell$n_iter_new)
-      if (length(row) == 1) {
-            settings$settings[row] <- if (grepl("N_ITER_FOR_4_CHAINS=", settings$settings[row]))
-                                            sub("N_ITER_FOR_4_CHAINS=[0-9]+", new_setting, settings$settings[row]) else
-                                            paste(settings$settings[row], new_setting)
-      } else {
+      if (length(row) != 1) {
             settings <- rbind(settings, data.frame(test = cell$test, DGM = cell$DGM, n_studies = cell$n_studies,
                                                    model = cell$model, random_thresholds = cell$random_thresholds,
-                                                   settings = paste(default_settings, new_setting),
+                                                   settings = default_settings,
                                                    stringsAsFactors = FALSE))
+            row <- nrow(settings)
+      }
+      for (setting in c(paste0("N_ITER_FOR_4_CHAINS=", cell$n_iter_new), extra_settings)) {
+
+            key <- sub("=.*", "", setting)
+            settings$settings[row] <- if (grepl(paste0("(^| )", key, "="), settings$settings[row]))
+                                            sub(paste0(key, "=[^ ]*"), setting, settings$settings[row]) else
+                                            paste(settings$settings[row], setting)
+
       }
 
 }
