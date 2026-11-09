@@ -136,7 +136,9 @@ stopifnot(startsWith(find.package("NicoStan"), frozen_library_of_this_sim),
     } else if (os == "windows") {
       user_root_dir <- Sys.getenv("USERPROFILE")
     }
-    local_pkg_dir <- "/home/e/ec376/R_packages/MetaOrdDTA"
+    ## (SIM_PACKAGE_DIR: the package folder of this machine)
+    local_pkg_dir <- if (nzchar(Sys.getenv("SIM_PACKAGE_DIR"))) Sys.getenv("SIM_PACKAGE_DIR") else
+                     "/home/e/ec376/R_packages/MetaOrdDTA"
 }
 
 setwd(local_pkg_dir)
@@ -505,7 +507,8 @@ n_sims_total <- starting_sim_offset + 1000 ; n_sims_total
 ##  max_seed_to_check, so each job's MCSE checks count the fits of both)
 machine_of_this_run <- "ALICE"
 starting_sim_offset <- as.integer(Sys.getenv("SIM_SEED_OFFSET", unset = "0"))
-n_sims_total <- 9000
+## (SIM_N_SEEDS, e.g. "10", fits that many seeds of every cell)
+n_sims_total <- if (nzchar(Sys.getenv("SIM_N_SEEDS"))) as.integer(Sys.getenv("SIM_N_SEEDS")) else 9000
 if (Sys.getenv("SIM_TEST") == "1") {
       test_vals_vec      <- if (nzchar(Sys.getenv("SIM_TEST_TEST"))) Sys.getenv("SIM_TEST_TEST") else "GAD_2"
       n_studies_vals_vec <- if (nzchar(Sys.getenv("SIM_TEST_N_STUDIES"))) as.integer(Sys.getenv("SIM_TEST_N_STUDIES")) else 10
