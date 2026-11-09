@@ -831,6 +831,24 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                             end_sim <- min(starting_sim_offset + batch_id * sims_per_batch, starting_sim_offset + n_sims_total) ; end_sim
                             sims_this_batch <- start_sim:end_sim ; sims_this_batch
 
+                            ##
+                            ## ---- A seed already fitted is never fitted again (every fit, kept or not, has a row in the gate log): -
+                            ##
+                            file_of_the_gate_log <- file.path(output_dir,
+                                                              paste0("gate_of_every_fit_", file_name_string, ".csv"))
+                            if (file.exists(file_of_the_gate_log)) {
+                                  seeds_already_fitted <- unique(read.csv(file_of_the_gate_log)$seed)
+                                  cat(sprintf("%d of the %d seeds of this cell are already fitted (%s): not fitted again\n",
+                                              sum(sims_this_batch %in% seeds_already_fitted),
+                                              length(sims_this_batch),
+                                              basename(file_of_the_gate_log)))
+                                  sims_this_batch <- setdiff(sims_this_batch, seeds_already_fitted)
+                            }
+                            if (length(sims_this_batch) == 0) {
+                                  cat("Every seed of this cell is already fitted: cell skipped\n")
+                                  next
+                            }
+
                             ## ---- Hand the seeds to the workers one at a time:
                             ## (foreach gives each seed to whichever worker is free, through doParallel's
                             ##  clusterApplyLB, so no worker waits for another at the end of a cell)
