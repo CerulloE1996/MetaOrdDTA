@@ -21,6 +21,7 @@ R_fn_set_priors_MA <- function(   priors,
                                   model_parameterisation,
                                   random_thresholds,
                                   Dirichlet_random_effects_type,
+                                  HSROC_Dirichlet_prior,
                                   ##
                                   softplus,
                                   ##
@@ -280,6 +281,7 @@ R_fn_set_priors_MA <- function(   priors,
                                           cts = cts,
                                           model_parameterisation = model_parameterisation,
                                           random_thresholds = random_thresholds,
+                                          HSROC_Dirichlet_prior = HSROC_Dirichlet_prior,
                                           n_thr = n_thr)
         ##
         return(priors)

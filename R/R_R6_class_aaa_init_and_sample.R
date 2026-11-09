@@ -213,6 +213,7 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                         ##
                         random_thresholds = NULL,
                         Dirichlet_random_effects_type = NULL,
+                        HSROC_Dirichlet_prior = NULL,
                         ##
                         box_cox = NULL,
                         softplus = NULL,
@@ -301,6 +302,9 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                     #'@param random_thresholds \code{TRUE} fits the random-cutpoint (pop-median) model, \code{FALSE} the
                     #'fixed-cutpoint one.
                     #'@param Dirichlet_random_effects_type See class documentation for details.
+                    #'@param HSROC_Dirichlet_prior Ordinal-HSROC (R&G) random-cutpoint model only. \code{"both_classes"} (the default)
+                    #'puts its Dirichlet(alpha) prior on the induced ordinal probabilities of both classes (Sp and Se) at the
+                    #'population-median cutpoints; \code{"shared_cutpoints"} puts it on the one shared cutpoint set (dirichlet_phi).
                     ##
                     #'@param box_cox See class documentation for details.
                     ##
@@ -330,6 +334,7 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                             model_parameterisation, ## Mandatory
                                             random_thresholds = NULL,
                                             Dirichlet_random_effects_type = NULL,
+                                            HSROC_Dirichlet_prior = NULL,
                                             ##
                                             ## "Advanced" options for cts (i.e., Jones) models ONLY:
                                             ##
@@ -429,6 +434,7 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                               self$advanced_model_options$model_parameterisation        <- model_parameterisation
                               self$advanced_model_options$random_thresholds             <- random_thresholds
                               self$advanced_model_options$Dirichlet_random_effects_type <- Dirichlet_random_effects_type
+                              self$advanced_model_options$HSROC_Dirichlet_prior <- HSROC_Dirichlet_prior
                               self$advanced_model_options$box_cox  <- box_cox
                               self$advanced_model_options$softplus <- softplus
                               self$advanced_model_options$custom_file_name <- custom_file_name
@@ -551,6 +557,7 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                         model_parameterisation        = self$advanced_model_options$model_parameterisation,
                                         random_thresholds             = self$advanced_model_options$random_thresholds,
                                         Dirichlet_random_effects_type = self$advanced_model_options$Dirichlet_random_effects_type,
+                                        HSROC_Dirichlet_prior = self$advanced_model_options$HSROC_Dirichlet_prior,
                                         ##
                                         box_cox  = self$advanced_model_options$box_cox,
                                         softplus = self$advanced_model_options$softplus,
@@ -673,6 +680,7 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                     if (!identical(self$advanced_model_options$model_parameterisation, model_parameterisation))               { self$advanced_model_options$model_parameterisation        <- model_parameterisation        ; params_same <- 0 }
                                     if (!identical(self$advanced_model_options$random_thresholds, random_thresholds))                         { self$advanced_model_options$random_thresholds             <- random_thresholds             ; params_same <- 0 }
                                     if (!identical(self$advanced_model_options$Dirichlet_random_effects_type, Dirichlet_random_effects_type)) { self$advanced_model_options$Dirichlet_random_effects_type <- Dirichlet_random_effects_type ; params_same <- 0 }
+                                    if (!identical(self$advanced_model_options$HSROC_Dirichlet_prior, HSROC_Dirichlet_prior)) { self$advanced_model_options$HSROC_Dirichlet_prior <- HSROC_Dirichlet_prior ; params_same <- 0 }
                                     if (!identical(self$advanced_model_options$box_cox, box_cox))   { self$advanced_model_options$box_cox  <- box_cox  ; params_same <- 0 }
                                     if (!identical(self$advanced_model_options$softplus, softplus)) { self$advanced_model_options$softplus <- softplus ; params_same <- 0 }
                                     if (!identical(self$advanced_model_options$custom_file_name, custom_file_name)) { self$advanced_model_options$custom_file_name <- custom_file_name ; params_same <- 0 }

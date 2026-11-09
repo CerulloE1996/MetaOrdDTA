@@ -83,7 +83,7 @@ run_multiple_sims <- function(MCMC_seed,
 
 
         ## ("Dirichlet" = each ordinal model's own Dirichlet prior on the cutpoints, "Se_Sp" = the direct Se / Sp prior)
-        stopifnot(ordinal_prior_type == "Se_Sp")
+        stopifnot(ordinal_prior_type %in% c("Dirichlet", "Se_Sp"))
         candidate_fields <- c("custom_file_name", "custom_cpp_user_header_file_path", "prior_fields")
         candidate_route <- candidate_fields %in% names(scenario_row)
         if (any(candidate_route)) {
@@ -574,6 +574,9 @@ run_multiple_sims <- function(MCMC_seed,
                                                test = test,
                                                n_thr = n_thr,
                                                prior_set = prior_set)
+          ## ("Dirichlet": the ord-biv models' own Dirichlet prior (prior_dirichlet_alpha, all ones when alpha_pi = "one"), no
+          ##  Se / Sp prior term; the ordinal-HSROC keeps the package default, its Dirichlet on both classes (type 1))
+          if (ordinal_prior_type == "Dirichlet" && model_parameterisation == "ord_bivariate") priors$use_Se_Sp_prior <- 0
           ##
           # tibbles_list_testing <- list()
           # ess_vec <- c()
@@ -631,7 +634,8 @@ run_multiple_sims <- function(MCMC_seed,
                                     }
             ##
             # if (any(candidate_route) && is_a_pop_median_model) {
-            if (any(candidate_route) && is_a_pop_median_model && ordinal_prior_type == "Dirichlet") {
+            if (any(candidate_route) && is_a_pop_median_model && ordinal_prior_type == "Dirichlet" &&
+                model_parameterisation == "ord_bivariate") {
                 priors[names(prior_fields)] <- prior_fields
             }
             time_after_the_model_prep <- Sys.time()
