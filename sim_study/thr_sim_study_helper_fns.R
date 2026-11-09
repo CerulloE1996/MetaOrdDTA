@@ -1681,6 +1681,13 @@ fn_induced_accuracy_priors <- function(priors,
         } else if (model_parameterisation == "Bivariate") {
               priors$prior_mu_mean <-  list(rep(0, n_thr), rep(0, n_thr))
               priors$prior_mu_SD <-  list(rep(1, n_thr), rep(1, n_thr))
+              ## (sets 1 and 2: the Normal of mu ([[1]] Se, [[2]] Sp) at every cutoff of the band, on the probit scale)
+              if (prior_set > 0) {
+                    priors$prior_mu_mean[[1]][band_priors$threshold] <-  band_priors$Se_probit_mean
+                    priors$prior_mu_mean[[2]][band_priors$threshold] <-  band_priors$Sp_probit_mean
+                    priors$prior_mu_SD[[1]][band_priors$threshold] <-  band_priors$Se_probit_SD
+                    priors$prior_mu_SD[[2]][band_priors$threshold] <-  band_priors$Sp_probit_SD
+              }
               ## (set 0: the N(0, 1) location prior at every cutoff, no Se / Sp prior term)
               if (prior_set == 0) priors$use_Se_Sp_prior <-  0
         }
