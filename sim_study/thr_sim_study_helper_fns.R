@@ -1618,9 +1618,11 @@ fn_induced_accuracy_priors <- function(priors,
               mean_of_Se <-  literature_priors$Se_mean[[prior_set]]
               SD_of_Se <-  literature_priors$Se_SD
         }
-        ## (the stratified bivariate at sets 1 and 2: N(a, b) on probit Se and probit Sp at every cutoff of the band, a and b
-        ##  the probit-scale mean and SD of the O-biv-FC prior of the set at that cutoff, from its prior-only fit)
+        ## (the stratified bivariate at sets 1 and 2: a Beta on Se and on Sp at every cutoff of the band, with the mean and
+        ##  variance of the O-biv-FC prior of the set at that cutoff, from its prior-only fit; the Beta follows the skew of
+        ##  the induced prior at the band's ends, which a Normal on the probit scale does not)
         if (prior_set > 0 && model_parameterisation == "Bivariate") {
+              Se_Sp_prior_type <-  2
               band_priors <-  read.csv(file.path(local_pkg_dir, "sim_study",
                                                  "Se_Sp_priors_of_the_stratified_bivariate_at_every_band_cutoff_sets_1_and_2.csv"))
               band_priors <-  band_priors[band_priors$test == test & band_priors$prior_set == prior_set, ]
@@ -1649,6 +1651,10 @@ fn_induced_accuracy_priors <- function(priors,
         priors$prior_Se_Sp_beta <-  if (model_parameterisation == "Bivariate")
                                           list(beta_of_Se, beta_of_Sp) else
                                           list(beta_of_Sp, beta_of_Se)
+        if (prior_set > 0 && model_parameterisation == "Bivariate") {
+              priors$prior_Se_Sp_beta <-  list(cbind(band_priors$Se_beta_a, band_priors$Se_beta_b, deparse.level = 0),
+                                               cbind(band_priors$Sp_beta_a, band_priors$Sp_beta_b, deparse.level = 0))
+        }
         priors$prior_Se_Sp_link_mean_SD <-  if (model_parameterisation == "Bivariate")
                                                   list(link_mean_SD_of_Se, link_mean_SD_of_Sp) else
                                                   list(link_mean_SD_of_Sp, link_mean_SD_of_Se)
