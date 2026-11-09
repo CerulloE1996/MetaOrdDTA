@@ -250,6 +250,15 @@ run_multiple_sims <- function(MCMC_seed,
                                         FMA_FLAGS = "-mfma",
                                         AVX_FLAGS = AVX_FLAGS_of_this_machine)
 
+          ## (LOG_LIK_INDICATOR = 0: log_lik_study is not computed in generated quantities)
+          if (nzchar(Sys.getenv("LOG_LIK_INDICATOR"))) {
+
+                model_prep_obj$advanced_model_options$log_lik_indicator <- as.integer(Sys.getenv("LOG_LIK_INDICATOR"))
+                model_prep_obj$internal_obj$outs_data$stan_data_list$log_lik_indicator <-
+                      as.integer(Sys.getenv("LOG_LIK_INDICATOR"))
+
+          }
+
           # Set priors
           priors <- model_prep_obj$priors
 
