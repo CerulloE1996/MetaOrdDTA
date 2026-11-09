@@ -526,9 +526,9 @@ run_multiple_sims <- function(MCMC_seed,
                                                test = test,
                                                n_thr = n_thr,
                                                prior_set = as.numeric(sub("set_", "", prior_set)))
-          ## ("Dirichlet": the ord-biv models' own Dirichlet prior (prior_dirichlet_alpha, all ones), no
-          ##  Se / Sp prior term; the ordinal-HSROC keeps the package default, its Dirichlet on both classes (type 1))
-          if (prior_set == "set_0" && ordinal_prior_type == "Dirichlet" && model_parameterisation == "ord_bivariate") {
+          ## ("Dirichlet": each ordinal model's own Dirichlet prior (prior_dirichlet_alpha, all ones), no Se / Sp prior term)
+          if (prior_set == "set_0" && ordinal_prior_type == "Dirichlet" &&
+              model_parameterisation %in% c("ord_bivariate", "R&G")) {
                 priors$use_Se_Sp_prior <- 0
           }
           ##
