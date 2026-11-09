@@ -10,9 +10,9 @@
 ##      (each class gives A, a vector of length n_chosen_cutoffs + 1); 2 a Beta on each Sp_k / Se_k and 3 a Beta
 ##      on each conditional step (each class gives beta, an n_chosen_cutoffs x 2 matrix of a and b). Without
 ##      priors$Se_Sp_prior the same fields are passed with use_Se_Sp_prior = 0: the model's own prior on the
-##      cutpoints; except the ordinal-HSROC random-cutpoint model with HSROC_Dirichlet_prior = "both_classes" (the
-##      default), whose Dirichlet(prior_dirichlet_alpha) goes on the induced probabilities of both classes at every
-##      cutoff (type 1) instead of on the one shared cutpoint set.
+##      cutpoints; except the ordinal-HSROC random-cutpoint model with HSROC_Dirichlet_prior = "both_classes" (an
+##      option; the default "shared_ordinal_priors" keeps the Dirichlet on the one shared cutpoint set), whose
+##      Dirichlet(prior_dirichlet_alpha) goes on the induced probabilities of both classes at every cutoff (type 1).
 ##
 #' R_fn_set_Se_Sp_prior_MA
 #' @keywords internal

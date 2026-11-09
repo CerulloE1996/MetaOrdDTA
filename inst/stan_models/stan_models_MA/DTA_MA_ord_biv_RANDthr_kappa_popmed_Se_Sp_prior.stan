@@ -275,7 +275,7 @@ model {
                                                                                            P_upper_of_alpha[k],
                                                                                            alpha_0,
                                                                                            use_probit_link);
-                         C_mu[j]  = Xbeta_baseline + median_and_log_J[1]; // Xbeta_baseline = anchor.
+                         C_mu[j]  = baseline_location[c] + median_and_log_J[1]; // the prior mean of the intercept = anchor.
                          log_J[j] = median_and_log_J[2] + log(kappa[c] / alpha_0);
                     }
                     ////
@@ -313,10 +313,9 @@ model {
         ////      random-effect cutpoints), every study's cutpoints in one node per class, as
         ////      induced_dirichlet_given_C on each row:
         for (c in 1:2) {
-             //// (anchored at Xbeta_baseline)
-             real Xbeta_baseline = (c == 1) ? Xbeta_baseline_nd : Xbeta_baseline_d;
+             //// (anchored at the prior mean of the intercept)
              for (s in 1:n_studies) {
-                  target += induced_dirichlet_given_C_on_the_log_scale_lupdf(C[c][s, ] - Xbeta_baseline |
+                  target += induced_dirichlet_given_C_on_the_log_scale_lupdf(C[c][s, ] - baseline_location[c] |
                                                                              alpha[c], use_probit_link);
              }
         }
@@ -408,11 +407,8 @@ generated quantities {
          real alpha_0 = sum(alpha[c]);
          vector[n_thr] P = cumulative_sum(alpha[c][1:n_thr]) / alpha_0;
          vector[n_thr] P_upper = reverse(cumulative_sum(reverse(alpha[c][2:n_cat]))) / alpha_0;
-         real Xbeta_baseline = (c == 1) ?
-              dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd])) :
-              dot_product(baseline_case_d, to_vector(beta_mu[2, 1:n_covariates_d]));
          for (k in 1:n_thr) {
-            C_mu[c][k] = Xbeta_baseline +
+            C_mu[c][k] = prior_beta_mu_mean[c, 1] + //// (anchored at the prior mean of the intercept)
                          dirichlet_cutpoint_median(P[k], P_upper[k], alpha_0, use_probit_link);
          }
       }

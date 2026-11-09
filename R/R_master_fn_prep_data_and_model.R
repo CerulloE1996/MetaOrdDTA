@@ -101,7 +101,7 @@ prep_data_and_model <- function(  debugging,
               ## (the ordinal-HSROC random-cutpoint model's Dirichlet prior: on both classes' induced probabilities, or on
               ##  the one shared cutpoint set)
               advanced_model_options$HSROC_Dirichlet_prior <-  MetaOrdDTA:::if_null_then_set_to( advanced_model_options$HSROC_Dirichlet_prior,
-                                                                                               "both_classes")
+                                                                                               "shared_ordinal_priors")
               stopifnot(advanced_model_options$HSROC_Dirichlet_prior %in% c("both_classes", "shared_ordinal_priors"))
               print(paste("advanced_model_options$HSROC_Dirichlet_prior = ", advanced_model_options$HSROC_Dirichlet_prior))
               ##
