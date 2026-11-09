@@ -1,4 +1,4 @@
-// NicoSIMD_AVX512 version of DTA_MA_ord_biv_RANDthr_kappa_popmed_Se_Sp_prior.stan written by NicoStan (source model md5 2bf9cb9835b3f1efcd0b6fdd910fd3b3; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
+// NicoSIMD_AVX512 version of DTA_MA_ord_biv_RANDthr_kappa_popmed_Se_Sp_prior.stan written by NicoStan (source model md5 8199887315c28b802de790d1c01ad3b0; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
 // NicoSIMD functions used: exp, log, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal_rng, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, log_diff_exp, std_normal_log_qf, student_t
 //// DTA_MA_ord_biv_RANDthr_kappa_popmed_Se_Sp_prior_Stan_math_only.stan
 //// The same data, parameters and target as the fused AVX file of this model with the Dirichlet prior of dirichlet_phi, on Stan::math only.
@@ -361,7 +361,7 @@ model {
                                                                                            P_upper_of_alpha[k],
                                                                                            alpha_0,
                                                                                            use_probit_link);
-                         C_mu[j]  = baseline_location[c] + median_and_log_J[1]; // the prior mean of the intercept = anchor.
+                         C_mu[j]  = Xbeta_baseline + median_and_log_J[1]; // Xbeta_baseline = anchor of the Se / Sp prior route.
                          log_J[j] = median_and_log_J[2] + nico_log(kappa[c] / alpha_0);
                     }
                     ////
@@ -399,9 +399,11 @@ model {
         ////      random-effect cutpoints), every study's cutpoints in one node per class, as
         ////      induced_dirichlet_given_C on each row:
         for (c in 1:2) {
-             //// (anchored at the prior mean of the intercept)
+             //// (anchored at the prior mean of the intercept; at Xbeta_baseline under the Se / Sp prior route, as
+             ////  the fixed-cutpoint model's Se / Sp route is)
+             real C_anchor = (use_Se_Sp_prior == 1) ? ((c == 1) ? Xbeta_baseline_nd : Xbeta_baseline_d) : baseline_location[c];
              for (s in 1:n_studies) {
-                  target += induced_dirichlet_given_C_on_the_log_scale_lupdf(C[c][s, ] - baseline_location[c] |
+                  target += induced_dirichlet_given_C_on_the_log_scale_lupdf(C[c][s, ] - C_anchor |
                                                                              alpha[c], use_probit_link);
              }
         }
@@ -494,8 +496,13 @@ generated quantities {
          real alpha_0 = sum(alpha[c]);
          vector[n_thr] P = cumulative_sum(alpha[c][1:n_thr]) / alpha_0;
          vector[n_thr] P_upper = reverse(cumulative_sum(reverse(alpha[c][2:n_cat]))) / alpha_0;
+         //// (anchored at the prior mean of the intercept; at Xbeta_baseline under the Se / Sp prior route)
+         real C_anchor = (use_Se_Sp_prior == 1) ?
+              ((c == 1) ? dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd])) :
+                          dot_product(baseline_case_d, to_vector(beta_mu[2, 1:n_covariates_d]))) :
+              prior_beta_mu_mean[c, 1];
          for (k in 1:n_thr) {
-            C_mu[c][k] = prior_beta_mu_mean[c, 1] + //// (anchored at the prior mean of the intercept)
+            C_mu[c][k] = C_anchor +
                          dirichlet_cutpoint_median(P[k], P_upper[k], alpha_0, use_probit_link);
          }
       }
