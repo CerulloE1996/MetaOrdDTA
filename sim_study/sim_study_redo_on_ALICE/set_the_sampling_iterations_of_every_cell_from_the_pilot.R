@@ -2,7 +2,8 @@
 ## ---- Set the sampling iterations of every cell from the 10-seeds-per-cell pilot ----------------------------------------------------
 ##
 ## (reads every gate_of_every_fit_*.csv of the pilot folders; for each cell the min ESS of Se and Sp per transition of its
-##  fits, r = min_ESS / n_transitions, is taken as log-normal and its 5th percentile q05 = exp(mean(log r) - 1.645 sd(log r))
+##  fits that neither exceed 1% divergent nor had a stuck chain, r = min_ESS / n_transitions, is taken as log-normal and
+##  its 5th percentile q05 = exp(mean(log r) - 1.645 sd(log r))
 ##  gives the transitions that put about 95% of the fits over the cell's ESS threshold: N_ITER_FOR_4_CHAINS = threshold /
 ##  q05 / 4, rounded up to 50; the per-cell settings table gets that value, and a row for every cell it lacks, with the
 ##  default settings of the launcher and the new iterations)
@@ -29,7 +30,10 @@ fn_iterations_of_one_cell <- function(file_of_the_gate_table) {
 
       gate <- read.csv(file_of_the_gate_table)
       cell <- sub("gate_of_every_fit_test_", "", basename(file_of_the_gate_table))
-      r <- gate$min_ESS / gate$n_transitions
+      ## (a fit over 1% divergent fails the divergence gate whatever its length, and a fit whose min ESS is under a tenth
+      ##  of the cell's median had a stuck chain; neither is a question of length, so both are left out of the ESS rate)
+      failed <- gate$percent_divergent > 1 | gate$min_ESS < 0.1 * median(gate$min_ESS)
+      r <- (gate$min_ESS / gate$n_transitions)[!failed]
       q05 <- exp(mean(log(r)) - 1.645 * sd(log(r)))
       threshold <- gate$min_ESS_threshold[1]
       n_iter_now <- round(gate$n_transitions[1] / n_chains)
@@ -47,6 +51,7 @@ fn_iterations_of_one_cell <- function(file_of_the_gate_table) {
                  n_iter_now = n_iter_now,
                  n_iter_new = n_iter_new,
                  passed_at_new = sum(r * n_iter_new * n_chains >= threshold),
+                 failed_fits = sum(failed),
                  divergent_pct_max = round(max(gate$percent_divergent), 3))
 
 }
