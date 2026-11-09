@@ -520,7 +520,7 @@ create_MetaOrd_scenarios <- function() {
         filter(
           # !(model_parameterisation == "Jones" & box_cox == FALSE),
           # !(DGM == "ord_biv_fixed_C" & (random_thresholds == TRUE)),
-          !((DGM == "Jones") & (random_thresholds == TRUE)),
+          # !((DGM == "Jones") & (random_thresholds == TRUE)),
           !(model_parameterisation == "Bivariate" & random_thresholds == TRUE),
           !(model_parameterisation == "R&G" & random_thresholds == FALSE),
           !(model_parameterisation %in% c("Jones", "Bivariate") & random_thresholds == TRUE)

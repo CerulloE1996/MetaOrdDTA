@@ -425,7 +425,7 @@ n_studies_vals_vec <- c(10, 50) ## ----
 # model_param_vec <- c("ord_bivariate", "R&G", "Bivariate")
 # model_param_vec <- c("ord_bivariate", "Bivariate")
 # model_param_vec <- "ord_bivariate"
-model_param_vec <- c("ord_bivariate", "R&G", "Jones")
+model_param_vec <- c("ord_bivariate", "R&G", "Jones", "Bivariate")
 ## (SIM_MODELS, e.g. "ord_bivariate,Jones", runs those models only)
 if (nzchar(Sys.getenv("SIM_MODELS"))) model_param_vec <- strsplit(Sys.getenv("SIM_MODELS"), ",")[[1]]
 ##
