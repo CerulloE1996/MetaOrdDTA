@@ -52,6 +52,11 @@ find_fit <- function(folder, model, random_thresholds) {
       if (length(f) != 1) stop(paste("expected one fit, found", length(f), "for", model, random_thresholds, "in", folder))
       readRDS(f)$tibble_all
 }
+## (the Jones model's cutpoints: fn_Stan_box_cox of the thresholds, then C = -2 + 4 (C_raw - min) / (max - min))
+box_cox_cutpoints_scaled <- function(x, lambda) {
+      C_raw <- if (lambda == 0) log(x) else (x^lambda - 1) / lambda
+      -2 + 4 * (C_raw - min(C_raw)) / (max(C_raw) - min(C_raw))
+}
 cutpoints_from_C_raw <- function(C_raw) {
       C <- C_raw
       if (length(C_raw) > 1) for (k in 2:length(C_raw)) C[k] <- C[k - 1] + exp(C_raw[k])
@@ -109,6 +114,23 @@ for (test in names(folders)) {
       emit(L, "$Ord_HSROC$C_SD_prob_scale <-  ", fmt(compute_dirichlet_SDs(alpha)[1:(length(alpha) - 1)]))
       emit(L, "$Ord_HSROC$alpha <- ", fmt(alpha), " / (reduction_factor^2)")
       emit("## kappa (median): ", fmt1(median_of(t, "kappa")), "; sum(alpha): ", fmt1(sum(alpha)))
+      }
+      ## ---- Jones (the Box-Cox cutpoints from the lambda medians, as the model makes them: the Box-Cox of the thresholds
+      ##      1, ..., n_thr, then scaled to [-2, 2]):
+      t <- find_fit(folders[[test]], "Jones", FALSE)
+      if (is.null(t)) emit("## ---- ", test, ", DGM Jones: NO FIT SAVED") else {
+      lambda <- median_of(t, "lambda")
+      n_thr_of_the_test <- c(GAD_2 = 6, HADS = 21, BAI = 63)[[test]]
+      emit("## ---- ", test, ", DGM Jones (real-data fit of the Jones model):")
+      emit(L, "$Jones$beta_mu <- ", fmt(median_of(t, "beta_mu")))
+      emit(L, "$Jones$beta_SD <- ", fmt(median_of(t, "beta_SD")), "*reduction_factor")
+      emit(L, "$Jones$beta_corr <- ", fmt1(median_of(t, "beta_corr")))
+      emit(L, "$Jones$C_nd <- ", fmt(box_cox_cutpoints_scaled(1:n_thr_of_the_test, lambda[1])))
+      emit(L, "$Jones$C_d  <- ", fmt(box_cox_cutpoints_scaled(1:n_thr_of_the_test, lambda[2])))
+      emit(L, "$Jones$raw_scale_mu <- ", fmt(median_of(t, "raw_scale_mu")))
+      emit(L, "$Jones$raw_scale_SD <- ", fmt(median_of(t, "raw_scale_SD")), "*reduction_factor")
+      emit(L, "$Jones$raw_scale_corr <- ", fmt1(median_of(t, "raw_scale_corr")))
+      emit("## lambda (median) nd / d: ", fmt(lambda))
       }
       emit("")
 }

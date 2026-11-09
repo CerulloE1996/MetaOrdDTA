@@ -52,6 +52,10 @@ functions {
         real nico_normal_lpdf(vector y, real mu, real sigma);
         real nico_normal_lpdf(vector y, vector mu, vector sigma);
         real nico_normal_lpdf(real y, real mu, real sigma);
+        real nico_atanh(real x);
+        vector nico_atanh(vector x);
+        row_vector nico_atanh(row_vector x);
+        matrix nico_atanh(matrix x);
         //// (the nico_ functions of the NicoSIMD versions of the included files:)
         real nico_std_normal_log_qf(real x);
         vector nico_std_normal_log_qf(vector x);
@@ -178,6 +182,15 @@ data {
         array[2] vector<lower=0.0>[n_chosen_cutoffs_max + 1] prior_Se_Sp_dirichlet_A;
         array[2] matrix<lower=0.0>[n_chosen_cutoffs_max, 2] prior_Se_Sp_beta;
         array[2] matrix[n_chosen_cutoffs_max, 2] prior_Se_Sp_link_mean_SD;
+        ////
+        //// ---- The Se / Sp prior converted to the Jones parameters by the prior conversion model: a trivariate
+        //// ---- Normal of the baseline location, log(scale) and 5 * atanh(lambda / 5) of each class (the chosen
+        //// ---- cutoffs then unused):
+        ////
+        int<lower=0, upper=1> use_converted_Se_Sp_prior;
+        array[2] vector[3] prior_converted_mean;
+        array[2] vector<lower=0.0>[3] prior_converted_SD;
+        array[2] matrix[3, 3] prior_converted_L_Omega;
         ////
         //// ---- Other:
         ////
@@ -382,7 +395,7 @@ model {
         ////
         //// ---- Replace selected baseline location and scale priors:
         ////
-        if (use_Se_Sp_prior == 1) {
+        if (use_Se_Sp_prior == 1 && use_converted_Se_Sp_prior == 0) {
               for (c in 1:2) {
                   if (n_chosen_cutoffs[c] > 0) {
                        int n_covariates_c = (c == 1) ? n_covariates_nd : n_covariates_d;
@@ -443,11 +456,40 @@ model {
                                                                            to_vector(prior_raw_scale_mu_SD[2, 1:n_covariates_d]));
         }
         ////
-        //// ---- Prior for box-cox parameters (only where fewer than 2 cutoffs are chosen, as the Se / Sp prior
-        //// ---- then cannot set lambda):
+        //// ---- The converted Se / Sp prior: the trivariate Normal of (location, log(scale), 5 atanh(lambda / 5))
+        //// ---- replaces the priors of the baseline location, the baseline scale and lambda:
+        ////
+        if (use_Se_Sp_prior == 1 && use_converted_Se_Sp_prior == 1) {
+             for (c in 1:2) {
+                  int n_covariates_c = (c == 1) ? n_covariates_nd : n_covariates_d;
+                  vector[n_covariates_c] baseline = (c == 1) ? baseline_case_nd : baseline_case_d;
+                  real location  = dot_product(baseline, to_vector(beta_mu[c, 1:n_covariates_c]));
+                  real raw_scale = dot_product(baseline, to_vector(raw_scale_mu[c, 1:n_covariates_c]));
+                  ////
+                  real scale = (softplus == 1) ? softplus_scaled(raw_scale) : nico_exp(raw_scale);
+                  real log_scale_derivative = (softplus == 1) ?
+                                              nico_log_inv_logit(raw_scale) - nico_log(nico_log(2.0)) : raw_scale;
+                  vector[3] converted = [location, nico_log(scale), 5.0 * nico_atanh(lambda[c] / 5.0)]';
+                  ////
+                  target += -nico_normal_lupdf(beta_mu[c, 1] | prior_beta_mu_mean[c, 1], prior_beta_mu_SD[c, 1]);
+                  target += -nico_normal_lupdf(raw_scale_mu[c, 1] |
+                                         prior_raw_scale_mu_mean[c, 1],
+                                         prior_raw_scale_mu_SD[c, 1]);
+                  target += multi_normal_cholesky_lupdf(converted | prior_converted_mean[c],
+                                                        diag_pre_multiply(prior_converted_SD[c],
+                                                                          prior_converted_L_Omega[c]));
+                  //// (the Jacobian: the two intercepts, log(scale) from the raw scale, 5 * atanh(lambda / 5)
+                  ////  from lambda)
+                  target += 2.0 * nico_log(abs(baseline[1])) + log_scale_derivative - nico_log(scale) -
+                            nico_log1m(square(lambda[c] / 5.0));
+             }
+        }
+        ////
+        //// ---- Prior for box-cox parameters (only where the Se / Sp prior cannot set lambda: off, or not
+        //// ---- converted with fewer than 2 cutoffs chosen):
         ////
         for (c in 1:2) {
-             if (use_Se_Sp_prior == 0 || n_chosen_cutoffs[c] < 2) {
+             if (use_Se_Sp_prior == 0 || (use_converted_Se_Sp_prior == 0 && n_chosen_cutoffs[c] < 2)) {
                   lambda[c] ~ nico_normal(prior_boxcox_lambda_mean[c], prior_boxcox_lambda_SD[c]);
              }
         }

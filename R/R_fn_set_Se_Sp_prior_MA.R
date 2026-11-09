@@ -25,6 +25,13 @@ R_fn_set_Se_Sp_prior_MA <-  function(priors,
                                      n_thr) {
 
       ##
+      ## ---- the fields of the Se / Sp prior converted to the Jones model's parameters (off unless set):
+      ##
+      if (is.null(priors$use_converted_Se_Sp_prior)) priors$use_converted_Se_Sp_prior <-  0
+      if (is.null(priors$prior_converted_mean)) priors$prior_converted_mean <-  list(rep(0, 3), rep(0, 3))
+      if (is.null(priors$prior_converted_SD)) priors$prior_converted_SD <-  list(rep(1, 3), rep(1, 3))
+      if (is.null(priors$prior_converted_L_Omega)) priors$prior_converted_L_Omega <-  list(diag(3), diag(3))
+      ##
       ## ---- without priors$Se_Sp_prior: the fields with the prior off, the model's own prior on the cutpoints:
       ##
       if (is.null(priors[["Se_Sp_prior"]])) {
