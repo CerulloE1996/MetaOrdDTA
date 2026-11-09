@@ -741,7 +741,7 @@ model {
                  ////
                  //// ---- Induced-dirichlet between study ** model ** (part of the likelihood since random-effect
                  ////      cutpoints): every study with test t in one node, one row per study, shifted by
-                 ////      Xbeta_baseline (the anchor point), as induced_dirichlet_given_C
+                 ////      the prior mean of the intercept (the anchor point), as induced_dirichlet_given_C
                  ////
                  int n_thr_t = n_thr[t];
                  int n_studies_t = n_studies_per_test[t];
@@ -749,11 +749,7 @@ model {
                  int last = start_of_the_cutpoints_of_each_test[t] + n_thr_t * n_studies_t;
                  matrix[n_studies_t, n_thr_t] C_of_test_t = to_matrix(C_vec[c][first:last], n_thr_t,
                                                                       n_studies_t)';
-                 real anchor_ct = (c == 1) ?
-                                  dot_product(baseline_case_nd[t][1:n_covariates_nd[t]],
-                                              to_vector(beta_mu[t][1, 1:n_covariates_nd[t]])) :
-                                  dot_product(baseline_case_d[t][1:n_covariates_d[t]],
-                                              to_vector(beta_mu[t][2, 1:n_covariates_d[t]]));
+                 real anchor_ct = prior_beta_mu_mean[t][c, 1]; //// the prior mean of the intercept as anchor point
                  target += nico_induced_dirichlet_with_Se_Sp_prior_lupdf(
                                  C_of_test_t - anchor_ct | to_vector(alpha[c][t, 1:n_cat[t]]), use_probit_link,
                                  0.0);
@@ -821,11 +817,8 @@ generated quantities {
                   vector[n_thr[t]] P = cumulative_sum(to_vector(alpha[c][t, 1:n_thr[t]])) / alpha_0;
                   vector[n_thr[t]] P_upper = reverse(cumulative_sum(reverse(to_vector(alpha[c][t, 2:n_cat[t]]))))
                                              / alpha_0;
-                  real Xbeta_baseline = (c == 1) ?
-                       dot_product(baseline_case_nd[t][1:n_covariates_nd[t]], to_vector(beta_mu[t][1, 1:n_covariates_nd[t]])) :
-                       dot_product(baseline_case_d[t][1:n_covariates_d[t]], to_vector(beta_mu[t][2, 1:n_covariates_d[t]]));
                   for (k in 1:n_thr[t]) {
-                      C_mu[c][t, k] = Xbeta_baseline +
+                      C_mu[c][t, k] = prior_beta_mu_mean[t][c, 1] + //// (anchored at the prior mean of the intercept)
                                       nico_dirichlet_cutpoint_median_and_log_J(P[k], P_upper[k], alpha_0, use_probit_link)[1];
                   }
               }
