@@ -10,12 +10,13 @@ export SIM_FROZEN_LIBRARY=/home/enzocerullo/Documents/Work/PhD_work/R_packages/R
 export R_LIBS_USER=$SIM_FROZEN_LIBRARY
 export METAORDDTA_OUTPUT_DIR=/home/enzocerullo/Documents/Work/PhD_work/R_packages/MetaOrdDTA_outputs
 export SIM_N_THREADS=8
-export SIM_N_SEEDS=10
+export SIM_N_SEEDS=${SIM_N_SEEDS:-10}
 export SIM_SEED_OFFSET=${SIM_SEED_OFFSET:-0}
 export MCSE_TARGET=0.125
 export SIM_MODELS=${SIM_MODELS:-ord_bivariate}
 export SIM_DGMS=${SIM_DGMS:-Jones}
-export SIM_OUTPUT_FOLDER=pilot_10_seeds_per_cell_prior_mean_anchor_9_Nov
+export SIM_OUTPUT_FOLDER=${SIM_OUTPUT_FOLDER:-pilot_10_seeds_per_cell_prior_mean_anchor_9_Nov}
+export SAMPLING_ALGORITHM=${SAMPLING_ALGORITHM:-NicoStan}
 ## (SETTINGS_OF_EVERY_CELL set to "" = the defaults below for every cell)
 export SETTINGS_OF_EVERY_CELL=${SETTINGS_OF_EVERY_CELL-$SIM_PACKAGE_DIR/sim_study/sim_study_redo_on_ALICE/settings_of_every_cell_of_the_whole_sim.csv}
 export N_BURNIN=500
@@ -33,6 +34,6 @@ export EPS_REINIT_AT_HANDOVER=1
 export INITIAL_EPS_SEARCH_AT_EACH_CHAIN=1
 export KAPPA_PRIOR=wide
 export MATCHED_PRIORS=band
-echo "local HPC, models $SIM_MODELS, DGMs $SIM_DGMS, CPUs $SIM_N_THREADS, seeds $SIM_N_SEEDS from $SIM_SEED_OFFSET, start $(date)"
+echo "local HPC, sampler $SAMPLING_ALGORITHM, models $SIM_MODELS, DGMs $SIM_DGMS, CPUs $SIM_N_THREADS, seeds $SIM_N_SEEDS from $SIM_SEED_OFFSET, start $(date)"
 Rscript --vanilla $SIM_PACKAGE_DIR/sim_study/sim_study_redo_on_ALICE/MetaOrdDTA_run_sims_ALICE.R
 echo "end $(date), exit $?"

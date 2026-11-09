@@ -15,7 +15,7 @@ module load R/4.3.1
 L=$HOME/R_library_4.3.1_Jones_converted
 mkdir -p $L
 for p in NicoStan NicoSIMD; do [ -d $L/$p ] || cp -r $HOME/R_library_4.3.1_whole_sim/$p $L/; done
-export R_LIBS=$L
+export R_LIBS=$L:$HOME/R_library_4.3.1_whole_sim:$HOME/R_library_4.3.1
 export R_LIBS_USER=$L
 export MAKEFLAGS=-j4
 R CMD INSTALL --no-test-load -l $L $HOME/R_packages/MetaOrdDTA
