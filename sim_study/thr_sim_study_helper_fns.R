@@ -1618,6 +1618,18 @@ fn_induced_accuracy_priors <- function(priors,
               mean_of_Se <-  literature_priors$Se_mean[[prior_set]]
               SD_of_Se <-  literature_priors$Se_SD
         }
+        ## (the stratified bivariate at sets 1 and 2: N(a, b) on probit Se and probit Sp at every cutoff of the band, a and b
+        ##  the probit-scale mean and SD of the O-biv-FC prior of the set at that cutoff, from its prior-only fit)
+        if (prior_set > 0 && model_parameterisation == "Bivariate") {
+              band_priors <-  read.csv(file.path(local_pkg_dir, "sim_study",
+                                                 "Se_Sp_priors_of_the_stratified_bivariate_at_every_band_cutoff_sets_1_and_2.csv"))
+              band_priors <-  band_priors[band_priors$test == test & band_priors$prior_set == prior_set, ]
+              cutoffs <-  band_priors$threshold
+              mean_of_Sp <-  band_priors$Sp_probit_mean
+              SD_of_Sp <-  band_priors$Sp_probit_SD
+              mean_of_Se <-  band_priors$Se_probit_mean
+              SD_of_Se <-  band_priors$Se_probit_SD
+        }
         n_chosen <-  length(cutoffs)
         ##
         ## ---- The Se / Sp prior fields (row 1 Sp and row 2 Se, but row 1 Se and row 2 Sp for the stratified bivariate):
