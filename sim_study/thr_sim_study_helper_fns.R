@@ -1558,9 +1558,9 @@ fn_induced_accuracy_priors <- function(priors,
                            Sp_mean = list(c(0.13, 0.33, 0.61, 0.88), c(0.50, 0.71, 1.02, 1.34)),
                            Sp_SD = c(0.19, 0.19, 0.21, 0.24))
         )[[test]]
-        ## (the band of thresholds of each test, and the SD of the O-biv-FC intercept prior of each set)
+        ## (the band of thresholds of each test, and the SD of every intercept prior)
         band <-  list(GAD_2 = 1:6, HADS = 3:17, BAI = 5:43)[[test]]
-        SD_of_the_intercept <-  if (prior_set == 0) 1.0 else c(HADS = 0.20, GAD_2 = 0.25, BAI = 0.35)[[test]]
+        SD_of_the_intercept <-  1.0
         ##
         ## ---- The cutoffs and the link-scale Normal of class 1 (Sp) and class 2 (Se) of each model:
         ##
@@ -1589,28 +1589,6 @@ fn_induced_accuracy_priors <- function(priors,
                     mean_of_Se <-  rep(0, n_thr)
                     SD_of_Se <-  rep(1, n_thr)
               }
-        } else if (model_parameterisation == "Jones") {
-              ##
-              ## ---- Jones: N(a, b) on probit Sp and probit Se at the two band ends, and the Box-Cox lambda prior of each
-              ##      class, those whose induced Se and Sp on the band are closest to the O-biv-FC prior of the same set
-              ##      (columns: Sp at the band ends, their SDs, Se at the band ends, their SDs, lambda mean and SD of Sp
-              ##      then of Se):
-              ##
-              Jones_band_end_priors <-  list(
-                    GAD_2 = list(c(-0.547, 1.496, 0.473, 0.157, 1.353, -1.107, 0.202, 0.541, -0.615, 0.079, 1.061, 0.060),
-                                 c(-0.339, 1.776, 0.599, 0.091, 1.924, -1.133, 0.116, 0.697, -1.072, 0.174, 1.290, 0.241)),
-                    HADS  = list(c(-0.764, 1.828, 0.347, 0.197, 2.045, -0.766, 0.275, 0.272, 0.237, 0.025, 0.684, 0.003),
-                                 c(-0.617, 2.904, 0.395, 0.181, 2.531, -0.542, 0.145, 0.304, 0.476, 0.010, 0.687, 0.106)),
-                    BAI   = list(c(-0.535, 1.608, 0.236, 0.237, 1.917, -0.433, 0.198, 0.159, -0.375, 0.005, 0.033, 0.220),
-                                 c(-0.269, 1.918, 0.288, 0.185, 2.527, -0.300, 0.179, 0.164, -0.512, 0.023, 0.164, 0.203))
-              )[[test]][[prior_set]]
-              cutoffs <-  range(band)
-              mean_of_Sp <-  Jones_band_end_priors[1:2]
-              SD_of_Sp <-  Jones_band_end_priors[3:4]
-              mean_of_Se <-  Jones_band_end_priors[5:6]
-              SD_of_Se <-  Jones_band_end_priors[7:8]
-              priors$prior_boxcox_lambda_mean <-  Jones_band_end_priors[c(9, 11)]
-              priors$prior_boxcox_lambda_SD <-  Jones_band_end_priors[c(10, 12)]
         } else {
               cutoffs <-  literature_priors$cutoffs
               mean_of_Sp <-  literature_priors$Sp_mean[[prior_set]]
@@ -1658,6 +1636,35 @@ fn_induced_accuracy_priors <- function(priors,
         priors$prior_Se_Sp_link_mean_SD <-  if (model_parameterisation == "Bivariate")
                                                   list(link_mean_SD_of_Se, link_mean_SD_of_Sp) else
                                                   list(link_mean_SD_of_Sp, link_mean_SD_of_Se)
+        ##
+        ## ---- Sets 1 and 2: the same prior as priors$Se_Sp_prior, the list the package builds the Stan fields from (without
+        ##      it the package passes the fields with the prior off): the link-scale Normal as its median and 95% limits, the
+        ##      Beta of the stratified bivariate as it is
+        ##
+        if (prior_set > 0 && model_parameterisation != "Jones") {
+
+              stopifnot(priors$use_probit_link %in% c(0, 1))
+              fn_inverse_link <-  if (priors$use_probit_link == 1) stats::pnorm else stats::plogis
+              fn_median_and_limits <-  function(mean_of_class,
+                                                SD_of_class) {
+
+                    list(cutoffs = cutoffs,
+                         median = fn_inverse_link(mean_of_class),
+                         lower = fn_inverse_link(mean_of_class - stats::qnorm(0.975) * SD_of_class),
+                         upper = fn_inverse_link(mean_of_class + stats::qnorm(0.975) * SD_of_class))
+
+              }
+              priors$Se_Sp_prior <-  if (model_parameterisation == "Bivariate") {
+                    list(type = 2,
+                         Se = list(cutoffs = cutoffs, beta = priors$prior_Se_Sp_beta[[1]]),
+                         Sp = list(cutoffs = cutoffs, beta = priors$prior_Se_Sp_beta[[2]]))
+              } else {
+                    list(type = 4,
+                         Sp = fn_median_and_limits(mean_of_Sp, SD_of_Sp),
+                         Se = fn_median_and_limits(mean_of_Se, SD_of_Se))
+              }
+
+        }
         ##
         ## ---- The Dirichlet alpha the induced-accuracy prior divides out, and the intercept priors:
         ##

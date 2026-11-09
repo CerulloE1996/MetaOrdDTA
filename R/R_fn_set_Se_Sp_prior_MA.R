@@ -54,7 +54,9 @@ R_fn_set_Se_Sp_prior_MA <-  function(priors,
       ##
       ## ---- the two classes in the order of the Stan file ([[ ]] throughout: $ matches Se_Sp_prior_type too):
       ##
-      strat_biv <-  grepl("strat_biv|Bivariate", model_parameterisation, ignore.case = TRUE)
+      ## ("ord_bivariate" is an ordinal model: Sp then Se)
+      strat_biv <-  grepl("strat_biv|Bivariate", model_parameterisation, ignore.case = TRUE) &&
+                    !grepl("ord_biv|ordinal_biv", model_parameterisation, ignore.case = TRUE)
       classes <-  if (strat_biv) c("Se", "Sp") else c("Sp", "Se")
       type <-  if (is.null(priors[["Se_Sp_prior"]][["type"]])) 4 else priors[["Se_Sp_prior"]][["type"]]
       stopifnot(type %in% 1:4)
