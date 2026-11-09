@@ -202,20 +202,6 @@ parameters {
     vector[2 * n_pairs] z;  // random effects: 2 per (threshold, study) pair that is reported
 }
 
-transformed parameters {
-    //// Study-specific logit probabilities
-    array[n_thr, n_studies] vector[2] probit_pi;
-    
-    for (k in 1:n_thr) {
-        for (s in 1:n_studies) {
-            if (study_has_thr[k, s] == 1) {
-                int p = pair_of_thr_and_study[k, s];
-                probit_pi[k, s] = mu[k] + diag_pre_multiply(sigma[k], L_Omega[k]) * z[(2 * p - 1):(2 * p)];
-            }
-        }
-    }
-}
-
 model {
     //// ---- Priors for each threshold:
     for (k in 1:n_thr) {
@@ -223,18 +209,18 @@ model {
           mu[k, 1:2] ~ nico_normal(0, 1);
           if (n_studies_per_thr[k] > 2) { 
             
-                sigma[k, 1:2] ~ nico_normal(0, 1); 
+                sigma[k, 1:2] ~ nico_normal(0, 0.5); 
                 L_Omega[k] ~ nico_lkj_corr_cholesky(2);
               
           } else if (n_studies_per_thr[k] == 2) {
                
                 sigma[k, 1:2] ~ nico_normal(0, 0.25); 
-                L_Omega[k] ~ nico_lkj_corr_cholesky(24);
+                L_Omega[k] ~ nico_lkj_corr_cholesky(12);
                 
           } else if (n_studies_per_thr[k] == 1) {
             
                 sigma[k, 1:2] ~ nico_normal(0, 0.01); 
-                L_Omega[k] ~ nico_lkj_corr_cholesky(50);
+                L_Omega[k] ~ nico_lkj_corr_cholesky(25);
                 
           } else { 
                 sigma[k, 1:2] ~ nico_normal(0.0, 1.0);
@@ -244,11 +230,18 @@ model {
     // Random effects of the studies that report each threshold
     z ~ nico_normal(0, 1);
     //// ---- Likelihood: every TP ~ binomial(n_diseased, Phi(probit_pi[k, s, 1])) and
-    ////      TN ~ binomial(n_nondiseased, Phi(probit_pi[k, s, 2])) term in one node (probit link, is_first = 1):
+    ////      TN ~ binomial(n_nondiseased, Phi(probit_pi[k, s, 2])) term in one node (probit link, is_first = 1).
+    ////      probit_pi[k, s] = mu[k] + diag_pre_multiply(sigma[k], L_Omega[k]) * z[k, s], element by element
+    ////      (L_Omega[k, 1] = [1, 0]):
     {
           vector[n_terms] latent_of_the_terms;
           for (i in 1:n_terms) {
-                latent_of_the_terms[i] = probit_pi[term_k[i], term_s[i], term_c[i]];
+                int k = term_k[i];
+                int p = pair_of_thr_and_study[k, term_s[i]];
+                latent_of_the_terms[i] = (term_c[i] == 1) ?
+                                         mu[k, 1] + sigma[k, 1] * z[2 * p - 1] :
+                                         mu[k, 2] + sigma[k, 2] * (L_Omega[k, 2, 1] * z[2 * p - 1] +
+                                                                   L_Omega[k, 2, 2] * z[2 * p]);
           }
           target += nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lupmf(
                           term_counts[1:n_terms] | term_totals[1:n_terms], latent_of_the_terms,
