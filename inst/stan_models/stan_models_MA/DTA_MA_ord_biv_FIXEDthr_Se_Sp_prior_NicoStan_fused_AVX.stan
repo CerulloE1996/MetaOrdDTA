@@ -277,9 +277,9 @@ transformed data {
 
 
 parameters { 
-        array[n_studies] row_vector[2] beta_z; //// Study-specific random-effects (nuisance block #1)
         matrix[2, n_covariates_max] beta_mu;       
         row_vector<lower=0.0>[2] beta_SD;    
+        matrix[n_studies, 2] beta_z;    //// Study-specific random-effects (raw params)
         //// 
         real<lower=beta_corr_lb, upper=beta_corr_ub> beta_corr;  //// between-study corr (possibly restricted)  
         //// 
