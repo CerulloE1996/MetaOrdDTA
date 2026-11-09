@@ -19,8 +19,6 @@ folder_of_the_tables <- "/home/enzocerullo/Documents/Work/PhD_work/R_packages/Me
 ## (BASE_SETTINGS_FILE: the table the pilot updates, by default the one from before the pilot)
 settings_file <- if (nzchar(Sys.getenv("BASE_SETTINGS_FILE"))) Sys.getenv("BASE_SETTINGS_FILE") else
                  file.path(folder_of_the_tables, "settings_of_every_cell_of_the_whole_sim.csv")
-## (EXTRA_SETTINGS_OF_THE_PILOT_CELLS, e.g. "ADAPT_DELTA=0.90": set in the rows of the cells of this pilot)
-extra_settings <- strsplit(Sys.getenv("EXTRA_SETTINGS_OF_THE_PILOT_CELLS"), " ")[[1]]
 settings_file_after_the_pilot <- file.path(folder_of_the_tables, "settings_of_every_cell_of_the_whole_sim_after_the_pilot.csv")
 n_chains <- 4
 ## (the launcher's defaults, for a cell the table lacks)
@@ -89,7 +87,7 @@ for (i in seq_len(nrow(iterations_of_every_cell))) {
                                                    stringsAsFactors = FALSE))
             row <- nrow(settings)
       }
-      for (setting in c(paste0("N_ITER_FOR_4_CHAINS=", cell$n_iter_new), extra_settings)) {
+      for (setting in paste0("N_ITER_FOR_4_CHAINS=", cell$n_iter_new)) {
 
             key <- sub("=.*", "", setting)
             settings$settings[row] <- if (grepl(paste0("(^| )", key, "="), settings$settings[row]))
