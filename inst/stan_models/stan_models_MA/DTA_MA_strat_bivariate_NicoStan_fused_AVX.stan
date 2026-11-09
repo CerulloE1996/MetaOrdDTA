@@ -59,6 +59,10 @@ data {
         // real<lower=0> MA_prior_SD_spec_sd;
         ////
         int use_probit_link;  // for consistency with your other models
+        ////
+        // Prior of mu at each threshold: [1=sens, 2=spec][threshold]
+        array[2] vector[n_thr] prior_mu_mean;
+        array[2] vector<lower=0>[n_thr] prior_mu_SD;
 }
 
 
@@ -206,8 +210,9 @@ model {
     //// ---- Priors for each threshold:
     for (k in 1:n_thr) {
       
-          mu[k, 1:2] ~ nico_normal(0, 1);
-          if (n_studies_per_thr[k] > 2) { 
+          mu[k, 1:2] ~ nico_normal([prior_mu_mean[1][k], prior_mu_mean[2][k]]',
+                                   [prior_mu_SD[1][k], prior_mu_SD[2][k]]');
+          if (n_studies_per_thr[k] > 2) {
             
                 sigma[k, 1:2] ~ nico_normal(0, 0.5); 
                 L_Omega[k] ~ nico_lkj_corr_cholesky(2);
