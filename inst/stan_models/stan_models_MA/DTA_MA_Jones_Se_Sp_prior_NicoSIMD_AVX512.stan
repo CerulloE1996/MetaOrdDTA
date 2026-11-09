@@ -1,5 +1,5 @@
-// NicoSIMD_AVX512 version of DTA_MA_Jones_Se_Sp_prior.stan written by NicoStan (source model md5 03f7c0fed9e83840b58baa2e2eea9130; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
-// NicoSIMD functions used: exp, log, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, atanh, log_diff_exp, std_normal_log_qf
+// NicoSIMD_AVX512 version of DTA_MA_Jones_Se_Sp_prior.stan written by NicoStan (source model md5 51345a38126aa84acecd7a9f157e811d; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
+// NicoSIMD functions used: exp, log, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, sinh, asinh, atanh, log_diff_exp, std_normal_log_qf
 
 
 
@@ -69,6 +69,14 @@ functions {
     real nico_beta_lpdf(vector y, vector alpha, vector beta);
     real nico_dirichlet_lpdf(vector theta, vector alpha);
     real nico_lkj_corr_cholesky_lpdf(matrix L, data real eta);
+    real nico_sinh(real x);
+    vector nico_sinh(vector x);
+    row_vector nico_sinh(row_vector x);
+    matrix nico_sinh(matrix x);
+    real nico_asinh(real x);
+    vector nico_asinh(vector x);
+    row_vector nico_asinh(row_vector x);
+    matrix nico_asinh(matrix x);
     real nico_atanh(real x);
     vector nico_atanh(vector x);
     row_vector nico_atanh(row_vector x);
@@ -164,6 +172,18 @@ data {
         array[2] vector<lower=0.0>[3] prior_converted_SD;
         array[2] matrix[3, 3] prior_converted_L_Omega;
         ////
+        //// ---- The Se / Sp prior made from the chosen cutoffs and their Normals: the one-hill law of the baseline
+        //// ---- location, log(scale) and 5 * atanh(lambda / 5) of each class, taken as a transform of 3 standard
+        //// ---- Normals held in the places of the two intercepts and lambda:
+        ////
+        int<lower=0, upper=1> use_one_hill_Se_Sp_prior;
+        array[2] vector[3] prior_one_hill_mean;
+        array[2] vector<lower=0.0>[3] prior_one_hill_SD;
+        array[2] matrix[3, 3] prior_one_hill_L_Omega;
+        array[2] vector[3] prior_one_hill_skew;
+        array[2] vector[3] prior_one_hill_log_tail;
+        array[2] vector[2] prior_one_hill_bend;
+        ////
         //// ---- Other:
         ////
         int<lower=0, upper=1> box_cox;
@@ -176,7 +196,10 @@ data {
   
 }
 
-transformed data { 
+transformed data {
+        if (use_one_hill_Se_Sp_prior == 1 && (use_Se_Sp_prior == 0 || use_converted_Se_Sp_prior == 1 || softplus == 1)) {
+             reject("The one-hill Se / Sp prior needs use_Se_Sp_prior = 1, use_converted_Se_Sp_prior = 0 and softplus = 0");
+        }
         ////
         //// ---- One cutoff replaces location; multiple cutoffs also replace scale:
         ////
@@ -255,6 +278,38 @@ parameters {
 
 transformed parameters {
         ////
+        //// ---- Locations, raw scales and lambda: the parameters themselves, or (one-hill Se / Sp prior) the baseline
+        //// ---- location, log(scale) and lambda of each class as the transform of its 3 standard Normals:
+        ////
+        matrix[2, n_covariates_max] beta_mu_transformed = beta_mu;
+        matrix[2, n_covariates_max] raw_scale_mu_transformed = raw_scale_mu;
+        vector[2] lambda_transformed = lambda;
+        if (use_one_hill_Se_Sp_prior == 1) {
+             for (c in 1:2) {
+                  int n_covariates_c = (c == 1) ? n_covariates_nd : n_covariates_d;
+                  vector[n_covariates_c] baseline = (c == 1) ? baseline_case_nd : baseline_case_d;
+                  vector[3] x_raw = [beta_mu[c, 1], raw_scale_mu[c, 1], 5.0 * nico_atanh(lambda[c] / 5.0)]';
+                  vector[3] x_correlated = prior_one_hill_L_Omega[c] * x_raw;
+                  vector[3] v = prior_one_hill_mean[c] +
+                                prior_one_hill_SD[c] .* nico_sinh(nico_exp(prior_one_hill_log_tail[c]) .* nico_asinh(x_correlated) +
+                                                             prior_one_hill_skew[c]);
+                  v[2] += prior_one_hill_bend[c][1] * (square(x_correlated[1]) - 1.0);
+                  v[3] += prior_one_hill_bend[c][2] * (square(x_correlated[1]) - 1.0);
+                  //// (v[1] and v[2] are the baseline location and log(scale): the two intercepts follow)
+                  real location_of_the_other_covariates = 0.0;
+                  real raw_scale_of_the_other_covariates = 0.0;
+                  if (n_covariates_c > 1) {
+                       location_of_the_other_covariates = dot_product(baseline[2:n_covariates_c],
+                                                                      to_vector(beta_mu[c, 2:n_covariates_c]));
+                       raw_scale_of_the_other_covariates = dot_product(baseline[2:n_covariates_c],
+                                                                       to_vector(raw_scale_mu[c, 2:n_covariates_c]));
+                  }
+                  beta_mu_transformed[c, 1] = (v[1] - location_of_the_other_covariates) / baseline[1];
+                  raw_scale_mu_transformed[c, 1] = (v[2] - raw_scale_of_the_other_covariates) / baseline[1];
+                  lambda_transformed[c] = 5.0 * nico_tanh(v[3] / 5.0);
+             }
+        }
+        ////
         //// ---- Construct simple 2x2 (bivariate) between-study corr matrices:
         ////
         cholesky_factor_corr[2] beta_L_Omega       = make_bivariate_L_Omega(beta_corr);
@@ -266,8 +321,8 @@ transformed parameters {
         ////
         array[2] vector[n_thr] C_raw;  // Unconstrained Box-Cox output
         array[2] vector[n_thr] C;      // Scaled to [-2, +2]
-        C_raw[1] = ((box_cox == 0) ? nico_log(cts_thr_values) : fn_Stan_box_cox(cts_thr_values, lambda[1]));
-        C_raw[2] = ((box_cox == 0) ? nico_log(cts_thr_values) : fn_Stan_box_cox(cts_thr_values, lambda[2]));
+        C_raw[1] = ((box_cox == 0) ? nico_log(cts_thr_values) : fn_Stan_box_cox(cts_thr_values, lambda_transformed[1]));
+        C_raw[2] = ((box_cox == 0) ? nico_log(cts_thr_values) : fn_Stan_box_cox(cts_thr_values, lambda_transformed[2]));
         ////
         // Step 1: Shift to positive if needed
         real min_thr = min(cts_thr_values);
@@ -275,8 +330,8 @@ transformed parameters {
         vector[n_thr] cts_thr_shifted = cts_thr_values + shift;
 
         // Step 2: Apply Box-Cox
-        C_raw[1] = fn_Stan_box_cox(cts_thr_shifted, lambda[1]);
-        C_raw[2] = fn_Stan_box_cox(cts_thr_shifted, lambda[2]);
+        C_raw[1] = fn_Stan_box_cox(cts_thr_shifted, lambda_transformed[1]);
+        C_raw[2] = fn_Stan_box_cox(cts_thr_shifted, lambda_transformed[2]);
 
         // Step 3: Scale to [-2, +2] range
         for (c in 1:2) {
@@ -307,11 +362,11 @@ transformed parameters {
         matrix[n_studies, 2] Xraw_scale; // NOT local
         matrix[n_studies, 2] Xscale; // NOT local
         ////
-        Xbeta[, 1]       = X_nd[1:n_studies, 1:n_covariates_nd]  * to_vector(beta_mu[1, 1:n_covariates_nd]) + beta_random[, 1];
-        Xbeta[, 2]       = X_d[1:n_studies,  1:n_covariates_d]   * to_vector(beta_mu[2, 1:n_covariates_d])  + beta_random[, 2];
+        Xbeta[, 1]       = X_nd[1:n_studies, 1:n_covariates_nd]  * to_vector(beta_mu_transformed[1, 1:n_covariates_nd]) + beta_random[, 1];
+        Xbeta[, 2]       = X_d[1:n_studies,  1:n_covariates_d]   * to_vector(beta_mu_transformed[2, 1:n_covariates_d])  + beta_random[, 2];
         ////
-        Xraw_scale[, 1]  = X_nd[1:n_studies, 1:n_covariates_nd]  * to_vector(raw_scale_mu[1, 1:n_covariates_nd]) + raw_scale_random[, 1];
-        Xraw_scale[, 2]  = X_d[1:n_studies,  1:n_covariates_d]   * to_vector(raw_scale_mu[2, 1:n_covariates_d])  + raw_scale_random[, 2];
+        Xraw_scale[, 1]  = X_nd[1:n_studies, 1:n_covariates_nd]  * to_vector(raw_scale_mu_transformed[1, 1:n_covariates_nd]) + raw_scale_random[, 1];
+        Xraw_scale[, 2]  = X_d[1:n_studies,  1:n_covariates_d]   * to_vector(raw_scale_mu_transformed[2, 1:n_covariates_d])  + raw_scale_random[, 2];
         ////
         Xscale = ((softplus == 1) ? softplus_scaled(Xraw_scale) : nico_exp(Xraw_scale));  // local
 }
@@ -321,16 +376,16 @@ model {
         ////
         //// ---- Priors for locations:
         ////
-        beta_mu[1, 1:n_covariates_nd] ~ nico_normal(prior_beta_mu_mean[1, 1:n_covariates_nd], prior_beta_mu_SD[1, 1:n_covariates_nd]);  
-        beta_mu[2, 1:n_covariates_d]  ~ nico_normal(prior_beta_mu_mean[2, 1:n_covariates_d],  prior_beta_mu_SD[2, 1:n_covariates_d]);
+        beta_mu_transformed[1, 1:n_covariates_nd] ~ nico_normal(prior_beta_mu_mean[1, 1:n_covariates_nd], prior_beta_mu_SD[1, 1:n_covariates_nd]);  
+        beta_mu_transformed[2, 1:n_covariates_d]  ~ nico_normal(prior_beta_mu_mean[2, 1:n_covariates_d],  prior_beta_mu_SD[2, 1:n_covariates_d]);
         ////
         beta_SD    ~ normal(prior_beta_SD_mean, prior_beta_SD_SD); 
         beta_L_Omega ~ nico_lkj_corr_cholesky(prior_beta_corr_LKJ);
         ////
         //// ---- Priors for scales:
         ////
-        raw_scale_mu[1, 1:n_covariates_nd] ~ nico_normal(prior_raw_scale_mu_mean[1, 1:n_covariates_nd], prior_raw_scale_mu_SD[1, 1:n_covariates_nd]);  
-        raw_scale_mu[2, 1:n_covariates_d]  ~ nico_normal(prior_raw_scale_mu_mean[2, 1:n_covariates_d],  prior_raw_scale_mu_SD[2, 1:n_covariates_d]);
+        raw_scale_mu_transformed[1, 1:n_covariates_nd] ~ nico_normal(prior_raw_scale_mu_mean[1, 1:n_covariates_nd], prior_raw_scale_mu_SD[1, 1:n_covariates_nd]);  
+        raw_scale_mu_transformed[2, 1:n_covariates_d]  ~ nico_normal(prior_raw_scale_mu_mean[2, 1:n_covariates_d],  prior_raw_scale_mu_SD[2, 1:n_covariates_d]);
         ////
         raw_scale_SD    ~ normal(prior_raw_scale_SD_mean, prior_raw_scale_SD_SD);
         raw_scale_L_Omega ~ nico_lkj_corr_cholesky(prior_raw_scale_corr_LKJ);
@@ -338,13 +393,13 @@ model {
         ////
         //// ---- Replace selected baseline location and scale priors:
         ////
-        if (use_Se_Sp_prior == 1 && use_converted_Se_Sp_prior == 0) {
+        if (use_Se_Sp_prior == 1 && use_converted_Se_Sp_prior == 0 && use_one_hill_Se_Sp_prior == 0) {
              for (c in 1:2) {
                   if (n_chosen_cutoffs[c] > 0) {
                        int n_covariates_c = (c == 1) ? n_covariates_nd : n_covariates_d;
                        vector[n_covariates_c] baseline = (c == 1) ? baseline_case_nd : baseline_case_d;
-                       real location  = dot_product(baseline, to_vector(beta_mu[c, 1:n_covariates_c]));
-                       real raw_scale = dot_product(baseline, to_vector(raw_scale_mu[c, 1:n_covariates_c]));
+                       real location  = dot_product(baseline, to_vector(beta_mu_transformed[c, 1:n_covariates_c]));
+                       real raw_scale = dot_product(baseline, to_vector(raw_scale_mu_transformed[c, 1:n_covariates_c]));
                        ////
                        real scale = (softplus == 1) ? softplus_scaled(raw_scale) : nico_exp(raw_scale);
                        ////
@@ -359,7 +414,7 @@ model {
                                                                        prior_beta_of_this_class[, 1]);
                             }
                        }
-                       target += -nico_normal_lupdf(beta_mu[c, 1] | prior_beta_mu_mean[c, 1], prior_beta_mu_SD[c, 1]);
+                       target += -nico_normal_lupdf(beta_mu_transformed[c, 1] | prior_beta_mu_mean[c, 1], prior_beta_mu_SD[c, 1]);
                        target += Se_Sp_prior_at_chosen_cutoffs_lupdf(  C_baseline | Se_Sp_prior_type, 
                                                                        prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
                                                                        prior_beta_of_this_class, 
@@ -371,7 +426,7 @@ model {
                             real log_scale_derivative = (softplus == 1) ?
                                                         nico_log_inv_logit(raw_scale) - nico_log(nico_log(2.0)) : raw_scale;
                             real C_gap = C[c][chosen_cutoffs[c, 2]] - C[c][chosen_cutoffs[c, 1]];
-                            target += -nico_normal_lupdf(raw_scale_mu[c, 1] |
+                            target += -nico_normal_lupdf(raw_scale_mu_transformed[c, 1] |
                                                    prior_raw_scale_mu_mean[c, 1],
                                                    prior_raw_scale_mu_SD[c, 1]);
                             target += nico_log(abs(baseline[1])) + nico_log(C_gap) +
@@ -388,10 +443,10 @@ model {
                                  vector[n_thr] dB_dlambda;
                                  for (k in 1:n_thr) {
                                       real log_x = nico_log(cts_thr_shifted[k]);
-                                      dB_dlambda[k] = (abs(lambda[c]) < 1e-4) ?
-                                                      0.5 * square(log_x) + lambda[c] * pow(log_x, 3.0) / 3.0 :
-                                                      (nico_exp(lambda[c] * log_x) * (lambda[c] * log_x - 1.0) + 1.0) /
-                                                      square(lambda[c]);
+                                      dB_dlambda[k] = (abs(lambda_transformed[c]) < 1e-4) ?
+                                                      0.5 * square(log_x) + lambda_transformed[c] * pow(log_x, 3.0) / 3.0 :
+                                                      (nico_exp(lambda_transformed[c] * log_x) * (lambda_transformed[c] * log_x - 1.0) + 1.0) /
+                                                      square(lambda_transformed[c]);
                                  }
                                  real B_gap = C_raw[c][k_2] - C_raw[c][k_1];
                                  vector[n_thr] d_rho_d_lambda = ((dB_dlambda - dB_dlambda[k_1]) * B_gap -
@@ -425,16 +480,16 @@ model {
              for (c in 1:2) {
                   int n_covariates_c = (c == 1) ? n_covariates_nd : n_covariates_d;
                   vector[n_covariates_c] baseline = (c == 1) ? baseline_case_nd : baseline_case_d;
-                  real location  = dot_product(baseline, to_vector(beta_mu[c, 1:n_covariates_c]));
-                  real raw_scale = dot_product(baseline, to_vector(raw_scale_mu[c, 1:n_covariates_c]));
+                  real location  = dot_product(baseline, to_vector(beta_mu_transformed[c, 1:n_covariates_c]));
+                  real raw_scale = dot_product(baseline, to_vector(raw_scale_mu_transformed[c, 1:n_covariates_c]));
                   ////
                   real scale = (softplus == 1) ? softplus_scaled(raw_scale) : nico_exp(raw_scale);
                   real log_scale_derivative = (softplus == 1) ?
                                               nico_log_inv_logit(raw_scale) - nico_log(nico_log(2.0)) : raw_scale;
-                  vector[3] converted = [location, nico_log(scale), 5.0 * nico_atanh(lambda[c] / 5.0)]';
+                  vector[3] converted = [location, nico_log(scale), 5.0 * nico_atanh(lambda_transformed[c] / 5.0)]';
                   ////
-                  target += -nico_normal_lupdf(beta_mu[c, 1] | prior_beta_mu_mean[c, 1], prior_beta_mu_SD[c, 1]);
-                  target += -nico_normal_lupdf(raw_scale_mu[c, 1] |
+                  target += -nico_normal_lupdf(beta_mu_transformed[c, 1] | prior_beta_mu_mean[c, 1], prior_beta_mu_SD[c, 1]);
+                  target += -nico_normal_lupdf(raw_scale_mu_transformed[c, 1] |
                                          prior_raw_scale_mu_mean[c, 1],
                                          prior_raw_scale_mu_SD[c, 1]);
                   target += multi_normal_cholesky_lupdf(converted | prior_converted_mean[c],
@@ -443,7 +498,23 @@ model {
                   //// (the Jacobian: the two intercepts, log(scale) from the raw scale, 5 * atanh(lambda / 5)
                   ////  from lambda)
                   target += 2.0 * nico_log(abs(baseline[1])) + log_scale_derivative - nico_log(scale) -
-                            nico_log1m(square(lambda[c] / 5.0));
+                            nico_log1m(square(lambda_transformed[c] / 5.0));
+             }
+        }
+        ////
+        //// ---- The one-hill Se / Sp prior: the 3 standard Normals of each class replace the priors of the baseline
+        //// ---- location, the baseline scale and lambda:
+        ////
+        if (use_Se_Sp_prior == 1 && use_one_hill_Se_Sp_prior == 1) {
+             for (c in 1:2) {
+                  target += -nico_normal_lupdf(beta_mu_transformed[c, 1] | prior_beta_mu_mean[c, 1], prior_beta_mu_SD[c, 1]);
+                  target += -nico_normal_lupdf(raw_scale_mu_transformed[c, 1] |
+                                         prior_raw_scale_mu_mean[c, 1],
+                                         prior_raw_scale_mu_SD[c, 1]);
+                  target += nico_normal_lupdf(beta_mu[c, 1] | 0, 1) + nico_normal_lupdf(raw_scale_mu[c, 1] | 0, 1) +
+                            nico_normal_lupdf(5.0 * nico_atanh(lambda[c] / 5.0) | 0, 1);
+                  //// (the Jacobian: 5 * atanh(lambda / 5) from the lambda parameter)
+                  target += -nico_log1m(square(lambda[c] / 5.0));
              }
         }
         ////
@@ -451,8 +522,9 @@ model {
         //// ---- converted with fewer than 2 cutoffs chosen):
         ////
         for (c in 1:2) {
-             if (use_Se_Sp_prior == 0 || (use_converted_Se_Sp_prior == 0 && n_chosen_cutoffs[c] < 2)) {
-                  lambda[c] ~ nico_normal(prior_boxcox_lambda_mean[c], prior_boxcox_lambda_SD[c]);
+             if (use_Se_Sp_prior == 0 ||
+                 (use_converted_Se_Sp_prior == 0 && use_one_hill_Se_Sp_prior == 0 && n_chosen_cutoffs[c] < 2)) {
+                  lambda_transformed[c] ~ nico_normal(prior_boxcox_lambda_mean[c], prior_boxcox_lambda_SD[c]);
              }
         }
         ////
@@ -493,11 +565,11 @@ generated quantities {
           ////
           //// ---- Calculate summary accuracy - "baseline" covariate values:
           ////  
-          real Xbeta_baseline_nd = dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd]));
-          real Xbeta_baseline_d  = dot_product(baseline_case_d,  to_vector(beta_mu[2, 1:n_covariates_d]));
+          real Xbeta_baseline_nd = dot_product(baseline_case_nd, to_vector(beta_mu_transformed[1, 1:n_covariates_nd]));
+          real Xbeta_baseline_d  = dot_product(baseline_case_d,  to_vector(beta_mu_transformed[2, 1:n_covariates_d]));
           ////
-          real Xraw_scale_baseline_nd = dot_product(baseline_case_nd, raw_scale_mu[1, 1:n_covariates_nd]);
-          real Xraw_scale_baseline_d  = dot_product(baseline_case_d,  raw_scale_mu[2, 1:n_covariates_d]);
+          real Xraw_scale_baseline_nd = dot_product(baseline_case_nd, raw_scale_mu_transformed[1, 1:n_covariates_nd]);
+          real Xraw_scale_baseline_d  = dot_product(baseline_case_d,  raw_scale_mu_transformed[2, 1:n_covariates_d]);
           real scale_nd_baseline = ((softplus == 1) ? softplus_scaled(Xraw_scale_baseline_nd) : nico_exp(Xraw_scale_baseline_nd));
           real scale_d_baseline  = ((softplus == 1) ? softplus_scaled(Xraw_scale_baseline_d)  : nico_exp(Xraw_scale_baseline_d));
           ////
@@ -516,11 +588,11 @@ generated quantities {
           vector[2] beta_random_pred      = multi_normal_cholesky_rng(rep_vector(0.0, 2), beta_L_Sigma);
           vector[2] raw_scale_random_pred = multi_normal_cholesky_rng(rep_vector(0.0, 2), raw_scale_L_Sigma);
           ////
-          real Xbeta_baseline_pred_nd = dot_product(baseline_case_nd, beta_mu[1, 1:n_covariates_nd]) + beta_random_pred[1];
-          real Xbeta_baseline_pred_d  = dot_product(baseline_case_d,  beta_mu[2, 1:n_covariates_d])  + beta_random_pred[2];
+          real Xbeta_baseline_pred_nd = dot_product(baseline_case_nd, beta_mu_transformed[1, 1:n_covariates_nd]) + beta_random_pred[1];
+          real Xbeta_baseline_pred_d  = dot_product(baseline_case_d,  beta_mu_transformed[2, 1:n_covariates_d])  + beta_random_pred[2];
           ////
-          real Xraw_scale_baseline_pred_nd = dot_product(baseline_case_nd, raw_scale_mu[1, 1:n_covariates_nd]) + raw_scale_random_pred[1];
-          real Xraw_scale_baseline_pred_d  = dot_product(baseline_case_d,  raw_scale_mu[2, 1:n_covariates_d]) + raw_scale_random_pred[2];
+          real Xraw_scale_baseline_pred_nd = dot_product(baseline_case_nd, raw_scale_mu_transformed[1, 1:n_covariates_nd]) + raw_scale_random_pred[1];
+          real Xraw_scale_baseline_pred_d  = dot_product(baseline_case_d,  raw_scale_mu_transformed[2, 1:n_covariates_d]) + raw_scale_random_pred[2];
           real scale_nd_baseline_pred = ((softplus == 1) ? 
                                         softplus_scaled(Xraw_scale_baseline_pred_nd) : nico_exp(Xraw_scale_baseline_pred_nd));
           real scale_d_baseline_pred  = ((softplus == 1) ? 

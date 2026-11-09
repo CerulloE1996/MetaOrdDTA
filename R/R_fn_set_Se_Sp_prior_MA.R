@@ -32,6 +32,16 @@ R_fn_set_Se_Sp_prior_MA <-  function(priors,
       if (is.null(priors$prior_converted_SD)) priors$prior_converted_SD <-  list(rep(1, 3), rep(1, 3))
       if (is.null(priors$prior_converted_L_Omega)) priors$prior_converted_L_Omega <-  list(diag(3), diag(3))
       ##
+      ## ---- the fields of the one-hill Se / Sp prior of the Jones model (off unless set):
+      ##
+      if (is.null(priors$use_one_hill_Se_Sp_prior)) priors$use_one_hill_Se_Sp_prior <-  0
+      if (is.null(priors$prior_one_hill_mean)) priors$prior_one_hill_mean <-  list(rep(0, 3), rep(0, 3))
+      if (is.null(priors$prior_one_hill_SD)) priors$prior_one_hill_SD <-  list(rep(1, 3), rep(1, 3))
+      if (is.null(priors$prior_one_hill_L_Omega)) priors$prior_one_hill_L_Omega <-  list(diag(3), diag(3))
+      if (is.null(priors$prior_one_hill_skew)) priors$prior_one_hill_skew <-  list(rep(0, 3), rep(0, 3))
+      if (is.null(priors$prior_one_hill_log_tail)) priors$prior_one_hill_log_tail <-  list(rep(0, 3), rep(0, 3))
+      if (is.null(priors$prior_one_hill_bend)) priors$prior_one_hill_bend <-  list(rep(0, 2), rep(0, 2))
+      ##
       ## ---- without priors$Se_Sp_prior: the fields with the prior off, the model's own prior on the cutpoints:
       ##
       if (is.null(priors[["Se_Sp_prior"]])) {
