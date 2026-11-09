@@ -599,10 +599,13 @@ run_multiple_sims <- function(MCMC_seed,
                                     }
             ##
             # if (any(candidate_route) && is_a_pop_median_model) {
+            ## (set 0 only: the pop-median model's Se / Sp prior term off; sets 1 and 2 keep their Se / Sp prior fields)
             if (any(candidate_route) && is_a_pop_median_model && ordinal_prior_type == "Dirichlet" &&
-                model_parameterisation == "ord_bivariate") {
+                model_parameterisation == "ord_bivariate" && prior_set == "set_0") {
                 priors[names(prior_fields)] <- prior_fields
             }
+            ## (sets 1 and 2 always have their Se / Sp prior term, in every model)
+            if (prior_set %in% c("set_1", "set_2")) stopifnot(priors$use_Se_Sp_prior == 1)
             time_after_the_model_prep <- Sys.time()
             ## (KEEP_THE_DATA_FILE_IN = a folder: the Stan data of this cmdstanr fit is saved there as it is written)
             if (nzchar(Sys.getenv("KEEP_THE_DATA_FILE_IN")) && sampling_algorithm == "Stan") {
