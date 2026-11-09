@@ -1656,6 +1656,8 @@ fn_induced_accuracy_priors <- function(priors,
         } else if (model_parameterisation == "Bivariate") {
               priors$prior_mu_mean <-  list(rep(0, n_thr), rep(0, n_thr))
               priors$prior_mu_SD <-  list(rep(1, n_thr), rep(1, n_thr))
+              ## (set 0: the N(0, 1) location prior at every cutoff, no Se / Sp prior term)
+              if (prior_set == 0) priors$use_Se_Sp_prior <-  0
         }
         return(priors)
 
