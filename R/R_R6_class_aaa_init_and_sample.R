@@ -217,6 +217,7 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                         ##
                         box_cox = NULL,
                         softplus = NULL,
+                        log_lik_indicator = NULL,
                         custom_file_name = NULL,
                         ##
                         compound_symmetry = NULL,
@@ -310,6 +311,8 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                     ##
                     #'@param softplus See class documentation for details.
                     ##
+                    #'@param log_lik_indicator 1 = compute log_lik_study in generated quantities; 0 = skip it. See class documentation for details.
+                    ##
                     #'@param n_chains Number of chains used for burnin. See class documentation for details.
                     #'@param init_lists_per_chain List of initial values for each chain. See class documentation for details.
                     #'@return Returns self$model_initial_obj, an object generated from the "MetaOrdDTA::prep_data_and_model" function.
@@ -343,6 +346,7 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                             ## "Advanced" options for ALL models:
                                             ##
                                             softplus = FALSE, ## exp() is default (for cutpoints and also scale parameters for "Jones" model)
+                                            log_lik_indicator = 1, ## 1 = compute log_lik_study; 0 = skip it
                                             ##
                                             priors = NULL,
                                             ##
@@ -437,6 +441,7 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                               self$advanced_model_options$HSROC_Dirichlet_prior <- HSROC_Dirichlet_prior
                               self$advanced_model_options$box_cox  <- box_cox
                               self$advanced_model_options$softplus <- softplus
+                              self$advanced_model_options$log_lik_indicator <- log_lik_indicator
                               self$advanced_model_options$custom_file_name <- custom_file_name
                               ##
                               self$advanced_model_options$compound_symmetry <- compound_symmetry
@@ -561,6 +566,7 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                         ##
                                         box_cox  = self$advanced_model_options$box_cox,
                                         softplus = self$advanced_model_options$softplus,
+                                        log_lik_indicator = self$advanced_model_options$log_lik_indicator,
                                         ##
                                         custom_file_name = self$advanced_model_options$custom_file_name,
                                         ##
@@ -683,6 +689,7 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                     if (!identical(self$advanced_model_options$HSROC_Dirichlet_prior, HSROC_Dirichlet_prior)) { self$advanced_model_options$HSROC_Dirichlet_prior <- HSROC_Dirichlet_prior ; params_same <- 0 }
                                     if (!identical(self$advanced_model_options$box_cox, box_cox))   { self$advanced_model_options$box_cox  <- box_cox  ; params_same <- 0 }
                                     if (!identical(self$advanced_model_options$softplus, softplus)) { self$advanced_model_options$softplus <- softplus ; params_same <- 0 }
+                                    if (!identical(self$advanced_model_options$log_lik_indicator, log_lik_indicator)) { self$advanced_model_options$log_lik_indicator <- log_lik_indicator ; params_same <- 0 }
                                     if (!identical(self$advanced_model_options$custom_file_name, custom_file_name)) { self$advanced_model_options$custom_file_name <- custom_file_name ; params_same <- 0 }
                                     if (!identical(self$advanced_model_options$compound_symmetry, compound_symmetry)) { self$advanced_model_options$compound_symmetry <- compound_symmetry ; params_same <- 0 }
                                     if (!identical(self$advanced_model_options$hetero_sigma, hetero_sigma)) { self$advanced_model_options$hetero_sigma <- hetero_sigma ; params_same <- 0 }

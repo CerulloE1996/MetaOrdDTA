@@ -3438,3 +3438,33 @@ create_heterogeneity_comparison_table <- function(MR_model_summary_and_trace_obj
 
 
 
+
+
+##
+## ---- Inits of the reported cutpoints only (C_raw of the random-cutpoint models) ----------------------------------------------------
+##
+#' inits_of_the_reported_C_raw
+#' @keywords internal
+#' @export
+inits_of_the_reported_C_raw <- function( cutpoint_index_of_each_study,
+                                         n_obs_cutpoints,
+                                         C_raw_init,
+                                         softplus
+) {
+
+        ## (the reported cutpoints that a full C_raw of C_raw_init everywhere gives: the first one is C_raw itself,
+        ##  each later one a gap of g one-cutpoint steps)
+        step <- if (softplus == TRUE) log1p(exp(C_raw_init)) else exp(C_raw_init)
+        out <- c()
+        for (s in seq_along(n_obs_cutpoints)) {
+              ks <- cutpoint_index_of_each_study[s, 1 + seq_len(n_obs_cutpoints[s])]
+              ks <- ks[ks != -1]
+              if (length(ks) == 0) next
+              gaps <- diff(c(0, ks))[-1]
+              out <- c(out,
+                       C_raw_init + (ks[1] - 1) * step,
+                       if (softplus == TRUE) log(expm1(gaps * step)) else C_raw_init + log(gaps))
+        }
+        return(out)
+
+}

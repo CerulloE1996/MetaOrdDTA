@@ -1,4 +1,4 @@
-// NicoSIMD_AVX512 version of DTA_MA_ord_biv_FIXEDthr_Se_Sp_prior.stan written by NicoStan (source model md5 0a1f24697ba5cfb71d15a7d8e2c41cdf; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
+// NicoSIMD_AVX512 version of DTA_MA_ord_biv_FIXEDthr_Se_Sp_prior.stan written by NicoStan (source model md5 9529b3f4f97eeab9c20b82f8cfcd7962; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
 // NicoSIMD functions used: exp, log, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, log_diff_exp, std_normal_log_qf
 
 
@@ -201,6 +201,7 @@ data {
         //// ---- Other:
         //// 
         int<lower=0, upper=1> softplus; 
+        int<lower=0, upper=1> log_lik_indicator; //// 1 = compute log_lik_study; 0 = skip it
         real C_raw_lower;
         real C_raw_upper;
         ////
@@ -442,7 +443,7 @@ generated quantities {
       // vector[n_studies] deviance_nd; // global
       // vector[n_studies] deviance_d;  // global
       // vector[n_studies] deviance;    // global
-      {
+      if (log_lik_indicator == 1) {
           // real scale = 1.0; // since using "ord_bivariate-like"" param.
           array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_to_fixed_hetero_C(
                                                           C, Xbeta, n_studies, 

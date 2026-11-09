@@ -635,6 +635,9 @@ run_multiple_sims <- function(MCMC_seed,
                                             ##
                                             nuisance_params                      = nuisance_params,
                                             sample_nuisance                      = !is.null(nuisance_params),
+                                            ## (NUISANCE_TO_TRACK = "none": no nuisance values kept for the summary or the traces)
+                                            nuisance_to_track                    = if (nzchar(Sys.getenv("NUISANCE_TO_TRACK")))
+                                                  strsplit(Sys.getenv("NUISANCE_TO_TRACK"), ",")[[1]] else NULL,
                                             diffusion_HMC                        = Sys.getenv("DIFFUSION_HMC") != "0",
                                             diffusion_HMC_integrator             = if (nzchar(Sys.getenv("DIFFUSION_HMC_INTEGRATOR"))) Sys.getenv("DIFFUSION_HMC_INTEGRATOR") else "kick_flow_kick",  ## signature
                                             partitioned_HMC                      = FALSE,  ## R_fn_sample.R:1606
@@ -894,6 +897,7 @@ run_multiple_sims <- function(MCMC_seed,
                                                      time_after_the_summary,
                                                      Sys.time()))),
                                                  error = function(e) rep(NA_real_, 5))
+              ##
               suppressWarnings(utils::write.table(data.frame(seed = seed,
                                                              min_ESS = min_ESS,
                                                              min_ESS_threshold = min_ESS_threshold,

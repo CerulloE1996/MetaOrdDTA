@@ -21,6 +21,8 @@ R_fn_set_inits_MA <- function(    inits,
                                   n_studies_per_test = NULL, ## keep as dummy input!
                                   ##
                                   n_thr,                                 
+                                  n_obs_cutpoints = NULL,
+                                  cutpoint_index = NULL,
                                   ##
                                   cts,
                                   ##
@@ -126,8 +128,12 @@ R_fn_set_inits_MA <- function(    inits,
                                                 ##
                                                 ## Default inits for the cutpoints:
                                                 ##
-                                                mat <- matrix(-2.0, nrow = n_studies, ncol = n_thr)
-                                                inits$C_raw <-  if_null_then_set_to(inits$C_raw, mat)
+                                                ## (C_raw holds the reported cutpoints of each study only)
+                                                vec <- inits_of_the_reported_C_raw( cutpoint_index_of_each_study = matrix(cutpoint_index[1, , ], nrow = n_studies),
+                                                                                    n_obs_cutpoints = n_obs_cutpoints,
+                                                                                    C_raw_init = -2.0,
+                                                                                    softplus = softplus)
+                                                inits$C_raw <-  if_null_then_set_to(inits$C_raw, vec)
                                                 ##
                                                 inits$dirichlet_phi <- if_null_then_set_to( inits$dirichlet_phi, 
                                                                                             rep(1/n_cat, n_cat))
@@ -170,9 +176,13 @@ R_fn_set_inits_MA <- function(    inits,
                                                 ##
                                                 ## Default inits for the cutpoints:
                                                 ##
-                                                mat <- matrix(-2.0, nrow = n_studies, ncol = n_thr)
+                                                ## (C_raw holds the reported cutpoints of each study only)
+                                                vec <- inits_of_the_reported_C_raw( cutpoint_index_of_each_study = matrix(cutpoint_index[1, , ], nrow = n_studies),
+                                                                                    n_obs_cutpoints = n_obs_cutpoints,
+                                                                                    C_raw_init = -2.0,
+                                                                                    softplus = softplus)
                                                 inits$C_raw <-  if_null_then_set_to(inits$C_raw, 
-                                                                                    list(mat, mat))
+                                                                                    list(vec, vec))
                                                 ##
                                                 dirichlet_phi <- rep(1/n_cat, n_cat)
                                                 inits$dirichlet_phi <- if_null_then_set_to( inits$dirichlet_phi, 

@@ -182,6 +182,7 @@ data {
         //// ---- Other:
         //// 
         int<lower=0, upper=1> softplus; 
+        int<lower=0, upper=1> log_lik_indicator; //// 1 = compute log_lik_study; 0 = skip it
         real C_raw_lower;
         real C_raw_upper;
         ////
@@ -472,7 +473,7 @@ generated quantities {
       // vector[n_studies] deviance_nd; // global
       // vector[n_studies] deviance_d;  // global
       // vector[n_studies] deviance;    // global
-      {
+      if (log_lik_indicator == 1) {
           // real scale = 1.0; // since using "ord_bivariate-like"" param.
           array[2] matrix[n_studies, n_thr] latent_surv = nico_map_latent_surv_to_fixed_hetero_C(
                                                           C, Xbeta, n_studies, 

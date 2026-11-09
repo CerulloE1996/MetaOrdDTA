@@ -1,4 +1,4 @@
-// NicoSIMD_AVX512 version of DTA_MA_Jones_Se_Sp_prior.stan written by NicoStan (source model md5 f390bd1264203812d7fc2283edb0ab93; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
+// NicoSIMD_AVX512 version of DTA_MA_Jones_Se_Sp_prior.stan written by NicoStan (source model md5 03f7c0fed9e83840b58baa2e2eea9130; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
 // NicoSIMD functions used: exp, log, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, atanh, log_diff_exp, std_normal_log_qf
 
 
@@ -168,6 +168,7 @@ data {
         ////
         int<lower=0, upper=1> box_cox;
         int<lower=0, upper=1> softplus;
+        int<lower=0, upper=1> log_lik_indicator; //// 1 = compute log_lik_study; 0 = skip it
         ////
         int use_probit_link;
         ////
@@ -544,7 +545,7 @@ generated quantities {
           // vector[n_studies] deviance_nd; // global
           // vector[n_studies] deviance_d;  // global
           // vector[n_studies] deviance;    // global
-          {
+          if (log_lik_indicator == 1) {
               array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_to_fixed_hetero_C(
                                                               C, Xbeta, Xscale, n_studies, 
                                                               n_obs_cutpoints, cutpoint_index);
