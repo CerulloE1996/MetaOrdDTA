@@ -171,6 +171,14 @@ run_multiple_sims <- function(MCMC_seed,
               use_custom_file  <- TRUE
               custom_file_name <- "DTA_MA_strat_bivariate_Se_Sp_prior_NicoStan_fused_AVX.stan"
           }
+          ## (the stratified bivariate is sampled from its fused file with no Se / Sp prior block)
+          Stan_file_of_the_fused_version <- NULL
+          if (model_parameterisation == "Bivariate") {
+              Stan_file_of_the_fused_version <- system.file("stan_models", "stan_models_MA",
+                                                            "DTA_MA_strat_bivariate_NicoStan_fused_AVX.stan",
+                                                            package = "MetaOrdDTA")
+              stopifnot(nzchar(Stan_file_of_the_fused_version))
+          }
           if (model_parameterisation == "ord_bivariate") {
               use_custom_file  <- TRUE
               custom_file_name <- paste0("DTA_MA_ord_biv_",
@@ -639,7 +647,7 @@ run_multiple_sims <- function(MCMC_seed,
                                             ##  the Jones model included, runs its fused AVX file)
                                             auto_chunking                        = FALSE,
                                             debug                                = Sys.getenv("DUMP_BURNIN_TRACE") == "1",
-                                            Stan_file_of_the_fused_version       = NULL,
+                                            Stan_file_of_the_fused_version       = Stan_file_of_the_fused_version,
                                             ###
                                             # metric_shape_main                    = "dense", ## --------
                                             metric_shape_main                    = if (nzchar(Sys.getenv("METRIC_SHAPE_MAIN")))
