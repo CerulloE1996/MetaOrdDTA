@@ -44,6 +44,7 @@ fn_iterations_of_one_cell <- function(files_of_the_gate_tables_of_the_cell) {
                  min_ESS_median = round(median(gate$min_ESS)),
                  n_iter_new = n_iter_new,
                  failed_fits = sum(failed),
+                 fits_over_1pct_divergent = sum(gate$percent_divergent > 1),
                  divergent_pct_max = round(max(gate$percent_divergent), 3))
 
 }
