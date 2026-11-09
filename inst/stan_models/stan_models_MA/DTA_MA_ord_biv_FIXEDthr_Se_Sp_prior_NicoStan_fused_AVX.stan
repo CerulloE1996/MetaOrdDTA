@@ -385,25 +385,10 @@ model {
                             
              } else {
                     ////
-                    //// ---- Priors for locations:
-                    ////
-                    ////
-                    vector[n_thr] C_shifted = C[c] - prior_beta_mu_mean[c, 1];
-                    ////
-                    vector[n_cat] Ind_Dir_ord_prob; //// = cumul_probs_to_ord_probs(Phi(C));
-                    if (use_probit_link == 1) Ind_Dir_ord_prob = cumul_probs_to_ord_probs(nico_Phi(C_shifted));
-                    else                      Ind_Dir_ord_prob = cumul_probs_to_ord_probs(nico_inv_logit(C_shifted));
-                    //// (as induced_dirichlet_given_C, for each class)
-                    //// Note: this is centered at C_anchor[c] - prior_mean, not 0.0.
-                    // target += nico_induced_dirichlet_with_Se_Sp_prior_lupdf(
-                    //           C[c] | prior_dirichlet_alpha[c], use_probit_link, prior_beta_mu_mean[c, 1]);
-                    // Ind_Dir_ord_prob ~ induced_dirichlet_given_C(
-                    //                    C_shifted, prior_dirichlet_alpha[c], use_probit_link);
-                    real Xbeta_baseline = (c == 1) ?
-                         dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd])) :
-                         dot_product(baseline_case_d, to_vector(beta_mu[2, 1:n_covariates_d]));
+                    //// ---- Cutpoints at the constant anchor (as induced_dirichlet_given_C on C_shifted):
+                    vector[n_thr] C_shifted = C[c] - C_anchor[c];
                     target += nico_induced_dirichlet_prior_of_ordered_cutpoints_lupdf(
-                              C[c] - Xbeta_baseline | prior_dirichlet_alpha[c], use_probit_link, 0.0);
+                              C_shifted | prior_dirichlet_alpha[c], use_probit_link, 0.0);
              }
         }
         //// 
