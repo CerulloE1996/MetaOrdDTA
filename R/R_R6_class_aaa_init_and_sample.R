@@ -304,7 +304,7 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                     #'@param Dirichlet_random_effects_type See class documentation for details.
                     #'@param HSROC_Dirichlet_prior Ordinal-HSROC (R&G) random-cutpoint model only. \code{"both_classes"} (the default)
                     #'puts its Dirichlet(alpha) prior on the induced ordinal probabilities of both classes (Sp and Se) at the
-                    #'population-median cutpoints; \code{"shared_cutpoints"} puts it on the one shared cutpoint set (dirichlet_phi).
+                    #'population-median cutpoints; \code{"shared_cutpoint_priors"} puts it on the one shared cutpoint set (dirichlet_phi).
                     ##
                     #'@param box_cox See class documentation for details.
                     ##
