@@ -21,6 +21,8 @@ R_fn_set_inits_NMA <- function(    inits,
                                    n_index_tests = NULL,   ##  may be dummy argument (needed for pkg)
                                    ##
                                    n_thr,
+                                   n_obs_cutpoints = NULL,
+                                   cutpoint_index = NULL,
                                    ##
                                    cts,
                                    ##
@@ -314,8 +316,15 @@ R_fn_set_inits_NMA <- function(    inits,
                               print(paste("n_studies_per_test = ", n_studies_per_test))
                               print(paste("n_total_C_if_random = ", n_total_C_if_random))
                               ##
-                              ## array[2] vector[n_total_C_if_random] C_raw_vec;   
-                              vec <- rep(-3.0, n_total_C_if_random)
+                              ## (C_raw_vec holds the reported cutpoints of each test in each study only, test after test)
+                              vec <- c()
+                              for (t in 1:n_index_tests) {
+                                    vec <- c(vec,
+                                             inits_of_the_reported_C_raw( cutpoint_index_of_each_study = matrix(cutpoint_index[t, 1, , ], nrow = n_studies),
+                                                                          n_obs_cutpoints = n_obs_cutpoints[t, ],
+                                                                          C_raw_init = -3.0,
+                                                                          softplus = softplus))
+                              }
                               inits$C_raw_vec   <- if_null_then_set_to( inits$C_raw_vec, 
                                                                         list(vec, vec))
                               ##

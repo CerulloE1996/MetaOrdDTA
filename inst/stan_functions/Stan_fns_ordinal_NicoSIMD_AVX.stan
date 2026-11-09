@@ -1,4 +1,4 @@
-// NicoSIMD version of Stan_fns_ordinal.stan written by NicoStan (included file md5 4115febb6c74ab5c99d61896593c2557; NicoSIMD declarations md5 e3c567fd115d2ccf49ec504688009e6b; writer implementation md5 aef1406a74d6694a1d260c4cd31c7a35)
+// NicoSIMD version of Stan_fns_ordinal.stan written by NicoStan (included file md5 51e7c008caf53182d352550eb96b6754; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
 
 
 ////
@@ -525,6 +525,29 @@ array[] matrix map_latent_surv_prob_to_random_C_HSROC( matrix C,
       return latent_surv;
                                     
 }
+array[] matrix map_latent_surv_prob_to_the_reported_C_HSROC( vector C, 
+                                  data int n_thr,
+                                  matrix locations, 
+                                  matrix scales, 
+                                  data int n_studies,
+                                  data array[] int n_obs_cutpoints,
+                                  data array[,] int position_of_each_C) {
+          
+      array[2] matrix[n_studies, n_thr] latent_surv  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
+      
+      for (c in 1:2) {
+          for (s in 1:n_studies) {
+                  for (cut_i in 1:n_obs_cutpoints[s]) {
+                                  int p = position_of_each_C[s, cut_i];
+                                  if (p != 0) latent_surv[c][s, cut_i] = -(C[p] + locations[s, c])*scales[s, c];
+                     
+                  }
+          }
+      }
+      
+      return latent_surv;
+                                    
+}
 
 
 
@@ -735,6 +758,49 @@ array[] matrix map_latent_surv_to_random_hetero_C( array[] matrix C,
                                int k = cutpoint_index[c, s, cut_i + 1];
                                if (k != -1)  latent_surv[c][s, cut_i] = locations[s, c] - C[c][s, k];
                         
+                  }
+          }
+      }
+      
+      return latent_surv;
+                                    
+}
+array[] matrix map_latent_surv_to_the_reported_C( array[] vector C, 
+                                  data int n_thr,
+                                  matrix locations, 
+                                  matrix scales, 
+                                  data int n_studies,
+                                  data array[] int n_obs_cutpoints,
+                                  data array[,] int position_of_each_C) {
+          
+      array[2] matrix[n_studies, n_thr] latent_surv  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
+
+      for (c in 1:2) {
+          for (s in 1:n_studies) {
+                  for (cut_i in 1:n_obs_cutpoints[s]) {
+                                 int p = position_of_each_C[s, cut_i];
+                                 if (p != 0)  latent_surv[c][s, cut_i] = (locations[s, c] - C[c][p])/scales[s, c];
+                  }
+          }
+      }
+      
+      return latent_surv;
+                                    
+}
+array[] matrix map_latent_surv_to_the_reported_C( array[] vector C, 
+                                  data int n_thr,
+                                  matrix locations, 
+                                  data int n_studies,
+                                  data array[] int n_obs_cutpoints,
+                                  data array[,] int position_of_each_C) {
+          
+      array[2] matrix[n_studies, n_thr] latent_surv  = init_array_of_matrices(n_studies, n_thr, 2, positive_infinity());
+      
+      for (c in 1:2) {
+          for (s in 1:n_studies) {
+                  for (cut_i in 1:n_obs_cutpoints[s]) {
+                               int p = position_of_each_C[s, cut_i];
+                               if (p != 0)  latent_surv[c][s, cut_i] = locations[s, c] - C[c][p];
                   }
           }
       }

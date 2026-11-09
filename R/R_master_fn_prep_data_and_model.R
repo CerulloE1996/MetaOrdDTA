@@ -130,6 +130,11 @@ prep_data_and_model <- function(  debugging,
                                                            advanced_model_options$C_raw_upper,
                                                            if (use_softplus) log(expm1(exp(2.5))) else 2.5)
               print(paste("advanced_model_options$C_raw_upper = ", advanced_model_options$C_raw_upper))
+              ## (log_lik_indicator: 1 = compute log_lik_study in generated quantities; 0 = skip it)
+              advanced_model_options$log_lik_indicator <-  MetaOrdDTA:::if_null_then_set_to(
+                                                                  advanced_model_options$log_lik_indicator, 1)
+              print(paste("advanced_model_options$log_lik_indicator = ",
+                          advanced_model_options$log_lik_indicator))
               ##
               ##
               ##
@@ -181,6 +186,8 @@ prep_data_and_model <- function(  debugging,
           internal_obj$outs_data$stan_data_list$softplus <- advanced_model_options$softplus
           internal_obj$outs_data$stan_data_list$C_raw_lower <- advanced_model_options$C_raw_lower
           internal_obj$outs_data$stan_data_list$C_raw_upper <- advanced_model_options$C_raw_upper
+          internal_obj$outs_data$stan_data_list$log_lik_indicator <- as.integer(
+                                                                         advanced_model_options$log_lik_indicator)
           ##
           if (basic_model_options$network == FALSE) { 
                  internal_obj$outs_data$n_tests <- 1
@@ -385,6 +392,8 @@ prep_data_and_model <- function(  debugging,
                                                        n_studies_per_test = internal_obj$outs_data$n_studies_per_test,
                                                        ##
                                                        n_thr         = internal_obj$outs_data$n_thr,
+                                                       n_obs_cutpoints = internal_obj$outs_data$stan_data_list$n_obs_cutpoints,
+                                                       cutpoint_index  = internal_obj$outs_data$stan_data_list$cutpoint_index,
                                                        ##
                                                        model_parameterisation        = advanced_model_options$model_parameterisation,
                                                        random_thresholds             = advanced_model_options$random_thresholds,

@@ -31,9 +31,8 @@ functions {
         real nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
               array[] int n, array[] int n_previous, vector latent, data vector is_first, data int link,
               data real bound);
-        real nico_induced_dirichlet_with_Se_Sp_prior_lpdf(matrix C, vector alpha, data int link,
+        real nico_induced_dirichlet_with_Se_Sp_prior_lpdf(vector C, vector alpha, data int link,
                                                           data real location);
-        real nico_log_det_jacobian_of_cutpoints_from_raw_differences(matrix C_raw, data int softplus);
         vector nico_dirichlet_cutpoint_median_and_log_J(real P_lower, real P_upper, real kappa,
                                                         data int use_probit_link);
         vector nico_exp(vector x);
@@ -54,11 +53,7 @@ functions {
         vector nico_inv_logit(vector x);
         real nico_normal_lpdf(real y, real mu, real sigma);
         real nico_log_inv_logit(real x);
-        array[] matrix nico_map_latent_surv_to_random_hetero_C(data array[] matrix C, data int n_thr,
-                                                               data matrix locations,
-                                                               data int n_studies,
-                                                               data array[] int n_obs_cutpoints,
-                                                               data array[,,] int cutpoint_index);
+        real nico_expm1(real x);
         array[,] matrix nico_compute_NMA_log_lik_binomial_fact_data(
               data array[] matrix latent_surv, data int use_probit_link, data int n_thr, data int n_studies,
               data array[,,] int x_2, data array[,,] int n, data array[,] int N_total,
@@ -187,6 +182,7 @@ data {
           //// ---- Other:
           ////
           int<lower=0, upper=1> softplus;
+          int<lower=0, upper=1> log_lik_indicator; //// 1 = compute log_lik_study; 0 = skip it
           real C_raw_lower;
           real C_raw_upper;
           ////
@@ -343,6 +339,88 @@ transformed data {
                 }
           }
           ////
+          //// ---- The reported cutpoints of each test in each study, test after test, study after study (C_raw_vec
+          ////      and C_vec hold only these):
+          ////
+          array[n_index_tests, n_studies] int n_reported_cutpoints;
+          for (t in 1:n_index_tests) {
+                for (s in 1:n_studies) {
+                      n_reported_cutpoints[t, s] = 0;
+                      if (indicator_index_test_in_study[s, t] == 1) {
+                            for (cut_i in 1:n_obs_cutpoints[t, s]) {
+                                 if (cutpoint_index[t, 1, s, cut_i + 1] != cutpoint_index[t, 2, s, cut_i + 1]) {
+                                      reject("cutpoint_index must be the same for both classes: t = ", t, ", s = ", s);
+                                 }
+                                 if (cutpoint_index[t, 1, s, cut_i + 1] != -1) n_reported_cutpoints[t, s] += 1;
+                            }
+                      }
+                }
+          }
+          int n_C = sum(to_array_1d(n_reported_cutpoints));  //// the reported cutpoints of all tests and studies
+          int n_study_tests_with_a_cutpoint = 0;
+          for (t in 1:n_index_tests) {
+                for (s in 1:n_studies) {
+                      if (n_reported_cutpoints[t, s] > 0) n_study_tests_with_a_cutpoint += 1;
+                }
+          }
+          array[n_index_tests, n_studies] int first_C_of_each_study;
+          array[n_index_tests, n_studies] int first_segment_of_each_study;
+          array[n_index_tests, n_studies, n_thr_max] int position_of_each_C;  //// 0 when cut_i is not reported
+          array[n_C - n_study_tests_with_a_cutpoint] int position_of_each_increment;
+          array[2] vector[n_C] C_raw_lower_of_each_C;
+          array[2] vector[n_C] C_raw_upper_of_each_C;
+          array[n_C + n_total_obs] int upper_index_of_each_segment;  //// a segment = the categories k_(j - 1) + 1 to k_j
+          array[n_C + n_total_obs] int lower_index_of_each_segment;
+          {
+                //// (each one-cutpoint step lies between these, as each element of the full C_raw_vec did; a gap of g
+                ////  cutpoints is g such steps)
+                real step_lower = (softplus == 1) ? nico_log1p_exp(C_raw_lower) : nico_exp(C_raw_lower);
+                real step_upper = (softplus == 1) ? nico_log1p_exp(C_raw_upper) : nico_exp(C_raw_upper);
+                int p = 0;
+                int q = 0;
+                int i = 0;
+                for (t in 1:n_index_tests) {
+                      for (s in 1:n_studies) {
+                            first_C_of_each_study[t, s] = p + 1;
+                            first_segment_of_each_study[t, s] = q + 1;
+                            for (cut_i in 1:n_thr_max) position_of_each_C[t, s, cut_i] = 0;
+                            if (indicator_index_test_in_study[s, t] == 1) {
+                                  int k_previous = 0;
+                                  for (cut_i in 1:n_obs_cutpoints[t, s]) {
+                                       int k = cutpoint_index[t, 1, s, cut_i + 1];
+                                       if (k != -1) {
+                                            if (k <= k_previous) reject("cutpoint_index must rise: t = ", t, ", s = ", s);
+                                            p += 1;
+                                            q += 1;
+                                            position_of_each_C[t, s, cut_i] = p;
+                                            upper_index_of_each_segment[q] = k + 1;
+                                            lower_index_of_each_segment[q] = k_previous + 1;
+                                            if (k_previous == 0) {
+                                                 C_raw_lower_of_each_C[1][p] = C_raw_lower + (k - 1) * step_lower;
+                                                 C_raw_upper_of_each_C[1][p] = C_raw_upper + (k - 1) * step_upper;
+                                            } else {
+                                                 i += 1;
+                                                 position_of_each_increment[i] = p;
+                                                 C_raw_lower_of_each_C[1][p] = (softplus == 1) ?
+                                                                               nico_log(nico_expm1((k - k_previous) * step_lower)) :
+                                                                               C_raw_lower + nico_log(k - k_previous);
+                                                 C_raw_upper_of_each_C[1][p] = (softplus == 1) ?
+                                                                               nico_log(nico_expm1((k - k_previous) * step_upper)) :
+                                                                               C_raw_upper + nico_log(k - k_previous);
+                                            }
+                                            k_previous = k;
+                                       }
+                                  }
+                                  q += 1;
+                                  upper_index_of_each_segment[q] = n_cat[t] + 1;
+                                  lower_index_of_each_segment[q] = k_previous + 1;
+                            }
+                      }
+                }
+                C_raw_lower_of_each_C[2] = C_raw_lower_of_each_C[1];
+                C_raw_upper_of_each_C[2] = C_raw_upper_of_each_C[1];
+          }
+          ////
           //// ---- The terms of the likelihood, one per reported cutpoint of each study (with the test, and
           ////      counted in the cross-validation) and class, in the order of the tests, the classes, the
           ////      studies and their reported cutpoints: the count above the cutpoint, the count above the
@@ -370,10 +448,8 @@ transformed data {
                 int term = 0;
                 for (t in 1:n_index_tests) {
                       for (c in 1:2) {
-                            int study_idx = 0;
                             for (s in 1:n_studies) {
                                   if (indicator_index_test_in_study[s, t] == 1) {
-                                        study_idx += 1;
                                         if (K_fold_CV_indicator[s] == 1) {
                                               for (cut_i in 1:n_obs_cutpoints[t, s]) {
                                                     int k = cutpoint_index[t, c, s, cut_i + 1];
@@ -390,9 +466,7 @@ transformed data {
                                                     index_of_the_location_of_each_term[term] =
                                                           (t - 1) * 2 * n_studies + (c - 1) * n_studies + s;
                                                     index_of_the_cutpoint_of_each_term[term] =
-                                                          (c - 1) * n_total_C_if_random +
-                                                          start_of_the_cutpoints_of_each_test[t] +
-                                                          (study_idx - 1) * n_thr[t] + k;
+                                                          (c - 1) * n_C + position_of_each_C[t, s, cut_i];
                                               }
                                         }
                                   }
@@ -419,7 +493,7 @@ parameters {
           //// ---- Cutpoints and Induced-Dirichlet params:
           //// 
           // array[2] vector<lower=-7.5, upper=2.5>[n_total_study_thresh] C_raw_vec;  //// RAW LOG-DIFFS
-          array[2] vector<lower=C_raw_lower, upper=C_raw_upper>[n_total_study_thresh] C_raw_vec;  //// RAW LOG-DIFFS
+          array[2] vector<lower=C_raw_lower_of_each_C, upper=C_raw_upper_of_each_C>[n_C] C_raw_vec;  //// RAW LOG-DIFFS of the reported cutpoints only
           array[2] vector<lower=-5.0, upper=5.0>[n_total_C_per_class_if_fixed] raw_dirichlet_phi_vec; // props/probs
           // array[2] vector<lower=0.0, upper=10.0>[n_index_tests] log_kappa; 
           array[2] vector<lower=kappa_lb, upper=kappa_ub>[n_index_tests] kappa;
@@ -516,32 +590,20 @@ transformed parameters {
 //                     }
 //             }
 //           }
-          array[2] vector[n_total_C_if_random] C_vec;
+          array[2] vector[n_C] C_vec;  //// the reported cutpoints of each test in each study only, as construct_C on each
           real log_det_J_cutpoints = 0.0;
           for (c in 1:2) {
-            for (t in 1:n_index_tests) {
-                    int n_thr_t = n_thr[t];
-                    int n_studies_t = n_studies_per_test[t];
-                    int first = start_of_the_cutpoints_of_each_test[t] + 1;
-                    int last = start_of_the_cutpoints_of_each_test[t] + n_thr_t * n_studies_t;
-                    //// (one row per study with the test: its segment of C_raw_vec[c], as
-                    ////  get_test_t_study_s_segment_values; its cutpoints as construct_C, every study at once)
-                    matrix[n_studies_t, n_thr_t] C_raw_of_test_t = to_matrix(C_raw_vec[c][first:last],
-                                                                             n_thr_t, n_studies_t)';
-                    matrix[n_studies_t, n_thr_t] C_of_test_t;
-                    C_of_test_t[, 1] = C_raw_of_test_t[, 1];
-                    if (n_thr_t > 1) {
-                          matrix[n_studies_t, n_thr_t - 1] increments_of_the_cutpoints =
-                                (softplus == 1) ? nico_log1p_exp(C_raw_of_test_t[, 2:n_thr_t]) :
-                                                  nico_exp(C_raw_of_test_t[, 2:n_thr_t]);
-                          for (k in 2:n_thr_t) {
-                                C_of_test_t[, k] = C_of_test_t[, k - 1] + increments_of_the_cutpoints[, k - 1];
-                          }
-                    }
-                    C_vec[c][first:last] = to_vector(C_of_test_t');
-                    log_det_J_cutpoints += nico_log_det_jacobian_of_cutpoints_from_raw_differences(
-                                                 C_raw_of_test_t, softplus);
-            }
+                vector[n_C - n_study_tests_with_a_cutpoint] increments_of_the_cutpoints =
+                      (softplus == 1) ? nico_log1p_exp(C_raw_vec[c][position_of_each_increment]) :
+                                        nico_exp(C_raw_vec[c][position_of_each_increment]);
+                C_vec[c] = C_raw_vec[c];
+                for (i in 1:(n_C - n_study_tests_with_a_cutpoint)) {
+                      int p = position_of_each_increment[i];
+                      C_vec[c][p] = C_vec[c][p - 1] + increments_of_the_cutpoints[i];
+                }
+                //// (a study's first reported cutpoint is C_raw_vec itself; each later one adds an exp() or softplus step)
+                log_det_J_cutpoints += (softplus == 1) ? sum(nico_log_inv_logit(C_raw_vec[c][position_of_each_increment])) :
+                                                         sum(C_raw_vec[c][position_of_each_increment]);
           }
           ////
           //// ---- Construct simple 2x2 (bivariate) between-study corr matrices:
@@ -742,19 +804,26 @@ model {
                                                               to_vector(prior_dirichlet_phi[c][t, 1:n_cat[t]]));
                  ////
                  //// ---- Induced-dirichlet between study ** model ** (part of the likelihood since random-effect
-                 ////      cutpoints): every study with test t in one node, one row per study, shifted by
+                 ////      cutpoints): each study with test t, its reported cutpoints only, shifted by
                  ////      the prior mean of the intercept (the anchor point), as induced_dirichlet_given_C
                  ////
-                 int n_thr_t = n_thr[t];
-                 int n_studies_t = n_studies_per_test[t];
-                 int first = start_of_the_cutpoints_of_each_test[t] + 1;
-                 int last = start_of_the_cutpoints_of_each_test[t] + n_thr_t * n_studies_t;
-                 matrix[n_studies_t, n_thr_t] C_of_test_t = to_matrix(C_vec[c][first:last], n_thr_t,
-                                                                      n_studies_t)';
+                 vector[n_cat[t] + 1] cumulative_alpha = append_row(0.0, cumulative_sum(to_vector(alpha[c][t, 1:n_cat[t]])));
                  real anchor_ct = prior_beta_mu_mean[t][c, 1]; //// the prior mean of the intercept as anchor point
-                 target += nico_induced_dirichlet_with_Se_Sp_prior_lupdf(
-                                 C_of_test_t - anchor_ct | to_vector(alpha[c][t, 1:n_cat[t]]), use_probit_link,
-                                 0.0);
+                 for (s in 1:n_studies) {
+                       if (indicator_index_test_in_study[s, t] == 1 && n_reported_cutpoints[t, s] > 0) {
+                             //// (the reported cutpoints only: the alpha of each segment between them is the sum of
+                             ////  alpha over its categories, the same distribution with the other cutpoints integrated out)
+                             int p_1 = first_C_of_each_study[t, s];
+                             int p_2 = p_1 + n_reported_cutpoints[t, s] - 1;
+                             int q_1 = first_segment_of_each_study[t, s];
+                             int q_2 = q_1 + n_reported_cutpoints[t, s];
+                             target += nico_induced_dirichlet_with_Se_Sp_prior_lupdf(
+                                             C_vec[c][p_1:p_2] - anchor_ct |
+                                             cumulative_alpha[upper_index_of_each_segment[q_1:q_2]] -
+                                             cumulative_alpha[lower_index_of_each_segment[q_1:q_2]],
+                                             use_probit_link, 0.0);
+                       }
+                 }
               }
           }
           ////
@@ -779,7 +848,7 @@ model {
                       locations_of_all_tests[((t - 1) * 2 * n_studies + 1):(t * 2 * n_studies)] =
                             to_vector(Xbeta[t]);
                 }
-                vector[2 * n_total_C_if_random] cutpoints_of_both_classes = append_row(C_vec[1], C_vec[2]);
+                vector[2 * n_C] cutpoints_of_both_classes = append_row(C_vec[1], C_vec[2]);
                 vector[n_terms] latent_of_each_term =
                       locations_of_all_tests[index_of_the_location_of_each_term] -
                       cutpoints_of_both_classes[index_of_the_cutpoint_of_each_term];
@@ -935,31 +1004,12 @@ generated quantities {
           //// ---- Compute accuracy measures and log-likelihood for each test
           ////
           vector[n_studies] log_lik_study = rep_vector(0.0, n_studies); 
-          {
+          if (log_lik_indicator == 1) {
                int flat_idx = 0;
                for (t in 1:n_index_tests) {
-                    array[2] matrix[n_studies, n_thr_max] C_mat;
-                    ////
-                    for (c in 1:2) {
-                        for (s in 1:n_studies) {
-                            C_mat[c][s, ] = rep_row_vector(-999.0, n_thr_max);  // Or some other missing indicator
-                        }
-                    }
-                    for (c in 1:2) {
-                        int study_idx = 0;
-                        for (s in 1:n_studies) {
-                            if (indicator_index_test_in_study[s, t] == 1) {
-                                 study_idx += 1;
-                                 vector[n_thr[t]] C_vec_t_study_s = get_test_t_study_s_segment_values(
-                                                                    C_vec[c], t, study_idx, n_thr, n_studies_per_test);
-                                 C_mat[c][s, 1:n_thr[t]] = to_row_vector(C_vec_t_study_s);
-                            }
-                        }
-                    }
-                    ////
-                    array[2] matrix[n_studies, n_thr[t]] latent_surv_t = nico_map_latent_surv_to_random_hetero_C(
-                                                                         C_mat, n_thr[t], Xbeta[t], n_studies, 
-                                                                         n_obs_cutpoints[t, ], cutpoint_index[t, ]);
+                    array[2] matrix[n_studies, n_thr[t]] latent_surv_t = map_latent_surv_to_the_reported_C(
+                                                                         C_vec, n_thr[t], Xbeta[t], n_studies,
+                                                                         n_obs_cutpoints[t, ], position_of_each_C[t]);
                     ////
                     array[n_studies] int dummy_CV_indicator;
                     for (s in 1:n_studies) {

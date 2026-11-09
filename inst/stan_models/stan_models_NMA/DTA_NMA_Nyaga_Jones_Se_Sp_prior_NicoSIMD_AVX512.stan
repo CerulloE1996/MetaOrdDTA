@@ -1,4 +1,4 @@
-// NicoSIMD_AVX512 version of DTA_NMA_Nyaga_Jones_Se_Sp_prior.stan written by NicoStan (source model md5 976c1c7b4b137422992ebfca50f33e9c; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
+// NicoSIMD_AVX512 version of DTA_NMA_Nyaga_Jones_Se_Sp_prior.stan written by NicoStan (source model md5 ab267dc1fd5b7e40adb140fa9b1be30a; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
 // NicoSIMD functions used: exp, log, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal_rng, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, log_diff_exp, std_normal_log_qf
 
 
@@ -153,6 +153,7 @@ data {
           //// ---- Other:
           ////
           int<lower=0, upper=1> softplus;
+          int<lower=0, upper=1> log_lik_indicator; //// 1 = compute log_lik_study; 0 = skip it
           int<lower=0, upper=1> box_cox;
           array[n_index_tests] vector[n_thr_max] cts_thr_values;
           ////
@@ -760,7 +761,7 @@ generated quantities {
           //// ---- Compute accuracy measures and log-likelihood for each test
           ////
           vector[n_studies] log_lik_study = rep_vector(0.0, n_studies);
-          {
+          if (log_lik_indicator == 1) {
               for (t in 1:n_index_tests) {
                   array[2] vector[n_thr[t]] C_vec_t_dummy;
                   for (c in 1:2) {

@@ -93,6 +93,7 @@ data {
         ////
         int<lower=0, upper=1> box_cox;
         int<lower=0, upper=1> softplus;
+        int<lower=0, upper=1> log_lik_indicator; //// 1 = compute log_lik_study; 0 = skip it
         ////
         int use_probit_link;
         ////
@@ -468,7 +469,7 @@ generated quantities {
           // vector[n_studies] deviance_nd; // global
           // vector[n_studies] deviance_d;  // global
           // vector[n_studies] deviance;    // global
-          {
+          if (log_lik_indicator == 1) {
               array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_to_fixed_hetero_C(
                                                               C, Xbeta, Xscale, n_studies, 
                                                               n_obs_cutpoints, cutpoint_index);

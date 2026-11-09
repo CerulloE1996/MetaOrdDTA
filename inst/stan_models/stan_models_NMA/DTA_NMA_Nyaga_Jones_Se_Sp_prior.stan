@@ -76,6 +76,7 @@ data {
           //// ---- Other:
           ////
           int<lower=0, upper=1> softplus;
+          int<lower=0, upper=1> log_lik_indicator; //// 1 = compute log_lik_study; 0 = skip it
           int<lower=0, upper=1> box_cox;
           array[n_index_tests] vector[n_thr_max] cts_thr_values;
           ////
@@ -682,7 +683,7 @@ generated quantities {
           //// ---- Compute accuracy measures and log-likelihood for each test
           ////
           vector[n_studies] log_lik_study = rep_vector(0.0, n_studies);
-          {
+          if (log_lik_indicator == 1) {
               for (t in 1:n_index_tests) {
                   array[2] vector[n_thr[t]] C_vec_t_dummy;
                   for (c in 1:2) {
