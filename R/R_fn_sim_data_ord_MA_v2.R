@@ -302,46 +302,44 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
             if (DGM == "ord_biv_random_C") {
               
                   # true_mean_GAD_2_params_list$Ord_bivariate$beta_mu   <- c(-0.762, 0.197)
-                  true_mean_GAD_2_params_list$Ord_bivariate$beta_mu   <- c(-0.685885, 0.936699)
+                  true_mean_GAD_2_params_list$Ord_bivariate$beta_mu   <- c(-0.666167, 0.940573)
                   # true_mean_GAD_2_params_list$Ord_bivariate$beta_SD   <- c(0.339, 0.561)*reduction_factor
-                  true_mean_GAD_2_params_list$Ord_bivariate$beta_SD   <- c(0.290853, 0.500444)*reduction_factor
+                  true_mean_GAD_2_params_list$Ord_bivariate$beta_SD   <- c(0.290912, 0.499884)*reduction_factor
                   # true_mean_GAD_2_params_list$Ord_bivariate$beta_corr <- 0.176
-                  true_mean_GAD_2_params_list$Ord_bivariate$beta_corr <- 0.3644
+                  true_mean_GAD_2_params_list$Ord_bivariate$beta_corr <- 0.3645
                   ##
                   # true_mean_GAD_2_params_list$Ord_bivariate$C_nd <- c(-1.002235, -0.3171695,  0.3326495, 0.6686015, 1.08083,   1.427205)
-                  true_mean_GAD_2_params_list$Ord_bivariate$C_nd <- c(-0.929478, -0.238893, 0.412653, 0.753993, 1.18966, 1.56409)
+                  true_mean_GAD_2_params_list$Ord_bivariate$C_nd <- c(-0.906846, -0.214818, 0.435748, 0.777589, 1.21206, 1.58563)
                   # true_mean_GAD_2_params_list$Ord_bivariate$C_d  <- c(-1.47935,  -0.8745465, -0.133177,  0.2706515, 0.7900285, 1.21108)
-                  true_mean_GAD_2_params_list$Ord_bivariate$C_d  <- c(-0.993491, -0.238206, 0.542912, 0.980165, 1.55188, 2.06426)
+                  true_mean_GAD_2_params_list$Ord_bivariate$C_d  <- c(-0.98297, -0.231237, 0.550326, 0.985965, 1.56061, 2.06915)
                   ##
                   # true_mean_GAD_2_params_list$Ord_bivariate$C_nd_SD_prob_scale <- c(0.0381236, 0.0424788, 0.0446779, 0.033099, 0.0326942, 0.0250071)
-                  true_mean_GAD_2_params_list$Ord_bivariate$C_nd_SD_prob_scale <- c(0.0377096, 0.0412537, 0.0424379, 0.0311462, 0.0303931, 0.0228643)
+                  true_mean_GAD_2_params_list$Ord_bivariate$C_nd_SD_prob_scale <- c(0.0380449, 0.0412774, 0.0422699, 0.0308697, 0.0300265, 0.0224621)
                   # true_mean_GAD_2_params_list$Ord_bivariate$C_d_SD_prob_scale  <- c(0.0555101, 0.0628668, 0.0843183, 0.0712172, 0.0745728, 0.0592809)
-                  true_mean_GAD_2_params_list$Ord_bivariate$C_d_SD_prob_scale  <- c(0.0408704, 0.04722, 0.0500518, 0.0367689, 0.0334796, 0.0216572)
+                  true_mean_GAD_2_params_list$Ord_bivariate$C_d_SD_prob_scale  <- c(0.04124, 0.0473434, 0.0501636, 0.0368366, 0.0334544, 0.021575)
                   ##
                   # true_mean_GAD_2_params_list$Ord_bivariate$alpha_nd          <- c(14.20995, 19.4291, 22.71955, 
                   #                                                                  10.478, 10.03115, 5.48333, 6.93372) / (reduction_factor^2)
                   # true_mean_GAD_2_params_list$Ord_bivariate$alpha_nd          <- c(18.5311, 23.5948, 25.6252, 11.6937, 11.0579, 5.9268, 6.4349) / (reduction_factor^2)
-                  true_mean_GAD_2_params_list$Ord_bivariate$alpha_nd          <- c(18.6967, 23.7175, 26.2555, 11.8253, 11.1197, 5.96799,
-                                                                                   6.40415) / (reduction_factor^2)
+                  true_mean_GAD_2_params_list$Ord_bivariate$alpha_nd          <- c(19.2569, 24.0281, 25.7574, 11.6261, 10.9152, 5.7881, 6.20028) / (reduction_factor^2)
                   # true_mean_GAD_2_params_list$Ord_bivariate$alpha_d           <- c(2.03021, 2.755295, 5.821855, 
                   #                                                                  3.763645, 4.173785, 2.400225, 2.800985) / (reduction_factor^2)
                   # true_mean_GAD_2_params_list$Ord_bivariate$alpha_d           <- c(13.5591, 19.9794, 24.0159, 10.5039, 8.4667, 3.31011, 1.9566) / (reduction_factor^2)
-                  true_mean_GAD_2_params_list$Ord_bivariate$alpha_d           <- c(13.4193, 20.1435, 24.5148, 10.549, 8.43175, 3.29664,
-                                                                                   1.93082) / (reduction_factor^2)
+                  true_mean_GAD_2_params_list$Ord_bivariate$alpha_d           <- c(13.6958, 19.8594, 23.839, 10.4229, 8.35298, 3.24689, 1.91915) / (reduction_factor^2)
                 
             } else if (DGM == "ord_biv_fixed_C") {
                 
                   # true_mean_GAD_2_params_list$Ord_bivariate$beta_mu <- c(-0.987, 0.157)
-                  true_mean_GAD_2_params_list$Ord_bivariate$beta_mu <- c(-0.987855, 0.245392)
+                  true_mean_GAD_2_params_list$Ord_bivariate$beta_mu <- c(-0.985623, 0.248774)
                   # true_mean_GAD_2_params_list$Ord_bivariate$beta_SD <- c(0.389, 0.668)*reduction_factor
-                  true_mean_GAD_2_params_list$Ord_bivariate$beta_SD <- c(0.334615, 0.5002)*reduction_factor
+                  true_mean_GAD_2_params_list$Ord_bivariate$beta_SD <- c(0.333852, 0.49927)*reduction_factor
                   # true_mean_GAD_2_params_list$Ord_bivariate$beta_corr <- 0.0819
-                  true_mean_GAD_2_params_list$Ord_bivariate$beta_corr <- 0.3225
+                  true_mean_GAD_2_params_list$Ord_bivariate$beta_corr <- 0.3262
                   ##
                   # true_mean_GAD_2_params_list$Ord_bivariate$C_nd <- c(-1.27417, -0.5334115,  0.155574,  0.493848,  0.916881,  1.275435)
-                  true_mean_GAD_2_params_list$Ord_bivariate$C_nd <- c(-1.25265, -0.533424, 0.144763, 0.481504, 0.904145, 1.26096)
+                  true_mean_GAD_2_params_list$Ord_bivariate$C_nd <- c(-1.25338, -0.5344, 0.143803, 0.480506, 0.903026, 1.26009)
                   # true_mean_GAD_2_params_list$Ord_bivariate$C_d  <- c(-1.40413, -0.8865765, -0.1816915, 0.2231125, 0.7619075, 1.275885)
-                  true_mean_GAD_2_params_list$Ord_bivariate$C_d  <- c(-1.66601, -0.93275, -0.151223, 0.278304, 0.83734, 1.36536)
+                  true_mean_GAD_2_params_list$Ord_bivariate$C_d  <- c(-1.66364, -0.931165, -0.148647, 0.281326, 0.840248, 1.36835)
                 
             } else if (DGM == "Jones") {
               
@@ -362,28 +360,27 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
             } else if (DGM == "R&G_random_C") {
               
                   # true_mean_GAD_2_params_list$Ord_HSROC$beta_mu <- -0.710
-                  true_mean_GAD_2_params_list$Ord_HSROC$beta_mu <- -0.772
+                  true_mean_GAD_2_params_list$Ord_HSROC$beta_mu <- -0.7707
                   # true_mean_GAD_2_params_list$Ord_HSROC$beta_SD <-  0.392*reduction_factor
-                  true_mean_GAD_2_params_list$Ord_HSROC$beta_SD <-  0.2078*reduction_factor
+                  true_mean_GAD_2_params_list$Ord_HSROC$beta_SD <- 0.2082*reduction_factor
                   ##
                   # true_mean_GAD_2_params_list$Ord_HSROC$raw_scale_mu <-  -0.0438
-                  true_mean_GAD_2_params_list$Ord_HSROC$raw_scale_mu <-  -0.07801
+                  true_mean_GAD_2_params_list$Ord_HSROC$raw_scale_mu <- -0.07678
                   # true_mean_GAD_2_params_list$Ord_HSROC$raw_scale_SD <-   0.171*reduction_factor
-                  true_mean_GAD_2_params_list$Ord_HSROC$raw_scale_SD <-   0.09337*reduction_factor
+                  true_mean_GAD_2_params_list$Ord_HSROC$raw_scale_SD <- 0.0935*reduction_factor
                   ##
                   # true_mean_GAD_2_params_list$Ord_HSROC$C <- c(-0.989595, -0.2895845, 0.393812, 0.770447, 1.207325, 1.62195)
-                  true_mean_GAD_2_params_list$Ord_HSROC$C <- c(-1.04768, -0.301202, 0.386064, 0.760449, 1.23366, 1.70676)
+                  true_mean_GAD_2_params_list$Ord_HSROC$C <- c(-1.04769, -0.302173, 0.385854, 0.759956, 1.23319, 1.70524)
                   true_mean_GAD_2_params_list$Ord_HSROC$C_nd <- true_mean_GAD_2_params_list$Ord_HSROC$C
                   true_mean_GAD_2_params_list$Ord_HSROC$C_d  <- true_mean_GAD_2_params_list$Ord_HSROC$C
                   ##
                   # true_mean_GAD_2_params_list$Ord_HSROC$C_SD_prob_scale <-  c(0.0739518, 0.0813187, 0.0850478, 0.0632803, 0.0603268, 0.0471866)
-                  true_mean_GAD_2_params_list$Ord_HSROC$C_SD_prob_scale <-  c(0.061047, 0.07108, 0.0744359, 0.0556163, 0.0534102, 0.0411834)
+                  true_mean_GAD_2_params_list$Ord_HSROC$C_SD_prob_scale <- c(0.0611747, 0.0711567, 0.0745893, 0.0557045, 0.0534943, 0.0412368)
                   ##
                   # true_mean_GAD_2_params_list$Ord_HSROC$alpha <- c(4.35868, 5.585555, 6.34091, 2.985595, 2.68411, 1.56714, 1.502915) / (reduction_factor^2)
                   # true_mean_GAD_2_params_list$Ord_HSROC$alpha <- c(5.25336, 7.81922, 8.96809, 4.20731, 3.83192, 2.1587, 
                   #                                                  1.79068) / (reduction_factor^2)
-                  true_mean_GAD_2_params_list$Ord_HSROC$alpha <- c(5.2323, 7.78426, 8.94391, 4.20263, 3.8345, 2.16141,
-                                                                   1.79032) / (reduction_factor^2)
+                  true_mean_GAD_2_params_list$Ord_HSROC$alpha <- c(5.23915, 7.77677, 8.94512, 4.19084, 3.81683, 2.14896, 1.79022) / (reduction_factor^2)
               
             }
             ##
@@ -431,28 +428,22 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
             if (DGM == "ord_biv_random_C") {
               
                   # true_mean_HADS_params_list$Ord_bivariate$beta_mu <- c(-0.644, 0.0866)
-                  true_mean_HADS_params_list$Ord_bivariate$beta_mu   <- c(-0.717607, 0.0205349)
+                  true_mean_HADS_params_list$Ord_bivariate$beta_mu   <- c(-0.71747, 0.0186177)
                   # true_mean_HADS_params_list$Ord_bivariate$beta_SD <- c(0.233,  0.392)*reduction_factor
-                  true_mean_HADS_params_list$Ord_bivariate$beta_SD   <- c(0.236112, 0.41698)*reduction_factor
+                  true_mean_HADS_params_list$Ord_bivariate$beta_SD   <- c(0.235907, 0.417331)*reduction_factor
                   # true_mean_HADS_params_list$Ord_bivariate$beta_corr <-  0.305
-                  true_mean_HADS_params_list$Ord_bivariate$beta_corr <- 0.2935
+                  true_mean_HADS_params_list$Ord_bivariate$beta_corr <- 0.2964
                   ##
                   # true_mean_HADS_params_list$Ord_bivariate$C_nd <-   c(-2.10529, -1.667765, -1.32778, -1.034325, -0.7666715, -0.5273575, 
                   #                                                      -0.2762745, -0.0323531, 0.2050175, 0.4217955, 0.599618, 0.7960495, 
                   #                                                      0.973136, 1.15867, 1.36864, 1.540585, 1.73854, 1.914335, 2.056615, 
                   #                                                      2.215475, 2.34737)
-                  true_mean_HADS_params_list$Ord_bivariate$C_nd <- c(-2.20996, -1.75548, -1.41123, -1.11558, -0.845998, -0.605184,
-                                                                     -0.353195, -0.107899, 0.12932, 0.346172, 0.523601, 0.722416, 
-                                                                      0.90491, 1.09915, 1.32351, 1.50889, 1.73446, 1.94807,
-                                                                      2.15298, 2.44522, 2.99679)
+                  true_mean_HADS_params_list$Ord_bivariate$C_nd <- c(-2.20971, -1.75632, -1.41178, -1.11516, -0.846267, -0.604926, -0.352441, -0.107493, 0.129301, 0.346914, 0.525486, 0.722656, 0.905811, 1.10049, 1.32512, 1.50914, 1.73529, 1.94809, 2.15416, 2.45004, 2.9942)
                   # true_mean_HADS_params_list$Ord_bivariate$C_nd_SD_prob_scale <-    c(0.0072208, 0.0090472, 0.0108992, 0.0124052, 0.0135303, 0.0141023, 
                   #                                                                     0.0152486, 0.0155346, 0.0152954, 0.0144312, 0.0127017, 0.0125942, 
                   #                                                                     0.0112547, 0.0106024, 0.010087, 0.0080056, 0.0075404, 0.0059428, 
                   #                                                                     0.0046284, 0.0041917, 0.0032816)  
-                  true_mean_HADS_params_list$Ord_bivariate$C_nd_SD_prob_scale <- c(0.0059234, 0.00790024, 0.00966879, 0.0111565, 0.0123586, 0.0129809,
-                                                                                   0.0141602, 0.0145371, 0.014444, 0.0137594, 0.0121893, 0.012229,
-                                                                                   0.0110463, 0.0105015, 0.0100548, 0.00804148, 0.00764826, 0.00613696,
-                                                                                   0.00491777, 0.00449456, 0.00369894)
+                  true_mean_HADS_params_list$Ord_bivariate$C_nd_SD_prob_scale <- c(0.00594113, 0.0079197, 0.00969697, 0.0111943, 0.0123963, 0.0130206, 0.0142003, 0.0145743, 0.0144899, 0.0137926, 0.0122293, 0.0122468, 0.0110688, 0.0105233, 0.0100742, 0.00803914, 0.00762756, 0.00614194, 0.00491482, 0.00449677, 0.00368343)
                   # true_mean_HADS_params_list$Ord_bivariate$alpha_nd         <-       c(6.6585, 10.5856, 15.55235, 20.61605, 24.84645, 27.17665, 32.4214, 
                   #                                                                      33.84225, 32.6674, 28.78185, 21.8639, 21.4429, 16.7675, 14.7908, 
                   #                                                                      13.35695, 8.33584, 7.33371, 4.54828, 2.714125, 2.219215, 1.346705, 
@@ -461,27 +452,18 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   #                                                                 36.2425, 38.4251, 37.8778, 34.0143, 26.1402, 26.3234,
                   #                                                                 21.1908, 19.0457, 17.385,  10.9381, 9.86775, 6.29642,
                   #                                                                 4.02025, 3.3525, 2.2645, 0.864862) / (reduction_factor^2)
-                  true_mean_HADS_params_list$Ord_bivariate$alpha_nd          <- c(5.90532, 10.6291, 16.0131, 21.5625, 26.6274, 29.6131,
-                                                                                  35.6167, 38.0392, 37.0889, 33.1407, 25.5686, 25.3074,
-                                                                                  20.6517, 18.3002, 16.6949, 10.4899, 9.33653, 6.03551,
-                                                                                  3.90606, 3.25259, 2.24677, 0.812404) / (reduction_factor^2)
+                  true_mean_HADS_params_list$Ord_bivariate$alpha_nd          <- c(5.83915, 10.4991, 15.9621, 21.5853, 26.8395, 29.8493, 36.1086, 38.2597, 37.767, 33.8573, 26.0678, 26.148, 21.0763, 18.9444, 17.2873, 10.8272, 9.7195, 6.24696, 3.97737, 3.3241, 2.22425, 0.864316) / (reduction_factor^2)
                   ##
                   # true_mean_HADS_params_list$Ord_bivariate$C_d <-      c(-2.014315, -1.936835, -1.7171, -1.584575, -1.4278, -1.23411, 
                   #                                                        -0.9858285, -0.7802815, -0.542741, -0.26083, -0.020179, 0.1654705, 
                   #                                                        0.3911145, 0.656948, 0.895045, 1.12504, 1.284525, 1.41728, 1.552285, 
                   #                                                        1.73874, 1.829675)
-                  true_mean_HADS_params_list$Ord_bivariate$C_d  <- c(-2.60921, -2.44061, -2.01294, -1.79114, -1.58059, -1.3589, 
-                                                                     -1.08735, -0.86826, -0.621757, -0.329962, -0.0798263, 0.111696, 
-                                                                     0.350494, 0.629013, 0.890788, 1.15068, 1.34336, 1.5157,
-                                                                     1.7088, 2.06551, 2.29048)
+                  true_mean_HADS_params_list$Ord_bivariate$C_d  <- c(-2.61743, -2.44575, -2.01769, -1.79335, -1.58311, -1.36187, -1.09103, -0.871492, -0.62455, -0.333255, -0.0830741, 0.110107, 0.348947, 0.627523, 0.889835, 1.15139, 1.34424, 1.51443, 1.7046, 2.06402, 2.28932)
                   # true_mean_HADS_params_list$Ord_bivariate$C_d_SD_prob_scale <-    c(0.0085058, 0.0037001, 0.0069388, 0.0063387, 0.0077475, 0.0097957, 
                   #                                                                    0.0125642, 0.0127646, 0.014842, 0.0171012, 0.0165019, 0.0146033, 
                   #                                                                    0.0155868, 0.0161474, 0.0141258, 0.012533, 0.0095831, 0.0078529, 
                   #                                                                    0.0071434, 0.0074656, 0.0045503) 
-                  true_mean_HADS_params_list$Ord_bivariate$C_d_SD_prob_scale  <- c(0.00316948, 0.00218316, 0.00519178, 0.00515816, 0.00611069, 0.00744644, 
-                                                                                   0.00959548, 0.00987227, 0.0114361,  0.0132667,  0.0128782,  0.0115446,
-                                                                                   0.0125575,  0.0129566,  0.0116694,  0.0104686,  0.00798533, 0.00666878, 
-                                                                                   0.00616692, 0.00665284, 0.0038261)
+                  true_mean_HADS_params_list$Ord_bivariate$C_d_SD_prob_scale  <- c(0.00298378, 0.00205123, 0.00495568, 0.0049309, 0.0058239, 0.00708885, 0.00916284, 0.0094283, 0.0109211, 0.0126654, 0.0123011, 0.0110257, 0.012, 0.0123681, 0.0111438, 0.0100139, 0.00761489, 0.00635222, 0.00585919, 0.00637029, 0.00364877)
                   # true_mean_HADS_params_list$Ord_bivariate$alpha_d           <-      c(7.12456, 1.25392, 4.960385, 4.089665, 6.108865, 9.94842, 16.71395, 
                   #                                                                      16.8367, 23.2625, 31.2592, 28.8158, 22.2174, 25.895, 27.872, 
                   #                                                                      21.18535, 16.4624, 9.543875, 6.33563, 5.19942, 5.683845, 2.03261, 
@@ -490,36 +472,27 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   #                                                                 27.173,  28.8604, 39.5765, 54.9949, 51.4344, 40.3991, 
                   #                                                                 48.6174, 52.1399, 41.3584, 32.7035, 18.4987, 12.7581, 
                   #                                                                 10.8704, 12.6957, 4.13052, 6.33936) / (reduction_factor^2)
-                  true_mean_HADS_params_list$Ord_bivariate$alpha_d           <- c(3.16713, 1.74906, 9.1371, 9.03822, 12.3724, 18.419,
-                                                                                  31.1213, 33.1508, 45.16, 62.7256, 58.451, 46.2714,
-                                                                                  55.1144, 59.401, 46.4115, 36.4505, 21.1506, 14.3548,
-                                                                                  12.2054, 14.4073, 4.84256, 6.79661) / (reduction_factor^2)
+                  true_mean_HADS_params_list$Ord_bivariate$alpha_d           <- c(3.01635, 1.4216, 8.39895, 8.31392, 11.6664, 17.4627, 29.8314, 31.6922, 43.4544, 60.3432, 56.5044, 44.366, 53.4609, 57.1972, 45.4105, 36.0369, 20.2509, 13.9346, 11.8112, 14.016, 4.52247, 6.94112) / (reduction_factor^2)
             
             } else if (DGM == "ord_biv_fixed_C") {
                  
                   # true_mean_HADS_params_list$Ord_bivariate$beta_mu <- c(-1.13, 0.136)
-                  true_mean_HADS_params_list$Ord_bivariate$beta_mu <- c(-1.13167, 0.140572)
+                  true_mean_HADS_params_list$Ord_bivariate$beta_mu <- c(-1.13109, 0.140333)
                   # true_mean_HADS_params_list$Ord_bivariate$beta_SD <- c(0.248, 0.423)*reduction_factor
-                  true_mean_HADS_params_list$Ord_bivariate$beta_SD <- c(0.246743, 0.417525)*reduction_factor
+                  true_mean_HADS_params_list$Ord_bivariate$beta_SD <- c(0.246665, 0.416985)*reduction_factor
                   # true_mean_HADS_params_list$Ord_bivariate$beta_corr <- 0.295
-                  true_mean_HADS_params_list$Ord_bivariate$beta_corr <- 0.3015
+                  true_mean_HADS_params_list$Ord_bivariate$beta_corr <- 0.2984
                   ##
                   # true_mean_HADS_params_list$Ord_bivariate$C_nd <- c(-2.63468, -2.195915, -1.85045, -1.54265, -1.2776, -1.029515,
                   #                                                    -0.752784, -0.4990785, -0.2554335, -0.0422625, 0.1345545, 0.330531,
                   #                                                    0.5208185, 0.731341, 0.966377, 1.151985, 1.37807, 1.58074, 1.782565,
                   #                                                    2.0821, 2.582115)
-                  true_mean_HADS_params_list$Ord_bivariate$C_nd <- c(-2.64194, -2.20272, -1.85626, -1.55009, -1.28585, -1.03681, 
-                                                                     -0.760486, -0.506951, -0.26366, -0.0494368, 0.127302, 0.322418, 
-                                                                     0.513391, 0.721886, 0.95937, 1.14338, 1.36828, 1.57127,
-                                                                     1.77154, 2.06873, 2.57198)
+                  true_mean_HADS_params_list$Ord_bivariate$C_nd <- c(-2.64068, -2.2019, -1.85546, -1.54933, -1.28514, -1.03614, -0.759869, -0.506149, -0.262958, -0.0487165, 0.127981, 0.323098, 0.513905, 0.722585, 0.959975, 1.14368, 1.36867, 1.57151, 1.77229, 2.06995, 2.5757)
                   # true_mean_HADS_params_list$Ord_bivariate$C_d  <- c(-2.4333, -2.294975, -1.901415, -1.65488, -1.44765, -1.234255,
                   #                                                    -0.9666575, -0.7418255, -0.49973, -0.2126005, 0.0370325, 0.2299425,
                   #                                                    0.4643065, 0.742412, 1.008775, 1.28073, 1.464895, 1.62725, 1.802565,
                   #                                                    2.17232, 2.39557)
-                  true_mean_HADS_params_list$Ord_bivariate$C_d  <- c(-2.44652, -2.31948, -1.92772, -1.68312, -1.47943, -1.26532, 
-                                                                     -0.997867, -0.775762, -0.532074, -0.246346, 0.00157962, 0.195771, 
-                                                                     0.427589, 0.703408, 0.96664, 1.23754, 1.42198, 1.58223, 
-                                                                     1.75609, 2.12563, 2.3441)
+                  true_mean_HADS_params_list$Ord_bivariate$C_d  <- c(-2.44667, -2.31902, -1.92666, -1.6829, -1.47861, -1.26503, -0.997596, -0.775894, -0.532189, -0.2462, 0.00179168, 0.195661, 0.427953, 0.704048, 0.96746, 1.23852, 1.42358, 1.58297, 1.75629, 2.12491, 2.34327)
                   # ##
                   # true_mean_HADS_params_list$Ord_bivariate$beta_mu <- c(-1.55, 0.567)
                   # true_mean_HADS_params_list$Ord_bivariate$beta_SD <- c(0.252, 0.424)*reduction_factor
@@ -557,23 +530,20 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
             } else if (DGM == "R&G_random_C") {
                   
                   # true_mean_HADS_params_list$Ord_HSROC$beta_mu <- -0.745
-                  true_mean_HADS_params_list$Ord_HSROC$beta_mu <- -0.7677
+                  true_mean_HADS_params_list$Ord_HSROC$beta_mu <- -0.7684
                   # true_mean_HADS_params_list$Ord_HSROC$beta_SD <-  0.204*reduction_factor
-                  true_mean_HADS_params_list$Ord_HSROC$beta_SD <-  0.2103*reduction_factor
+                  true_mean_HADS_params_list$Ord_HSROC$beta_SD <- 0.2108*reduction_factor
                   ##
                   # true_mean_HADS_params_list$Ord_HSROC$raw_scale_mu <-  -0.000988
-                  true_mean_HADS_params_list$Ord_HSROC$raw_scale_mu <-  -0.0222
+                  true_mean_HADS_params_list$Ord_HSROC$raw_scale_mu <- -0.02158
                   # true_mean_HADS_params_list$Ord_HSROC$raw_scale_SD <-   0.117*reduction_factor
-                  true_mean_HADS_params_list$Ord_HSROC$raw_scale_SD <-   0.1287*reduction_factor
+                  true_mean_HADS_params_list$Ord_HSROC$raw_scale_SD <- 0.1282*reduction_factor
                   ##
                   # true_mean_HADS_params_list$Ord_HSROC$C <- c(-2.208575, -1.775145, -1.43052, -1.139615, -0.8782825, -0.6452505, 
                   #                                            -0.397182, -0.1591875, 0.0759022, 0.3002705, 0.488208, 0.6809105, 
                   #                                            0.878373, 1.088115, 1.31888, 1.511295, 1.71618, 1.89627, 2.062955, 
                   #                                            2.260425, 2.385345)
-                  true_mean_HADS_params_list$Ord_HSROC$C <- c(-2.29649, -1.83486, -1.47787, -1.17736, -0.907769, -0.665501,
-                                                              -0.409621, -0.163745, 0.0770738, 0.307219, 0.499123, 0.696593,
-                                                              0.90068, 1.1191, 1.35903, 1.56404, 1.78452, 1.98979, 
-                                                              2.19635, 2.50281, 2.80724)
+                  true_mean_HADS_params_list$Ord_HSROC$C <- c(-2.29678, -1.83426, -1.47756, -1.17728, -0.907991, -0.665735, -0.409699, -0.164211, 0.0768548, 0.306428, 0.49857, 0.695817, 0.899799, 1.11902, 1.35825, 1.56328, 1.78389, 1.98904, 2.19657, 2.5025, 2.80933)
                   true_mean_HADS_params_list$Ord_HSROC$C_nd <- true_mean_HADS_params_list$Ord_HSROC$C
                   true_mean_HADS_params_list$Ord_HSROC$C_d  <- true_mean_HADS_params_list$Ord_HSROC$C
                   ##
@@ -581,10 +551,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   #                                                           0.0134513, 0.013816, 0.0139312, 0.0135597, 0.0121398, 0.0117441, 
                   #                                                           0.011176, 0.0105672, 0.0098244, 0.0079068, 0.0070315, 0.0055991, 
                   #                                                           0.0045222, 0.004101, 0.0027446)
-                  true_mean_HADS_params_list$Ord_HSROC$C_SD_prob_scale <-  c(0.00473229, 0.00658042, 0.00832652, 0.00965628, 0.0107397, 0.0113984, 
-                                                                             0.0126041, 0.0129554, 0.0130747, 0.0126968, 0.0113753, 0.0110126,
-                                                                             0.0104644, 0.00989028, 0.00914358, 0.00733038, 0.00645658, 0.00517164,
-                                                                             0.00422725, 0.00389456, 0.00262681)
+                  true_mean_HADS_params_list$Ord_HSROC$C_SD_prob_scale <- c(0.0047319, 0.00657697, 0.00832196, 0.00965254, 0.0107367, 0.011392, 0.0125937, 0.0129481, 0.0130706, 0.0126933, 0.0113699, 0.0110057, 0.0104698, 0.00989946, 0.00913776, 0.00733727, 0.00646347, 0.00516919, 0.00422674, 0.003888, 0.0026269)
                   ##
                   # true_mean_HADS_params_list$Ord_HSROC$alpha <-  c(6.316175, 10.6233, 16.44925, 21.88265, 26.8957, 30.27135, 37.25105, 
                   #                                                 39.6049, 40.49045, 37.9255, 29.80595, 27.82585, 25.12695, 22.33755, 
@@ -594,10 +561,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   #                                                 44.672, 47.4861, 48.469, 45.4034, 35.6906, 33.2806, 
                   #                                                 29.8319, 26.461, 22.4276, 14.1726, 10.9229, 6.95217,
                   #                                                 4.62334, 3.91874, 1.77516, 1.58676) / (reduction_factor^2)
-                  true_mean_HADS_params_list$Ord_HSROC$alpha <- c(5.81448, 11.3416, 18.5038, 25.1729, 31.5061, 35.8092,
-                                                                  44.5978, 47.3811, 48.4394, 45.3039, 35.5748, 33.3057,
-                                                                  29.8969, 26.5368, 22.4179, 14.3058, 10.9962, 6.96191,
-                                                                  4.73241, 3.99418, 1.84492, 1.59377) / (reduction_factor^2)
+                  true_mean_HADS_params_list$Ord_HSROC$alpha <- c(5.81388, 11.3576, 18.4482, 25.1657, 31.556, 35.8492, 44.6466, 47.4873, 48.4965, 45.4331, 35.6988, 33.2776, 29.9023, 26.5459, 22.4253, 14.2174, 10.9601, 6.95395, 4.62784, 3.9102, 1.77743, 1.57671) / (reduction_factor^2)
               
             }
             ##
@@ -610,11 +574,11 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
             if (DGM == "ord_biv_random_C") {
               
                   # true_mean_BAI_params_list$Ord_bivariate$beta_mu <- c(-1.51, -0.347)
-                  true_mean_BAI_params_list$Ord_bivariate$beta_mu   <- c(-1.54901, -0.400199)
+                  true_mean_BAI_params_list$Ord_bivariate$beta_mu   <- c(-1.54895, -0.403923)
                   # true_mean_BAI_params_list$Ord_bivariate$beta_SD <- c(0.373,  0.250)*reduction_factor
-                  true_mean_BAI_params_list$Ord_bivariate$beta_SD   <- c(0.334592, 0.274101)*reduction_factor
+                  true_mean_BAI_params_list$Ord_bivariate$beta_SD   <- c(0.333049, 0.275235)*reduction_factor
                   # true_mean_BAI_params_list$Ord_bivariate$beta_corr <- 0.0262
-                  true_mean_BAI_params_list$Ord_bivariate$beta_corr <- 0.1504
+                  true_mean_BAI_params_list$Ord_bivariate$beta_corr <- 0.1418
                   ##
                   # true_mean_BAI_params_list$Ord_bivariate$C_nd <-   c(-2.7115, -2.36566, -2.12313, -1.966295, -1.80715, -1.677715, 
                   #                                                     -1.52838, -1.422835, -1.315275, -1.2169, -1.119355, -1.035275, 
@@ -627,17 +591,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   #                                                     0.874193, 0.9086765, 0.9443915, 0.981077, 1.05217, 1.090975, 
                   #                                                     1.135785, 1.182495, 1.251555, 1.307605, 1.36542, 1.43101, 1.544135, 
                   #                                                     1.675555, 1.77604)
-                  true_mean_BAI_params_list$Ord_bivariate$C_nd <- c(-2.75987, -2.38058, -2.13854, -1.96505, -1.79258, -1.66302, 
-                                                                    -1.51412, -1.40725, -1.29856, -1.2135, -1.11691, -1.03217, 
-                                                                    -0.923345, -0.857743, -0.783115, -0.687798, -0.613648, -0.538607,
-                                                                    -0.480235, -0.430874, -0.374557, -0.328894, -0.262853, -0.196633, 
-                                                                    -0.14101, -0.0876693, -0.0432382, -0.00814693, 0.0321933, 0.0675187,
-                                                                    0.124321, 0.163258, 0.185753, 0.226458, 0.259769, 0.317945,
-                                                                    0.37409, 0.448396, 0.476878, 0.506001, 0.532138, 0.580097, 
-                                                                    0.609855, 0.666107, 0.744115, 0.784592, 0.871337, 0.896762, 
-                                                                    0.923035, 0.958802, 0.998007, 1.03457, 1.11736, 1.1601,
-                                                                    1.21116, 1.26416, 1.34189, 1.40711, 1.47668, 1.5532, 
-                                                                    1.70537, 1.91261, 2.08012)
+                  true_mean_BAI_params_list$Ord_bivariate$C_nd <- c(-2.76238, -2.37982, -2.13783, -1.96696, -1.79472, -1.66383, -1.51468, -1.40857, -1.29874, -1.21451, -1.11739, -1.03329, -0.924833, -0.857939, -0.78397, -0.688174, -0.614166, -0.53946, -0.481121, -0.432683, -0.375286, -0.329364, -0.264036, -0.197512, -0.142338, -0.0902712, -0.0453352, -0.0101503, 0.0311397, 0.066666, 0.121794, 0.160327, 0.182813, 0.222375, 0.256004, 0.315277, 0.370635, 0.444975, 0.474077, 0.503772, 0.528497, 0.576719, 0.606565, 0.663439, 0.742764, 0.783336, 0.870192, 0.895828, 0.922481, 0.958148, 0.995864, 1.03372, 1.116, 1.1576, 1.20725, 1.26048, 1.34037, 1.40468, 1.47395, 1.55077, 1.70339, 1.90967, 2.08051)
                   # true_mean_BAI_params_list$Ord_bivariate$C_nd_SD_prob_scale <-     c(0.002358, 0.0029225, 0.003367, 0.0035171, 0.0041432, 0.0041321, 
                   #                                                                     0.0049617, 0.0045639, 0.0049522, 0.0051236, 0.0054301, 0.0052936, 
                   #                                                                     0.0063219, 0.0051523, 0.0055877, 0.006542, 0.0058929, 0.0060159, 
@@ -649,17 +603,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   #                                                                     0.0029721, 0.0032668, 0.0034083, 0.0032773, 0.0047283, 0.0032744, 
                   #                                                                     0.0034341, 0.0034647, 0.0039899, 0.0034031, 0.0033762, 0.0034169, 
                   #                                                                     0.0041718, 0.0042559, 0.0032206)
-                  true_mean_BAI_params_list$Ord_bivariate$C_nd_SD_prob_scale <- c(0.00263281, 0.00336518, 0.0038723, 0.00404291, 0.00480719, 0.00478042,
-                                                                                  0.0057275, 0.00532531, 0.00583639, 0.005454, 0.00619545, 0.00603648,
-                                                                                  0.00718662, 0.00586598, 0.00639007, 0.00747298, 0.00676336, 0.00694946,
-                                                                                  0.00625344, 0.00575804, 0.00629602, 0.00571784, 0.00691553, 0.00698501,
-                                                                                  0.00637935, 0.00621736, 0.00581655, 0.00510076, 0.0055022, 0.00509098,
-                                                                                  0.0064092, 0.00529466, 0.00392785, 0.00537956, 0.00479168, 0.00651336, 
-                                                                                  0.00625356, 0.00709735, 0.00421312, 0.0042349, 0.00378844, 0.00547343, 
-                                                                                  0.00410325, 0.00578289, 0.00664699, 0.00446988, 0.00665797, 0.00318332,
-                                                                                  0.00320855, 0.00369558, 0.00378554, 0.00364327, 0.00563777, 0.00363642, 
-                                                                                  0.00390008, 0.00393149, 0.00472193, 0.00375125, 0.003775, 0.00376099,
-                                                                                  0.00502073, 0.00514945, 0.003564)
+                  true_mean_BAI_params_list$Ord_bivariate$C_nd_SD_prob_scale <- c(0.00262329, 0.0033744, 0.00386221, 0.00403519, 0.00479114, 0.00477316, 0.00572296, 0.00531492, 0.00583137, 0.00544105, 0.00617366, 0.00602793, 0.00717828, 0.00587139, 0.00637139, 0.00746124, 0.00676025, 0.00694632, 0.00625239, 0.00575264, 0.00629471, 0.00570882, 0.00690509, 0.00698765, 0.00638901, 0.0062238, 0.00582014, 0.00509978, 0.00552136, 0.00510474, 0.00642475, 0.0052941, 0.00389983, 0.00536663, 0.00482531, 0.0064918, 0.00623525, 0.0071194, 0.00421311, 0.004242, 0.00378108, 0.0054709, 0.00405589, 0.00580358, 0.00669649, 0.00447444, 0.00667547, 0.00319492, 0.00319128, 0.00371243, 0.00373462, 0.00369577, 0.00566544, 0.00356061, 0.00388004, 0.00388724, 0.00476182, 0.00382544, 0.00383287, 0.00379931, 0.00508082, 0.00507876, 0.0036495)
                   # true_mean_BAI_params_list$Ord_bivariate$alpha_nd         <-    c(2.30978, 3.574155, 4.67112, 5.126565, 7.194915, 7.083335, 10.26365, 
                   #                                                                  8.71072, 10.35995, 10.97255, 12.383, 11.82935, 16.83, 11.1916, 
                   #                                                                  13.16695, 18.13275, 14.68875, 15.34365, 12.48285, 10.49845, 12.6014, 
@@ -681,17 +625,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   #                                                                3.00188, 3.98973, 4.18789, 3.87676, 9.37991, 3.86208,
                   #                                                                4.44732, 4.51985, 6.54485, 4.11178, 4.16442, 4.13333,
                   #                                                                7.41145, 7.8021, 3.70874, 11.2956) / (reduction_factor^2)
-                  true_mean_BAI_params_list$Ord_bivariate$alpha_nd          <- c(2.00899, 3.39931, 4.48468, 4.91602, 6.928, 6.91689,
-                                                                                 9.93505, 8.55651, 10.409, 9.09332, 11.6806, 11.1328,
-                                                                                 15.8604, 10.6821, 12.5374, 17.2988, 14.2462, 14.9918,
-                                                                                 12.1563, 10.3636, 12.5113, 10.4074, 14.989, 15.3816,
-                                                                                 12.8416, 12.3251, 10.6864, 8.41658, 9.64992, 8.51466,
-                                                                                 13.2948, 9.17625, 5.25954, 9.42787, 7.60462, 13.5917,
-                                                                                 12.4927, 16.3391, 6.25261, 6.26359, 5.13549, 9.97028,
-                                                                                 5.93225, 11.124, 14.8791, 7.01249, 14.6879, 4.20015,
-                                                                                 4.27554, 5.57956, 5.6577, 5.43396, 10.954, 5.36349,
-                                                                                 6.02921, 5.85821, 8.28843, 6.00386, 5.98133, 5.91644,
-                                                                                 9.87254, 9.75062, 5.61821, 11.6388) / (reduction_factor^2)
+                  true_mean_BAI_params_list$Ord_bivariate$alpha_nd          <- c(2.00114, 3.3193, 4.35682, 4.75941, 6.73465, 6.68358, 9.66229, 8.31234, 10.039, 8.71824, 11.2786, 10.7415, 15.3673, 10.18, 12.0298, 16.6433, 13.5832, 14.3626, 11.5746, 9.76466, 11.7354, 9.61372, 14.1878, 14.5388, 12.098, 11.4667, 9.99963, 7.64335, 8.98199, 7.65847, 12.237, 8.24632, 4.44282, 8.47753, 6.83232, 12.5, 11.5098, 15.1088, 5.1926, 5.26476, 4.17428, 8.81578, 4.80882, 9.94171, 13.3215, 5.86413, 13.2358, 2.97366, 2.96687, 4.02293, 4.07154, 3.98664, 9.46553, 3.69837, 4.39748, 4.41394, 6.65146, 4.27359, 4.29034, 4.21495, 7.58581, 7.57958, 3.88671, 11.2587) / (reduction_factor^2)
                   ##
                   # true_mean_BAI_params_list$Ord_bivariate$C_d <-     c(-2.438265, -2.32965, -2.1953, -2.089345, -1.89032, -1.79675, 
                   #                                                      -1.71302, -1.60725, -1.53188, -1.441385, -1.396705, -1.27583, 
@@ -704,17 +638,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   #                                                      1.051545, 1.0928, 1.13591, 1.174145, 1.21501, 1.2753, 1.33788, 
                   #                                                      1.417865, 1.46565, 1.52343, 1.582555, 1.65265, 1.727495, 1.815865, 
                   #                                                      2.044695)
-                  true_mean_BAI_params_list$Ord_bivariate$C_d  <- c(-2.84163, -2.63838, -2.42567, -2.28053, -2.05173, -1.9445, 
-                                                                    -1.85112, -1.74589, -1.66714, -1.55206, -1.50248, -1.3751, 
-                                                                    -1.29873, -1.22632, -1.10884, -0.981541, -0.894072, -0.73193,
-                                                                    -0.645891, -0.580412, -0.519586, -0.461155, -0.362704, -0.304221,
-                                                                    -0.229496, -0.194299, -0.12002, -0.0478964, -0.000312958, 0.0260897,
-                                                                    0.115449, 0.187284, 0.223866, 0.261018, 0.300172, 0.373481,
-                                                                    0.394434, 0.449233, 0.525329, 0.5672, 0.635365, 0.734499,
-                                                                    0.771781, 0.812666, 0.856606, 0.919871, 0.989615, 1.05387,
-                                                                    1.12522, 1.17135, 1.21735, 1.26008, 1.30284, 1.37285,
-                                                                    1.44418, 1.53938, 1.60374, 1.67454, 1.75343, 1.84607,
-                                                                    1.95442, 2.09384, 2.62229)
+                  true_mean_BAI_params_list$Ord_bivariate$C_d  <- c(-2.83943, -2.64053, -2.42971, -2.28763, -2.05834, -1.95, -1.85731, -1.75262, -1.67353, -1.5592, -1.50976, -1.38035, -1.30292, -1.23125, -1.11232, -0.985886, -0.8979, -0.734403, -0.648336, -0.582907, -0.523026, -0.463827, -0.3665, -0.307039, -0.232265, -0.197824, -0.122854, -0.0512057, -0.00224193, 0.0228465, 0.112734, 0.184909, 0.2222, 0.259501, 0.298312, 0.37163, 0.391908, 0.448113, 0.523366, 0.564994, 0.634396, 0.733874, 0.773413, 0.812024, 0.854581, 0.917698, 0.986663, 1.05096, 1.11907, 1.16401, 1.21334, 1.25514, 1.2975, 1.36616, 1.43871, 1.53286, 1.59633, 1.66651, 1.74378, 1.8356, 1.94417, 2.08341, 2.60773)
                   # true_mean_BAI_params_list$Ord_bivariate$C_d_SD_prob_scale <-   c(0.0020563, 0.0010478, 0.0014252, 0.0014155, 0.0023965, 0.0018293, 
                   #                                                                  0.0018722, 0.002288, 0.0020586, 0.0024877, 0.001788, 0.0032144, 
                   #                                                                  0.0025958, 0.0026254, 0.0036675, 0.004052, 0.0031747, 0.0046054, 
@@ -726,17 +650,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   #                                                                  0.0025216, 0.0019958, 0.0020339, 0.001818, 0.0017884, 0.0021723, 
                   #                                                                  0.0020995, 0.0023874, 0.001653, 0.0017341, 0.0017044, 0.0017621, 
                   #                                                                  0.0017089, 0.0017028, 0.0024921)
-                  true_mean_BAI_params_list$Ord_bivariate$C_d_SD_prob_scale  <- c(0.00204623, 0.00147964, 0.00212767, 0.00215935, 0.00351402, 0.00283989,
-                                                                                  0.00287449, 0.00338529, 0.00316408, 0.00419069, 0.00283558, 0.00512108, 
-                                                                                  0.00417727, 0.00425657, 0.00586845, 0.00645617, 0.00569667, 0.00818151, 
-                                                                                  0.00620487, 0.00555997, 0.00541135, 0.00543983, 0.00716381, 0.00562081,
-                                                                                  0.00641342, 0.00427394, 0.0064894,  0.00635618, 0.00520147, 0.0036376,
-                                                                                  0.00710496, 0.00631586, 0.00443879, 0.00439093, 0.00448195, 0.00619094,
-                                                                                  0.0030139,  0.00529599, 0.00609203, 0.00427549, 0.00561541, 0.00661821,
-                                                                                  0.00375507, 0.00381271, 0.003917,   0.0048498,  0.00484544, 0.00441006, 
-                                                                                  0.00438091, 0.00336106, 0.00327413, 0.002922,   0.00292073, 0.00370182,
-                                                                                  0.0035439,  0.00400926, 0.00285343, 0.00284943, 0.00280725, 0.00280539,
-                                                                                  0.00279911, 0.00277995, 0.00423732)
+                  true_mean_BAI_params_list$Ord_bivariate$C_d_SD_prob_scale  <- c(0.00186991, 0.0013629, 0.0019361, 0.00196075, 0.00324044, 0.00260425, 0.00264681, 0.00313672, 0.0029065, 0.00386502, 0.00260503, 0.00473146, 0.0038742, 0.00389895, 0.00540266, 0.00597279, 0.00522442, 0.00754301, 0.00571863, 0.00513054, 0.00499807, 0.00502684, 0.0066098, 0.00519584, 0.00592534, 0.00396233, 0.00596762, 0.00588305, 0.00479861, 0.00334582, 0.00658459, 0.00584747, 0.00410667, 0.00404609, 0.00416043, 0.00574892, 0.00271958, 0.00490884, 0.00564803, 0.00398526, 0.00521771, 0.00611961, 0.00351623, 0.0034586, 0.00359534, 0.004446, 0.00448632, 0.00404933, 0.0040636, 0.00307144, 0.00311377, 0.00272787, 0.00264834, 0.00338522, 0.0033243, 0.0036943, 0.00263608, 0.00262444, 0.00258733, 0.00261722, 0.00260095, 0.00261432, 0.00394144)
                   # true_mean_BAI_params_list$Ord_bivariate$alpha_d           <-    c(13.0355, 3.031365, 5.812175, 5.896445, 17.5918, 10.33855, 10.70605, 
                   #                                                                   16.1598, 12.732, 19.037, 9.291165, 31.2761, 20.65685, 21.02305, 
                   #                                                                   41.2895, 50.29585, 30.8706, 64.7911, 36.12735, 31.221, 29.44055, 
@@ -758,26 +672,16 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   #                                                                10.0148, 5.8603,  5.55874, 4.42028, 4.41643, 7.12147, 
                   #                                                                6.52133, 8.36819, 4.21405, 4.20216, 4.07797, 4.07252, 
                   #                                                                4.05421, 3.99857, 9.36042, 3.8589) / (reduction_factor^2)
-                  true_mean_BAI_params_list$Ord_bivariate$alpha_d           <- c(2.59618, 1.85877, 3.32728, 3.46307, 8.44884, 5.73802,
-                                                                                 5.90851, 8.07855, 7.00664, 12.0885, 5.97491, 17.8712,
-                                                                                 12.2939, 12.4797, 23.2808, 28.6875, 21.8652, 45.9727,
-                                                                                 26.2045, 21.4794, 19.7809, 20.4896, 35.1546, 21.5541,
-                                                                                 28.3403, 13.2437, 28.6595, 27.9058, 18.9864, 9.73877,
-                                                                                 35.1387, 27.5108, 14.3272, 14.2004, 14.7024, 26.93,
-                                                                                 7.47345, 20.012, 26.4276, 13.8518, 22.8029, 30.7472,
-                                                                                 11.4051, 11.4962, 11.5193, 16.7147, 17.2678, 15.0079,
-                                                                                 14.635, 9.45618, 9.161, 7.56052, 7.39364, 10.7696,
-                                                                                 10.8349, 12.1793, 7.12504, 7.10511, 7.2552, 7.14676,
-                                                                                 7.18202, 7.03166, 13.7592, 4.9269) / (reduction_factor^2)
+                  true_mean_BAI_params_list$Ord_bivariate$alpha_d           <- c(2.478, 1.31457, 2.6571, 2.72541, 7.48635, 4.81992, 4.9797, 7.0108, 6.01221, 10.6916, 4.82283, 16.1282, 10.7431, 10.8826, 21.1577, 26.013, 19.7507, 42.3372, 23.781, 19.0306, 18.0387, 18.2518, 32.0974, 19.53, 25.5879, 11.2442, 25.9665, 25.2123, 16.5986, 7.98598, 31.843, 24.8988, 12.0907, 11.7315, 12.4141, 24.0412, 5.25902, 17.3866, 23.1804, 11.3765, 19.6988, 27.3526, 8.82913, 8.53913, 9.23541, 14.2076, 14.4711, 11.7506, 11.8347, 6.71967, 6.90772, 5.29135, 4.98548, 8.17708, 7.8826, 9.75693, 4.93915, 4.89538, 4.75715, 4.86832, 4.80764, 4.8575, 11.1243, 4.6495) / (reduction_factor^2)
             
             } else if (DGM == "ord_biv_fixed_C") {
                   
                   # true_mean_BAI_params_list$Ord_bivariate$beta_mu <- c(-1.49, -0.358)
-                  true_mean_BAI_params_list$Ord_bivariate$beta_mu <- c(-1.53432, -0.406964)
+                  true_mean_BAI_params_list$Ord_bivariate$beta_mu <- c(-1.5336, -0.404008)
                   # true_mean_BAI_params_list$Ord_bivariate$beta_SD <- c(0.385, 0.268)*reduction_factor
-                  true_mean_BAI_params_list$Ord_bivariate$beta_SD <- c(0.347129, 0.273508)*reduction_factor
+                  true_mean_BAI_params_list$Ord_bivariate$beta_SD <- c(0.348273, 0.272553)*reduction_factor
                   # true_mean_BAI_params_list$Ord_bivariate$beta_corr <- -0.0666
-                  true_mean_BAI_params_list$Ord_bivariate$beta_corr <- 0.06378
+                  true_mean_BAI_params_list$Ord_bivariate$beta_corr <- 0.04958
                   ##
                   # true_mean_BAI_params_list$Ord_bivariate$C_nd <- c(-2.697165, -2.366735, -2.118675, -1.95712, -1.78154, -1.658235, 
                   #                                                    -1.509775, -1.404975, -1.30039, -1.199635, -1.099655, -1.010015, 
@@ -790,17 +694,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   #                                                    0.9457825, 0.980719, 1.016785, 1.096365, 1.137085, 1.184045, 
                   #                                                    1.235355, 1.313385, 1.372655, 1.43508, 1.50447, 1.650595, 1.837665, 
                   #                                                    1.98404)
-                  true_mean_BAI_params_list$Ord_bivariate$C_nd <- c(-2.69437,  -2.36391,  -2.11668,   -1.95548,   -1.78004,  -1.65627, 
-                                                                    -1.50794,  -1.40213,  -1.29505,   -1.21028,   -1.11065,  -1.02151,
-                                                                    -0.91535,  -0.854205, -0.780985,  -0.693652,  -0.625437, -0.55653,
-                                                                    -0.501414, -0.453847, -0.402047,  -0.355303,  -0.292546, -0.225689,
-                                                                    -0.170168, -0.121495, -0.0811179, -0.0498905, -0.0117294, 0.0222546,
-                                                                    0.079519,   0.119483,  0.139067,   0.174589,   0.203929,  0.260448,
-                                                                    0.316813,   0.39027,   0.414157,   0.438953,   0.458875,  0.503368,
-                                                                    0.527106,   0.582149,  0.661236,   0.694387,   0.77607,   0.793218, 
-                                                                    0.81075,    0.836378,  0.862687,   0.890012,   0.962354,  0.990933,
-                                                                    1.02849,    1.06799,   1.13473,    1.17951,    1.22883,   1.28392,
-                                                                    1.41102, 1.57869, 1.69594)
+                  true_mean_BAI_params_list$Ord_bivariate$C_nd <- c(-2.69462, -2.36426, -2.11741, -1.95601, -1.7805, -1.65678, -1.50849, -1.40271, -1.29573, -1.21113, -1.11148, -1.02238, -0.91633, -0.855282, -0.782072, -0.694874, -0.626753, -0.557699, -0.502658, -0.455084, -0.403293, -0.356654, -0.293822, -0.226926, -0.171242, -0.122635, -0.082142, -0.0509156, -0.0128161, 0.0212032, 0.0784506, 0.118243, 0.137818, 0.173346, 0.202437, 0.258776, 0.315039, 0.388511, 0.412518, 0.43718, 0.457004, 0.501221, 0.524969, 0.579891, 0.659086, 0.692553, 0.774077, 0.791029, 0.808353, 0.833945, 0.859866, 0.887101, 0.959809, 0.988268, 1.02556, 1.06534, 1.13205, 1.17706, 1.22603, 1.28076, 1.40725, 1.57579, 1.69423)
                   # true_mean_BAI_params_list$Ord_bivariate$C_d  <- c(-2.690125, -2.54255, -2.35055, -2.21676, -1.98042, -1.87441, 
                   #                                                    -1.78187, -1.664335, -1.5829, -1.486535, -1.44155, -1.31506, 
                   #                                                    -1.24019, -1.171065, -1.04944, -0.923497, -0.851394, -0.7143255, 
@@ -811,17 +705,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   #                                                    0.7507885, 0.790541, 0.830872, 0.8966195, 0.971349, 1.0344, 1.10528, 
                   #                                                    1.1516, 1.197425, 1.23752, 1.27867, 1.34473, 1.41797, 1.51321, 
                   #                                                    1.57391, 1.639725, 1.710355, 1.79398, 1.892395, 2.016135, 2.457965)
-                  true_mean_BAI_params_list$Ord_bivariate$C_d  <- c(-2.8142,   -2.69419,   -2.5164,     -2.39809,  -2.17338,  -2.07801,
-                                                                    -1.99709,  -1.88897,   -1.82124,    -1.7113,   -1.67002,  -1.54451,
-                                                                    -1.47217,  -1.40547,   -1.28565,    -1.16094,  -1.07677,  -0.914916, 
-                                                                    -0.831223, -0.768277,  -0.710391,   -0.653142, -0.556331, -0.499331,
-                                                                    -0.424771, -0.39468,   -0.323484,   -0.255233, -0.210543, -0.189597, 
-                                                                    -0.101793, -0.0333945, -0.000248207, 0.0334523, 0.0677788, 0.138055,
-                                                                    0.152175,   0.204094,   0.276681,    0.311134,  0.378554,  0.475018,
-                                                                    0.506227,   0.539071,   0.574464,    0.633392,  0.697522,  0.752151,
-                                                                    0.810939,   0.845225,   0.881949,    0.910993,  0.940501,  0.993736, 
-                                                                    1.0516,     1.13243,    1.17552,     1.22403,   1.27868,   1.34159,
-                                                                    1.41693, 1.51298, 1.96908)
+                  true_mean_BAI_params_list$Ord_bivariate$C_d  <- c(-2.81353, -2.69318, -2.51778, -2.40049, -2.17404, -2.0777, -1.99654, -1.88846, -1.82024, -1.70997, -1.66864, -1.54401, -1.47223, -1.40547, -1.28523, -1.16095, -1.07711, -0.91512, -0.831939, -0.76927, -0.711523, -0.654276, -0.557369, -0.500307, -0.425852, -0.395634, -0.324585, -0.256355, -0.211614, -0.190709, -0.103656, -0.0350255, -0.00190086, 0.0318826, 0.0659227, 0.136484, 0.150452, 0.202431, 0.275035, 0.309601, 0.376959, 0.472954, 0.504204, 0.536576, 0.571901, 0.630985, 0.694821, 0.749168, 0.808238, 0.842928, 0.879414, 0.908491, 0.937733, 0.990607, 1.04889, 1.12948, 1.17316, 1.2212, 1.27564, 1.33801, 1.41427, 1.5098, 1.96823)
               
             } else if (DGM == "Jones") {
               
@@ -855,14 +739,14 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
             } else if (DGM == "R&G_random_C") {
                   
                   # true_mean_BAI_params_list$Ord_HSROC$beta_mu <- -0.764
-                  true_mean_BAI_params_list$Ord_HSROC$beta_mu <- -0.7887
+                  true_mean_BAI_params_list$Ord_HSROC$beta_mu <- -0.7868
                   # true_mean_BAI_params_list$Ord_HSROC$beta_SD <-  0.333*reduction_factor
-                  true_mean_BAI_params_list$Ord_HSROC$beta_SD <-  0.2983*reduction_factor
+                  true_mean_BAI_params_list$Ord_HSROC$beta_SD <- 0.299*reduction_factor
                   ##
                   # true_mean_BAI_params_list$Ord_HSROC$raw_scale_mu <-  -0.00606
-                  true_mean_BAI_params_list$Ord_HSROC$raw_scale_mu <-  -0.03466
+                  true_mean_BAI_params_list$Ord_HSROC$raw_scale_mu <- -0.03253
                   # true_mean_BAI_params_list$Ord_HSROC$raw_scale_SD <-   0.149*reduction_factor
-                  true_mean_BAI_params_list$Ord_HSROC$raw_scale_SD <-   0.1332*reduction_factor
+                  true_mean_BAI_params_list$Ord_HSROC$raw_scale_SD <- 0.1323*reduction_factor
                   ##
                   # true_mean_BAI_params_list$Ord_HSROC$C <- c(-2.00031, -2.0209, -2.0261, -2.09921, -1.992025, -2.011525, 
                   #                                               -2.00169, -1.6515, -1.678785, -1.698, -1.74414, -1.65547, -1.676645, 
@@ -875,7 +759,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   #                                               -0.6526225, -0.698821, -0.7049935, -0.7104555, -0.700862, -0.6848455, 
                   #                                               -0.6813505, -0.5443485, -0.5909885, -0.5917325, -0.5981345, -0.603597, 
                   #                                               -0.584624, -0.5752315)
-                  true_mean_BAI_params_list$Ord_HSROC$C <- c(-2.06206, -1.69185, -1.43144, -1.25641, -1.06578, -0.93126, -0.773938, -0.659471, -0.544386, -0.455821, -0.360645, -0.267539, -0.161271, -0.0952302, -0.0142139, 0.0874505, 0.165217, 0.260516, 0.32489, 0.378592, 0.435582, 0.486651, 0.564139, 0.630071, 0.692746, 0.738611, 0.794555, 0.842266, 0.885529, 0.917694, 0.984457, 1.03412, 1.05972, 1.09575, 1.12922, 1.19055, 1.22922, 1.28988, 1.33294, 1.36292, 1.4021, 1.46718, 1.49483, 1.54282, 1.60194, 1.6484, 1.7197, 1.75629, 1.79685, 1.83223, 1.86781, 1.90014, 1.96098, 2.0079, 2.06278, 2.13009, 2.19448, 2.24932, 2.31215, 2.38432, 2.50081, 2.66129, 2.97197)
+                  true_mean_BAI_params_list$Ord_HSROC$C <- c(-2.05961, -1.69115, -1.43176, -1.25681, -1.06588, -0.930724, -0.774209, -0.659649, -0.545028, -0.45593, -0.361316, -0.268676, -0.162331, -0.096373, -0.0153542, 0.0860457, 0.164217, 0.260101, 0.32472, 0.37866, 0.435056, 0.487039, 0.563694, 0.629352, 0.691939, 0.737942, 0.793737, 0.840889, 0.884379, 0.915846, 0.982739, 1.0321, 1.05832, 1.0946, 1.12784, 1.18969, 1.22838, 1.2891, 1.33187, 1.36205, 1.40213, 1.46578, 1.49302, 1.54167, 1.60012, 1.64737, 1.71816, 1.75582, 1.79744, 1.83187, 1.86876, 1.9019, 1.96266, 2.0099, 2.06295, 2.13023, 2.19461, 2.24996, 2.31272, 2.38457, 2.50331, 2.66819, 2.98271)
                   true_mean_BAI_params_list$Ord_HSROC$C_nd <- true_mean_BAI_params_list$Ord_HSROC$C
                   true_mean_BAI_params_list$Ord_HSROC$C_d  <- true_mean_BAI_params_list$Ord_HSROC$C
                   ##
@@ -890,7 +774,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   #                                                          0.0015725, 0.0014093, 0.0013785, 0.0013047, 0.001633, 0.0014093, 
                   #                                                          0.0013918, 0.0014907, 0.0013435, 0.0011966, 0.0011561, 0.0011473, 
                   #                                                          0.0013133, 0.0013248, 0.0013153)
-                  true_mean_BAI_params_list$Ord_HSROC$C_SD_prob_scale <-  c(0.00529953, 0.00595171, 0.00649938, 0.00625365, 0.00726905, 0.00669293, 0.00767, 0.00696593, 0.00720422, 0.00655392, 0.00689347, 0.00692299, 0.00750302, 0.00597515, 0.00665384, 0.00739675, 0.00650085, 0.00711127, 0.00583602, 0.00524506, 0.00533923, 0.00502816, 0.00603297, 0.00549033, 0.0052491, 0.00438612, 0.00480233, 0.00429751, 0.00401657, 0.00337551, 0.0048028, 0.00402643, 0.00282754, 0.00329816, 0.00308528, 0.00412297, 0.00315414, 0.00384245, 0.00309634, 0.00249663, 0.00282314, 0.00350731, 0.00213343, 0.00282605, 0.00300289, 0.00256438, 0.00299784, 0.00198066, 0.0020053, 0.00174521, 0.00172, 0.00154732, 0.00217199, 0.00173998, 0.00179503, 0.00192303, 0.00171473, 0.00144007, 0.00143016, 0.00140908, 0.00164287, 0.00162519, 0.00172041)
+                  true_mean_BAI_params_list$Ord_HSROC$C_SD_prob_scale <- c(0.00546624, 0.00612632, 0.00668125, 0.00642449, 0.00747266, 0.00688437, 0.0078865, 0.00715334, 0.00740533, 0.00674037, 0.007083, 0.00712511, 0.00770763, 0.0061478, 0.00683498, 0.00761792, 0.00670037, 0.00732498, 0.00599323, 0.00539521, 0.00550021, 0.00517802, 0.00620946, 0.00564178, 0.00539034, 0.00452447, 0.00490783, 0.00440073, 0.00413028, 0.00347223, 0.00494878, 0.00413823, 0.00291257, 0.00339933, 0.00318356, 0.00425716, 0.00324309, 0.00396012, 0.00319016, 0.00255929, 0.00291086, 0.00361361, 0.00219078, 0.0029263, 0.00308408, 0.00263884, 0.00309774, 0.0020407, 0.00206382, 0.00179872, 0.00181668, 0.0016174, 0.00223418, 0.0017995, 0.00182139, 0.00195951, 0.00177832, 0.00147731, 0.00147514, 0.00146375, 0.0016907, 0.00168819, 0.00175146)
                   ##
                   # true_mean_BAI_params_list$Ord_HSROC$alpha <- c(26.8374, 30.3177, 36.38685, 32.395, 44.41205, 36.57935, 48.847, 
                   #                                                39.63305, 41.5899, 41.4163, 41.16915, 41.49585, 49.04665, 29.9765, 
@@ -903,17 +787,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   #                                                2.9406, 2.192515, 2.102795, 2.071835, 2.699475, 2.761735, 2.810295, 
                   #                                                5.680975) / (reduction_factor^2)
                   # true_mean_BAI_params_list$Ord_HSROC$alpha <- c(14.7534, 18.7136, 22.4357, 20.7201, 28.3033, 23.8401, 31.6664, 25.9017, 27.7796, 22.8267, 25.3451, 25.571, 30.2396, 18.8654, 23.5526, 29.3512, 22.4462, 27.0382, 17.9741, 14.4453, 14.9801, 13.2528, 19.2427, 15.8599, 14.4681, 10.0386, 12.0688, 9.63149, 8.39876, 5.91099, 12.0712, 8.44053, 4.1373, 5.64104, 4.93143, 8.8553, 5.15563, 7.67854, 4.9671, 3.22144, 4.12435, 6.38585, 2.34947, 4.13292, 4.66984, 3.39949, 4.65405, 2.02409, 2.07492, 1.57048, 1.52534, 1.23394, 2.43545, 1.56107, 1.66163, 1.90771, 1.51598, 1.06856, 1.05389, 1.023, 1.39134, 1.36151, 1.52606, 1.41464) / (reduction_factor^2)
-                  true_mean_BAI_params_list$Ord_HSROC$alpha <- c(14.4083, 18.4071, 21.9376, 20.2943, 27.6195, 23.3319,
-                                                                 30.9705, 25.1424, 27.3267, 22.3746, 24.7933, 25.2362,
-                                                                 29.6786, 18.586, 22.9406, 28.8046, 22.1909, 26.634,
-                                                                 17.6295, 14.3911, 14.8432, 13.3731, 18.8943, 15.7842,
-                                                                 14.2463, 10.1119, 11.8737, 9.62399, 8.48367, 6.17505,
-                                                                 12.1466, 8.4787, 4.29961, 5.73965, 5.15759, 8.92505,
-                                                                 5.3244, 7.7928, 5.18834, 3.44257, 4.37109, 6.39004,
-                                                                 2.62691, 4.38675, 4.81803, 3.59881, 4.92485, 2.33708,
-                                                                 2.39442, 1.90837, 1.89408, 1.60579, 2.67114, 1.92655,
-                                                                 1.89542, 2.14739, 1.70413, 1.34222, 1.30965, 1.30336,
-                                                                 1.73933, 1.68131, 1.68598, 1.35361) / (reduction_factor^2)
+                  true_mean_BAI_params_list$Ord_HSROC$alpha <- c(14.0187, 17.7072, 21.1717, 19.5267, 26.7098, 22.5249, 29.8965, 24.3888, 26.2105, 21.5607, 23.8935, 24.1893, 28.4941, 17.8351, 22.1916, 27.8051, 21.297, 25.6216, 16.9262, 13.6491, 14.1973, 12.5516, 18.2048, 14.9546, 13.624, 9.53987, 11.2539, 9.01816, 7.93088, 5.58547, 11.4458, 7.96179, 3.9203, 5.35155, 4.6891, 8.43195, 4.8674, 7.28381, 4.70871, 3.02294, 3.91569, 6.05381, 2.21241, 3.95758, 4.39873, 3.2147, 4.43804, 1.91884, 1.96269, 1.48981, 1.51977, 1.20408, 2.30123, 1.4911, 1.52769, 1.7688, 1.45613, 1.00424, 1.00128, 0.985863, 1.3159, 1.312, 1.41238, 1.30962) / (reduction_factor^2)
  
             }
             
