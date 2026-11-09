@@ -431,8 +431,9 @@ if (nzchar(Sys.getenv("SIM_MODELS"))) model_param_vec <- strsplit(Sys.getenv("SI
 ##
 ## ----
 ##
-alpha_pi_vec <- "one"
-# alpha_pi_vec <- "informative_from_the_literature"
+prior_set_vec <- c("set_0", "set_1", "set_2")
+## (SIM_PRIOR_SETS, e.g. "set_1,set_2", runs those prior sets only)
+if (nzchar(Sys.getenv("SIM_PRIOR_SETS"))) prior_set_vec <- strsplit(Sys.getenv("SIM_PRIOR_SETS"), ",")[[1]]
 ##
 ## ---- Settings of the RC ord_biv median vs pop-median sim study ---------------------------------------------------------------------
 ##
@@ -566,7 +567,7 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
             DGM == DGM_val,
             n_studies %in% n_studies_vals_vec,
             model_parameterisation == model_param,
-            alpha_pi %in% alpha_pi_vec,
+            prior_set %in% prior_set_vec,
             random_thresholds == random_thresholds_of_this_pass
           ) %>%
           print(n = 100)
@@ -601,11 +602,11 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                     min_ESS_of_this_cell <-  if (scenario_row$n_studies == 10) min_ESS_of_10_studies else
                                              min_ESS_of_50_studies
                     ##
-                    cat(sprintf("\n========== Processing: Test=%s, Model=%s, n=%d, alpha=%s ==========\n",
+                    cat(sprintf("\n========== Processing: Test=%s, Model=%s, n=%d, prior set=%s ==========\n",
                                 scenario_row$index_test_MA,
                                 scenario_row$model_parameterisation,
                                 scenario_row$n_studies,
-                                scenario_row$alpha_pi))
+                                scenario_row$prior_set))
                     ##
                     ## ---- Create file name string:
                     ##
@@ -715,7 +716,7 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                     ## (the same test as the worker's: run_MULTIPLE_MetaOrd_simulation.R, "The direct Se/Sp prior")
                     uses_the_Se_Sp_prior <- ordinal_prior_type == "Se_Sp" &&
                                             scenario_row$model_parameterisation %in% c("ord_bivariate", "R&G") &&
-                                            scenario_row$alpha_pi == "one"
+                                            scenario_row$prior_set == "set_0"
                     if (uses_the_Se_Sp_prior &&
                         identical(scenario_row$custom_file_name[[1]],
                                   "DTA_MA_ord_biv_RANDthr_kappa_centred_C_NicoStan_fused_AVX.stan")) {

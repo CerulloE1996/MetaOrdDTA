@@ -31,7 +31,7 @@ run_multiple_sims <- function(MCMC_seed,
                 test <- scenario_row$index_test_MA
                 n_studies <- scenario_row$n_studies
                 model_parameterisation <- scenario_row$model_parameterisation
-                alpha_pi <- scenario_row$alpha_pi
+                prior_set <- if (is.null(scenario_row$prior_set)) "set_0" else scenario_row$prior_set
                 # box_cox <- scenario_row$box_cox
                 softplus <- FALSE ## scenario_row$softplus
                 random_thresholds <- scenario_row$random_thresholds
@@ -47,7 +47,8 @@ run_multiple_sims <- function(MCMC_seed,
                                                 settings_of_every_cell$DGM == DGM &
                                                 settings_of_every_cell$n_studies == n_studies &
                                                 settings_of_every_cell$model == model_parameterisation &
-                                                settings_of_every_cell$random_thresholds == random_thresholds)
+                                                settings_of_every_cell$random_thresholds == random_thresholds &
+                                                settings_of_every_cell$prior_set == prior_set)
                       if (length(row_of_this_cell) != 1) {
                             stop("the settings file needs one row for this cell")
                       }
@@ -252,54 +253,12 @@ run_multiple_sims <- function(MCMC_seed,
           # Set priors
           priors <- model_prep_obj$priors
 
-          if (alpha_pi == "one") {
+          if (prior_set == "set_0") {
                 priors$prior_dirichlet_alpha <- list( rep(1.0, n_thr + 1), rep(1.0, n_thr + 1))
-          } else if (alpha_pi == "flat") {
-                priors$prior_dirichlet_alpha <- list( rep(2.0, n_thr + 1), rep(2.0, n_thr + 1))
-          } else if (alpha_pi == "informative_from_the_literature") {
+          } else if (prior_set %in% c("set_1", "set_2")) {
                 ## (the Jones and R&G priors of prior set 1 / 2 are matched to the ordinal-bivariate reference prior of that
                 ##  set by a prior model, Stan sampling; the reference has alpha = (1, ..., 1))
                 priors$prior_dirichlet_alpha <- list( rep(1.0, n_thr + 1), rep(1.0, n_thr + 1))
-          } else if (alpha_pi == "informative") {
-
-                generate_neutral_ordinal_dirichlet_prior <- function( n_cat,
-                                                                      peak = 0.50,
-                                                                      max_alpha = 5,
-                                                                      min_alpha = 1,
-                                                                      smoothness = 0.25) {
-
-                        stopifnot(n_cat >= 3, peak > 0, peak < 1, max_alpha >= min_alpha, min_alpha > 0, smoothness > 0)
-                        ##
-                        positions <- seq(0, 1, length.out = n_cat)
-                        ##
-                        alpha <- min_alpha + (max_alpha - min_alpha) * exp(-((positions - peak)^2) / (2 * smoothness^2))
-                        alpha <- round(alpha, 1)
-                        ##
-                        list( alpha        = alpha,          ## the shared vector
-                              non_diseased = alpha,          ## same object, named for drop-in compatibility with the old function
-                              diseased     = alpha,
-                              sum_alpha    = sum(alpha),
-                              prior_mean   = alpha / sum(alpha) )
-
-                }
-
-                outs <- generate_neutral_ordinal_dirichlet_prior( n_cat = n_thr + 1,
-                                                                  peak = 0.50,
-                                                                  max_alpha = 3,
-                                                                  min_alpha = 1,
-                                                                  smoothness = 0.25)
-                prior_dirichlet_alpha_nd <- outs$alpha
-                ##
-                outs <- generate_neutral_ordinal_dirichlet_prior( n_cat = n_thr + 1,
-                                                                  peak = 0.50,
-                                                                  max_alpha = 3,
-                                                                  min_alpha = 1,
-                                                                  smoothness = 0.25)
-                prior_dirichlet_alpha_d <- outs$alpha
-                ##
-                priors$prior_dirichlet_alpha <- list( prior_dirichlet_alpha_nd, prior_dirichlet_alpha_d)
-                priors$prior_dirichlet_alpha
-
           }
           ##
            priors$prior_dirichlet_alpha
@@ -317,7 +276,7 @@ run_multiple_sims <- function(MCMC_seed,
           #
           # }
 
-          if (alpha_pi == "one") {
+          if (prior_set == "set_0") {
 
               if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
 
@@ -408,7 +367,7 @@ run_multiple_sims <- function(MCMC_seed,
               N_per_study_mean == 500 &&
               model_parameterisation == "ord_bivariate" &&
               random_thresholds == TRUE &&
-              alpha_pi == "one") {
+              prior_set == "set_0") {
 
                       # n_iter_for_4_chains <- 3000
                       n_iter_for_4_chains <- 6000
@@ -424,7 +383,7 @@ run_multiple_sims <- function(MCMC_seed,
               N_per_study_mean == 500 &&
               model_parameterisation == "ord_bivariate" &&
               random_thresholds == TRUE &&
-              alpha_pi == "one") {
+              prior_set == "set_0") {
 
                       n_iter_for_4_chains <- 3000
 
@@ -439,7 +398,7 @@ run_multiple_sims <- function(MCMC_seed,
               N_per_study_mean == 500 &&
               model_parameterisation == "ord_bivariate" &&
               random_thresholds == TRUE &&
-              alpha_pi == "one") {
+              prior_set == "set_0") {
 
                       n_iter_for_4_chains <- 3500
 
@@ -521,17 +480,11 @@ run_multiple_sims <- function(MCMC_seed,
             
                     priors$prior_beta_SD_SD <- c(0.5, 0.5)
                     ##
-                    if (alpha_pi == "informative_from_the_literature") {
+                    if (prior_set %in% c("set_1", "set_2")) {
                           priors$prior_beta_mu_mean[1, 1] <-  0
                           priors$prior_beta_mu_mean[2, 1] <-  0
                           priors$prior_beta_mu_SD[1, 1] <-  c(HADS = 0.20, GAD_2 = 0.25, BAI = 0.35)[[test]]
                           priors$prior_beta_mu_SD[2, 1] <-  c(HADS = 0.20, GAD_2 = 0.25, BAI = 0.35)[[test]]
-                    }
-                    if (alpha_pi == "informative") {
-                          priors$prior_beta_mu_mean[1, 1] <- -1.0 ## ## 1.25
-                          priors$prior_beta_mu_mean[2, 1] <- +1.0 ## ## 1.25
-                          priors$prior_beta_mu_SD[1, 1]   <- 0.5
-                          priors$prior_beta_mu_SD[2, 1]   <- 0.5
                     }
                 
           } else if (model_parameterisation == "R&G") {
@@ -565,18 +518,19 @@ run_multiple_sims <- function(MCMC_seed,
             
           }
           ##
-          ## ---- The induced-accuracy priors: prior set 0 (alpha_pi = "one") or prior set 1 / 2 (PRIOR_SET) ----------------------------
+          ## ---- The induced-accuracy priors of the prior set (set_0, set_1 or set_2) ------------------------------------------------------
           ##
-          stopifnot(alpha_pi %in% c("one", "informative_from_the_literature"))
-          prior_set <- if (alpha_pi == "one") 0 else as.numeric(if (nzchar(Sys.getenv("PRIOR_SET"))) Sys.getenv("PRIOR_SET") else "1")
+          stopifnot(prior_set %in% c("set_0", "set_1", "set_2"))
           priors <- fn_induced_accuracy_priors(priors = priors,
                                                model_parameterisation = model_parameterisation,
                                                test = test,
                                                n_thr = n_thr,
-                                               prior_set = prior_set)
-          ## ("Dirichlet": the ord-biv models' own Dirichlet prior (prior_dirichlet_alpha, all ones when alpha_pi = "one"), no
+                                               prior_set = as.numeric(sub("set_", "", prior_set)))
+          ## ("Dirichlet": the ord-biv models' own Dirichlet prior (prior_dirichlet_alpha, all ones), no
           ##  Se / Sp prior term; the ordinal-HSROC keeps the package default, its Dirichlet on both classes (type 1))
-          if (ordinal_prior_type == "Dirichlet" && model_parameterisation == "ord_bivariate") priors$use_Se_Sp_prior <- 0
+          if (prior_set == "set_0" && ordinal_prior_type == "Dirichlet" && model_parameterisation == "ord_bivariate") {
+                priors$use_Se_Sp_prior <- 0
+          }
           ##
           # tibbles_list_testing <- list()
           # ess_vec <- c()
