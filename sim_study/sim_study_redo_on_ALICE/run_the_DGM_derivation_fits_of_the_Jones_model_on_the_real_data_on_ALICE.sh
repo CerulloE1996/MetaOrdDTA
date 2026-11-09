@@ -19,7 +19,8 @@
 ## folder, so the three jobs run at once.
 module load R/4.3.1 > /dev/null 2>&1
 ulimit -s unlimited 2> /dev/null || ulimit -s 262144
-export R_LIBS_USER=$HOME/R_library_4.3.1_Jones_converted
+export R_LIBS_USER=$HOME/R_library_4.3.1_Jones_converted:$HOME/R_library_4.3.1_whole_sim
+export SIM_FROZEN_LIBRARY=$HOME/R_library_4.3.1_Jones_converted
 export METAORDDTA_OUTPUT_DIR=$HOME/MetaOrdDTA_outputs
 export SIM_TEST=1
 export SIM_N_SEEDS=1
