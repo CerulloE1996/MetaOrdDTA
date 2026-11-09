@@ -79,66 +79,54 @@ R_fn_set_priors_NMA <- function(  priors,
     n_cat_max <- max(n_cat)
     ##
     if (cts == TRUE) { 
-            
-                    # ##
-                    # ## ---- Set priors for the locations ("beta"):
-                    # ##
-                    # priors$prior_beta_mu_mean <- if_null_then_set_to( priors$prior_beta_mu_mean, 
-                    #                                                   rep(list( matrix(0.0, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
-                    # priors$prior_beta_mu_SD   <- if_null_then_set_to( priors$prior_beta_mu_SD, 
-                    #                                                   rep(list( matrix(5.0*mult, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
-                    # ##
-                    # priors$prior_beta_tau_SD <- if_null_then_set_to(priors$prior_beta_tau_SD, 
-                    #                                                 array(1.0*mult, dim = c(n_index_tests, 2)))
-                    # ##
-                    # priors$prior_beta_sigma_SD <- if_null_then_set_to(priors$prior_beta_sigma_SD, 
-                    #                                                   rep(1.0*mult, 2))
-                    # ##
-                    # ## ---- Set priors for raw scales ("gamma"):
-                    # ##
-                    # if (softplus == TRUE) {
-                    #       priors$prior_raw_scale_mu_mean <- if_null_then_set_to( priors$prior_raw_scale_mu_mean, 
-                    #                                                              rep(list( matrix(0.0, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
-                    #       priors$prior_raw_scale_mu_SD   <- if_null_then_set_to( priors$prior_raw_scale_mu_SD,
-                    #                                                              rep(list( matrix(1.0*mult, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
-                    #       ##
-                    #       priors$prior_raw_scale_tau_SD <-  if_null_then_set_to( priors$prior_raw_scale_tau_SD, 
-                    #                                                              array(1.0*mult, dim = c(n_index_tests, 2)))
-                    #       ##alpha_lb
-                    #       priors$prior_raw_scale_sigma_SD <- if_null_then_set_to( priors$prior_raw_scale_sigma_SD, 
-                    #                                                               rep(1.0*mult, 2))
-                    # } else if (softplus == FALSE) {
-                    #       priors$prior_raw_scale_mu_mean <-  if_null_then_set_to( priors$prior_raw_scale_mu_mean, 
-                    #                                                               rep(list( matrix(0.0, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
-                    #       priors$prior_raw_scale_mu_SD   <-  if_null_then_set_to( priors$prior_raw_scale_mu_SD,
-                    #                                                               rep(list( matrix(1.0*mult, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
-                    #       ##
-                    #       priors$prior_raw_scale_tau_SD <- if_null_then_set_to( priors$prior_raw_scale_tau_SD, 
-                    #                                                             array(1.0*mult, dim = c(n_index_tests, 2)))
-                    #       ##
-                    #       priors$prior_raw_scale_sigma_SD <- if_null_then_set_to( priors$prior_raw_scale_sigma_SD,
-                    #                                                               rep(1.0*mult, 2))
-                    # }
-                    # ##
-                    # ## ---- Set priors for box-cox:
-                    # ##
-                    # priors$prior_boxcox_lambda_mean <- if_null_then_set_to( priors$prior_boxcox_lambda_mean, 
-                    #                                                         rep(0.0, n_index_tests))
-                    # priors$prior_boxcox_lambda_SD   <- if_null_then_set_to( priors$prior_boxcox_lambda_SD,   
-                    #                                                         rep(1.0, n_index_tests))
-                    # ##
-                    # ## ---- Set default priors for the between-study corr matricex for beta ("beta_L_Omega") and "raw_scale_L_Omega"):
-                    # ##
-                    # priors$beta_corr_lb <- if_null_then_set_to(priors$beta_corr_lb, -1.0)
-                    # priors$beta_corr_ub <- if_null_then_set_to(priors$beta_corr_ub, +1.0)
-                    # priors$prior_beta_corr_LKJ <- if_null_then_set_to(priors$prior_beta_corr_LKJ, 2.0)
-                    # ##
-                    # ## ---- Set default priors for the between-study corr matricex for raw_scale and "raw_scale_L_Omega"):
-                    # ##
-                    # priors$raw_scale_corr_lb <- if_null_then_set_to(priors$raw_scale_corr_lb, -1.0)
-                    # priors$raw_scale_corr_ub <- if_null_then_set_to(priors$raw_scale_corr_ub, +1.0)
-                    # priors$prior_raw_scale_corr_LKJ <- if_null_then_set_to(priors$prior_raw_scale_corr_LKJ, 2.0)
-      
+                    ##
+                    ## ---- Set priors for the locations ("beta"):
+                    ##
+                    priors$prior_beta_mu_mean <- if_null_then_set_to( priors$prior_beta_mu_mean, 
+                                                                      rep(list( matrix(0.0, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
+                    priors$prior_beta_mu_SD   <- if_null_then_set_to( priors$prior_beta_mu_SD, 
+                                                                      rep(list( matrix(1.0*mult, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
+                    ##
+                    priors$prior_beta_tau_SD <- if_null_then_set_to(priors$prior_beta_tau_SD, 
+                                                                    array(1.0*mult, dim = c(n_index_tests, 2)))
+                    ##
+                    priors$prior_beta_sigma_SD <- if_null_then_set_to(priors$prior_beta_sigma_SD, 
+                                                                      rep(1.0*mult, 2))
+                    ##
+                    ## ---- Set priors for raw scales ("gamma"):
+                    ##
+                    priors$prior_raw_scale_mu_mean <- if_null_then_set_to( priors$prior_raw_scale_mu_mean, 
+                                                                           rep(list( matrix(0.0, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
+                    if (softplus == TRUE) {
+                          priors$prior_raw_scale_mu_SD <- if_null_then_set_to( priors$prior_raw_scale_mu_SD,
+                                                                               rep(list( matrix(2.5*mult, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
+                    } else {
+                          priors$prior_raw_scale_mu_SD <- if_null_then_set_to( priors$prior_raw_scale_mu_SD,
+                                                                               rep(list( matrix(1.0*mult, nrow = 2, ncol = n_covariates_max) ), n_index_tests))
+                    }
+                    ##
+                    priors$prior_raw_scale_tau_SD <- if_null_then_set_to( priors$prior_raw_scale_tau_SD, 
+                                                                          array(1.0*mult, dim = c(n_index_tests, 2)))
+                    ##
+                    priors$prior_raw_scale_sigma_SD <- if_null_then_set_to( priors$prior_raw_scale_sigma_SD, 
+                                                                            rep(1.0*mult, 2))
+                    ##
+                    ## ---- Set priors for box-cox (one lambda per class and index test):
+                    ##
+                    priors$prior_boxcox_lambda_mean <- if_null_then_set_to( priors$prior_boxcox_lambda_mean, 
+                                                                            rep(list(rep(0.0, n_index_tests)), 2))
+                    priors$prior_boxcox_lambda_SD   <- if_null_then_set_to( priors$prior_boxcox_lambda_SD,   
+                                                                            rep(list(rep(1.0, n_index_tests)), 2))
+                    ##
+                    ## ---- Set default priors for the between-study corr matricex for beta ("beta_L_Omega") and "raw_scale_L_Omega"):
+                    ##
+                    priors$beta_corr_lb <- if_null_then_set_to(priors$beta_corr_lb, -1.0)
+                    priors$beta_corr_ub <- if_null_then_set_to(priors$beta_corr_ub, +1.0)
+                    priors$prior_beta_corr_LKJ <- if_null_then_set_to(priors$prior_beta_corr_LKJ, 2.0)
+                    ##
+                    priors$raw_scale_corr_lb <- if_null_then_set_to(priors$raw_scale_corr_lb, -1.0)
+                    priors$raw_scale_corr_ub <- if_null_then_set_to(priors$raw_scale_corr_ub, +1.0)
+                    priors$prior_raw_scale_corr_LKJ <- if_null_then_set_to(priors$prior_raw_scale_corr_LKJ, 2.0)
     } else if (cts == FALSE) { ## ordinal
                     ##
                     if (grepl("ord_biv|ordinal_biv|biv|O-", model_parameterisation, ignore.case = TRUE)) {
