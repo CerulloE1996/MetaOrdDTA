@@ -531,6 +531,8 @@ run_multiple_sims <- function(MCMC_seed,
               model_parameterisation %in% c("ord_bivariate", "R&G")) {
                 priors$use_Se_Sp_prior <- 0
           }
+          ## (set 0 never has a Se / Sp prior term, in any model)
+          if (prior_set == "set_0" && model_parameterisation != "Jones") stopifnot(priors$use_Se_Sp_prior == 0)
           ##
           # tibbles_list_testing <- list()
           # ess_vec <- c()
