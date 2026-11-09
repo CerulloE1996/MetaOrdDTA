@@ -53,6 +53,13 @@ R_fn_sample_model_with_NicoStan  <-  function(  stan_data_list,
         if (!nzchar(user_header_of_NicoSIMD)) {
               stop("algorithm = \"NicoStan\": the NicoSIMD package (NicoStan's AVX functions) is not installed")
         }
+        ## (optional: NicoStan_args$Stan_cpp_user_header, another C++ user header for the file run, e.g. the writer's
+        ##  header of a non-fused NicoSIMD file, which also declares its random-number functions)
+        if (!is.null(NicoStan_args$Stan_cpp_user_header)) {
+              user_header_of_NicoSIMD <-  NicoStan_args$Stan_cpp_user_header
+              stopifnot(file.exists(user_header_of_NicoSIMD))
+              NicoStan_args$Stan_cpp_user_header <-  NULL
+        }
         ##
         ## (the 0 / 1 switches as numbers, as cmdstanr writes them)
         Stan_data_list <-  stan_data_list
