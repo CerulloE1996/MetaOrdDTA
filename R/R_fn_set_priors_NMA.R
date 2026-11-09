@@ -40,6 +40,7 @@ R_fn_set_priors_NMA <- function(  priors,
                                   model_parameterisation,
                                   random_thresholds,
                                   Dirichlet_random_effects_type,
+                                  HSROC_Dirichlet_prior,
                                   ##
                                   softplus,
                                   ##

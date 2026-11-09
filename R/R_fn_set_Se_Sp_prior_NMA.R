@@ -48,6 +48,7 @@ R_fn_set_Se_Sp_prior_NMA <-  function(priors,
                                                    cts = FALSE,
                                                    model_parameterisation = model_parameterisation,
                                                    random_thresholds = random_thresholds,
+                                                   HSROC_Dirichlet_prior = "shared_cutpoints",
                                                    n_thr = n_thr[t])
             if (is.null(type)) {
                   type <-  of_the_test$Se_Sp_prior_type

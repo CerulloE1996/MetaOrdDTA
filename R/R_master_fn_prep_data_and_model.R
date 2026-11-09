@@ -98,6 +98,15 @@ prep_data_and_model <- function(  debugging,
               ##
               ##
               ##
+              ## (the ordinal-HSROC random-cutpoint model's Dirichlet prior: on both classes' induced probabilities, or on
+              ##  the one shared cutpoint set)
+              advanced_model_options$HSROC_Dirichlet_prior <-  MetaOrdDTA:::if_null_then_set_to( advanced_model_options$HSROC_Dirichlet_prior,
+                                                                                               "both_classes")
+              stopifnot(advanced_model_options$HSROC_Dirichlet_prior %in% c("both_classes", "shared_cutpoints"))
+              print(paste("advanced_model_options$HSROC_Dirichlet_prior = ", advanced_model_options$HSROC_Dirichlet_prior))
+              ##
+              ##
+              ##
               advanced_model_options$box_cox <-  MetaOrdDTA:::if_null_then_set_to( advanced_model_options$box_cox, 
                                                                                   default_fns_list$box_cox(cts = basic_model_options$cts)[[1]])
               print(paste("advanced_model_options$box_cox = ", advanced_model_options$box_cox))
@@ -288,6 +297,7 @@ prep_data_and_model <- function(  debugging,
                              model_parameterisation        = advanced_model_options$model_parameterisation,
                              random_thresholds             = advanced_model_options$random_thresholds,
                              Dirichlet_random_effects_type = advanced_model_options$Dirichlet_random_effects_type,
+                             HSROC_Dirichlet_prior         = advanced_model_options$HSROC_Dirichlet_prior,
                              softplus                      = advanced_model_options$softplus,
                              ##
                              n_cat = internal_obj$outs_data$n_cat,

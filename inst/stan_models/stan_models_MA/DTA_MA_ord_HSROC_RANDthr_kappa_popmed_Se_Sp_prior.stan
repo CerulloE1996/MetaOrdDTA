@@ -78,7 +78,6 @@ data {
 
 transformed data {  
         int n_cat = n_thr + 1; //// Number of ordinal categories for index test
-        if (use_Se_Sp_prior == 1) reject("this version of the model has no Se / Sp prior");
         ////
         real mult_nd = -1.0;
         real mult_d  = +1.0; //// hence: mult_d > mult_nd
@@ -122,22 +121,43 @@ transformed data {
                    sum(prior_dirichlet_alpha[(k_previous + 1):n_cat]);
         }
         ////
-        //// ---- Class on the cutpoints (p_class) and class on the baseline location / raw scale (q_class):
+        //// ---- Class on the cutpoints (p_class):
         ////
         int p_class = (n_chosen_cutoffs[2] > n_chosen_cutoffs[1]) ? 2 : 1;
-        int q_class = 3 - p_class;
-        int n_q = (use_Se_Sp_prior == 1) ? n_chosen_cutoffs[q_class] : 0;
-        int n_q_exact = min(n_q, 2);
-        for (j in 1:n_q_exact) {
-             int found = 0;
-             for (i in 1:n_chosen_cutoffs[p_class]) {
-                  if (chosen_cutoffs[p_class, i] == chosen_cutoffs[q_class, j]) found = 1;
-             }
-             if (found == 0) reject("chosen_cutoffs of c = ", q_class, " must be among those of c = ", p_class);
+        ////
+        //// ---- Unit probability priors at every cutoff, with exponential scales and the probit link:
+        ////
+        int joint_unit_probability_prior = use_Se_Sp_prior == 1 &&
+                                             (Se_Sp_prior_type == 1 || Se_Sp_prior_type == 2) &&
+                                             use_probit_link == 1 && softplus == 0 && n_thr > 1 &&
+                                             n_chosen_cutoffs[1] == n_thr && n_chosen_cutoffs[2] == n_thr;
+        if (joint_unit_probability_prior == 1) {
+              for (c in 1:2) {
+                    for (j in 1:n_thr) {
+                          if (chosen_cutoffs[c, j] != j) joint_unit_probability_prior = 0;
+                          if (Se_Sp_prior_type == 2 && (prior_Se_Sp_beta[c][j, 1] != 1.0 ||
+                              prior_Se_Sp_beta[c][j, 2] != 1.0)) joint_unit_probability_prior = 0;
+                    }
+                    if (Se_Sp_prior_type == 1) {
+                          for (j in 1:(n_thr + 1)) {
+                                if (prior_Se_Sp_dirichlet_A[c][j] != 1.0)
+                                      joint_unit_probability_prior = 0;
+                          }
+                    }
+              }
         }
-        if (n_q > 0 && baseline_case[1] == 0.0) reject("baseline_case[1] must not be 0");
-        int first_beta_mu = (n_q >= 1) ? 2 : 1;
-        int first_raw_scale_mu = (n_q >= 2) ? 2 : 1;
+        ////
+        //// ---- Joint link-scale priors at shared cutoffs:
+        ////
+        int joint_link_prior = use_Se_Sp_prior == 1 && Se_Sp_prior_type == 4 &&
+                               n_chosen_cutoffs[1] >= 2 &&
+                               n_chosen_cutoffs[1] == n_chosen_cutoffs[2];
+        if (joint_link_prior == 1) {
+              for (j in 1:n_chosen_cutoffs[1]) {
+                    if (chosen_cutoffs[1, j] != chosen_cutoffs[2, j]) joint_link_prior = 0;
+              }
+              if (baseline_case[1] == 0.0) joint_link_prior = 0;
+        }
 
 }
 
@@ -216,29 +236,218 @@ model {
         ////
         //// ---- Priors:
         ////
-        // beta_mu[1:n_covariates] ~ normal(
-        //                           prior_beta_mu_mean[1:n_covariates], 
-        //                           prior_beta_mu_SD[1:n_covariates]);
-        if (first_beta_mu <= n_covariates) {
-             beta_mu[first_beta_mu:n_covariates] ~ normal( prior_beta_mu_mean[first_beta_mu:n_covariates],
-                                                           prior_beta_mu_SD[first_beta_mu:n_covariates]);
-        }
         beta_SD ~ normal( prior_beta_SD_mean, prior_beta_SD_SD);
-        ////
-        // raw_scale_mu[1:n_covariates] ~ normal(
-        //                                prior_raw_scale_mu_mean[1:n_covariates], 
-        //                                prior_raw_scale_mu_SD[1:n_covariates]);
-        if (first_raw_scale_mu <= n_covariates) {
-             raw_scale_mu[first_raw_scale_mu:n_covariates] ~ normal( prior_raw_scale_mu_mean[first_raw_scale_mu:n_covariates],
-                                                                     prior_raw_scale_mu_SD[first_raw_scale_mu:n_covariates]);
-        }
         raw_scale_SD ~ normal( prior_raw_scale_SD_mean, prior_raw_scale_SD_SD);
         ////
         {
            log_kappa ~ student_t(prior_kappa_dof, prior_kappa_mean, prior_kappa_SD);
            target += -log_kappa;
            ////
-           dirichlet_phi ~ dirichlet(prior_dirichlet_alpha);
+           if (use_Se_Sp_prior == 1 && n_chosen_cutoffs[p_class] > 0) {
+             
+                  ////
+                  //// ---- Population medians and their derivatives, from the Beta of each cutpoint under
+                  //// ---- the alpha of the study cutpoints (0.01 + phi * kappa), at the chosen cutoffs of p_class
+                  //// ---- (C_mu is read nowhere else):
+                  ////
+                  real alpha_0 = sum(alpha);
+                  vector[n_thr] P_of_alpha = cumulative_sum(alpha[1:n_thr]) / alpha_0;
+                  vector[n_thr] P_upper_of_alpha = reverse(cumulative_sum(reverse(alpha[2:n_cat]))) / alpha_0;
+                  vector[n_chosen_cutoffs[p_class]] C_mu;
+                  vector[n_chosen_cutoffs[p_class]] log_J;
+                  ////
+                  for (j in 1:n_chosen_cutoffs[p_class]) {
+                       int k = chosen_cutoffs[p_class, j];
+                       vector[2] median_and_log_J = dirichlet_cutpoint_median_and_log_J(  P_of_alpha[k],
+                                                                                               P_upper_of_alpha[k],
+                                                                                               alpha_0,
+                                                                                               use_probit_link);
+                       C_mu[j] = median_and_log_J[1];
+                       //// (chain rule: d C_mu / d P = d C_mu / d P_of_alpha * d P_of_alpha / d P = d C_mu / d P_of_alpha * kappa / alpha_0)
+                       log_J[j] = median_and_log_J[2] + log(kappa / alpha_0);
+                  }
+                  ////
+                  //// ---- Baseline lines: probit(Sp) (c = 1) and probit(1 - Se) (c = 2) = (C_mu + Xbeta) * scale,
+                  //// ---- at the prior means of beta_mu and raw_scale_mu (the constant anchor):
+                  ////
+                  real Xbeta_baseline_c      = dot_product(baseline_case, beta_mu);
+                  real Xraw_scale_baseline_c = dot_product(baseline_case, raw_scale_mu);
+                  vector[2] Xbeta_of_line = [mult_nd, mult_d]' * Xbeta_baseline_c;
+                  vector[2] scale_of_line;
+                  scale_of_line[1] = ((softplus == 1) ? 1.4426950408889634 * log1p_exp(-mult_nd * Xraw_scale_baseline_c) :
+                                                        exp(-mult_nd * Xraw_scale_baseline_c));
+                  scale_of_line[2] = ((softplus == 1) ? 1.4426950408889634 * log1p_exp(-mult_d  * Xraw_scale_baseline_c) :
+                                                        exp(-mult_d  * Xraw_scale_baseline_c));
+                  ////
+                  array[2] vector[n_chosen_cutoffs[p_class]] C_baseline;
+                  for (c in 1:2) {
+                       C_baseline[c] = (C_mu + Xbeta_of_line[c]) * scale_of_line[c];
+                  }
+                  ////
+                  //// ---- Between the chosen cutoffs: the Dirichlet(prior_dirichlet_alpha) of each segment on the increments of
+                  //// ---- P_of_C_mu = (Sp + 1 - Se) / 2 at C_mu, both classes' own probabilities at the population medians, in place of the
+                  //// ---- increments of the cumulative dirichlet_phi (the prior at the chosen cutoffs is unchanged):
+                  ////
+                  if (n_chosen_cutoffs[p_class] < n_thr) {
+                       vector[n_thr] P_of_C_mu;
+                       vector[n_thr] P_upper_of_C_mu;
+                       vector[n_thr] log_J_of_P_of_C_mu;
+                       real log_scale_nd = log(scale_of_line[1]);
+                       real log_scale_d = log(scale_of_line[2]);
+                       real log_kappa_over_alpha_0 = log(kappa / alpha_0);
+                       for (k in 1:n_thr) {
+                            vector[2] median_and_log_J_of_k = dirichlet_cutpoint_median_and_log_J(P_of_alpha[k],
+                                                                                                        P_upper_of_alpha[k],
+                                                                                                        alpha_0,
+                                                                                                        use_probit_link);
+                            real link_Sp = (median_and_log_J_of_k[1] + Xbeta_of_line[1]) * scale_of_line[1];
+                            real link_1m_Se = (median_and_log_J_of_k[1] + Xbeta_of_line[2]) * scale_of_line[2];
+                            real log_f_Sp;
+                            real log_f_1m_Se;
+                            if (use_probit_link == 1) {
+                                 P_of_C_mu[k] = 0.5 * (Phi(link_Sp) + Phi(link_1m_Se));
+                                 P_upper_of_C_mu[k] = 0.5 * (Phi(-link_Sp) + Phi(-link_1m_Se));
+                                 log_f_Sp = -0.5 * square(link_Sp) - 0.9189385332046728;
+                                 log_f_1m_Se = -0.5 * square(link_1m_Se) - 0.9189385332046728;
+                            } else {
+                                 P_of_C_mu[k] = 0.5 * (inv_logit(link_Sp) + inv_logit(link_1m_Se));
+                                 P_upper_of_C_mu[k] = 0.5 * (inv_logit(-link_Sp) + inv_logit(-link_1m_Se));
+                                 log_f_Sp = log_inv_logit(link_Sp) + log1m_inv_logit(link_Sp);
+                                 log_f_1m_Se = log_inv_logit(link_1m_Se) + log1m_inv_logit(link_1m_Se);
+                            }
+                            //// (log d P_of_C_mu / d cumulative phi = log((f(link_Sp) * scale_nd + f(link_1m_Se) * scale_d) / 2) + log dC_mu / d P)
+                            real log_term_Sp = log_f_Sp + log_scale_nd;
+                            real log_term_1m_Se = log_f_1m_Se + log_scale_d;
+                            log_J_of_P_of_C_mu[k] = fmax(log_term_Sp, log_term_1m_Se) + log1p_exp(-abs(log_term_Sp - log_term_1m_Se)) -
+                                             0.6931471805599453 + median_and_log_J_of_k[2] + log_kappa_over_alpha_0;
+                       }
+                       ////
+                       //// ---- Each segment with cutoffs inside it: log(new conditional) - log(Dirichlet of dirichlet_phi given the segment sum):
+                       ////
+                       int k_lower_end = 0;
+                       for (j in 1:(n_chosen_cutoffs[p_class] + 1)) {
+                            int k_upper_end = (j <= n_chosen_cutoffs[p_class]) ? chosen_cutoffs[p_class, j] : n_cat;
+                            if (k_upper_end - k_lower_end > 1) {
+                                 real P_of_C_mu_of_the_segment = (k_lower_end == 0) ? P_of_C_mu[k_upper_end] :
+                                                         (k_upper_end == n_cat) ? P_upper_of_C_mu[k_lower_end] :
+                                                         (P_of_C_mu[k_lower_end] > 0.5) ? (P_upper_of_C_mu[k_lower_end] - P_upper_of_C_mu[k_upper_end]) :
+                                                                                        (P_of_C_mu[k_upper_end] - P_of_C_mu[k_lower_end]);
+                                 real phi_of_the_segment = sum(dirichlet_phi[(k_lower_end + 1):k_upper_end]);
+                                 target += sum(log_J_of_P_of_C_mu[(k_lower_end + 1):(k_upper_end - 1)]) -
+                                           (sum(prior_dirichlet_alpha[(k_lower_end + 1):k_upper_end]) - 1.0) *
+                                           (log(P_of_C_mu_of_the_segment) - log(phi_of_the_segment));
+                                 for (i in (k_lower_end + 1):k_upper_end) {
+                                      if (prior_dirichlet_alpha[i] != 1.0) {
+                                           real P_of_C_mu_of_the_category = (i == n_cat) ? P_upper_of_C_mu[n_thr] :
+                                                                    (i == 1) ? P_of_C_mu[1] :
+                                                                    (P_of_C_mu[i - 1] > 0.5) ? (P_upper_of_C_mu[i - 1] - P_upper_of_C_mu[i]) :
+                                                                                             (P_of_C_mu[i] - P_of_C_mu[i - 1]);
+                                           target += (prior_dirichlet_alpha[i] - 1.0) *
+                                                     (log(P_of_C_mu_of_the_category) - log(dirichlet_phi[i]));
+                                      }
+                                 }
+                            }
+                            k_lower_end = k_upper_end;
+                       }
+                  }
+                  ////
+                  //// ---- Class p_class: the Dirichlet of dirichlet_phi with its prior at the chosen cutoffs:
+                  ////
+                  {
+                     matrix[n_chosen_cutoffs[p_class], 2] prior_beta_of_this_class = prior_Se_Sp_beta[p_class][1:n_chosen_cutoffs[p_class], ];
+                     matrix[n_chosen_cutoffs[p_class], 2] prior_link_mean_SD_of_this_class = prior_Se_Sp_link_mean_SD[p_class][1:n_chosen_cutoffs[p_class], ];
+                     if (p_class == 2) {
+                          prior_link_mean_SD_of_this_class[, 1] = - prior_link_mean_SD_of_this_class[, 1];
+                          if (Se_Sp_prior_type == 2) {
+                               prior_beta_of_this_class = append_col(prior_beta_of_this_class[, 2],
+                                                                     prior_beta_of_this_class[, 1]);
+                          }
+                     }
+                     target += dirichlet_with_Se_Sp_prior_lupdf(
+                               dirichlet_phi | log_J, C_baseline[p_class], 
+                               prior_dirichlet_alpha,
+                               alpha_of_the_segments[p_class][1:(n_chosen_cutoffs[p_class] + 1)],
+                               chosen_cutoffs[p_class, 1:n_chosen_cutoffs[p_class]], Se_Sp_prior_type,
+                               prior_Se_Sp_dirichlet_A[p_class][1:(n_chosen_cutoffs[p_class] + 1)], prior_beta_of_this_class,
+                               prior_link_mean_SD_of_this_class,
+                               use_probit_link);
+                     ////
+                     //// ---- Jacobian from C_mu to the scaled line at the chosen cutpoints:
+                     ////
+                     if (joint_unit_probability_prior == 0 && joint_link_prior == 0) {
+                          target += n_chosen_cutoffs[p_class] * log(scale_of_line[p_class]);
+                     }
+                  }
+                  ////
+                  //// ---- The other class: its Se/Sp prior at the same cutoff, through Xbeta_baseline_c (beta_mu[1]);
+                  //// ---- the Jacobian of (P, b) -> (C_baseline[1], C_baseline[2]) is 2 * scale_nd * scale_d * |dm/dP|,
+                  //// ---- of which the terms of p_class above hold scale_of_line[p_class] * |dm/dP|:
+                  ////
+                  {
+                     int q_class = 3 - p_class;
+                     matrix[n_chosen_cutoffs[q_class], 2] prior_beta_of_this_class = prior_Se_Sp_beta[q_class][1:n_chosen_cutoffs[q_class], ];
+                     matrix[n_chosen_cutoffs[q_class], 2] prior_link_mean_SD_of_this_class = prior_Se_Sp_link_mean_SD[q_class][1:n_chosen_cutoffs[q_class], ];
+                     if (q_class == 2) {
+                          prior_link_mean_SD_of_this_class[, 1] = - prior_link_mean_SD_of_this_class[, 1];
+                          if (Se_Sp_prior_type == 2) {
+                               prior_beta_of_this_class = append_col(prior_beta_of_this_class[, 2],
+                                                                     prior_beta_of_this_class[, 1]);
+                          }
+                     }
+                     target += Se_Sp_prior_at_chosen_cutoffs_lupdf(
+                               C_baseline[q_class] | Se_Sp_prior_type,
+                               prior_Se_Sp_dirichlet_A[q_class][1:(n_chosen_cutoffs[q_class] + 1)], prior_beta_of_this_class,
+                               prior_link_mean_SD_of_this_class,
+                               use_probit_link);
+                     if (joint_unit_probability_prior == 1) {
+                          //// Both ordered Normal lines share their centred direction, not their means or radii.
+                          target += log(4.0) + 0.5 * (n_thr - 1) *
+                                    log(dot_self(C_mu - mean(C_mu)));
+                     } else if (joint_link_prior == 1) {
+                          //// Link-space volume of both lines with respect to C_mu, location and raw scale.
+                          real a = scale_of_line[1];
+                          real d = scale_of_line[2];
+                          real da = a;
+                          real dd = -d;
+                          if (softplus == 1) {
+                               da = 1.4426950408889634 * inv_logit(Xraw_scale_baseline_c);
+                               dd = -1.4426950408889634 * inv_logit(-Xraw_scale_baseline_c);
+                          }
+                          target += log(2.0 * a * d * (da * d - a * dd)) +
+                                    0.5 * log(n_chosen_cutoffs[p_class] *
+                                              dot_self(C_mu - mean(C_mu))) +
+                                    0.5 * (n_chosen_cutoffs[p_class] - 2) *
+                                    log(square(a) + square(d));
+                     } else {
+                          target += log(2.0 * scale_of_line[q_class]);
+                     }
+                  }
+                  if (n_covariates > 1) {
+                       beta_mu[2:n_covariates] ~ normal( prior_beta_mu_mean[2:n_covariates],
+                                                         prior_beta_mu_SD[2:n_covariates]);
+                  }
+                  if (joint_unit_probability_prior == 1 || joint_link_prior == 1) {
+                       if (n_covariates > 1) {
+                            raw_scale_mu[2:n_covariates] ~ normal(
+                                  prior_raw_scale_mu_mean[2:n_covariates],
+                                  prior_raw_scale_mu_SD[2:n_covariates]);
+                       }
+                  } else {
+                       raw_scale_mu[1:n_covariates] ~ normal(
+                             prior_raw_scale_mu_mean[1:n_covariates],
+                             prior_raw_scale_mu_SD[1:n_covariates]);
+                  }
+                  
+           } else {
+             
+                  beta_mu[1:n_covariates] ~ normal( prior_beta_mu_mean[1:n_covariates],
+                                                         prior_beta_mu_SD[1:n_covariates]);
+                  raw_scale_mu[1:n_covariates] ~ normal( prior_raw_scale_mu_mean[1:n_covariates],
+                                                              prior_raw_scale_mu_SD[1:n_covariates]);
+                  ////
+                  dirichlet_phi ~ dirichlet( prior_dirichlet_alpha);
+                  
+           }
         }
         ////
         //// ---- Induced-dirichlet between study ** model ** (NOT a prior model here but part of the actual likelihood since random-effect cutpoints!):
