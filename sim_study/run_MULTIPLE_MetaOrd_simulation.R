@@ -421,38 +421,100 @@ run_multiple_sims <- function(MCMC_seed,
 
           }
           ##
-          ## ---- Stratified bivariate: the iterations per chain (4 chains) of each cell ---------------------------------------------------
+          ## ---- The iterations per chain (4 chains) of each cell -------------------------------------------------------------------------
           ##
           ## (min ESS 2500 at 10 studies and 500 at 50 studies, from the 10th percentile of the min ESS
-          ##  of 10 fits of 1000 iterations)
-          if (model_parameterisation == "Bivariate" &&
-              N_per_study_mean == 500) {
+          ##  of the 10 pilot fits of 1000 iterations of each cell; the ordinal models: prior set 0 only)
+          {
 
-                      n_iter_of_each_cell <- rbind(
-                            ##         test     DGM                 n_studies  n_iter
-                            data.frame(test = "BAI",   DGM = "ord_biv_fixed_C",  n_studies = 10, n_iter = 8800),
-                            data.frame(test = "BAI",   DGM = "ord_biv_random_C", n_studies = 10, n_iter = 9600),
-                            data.frame(test = "BAI",   DGM = "R&G_random_C",     n_studies = 10, n_iter = 7900),
-                            data.frame(test = "GAD_2", DGM = "ord_biv_fixed_C",  n_studies = 10, n_iter = 6450),
-                            data.frame(test = "GAD_2", DGM = "ord_biv_random_C", n_studies = 10, n_iter = 3600),
-                            data.frame(test = "GAD_2", DGM = "R&G_random_C",     n_studies = 10, n_iter = 4000),
-                            data.frame(test = "HADS",  DGM = "ord_biv_fixed_C",  n_studies = 10, n_iter = 7200),
-                            data.frame(test = "HADS",  DGM = "ord_biv_random_C", n_studies = 10, n_iter = 8800),
-                            data.frame(test = "HADS",  DGM = "R&G_random_C",     n_studies = 10, n_iter = 13600),
-                            data.frame(test = "BAI",   DGM = "ord_biv_fixed_C",  n_studies = 50, n_iter = 1800),
-                            data.frame(test = "BAI",   DGM = "ord_biv_random_C", n_studies = 50, n_iter = 1850),
-                            data.frame(test = "BAI",   DGM = "R&G_random_C",     n_studies = 50, n_iter = 1400),
-                            data.frame(test = "GAD_2", DGM = "ord_biv_fixed_C",  n_studies = 50, n_iter = 700),
-                            data.frame(test = "GAD_2", DGM = "ord_biv_random_C", n_studies = 50, n_iter = 1000),
-                            data.frame(test = "GAD_2", DGM = "R&G_random_C",     n_studies = 50, n_iter = 800),
-                            data.frame(test = "HADS",  DGM = "ord_biv_fixed_C",  n_studies = 50, n_iter = 1550),
-                            data.frame(test = "HADS",  DGM = "ord_biv_random_C", n_studies = 50, n_iter = 1550),
-                            data.frame(test = "HADS",  DGM = "R&G_random_C",     n_studies = 50, n_iter = 1000))
-                      row_of_this_cell <- which(n_iter_of_each_cell$test == test &
-                                                n_iter_of_each_cell$DGM == DGM &
-                                                n_iter_of_each_cell$n_studies == n_studies)
-                      stopifnot(length(row_of_this_cell) == 1)
-                      n_iter_for_4_chains <- n_iter_of_each_cell$n_iter[row_of_this_cell]
+                      n_iter_of_each_cell <- as.data.frame(matrix(byrow = TRUE, ncol = 6, data = list(
+                            ## model,          random_thresholds, n_studies, test, DGM, n_iter
+                            "ord_bivariate", FALSE, 10, "BAI",   "ord_biv_fixed_C",  4350,
+                            "ord_bivariate", FALSE, 10, "BAI",   "ord_biv_random_C", 4450,
+                            "ord_bivariate", FALSE, 10, "BAI",   "R&G_random_C",     6650,
+                            "ord_bivariate", FALSE, 10, "GAD_2", "ord_biv_fixed_C",  3800,
+                            "ord_bivariate", FALSE, 10, "GAD_2", "ord_biv_random_C", 3700,
+                            "ord_bivariate", FALSE, 10, "GAD_2", "R&G_random_C",     3500,
+                            "ord_bivariate", FALSE, 10, "HADS",  "ord_biv_fixed_C",  4450,
+                            "ord_bivariate", FALSE, 10, "HADS",  "ord_biv_random_C", 4000,
+                            "ord_bivariate", FALSE, 10, "HADS",  "R&G_random_C",     3550,
+                            "ord_bivariate", FALSE, 50, "BAI",   "ord_biv_fixed_C",  2350,
+                            "ord_bivariate", FALSE, 50, "BAI",   "ord_biv_random_C", 2650,
+                            "ord_bivariate", FALSE, 50, "BAI",   "R&G_random_C",     2100,
+                            "ord_bivariate", FALSE, 50, "GAD_2", "ord_biv_fixed_C",  2100,
+                            "ord_bivariate", FALSE, 50, "GAD_2", "ord_biv_random_C", 2200,
+                            "ord_bivariate", FALSE, 50, "GAD_2", "R&G_random_C",     1700,
+                            "ord_bivariate", FALSE, 50, "HADS",  "ord_biv_fixed_C",  2100,
+                            "ord_bivariate", FALSE, 50, "HADS",  "ord_biv_random_C", 2300,
+                            "ord_bivariate", FALSE, 50, "HADS",  "R&G_random_C",     1600,
+                            "ord_bivariate", TRUE,  10, "BAI",   "ord_biv_fixed_C",  5550,
+                            "ord_bivariate", TRUE,  10, "BAI",   "ord_biv_random_C", 2350,
+                            "ord_bivariate", TRUE,  10, "BAI",   "R&G_random_C",     2900,
+                            "ord_bivariate", TRUE,  10, "GAD_2", "ord_biv_fixed_C",  2700,
+                            "ord_bivariate", TRUE,  10, "GAD_2", "ord_biv_random_C", 2850,
+                            "ord_bivariate", TRUE,  10, "GAD_2", "R&G_random_C",     3000,
+                            "ord_bivariate", TRUE,  10, "HADS",  "ord_biv_fixed_C",  3300,
+                            "ord_bivariate", TRUE,  10, "HADS",  "ord_biv_random_C", 3550,
+                            "ord_bivariate", TRUE,  10, "HADS",  "R&G_random_C",     5250,
+                            "ord_bivariate", TRUE,  50, "BAI",   "ord_biv_fixed_C",  850,
+                            "ord_bivariate", TRUE,  50, "BAI",   "ord_biv_random_C", 800,
+                            "ord_bivariate", TRUE,  50, "BAI",   "R&G_random_C",     650,
+                            "ord_bivariate", TRUE,  50, "GAD_2", "ord_biv_fixed_C",  650,
+                            "ord_bivariate", TRUE,  50, "GAD_2", "ord_biv_random_C", 2750,
+                            "ord_bivariate", TRUE,  50, "GAD_2", "R&G_random_C",     650,
+                            "ord_bivariate", TRUE,  50, "HADS",  "ord_biv_fixed_C",  850,
+                            "ord_bivariate", TRUE,  50, "HADS",  "ord_biv_random_C", 600,
+                            "ord_bivariate", TRUE,  50, "HADS",  "R&G_random_C",     1050,
+                            "R&G",           TRUE,  10, "BAI",   "ord_biv_fixed_C",  5250,
+                            "R&G",           TRUE,  10, "BAI",   "ord_biv_random_C", 6100,
+                            "R&G",           TRUE,  10, "BAI",   "R&G_random_C",     6300,
+                            "R&G",           TRUE,  10, "GAD_2", "ord_biv_fixed_C",  6700,
+                            "R&G",           TRUE,  10, "GAD_2", "ord_biv_random_C", 4700,
+                            "R&G",           TRUE,  10, "GAD_2", "R&G_random_C",     3950,
+                            "R&G",           TRUE,  10, "HADS",  "ord_biv_fixed_C",  6200,
+                            "R&G",           TRUE,  10, "HADS",  "ord_biv_random_C", 6200,
+                            "R&G",           TRUE,  10, "HADS",  "R&G_random_C",     5850,
+                            "R&G",           TRUE,  50, "BAI",   "ord_biv_fixed_C",  3250,
+                            "R&G",           TRUE,  50, "BAI",   "ord_biv_random_C", 3350,
+                            "R&G",           TRUE,  50, "BAI",   "R&G_random_C",     4900,
+                            "R&G",           TRUE,  50, "GAD_2", "ord_biv_fixed_C",  1300,
+                            "R&G",           TRUE,  50, "GAD_2", "ord_biv_random_C", 1250,
+                            "R&G",           TRUE,  50, "GAD_2", "R&G_random_C",     1450,
+                            "R&G",           TRUE,  50, "HADS",  "ord_biv_fixed_C",  2400,
+                            "R&G",           TRUE,  50, "HADS",  "ord_biv_random_C", 1750,
+                            "R&G",           TRUE,  50, "HADS",  "R&G_random_C",     2950,
+                            "Bivariate",     FALSE, 10, "BAI",   "ord_biv_fixed_C",  8800,
+                            "Bivariate",     FALSE, 10, "BAI",   "ord_biv_random_C", 9600,
+                            "Bivariate",     FALSE, 10, "BAI",   "R&G_random_C",     7900,
+                            "Bivariate",     FALSE, 10, "GAD_2", "ord_biv_fixed_C",  6450,
+                            "Bivariate",     FALSE, 10, "GAD_2", "ord_biv_random_C", 3600,
+                            "Bivariate",     FALSE, 10, "GAD_2", "R&G_random_C",     4000,
+                            "Bivariate",     FALSE, 10, "HADS",  "ord_biv_fixed_C",  7200,
+                            "Bivariate",     FALSE, 10, "HADS",  "ord_biv_random_C", 8800,
+                            "Bivariate",     FALSE, 10, "HADS",  "R&G_random_C",     13600,
+                            "Bivariate",     FALSE, 50, "BAI",   "ord_biv_fixed_C",  1800,
+                            "Bivariate",     FALSE, 50, "BAI",   "ord_biv_random_C", 1850,
+                            "Bivariate",     FALSE, 50, "BAI",   "R&G_random_C",     1400,
+                            "Bivariate",     FALSE, 50, "GAD_2", "ord_biv_fixed_C",  700,
+                            "Bivariate",     FALSE, 50, "GAD_2", "ord_biv_random_C", 1000,
+                            "Bivariate",     FALSE, 50, "GAD_2", "R&G_random_C",     800,
+                            "Bivariate",     FALSE, 50, "HADS",  "ord_biv_fixed_C",  1550,
+                            "Bivariate",     FALSE, 50, "HADS",  "ord_biv_random_C", 1550,
+                            "Bivariate",     FALSE, 50, "HADS",  "R&G_random_C",     1000),
+                            dimnames = list(NULL, c("model", "random_thresholds", "n_studies", "test", "DGM",
+                                                    "n_iter"))))
+                      row_of_this_cell <- which(n_iter_of_each_cell$model == model_parameterisation &
+                                                n_iter_of_each_cell$random_thresholds == random_thresholds &
+                                                n_iter_of_each_cell$n_studies == n_studies &
+                                                n_iter_of_each_cell$test == test &
+                                                n_iter_of_each_cell$DGM == DGM)
+                      if (length(row_of_this_cell) == 1 &&
+                          N_per_study_mean == 500 &&
+                          (prior_set == "set_0" || model_parameterisation == "Bivariate")) {
+
+                            n_iter_for_4_chains <- n_iter_of_each_cell$n_iter[[row_of_this_cell]]
+
+                      }
 
           }
           ##
