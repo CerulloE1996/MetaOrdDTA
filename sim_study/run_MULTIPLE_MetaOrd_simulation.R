@@ -977,7 +977,7 @@ run_multiple_sims <- function(MCMC_seed,
                                             share_tau_ii_across_chains_in_burnin = TRUE,
                                             force_multi_attempts_for_metric      = FALSE,
                                             ##
-                                            tau_initial                          = "pi",       ## pi ## --------
+                                            tau_initial                          = pi,         ## pi ## --------
                                             tau_adaptation_block                 = "main",  ## --------
                                             interest_only                        = NULL,
                                             ##
