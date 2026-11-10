@@ -518,6 +518,139 @@ run_multiple_sims <- function(MCMC_seed,
 
           }
           ##
+          ## ---- The iterations per chain (4 chains) of each cell of prior sets 1 and 2 ---------------------------------------------------
+          ##
+          ## (the same rule, from the 10 pilot fits of 1000 iterations of each cell: the ord-biv models with the
+          ##  cutpoints relative to the intercept, and the stratified bivariate)
+          {
+
+                      n_iter_of_sets_1_and_2 <- as.data.frame(matrix(byrow = TRUE, ncol = 7, data = list(
+                            ## prior_set, model, random_thresholds, n_studies, test, DGM, n_iter
+                            "set_1", "ord_bivariate", FALSE, 10, "BAI",   "ord_biv_fixed_C",  3200,
+                            "set_1", "ord_bivariate", FALSE, 10, "BAI",   "ord_biv_random_C", 3900,
+                            "set_1", "ord_bivariate", FALSE, 10, "BAI",   "R&G_random_C",     4150,
+                            "set_1", "ord_bivariate", FALSE, 10, "GAD_2", "ord_biv_fixed_C",  4300,
+                            "set_1", "ord_bivariate", FALSE, 10, "GAD_2", "ord_biv_random_C", 4800,
+                            "set_1", "ord_bivariate", FALSE, 10, "GAD_2", "R&G_random_C",     4300,
+                            "set_1", "ord_bivariate", FALSE, 10, "HADS",  "ord_biv_fixed_C",  3400,
+                            "set_1", "ord_bivariate", FALSE, 10, "HADS",  "ord_biv_random_C", 3300,
+                            "set_1", "ord_bivariate", FALSE, 10, "HADS",  "R&G_random_C",     30750,
+                            "set_1", "ord_bivariate", FALSE, 50, "BAI",   "ord_biv_fixed_C",  2550,
+                            "set_1", "ord_bivariate", FALSE, 50, "BAI",   "ord_biv_random_C", 2500,
+                            "set_1", "ord_bivariate", FALSE, 50, "BAI",   "R&G_random_C",     1800,
+                            "set_1", "ord_bivariate", FALSE, 50, "GAD_2", "ord_biv_fixed_C",  2350,
+                            "set_1", "ord_bivariate", FALSE, 50, "GAD_2", "ord_biv_random_C", 2800,
+                            "set_1", "ord_bivariate", FALSE, 50, "GAD_2", "R&G_random_C",     2050,
+                            "set_1", "ord_bivariate", FALSE, 50, "HADS",  "ord_biv_fixed_C",  2050,
+                            "set_1", "ord_bivariate", FALSE, 50, "HADS",  "ord_biv_random_C", 2350,
+                            "set_1", "ord_bivariate", FALSE, 50, "HADS",  "R&G_random_C",     1550,
+                            "set_1", "ord_bivariate", TRUE,  10, "BAI",   "ord_biv_fixed_C",  9900,
+                            "set_1", "ord_bivariate", TRUE,  10, "BAI",   "ord_biv_random_C", 16000,
+                            "set_1", "ord_bivariate", TRUE,  10, "BAI",   "R&G_random_C",     14000,
+                            "set_1", "ord_bivariate", TRUE,  10, "GAD_2", "ord_biv_fixed_C",  13600,
+                            "set_1", "ord_bivariate", TRUE,  10, "GAD_2", "ord_biv_random_C", 9250,
+                            "set_1", "ord_bivariate", TRUE,  10, "GAD_2", "R&G_random_C",     6700,
+                            "set_1", "ord_bivariate", TRUE,  10, "HADS",  "ord_biv_fixed_C",  9700,
+                            "set_1", "ord_bivariate", TRUE,  10, "HADS",  "ord_biv_random_C", 13400,
+                            "set_1", "ord_bivariate", TRUE,  10, "HADS",  "R&G_random_C",     16100,
+                            "set_1", "ord_bivariate", TRUE,  50, "BAI",   "ord_biv_fixed_C",  6200,
+                            "set_1", "ord_bivariate", TRUE,  50, "BAI",   "ord_biv_random_C", 11850,
+                            "set_1", "ord_bivariate", TRUE,  50, "BAI",   "R&G_random_C",     14800,
+                            "set_1", "ord_bivariate", TRUE,  50, "GAD_2", "ord_biv_fixed_C",  23600,
+                            "set_1", "ord_bivariate", TRUE,  50, "GAD_2", "ord_biv_random_C", 4200,
+                            "set_1", "ord_bivariate", TRUE,  50, "GAD_2", "R&G_random_C",     1150,
+                            "set_1", "ord_bivariate", TRUE,  50, "HADS",  "ord_biv_fixed_C",  1850,
+                            "set_1", "ord_bivariate", TRUE,  50, "HADS",  "ord_biv_random_C", 5600,
+                            "set_1", "ord_bivariate", TRUE,  50, "HADS",  "R&G_random_C",     7600,
+                            "set_1", "Bivariate",     FALSE, 10, "BAI",   "ord_biv_fixed_C",  5200,
+                            "set_1", "Bivariate",     FALSE, 10, "BAI",   "ord_biv_random_C", 5350,
+                            "set_1", "Bivariate",     FALSE, 10, "BAI",   "R&G_random_C",     6750,
+                            "set_1", "Bivariate",     FALSE, 10, "GAD_2", "ord_biv_fixed_C",  3550,
+                            "set_1", "Bivariate",     FALSE, 10, "GAD_2", "ord_biv_random_C", 14050,
+                            "set_1", "Bivariate",     FALSE, 10, "GAD_2", "R&G_random_C",     3700,
+                            "set_1", "Bivariate",     FALSE, 10, "HADS",  "ord_biv_fixed_C",  6450,
+                            "set_1", "Bivariate",     FALSE, 10, "HADS",  "ord_biv_random_C", 5100,
+                            "set_1", "Bivariate",     FALSE, 10, "HADS",  "R&G_random_C",     6150,
+                            "set_1", "Bivariate",     FALSE, 50, "BAI",   "ord_biv_fixed_C",  1700,
+                            "set_1", "Bivariate",     FALSE, 50, "BAI",   "ord_biv_random_C", 1800,
+                            "set_1", "Bivariate",     FALSE, 50, "BAI",   "R&G_random_C",     1150,
+                            "set_1", "Bivariate",     FALSE, 50, "GAD_2", "ord_biv_fixed_C",  900,
+                            "set_1", "Bivariate",     FALSE, 50, "GAD_2", "ord_biv_random_C", 1000,
+                            "set_1", "Bivariate",     FALSE, 50, "GAD_2", "R&G_random_C",     700,
+                            "set_1", "Bivariate",     FALSE, 50, "HADS",  "ord_biv_fixed_C",  1500,
+                            "set_1", "Bivariate",     FALSE, 50, "HADS",  "ord_biv_random_C", 1300,
+                            "set_1", "Bivariate",     FALSE, 50, "HADS",  "R&G_random_C",     950,
+                            "set_2", "ord_bivariate", FALSE, 10, "BAI",   "ord_biv_fixed_C",  3900,
+                            "set_2", "ord_bivariate", FALSE, 10, "BAI",   "ord_biv_random_C", 3600,
+                            "set_2", "ord_bivariate", FALSE, 10, "BAI",   "R&G_random_C",     4300,
+                            "set_2", "ord_bivariate", FALSE, 10, "GAD_2", "ord_biv_fixed_C",  26500,
+                            "set_2", "ord_bivariate", FALSE, 10, "GAD_2", "ord_biv_random_C", 4950,
+                            "set_2", "ord_bivariate", FALSE, 10, "GAD_2", "R&G_random_C",     5200,
+                            "set_2", "ord_bivariate", FALSE, 10, "HADS",  "ord_biv_fixed_C",  4100,
+                            "set_2", "ord_bivariate", FALSE, 10, "HADS",  "ord_biv_random_C", 4500,
+                            "set_2", "ord_bivariate", FALSE, 10, "HADS",  "R&G_random_C",     10200,
+                            "set_2", "ord_bivariate", FALSE, 50, "BAI",   "ord_biv_fixed_C",  2450,
+                            "set_2", "ord_bivariate", FALSE, 50, "BAI",   "ord_biv_random_C", 2400,
+                            "set_2", "ord_bivariate", FALSE, 50, "BAI",   "R&G_random_C",     1900,
+                            "set_2", "ord_bivariate", FALSE, 50, "GAD_2", "ord_biv_fixed_C",  2400,
+                            "set_2", "ord_bivariate", FALSE, 50, "GAD_2", "ord_biv_random_C", 2700,
+                            "set_2", "ord_bivariate", FALSE, 50, "GAD_2", "R&G_random_C",     2100,
+                            "set_2", "ord_bivariate", FALSE, 50, "HADS",  "ord_biv_fixed_C",  2200,
+                            "set_2", "ord_bivariate", FALSE, 50, "HADS",  "ord_biv_random_C", 3350,
+                            "set_2", "ord_bivariate", FALSE, 50, "HADS",  "R&G_random_C",     1850,
+                            "set_2", "ord_bivariate", TRUE,  10, "BAI",   "ord_biv_fixed_C",  8950,
+                            "set_2", "ord_bivariate", TRUE,  10, "BAI",   "ord_biv_random_C", 11750,
+                            "set_2", "ord_bivariate", TRUE,  10, "BAI",   "R&G_random_C",     9500,
+                            "set_2", "ord_bivariate", TRUE,  10, "GAD_2", "ord_biv_fixed_C",  11700,
+                            "set_2", "ord_bivariate", TRUE,  10, "GAD_2", "ord_biv_random_C", 17050,
+                            "set_2", "ord_bivariate", TRUE,  10, "GAD_2", "R&G_random_C",     7200,
+                            "set_2", "ord_bivariate", TRUE,  10, "HADS",  "ord_biv_fixed_C",  25750,
+                            "set_2", "ord_bivariate", TRUE,  10, "HADS",  "ord_biv_random_C", 13900,
+                            "set_2", "ord_bivariate", TRUE,  10, "HADS",  "R&G_random_C",     12700,
+                            "set_2", "ord_bivariate", TRUE,  50, "BAI",   "ord_biv_fixed_C",  3500,
+                            "set_2", "ord_bivariate", TRUE,  50, "BAI",   "ord_biv_random_C", 17500,
+                            "set_2", "ord_bivariate", TRUE,  50, "BAI",   "R&G_random_C",     9300,
+                            "set_2", "ord_bivariate", TRUE,  50, "GAD_2", "ord_biv_fixed_C",  21750,
+                            "set_2", "ord_bivariate", TRUE,  50, "GAD_2", "ord_biv_random_C", 4650,
+                            "set_2", "ord_bivariate", TRUE,  50, "GAD_2", "R&G_random_C",     1100,
+                            "set_2", "ord_bivariate", TRUE,  50, "HADS",  "ord_biv_fixed_C",  2100,
+                            "set_2", "ord_bivariate", TRUE,  50, "HADS",  "ord_biv_random_C", 6500,
+                            "set_2", "ord_bivariate", TRUE,  50, "HADS",  "R&G_random_C",     5050,
+                            "set_2", "Bivariate",     FALSE, 10, "BAI",   "ord_biv_fixed_C",  5250,
+                            "set_2", "Bivariate",     FALSE, 10, "BAI",   "ord_biv_random_C", 9900,
+                            "set_2", "Bivariate",     FALSE, 10, "BAI",   "R&G_random_C",     5650,
+                            "set_2", "Bivariate",     FALSE, 10, "GAD_2", "ord_biv_fixed_C",  4000,
+                            "set_2", "Bivariate",     FALSE, 10, "GAD_2", "ord_biv_random_C", 9150,
+                            "set_2", "Bivariate",     FALSE, 10, "GAD_2", "R&G_random_C",     8850,
+                            "set_2", "Bivariate",     FALSE, 10, "HADS",  "ord_biv_fixed_C",  5000,
+                            "set_2", "Bivariate",     FALSE, 10, "HADS",  "ord_biv_random_C", 25200,
+                            "set_2", "Bivariate",     FALSE, 10, "HADS",  "R&G_random_C",     5800,
+                            "set_2", "Bivariate",     FALSE, 50, "BAI",   "ord_biv_fixed_C",  1850,
+                            "set_2", "Bivariate",     FALSE, 50, "BAI",   "ord_biv_random_C", 1900,
+                            "set_2", "Bivariate",     FALSE, 50, "BAI",   "R&G_random_C",     1200,
+                            "set_2", "Bivariate",     FALSE, 50, "GAD_2", "ord_biv_fixed_C",  800,
+                            "set_2", "Bivariate",     FALSE, 50, "GAD_2", "ord_biv_random_C", 950,
+                            "set_2", "Bivariate",     FALSE, 50, "GAD_2", "R&G_random_C",     700,
+                            "set_2", "Bivariate",     FALSE, 50, "HADS",  "ord_biv_fixed_C",  1550,
+                            "set_2", "Bivariate",     FALSE, 50, "HADS",  "ord_biv_random_C", 1400,
+                            "set_2", "Bivariate",     FALSE, 50, "HADS",  "R&G_random_C",     950),
+                            dimnames = list(NULL, c("prior_set", "model", "random_thresholds", "n_studies", "test", "DGM",
+                                                    "n_iter"))))
+                      row_of_this_cell <- which(n_iter_of_sets_1_and_2$prior_set == prior_set &
+                                                n_iter_of_sets_1_and_2$model == model_parameterisation &
+                                                n_iter_of_sets_1_and_2$random_thresholds == random_thresholds &
+                                                n_iter_of_sets_1_and_2$n_studies == n_studies &
+                                                n_iter_of_sets_1_and_2$test == test &
+                                                n_iter_of_sets_1_and_2$DGM == DGM)
+                      if (length(row_of_this_cell) == 1 &&
+                          N_per_study_mean == 500) {
+
+                            n_iter_for_4_chains <- n_iter_of_sets_1_and_2$n_iter[[row_of_this_cell]]
+
+                      }
+
+          }
+          ##
           if (nzchar(Sys.getenv("N_ITER_FOR_4_CHAINS"))) {
                 n_iter_for_4_chains <- as.integer(Sys.getenv("N_ITER_FOR_4_CHAINS"))
           }
