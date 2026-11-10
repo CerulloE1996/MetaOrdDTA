@@ -728,8 +728,8 @@ run_multiple_sims <- function(MCMC_seed,
                               priors$prior_kappa_SD <- c(0.5, 0.5)
                               priors$prior_kappa_dof <- c(1000, 1000)
                         } else if (Sys.getenv("KAPPA_PRIOR") %in% c("", "wide")) {
-                              priors$prior_kappa_mean <- c(log(150), log(150))
-                              priors$prior_kappa_SD <- c(1.25, 1.25)
+                              priors$prior_kappa_mean <- c(log(125), log(125))
+                              priors$prior_kappa_SD <- c(1.0, 1.0)
                               priors$prior_kappa_dof <- c(1000, 1000)
                         }
                         ## (KAPPA_PRIOR_MEDIAN and KAPPA_PRIOR_SD: a kappa prior to test,
