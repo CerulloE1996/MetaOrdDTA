@@ -1641,7 +1641,7 @@ fn_induced_accuracy_priors <- function(priors,
         ##      it the package passes the fields with the prior off): the link-scale Normal as its median and 95% limits, the
         ##      Beta of the stratified bivariate as it is
         ##
-        if (prior_set > 0 && model_parameterisation != "Jones") {
+        if (prior_set > 0) {
 
               stopifnot(priors$use_probit_link %in% c(0, 1))
               fn_inverse_link <-  if (priors$use_probit_link == 1) stats::pnorm else stats::plogis
@@ -1720,6 +1720,15 @@ fn_induced_accuracy_priors <- function(priors,
               priors$prior_one_hill_skew <-  lapply(1:2, fn_values_of_one_name, name = "skew", n_values = 3)
               priors$prior_one_hill_log_tail <-  lapply(1:2, fn_values_of_one_name, name = "log_tail", n_values = 3)
               priors$prior_one_hill_bend <-  lapply(1:2, fn_values_of_one_name, name = "bend", n_values = 2)
+              ## (set 0: the list the package builds the Se / Sp prior fields above from, as sets 1 and 2 have; without
+              ##  it the package passes them with use_Se_Sp_prior = 0, which the model refuses under the one-hill prior)
+              if (prior_set == 0) {
+                    priors$Se_Sp_prior <-  list(type = 1,
+                                                Sp = list(cutoffs = cutoffs,
+                                                          A = priors$prior_Se_Sp_dirichlet_A[[1]]),
+                                                Se = list(cutoffs = cutoffs,
+                                                          A = priors$prior_Se_Sp_dirichlet_A[[2]]))
+              }
         }
         return(priors)
 
