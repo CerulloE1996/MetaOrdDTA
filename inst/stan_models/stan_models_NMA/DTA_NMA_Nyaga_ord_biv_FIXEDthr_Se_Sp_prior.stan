@@ -267,6 +267,14 @@ transformed parameters {
                     int n_thr_t = n_thr[t];
                     vector[n_thr_t] C_raw_vec_test_t = get_test_values(C_raw_vec[c], start_index, end_index, t);
                     vector[n_thr_t] C_vec_test_t =  construct_C(C_raw_vec_test_t, softplus);
+                    //// (under the Se / Sp prior: cutpoints relative to the intercept of the baseline case of test t)
+                    if (use_Se_Sp_prior == 1) {
+                          C_vec_test_t += (c == 1) ?
+                                dot_product(baseline_case_nd[t][1:n_covariates_nd[t]],
+                                            to_vector(beta_mu[t][1, 1:n_covariates_nd[t]])) :
+                                dot_product(baseline_case_d[t][1:n_covariates_d[t]],
+                                            to_vector(beta_mu[t][2, 1:n_covariates_d[t]]));
+                    }
                     C_vec[c] = update_test_values(C_vec[c], C_vec_test_t, start_index, end_index, t);
               }
           }

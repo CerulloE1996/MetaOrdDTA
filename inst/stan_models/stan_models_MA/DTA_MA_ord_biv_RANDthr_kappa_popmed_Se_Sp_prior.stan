@@ -250,6 +250,14 @@ transformed parameters {
               }
         }
         ////
+        //// ---- Under the Se / Sp prior: cutpoints relative to the intercept of the baseline case (the Se / Sp
+        ////      prior and the likelihood hold C - Xbeta only, so the raw cutpoints are then free of beta_mu):
+        ////
+        if (use_Se_Sp_prior == 1) {
+             C[1] += dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd]));
+             C[2] += dot_product(baseline_case_d,  to_vector(beta_mu[2, 1:n_covariates_d]));
+        }
+        ////
         //// ---- Construct simple 2x2 (bivariate) between-study corr matrices:
         ////
         cholesky_factor_corr[2] beta_L_Omega = make_bivariate_L_Omega(beta_corr);
@@ -350,7 +358,8 @@ model {
                               prior_dirichlet_alpha[c],
                               alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
                               chosen_cutoffs[c, 1:n_chosen_cutoffs[c]], Se_Sp_prior_type,
-                              prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)], prior_beta_of_this_class,
+                              prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)], 
+                              prior_beta_of_this_class,
                               prior_link_mean_SD_of_this_class,
                               use_probit_link);
 
