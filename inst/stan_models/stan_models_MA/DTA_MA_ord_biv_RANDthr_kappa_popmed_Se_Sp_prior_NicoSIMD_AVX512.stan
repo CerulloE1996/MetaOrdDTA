@@ -340,6 +340,14 @@ transformed parameters {
               }
         }
         ////
+        //// ---- Under the Se / Sp prior: cutpoints relative to the intercept of the baseline case (the Se / Sp
+        ////      prior and the likelihood hold C - Xbeta only, so the raw cutpoints are then free of beta_mu):
+        ////
+        if (use_Se_Sp_prior == 1) {
+             C[1] += dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd]));
+             C[2] += dot_product(baseline_case_d,  to_vector(beta_mu[2, 1:n_covariates_d]));
+        }
+        ////
         //// ---- Construct simple 2x2 (bivariate) between-study corr matrices:
         ////
         cholesky_factor_corr[2] beta_L_Omega = make_bivariate_L_Omega(beta_corr);
