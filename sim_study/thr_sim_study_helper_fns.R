@@ -1558,9 +1558,8 @@ fn_induced_accuracy_priors <- function(priors,
                            Sp_mean = list(c(0.13, 0.33, 0.61, 0.88), c(0.50, 0.71, 1.02, 1.34)),
                            Sp_SD = c(0.19, 0.19, 0.21, 0.24))
         )[[test]]
-        ## (the band of thresholds of each test, and the SD of every intercept prior)
+        ## (the band of thresholds of each test)
         band <-  list(GAD_2 = 1:6, HADS = 3:17, BAI = 5:43)[[test]]
-        SD_of_the_intercept <-  1.0
         ##
         ## ---- The stratified bivariate: its one prior, a Normal on mu ([[1]] probit Se, [[2]] probit Sp) at every threshold:
         ##      N(0, 1) at prior set 0 and outside the band; at sets 1 and 2, its mean and SD at every cutoff of the band
@@ -1646,20 +1645,6 @@ fn_induced_accuracy_priors <- function(priors,
                                           Sp = fn_median_and_limits(mean_of_Sp, SD_of_Sp),
                                           Se = fn_median_and_limits(mean_of_Se, SD_of_Se))
 
-        }
-        ##
-        ## ---- The Dirichlet alpha the induced-accuracy prior divides out, and the intercept priors:
-        ##
-        if (model_parameterisation == "ord_bivariate") {
-              priors$prior_dirichlet_alpha <-  list(rep(1.0, n_thr + 1), rep(1.0, n_thr + 1))
-              priors$prior_beta_mu_mean[1, 1] <-  0
-              priors$prior_beta_mu_mean[2, 1] <-  0
-              priors$prior_beta_mu_SD[1, 1] <-  SD_of_the_intercept
-              priors$prior_beta_mu_SD[2, 1] <-  SD_of_the_intercept
-        } else if (model_parameterisation == "R&G") {
-              priors$prior_dirichlet_alpha <-  rep(1.0, n_thr + 1)
-              priors$prior_beta_mu_mean[1] <-  0
-              priors$prior_beta_mu_SD[1] <-  SD_of_the_intercept
         }
         ##
         ## ---- Jones: the one-hill Se / Sp prior of prior sets 0, 1 and 2: the baseline location, log(scale) and lambda of
