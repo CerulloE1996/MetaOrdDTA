@@ -154,7 +154,9 @@ interest_only_params <- if (model_parameterisation == "ord_bivariate") {
                         }
 environment_of_the_runner_values <-  list2env(list(n_burnin             = n_burnin,
                                                    nuisance_params      = nuisance_params,
-                                                   interest_only_params = interest_only_params))
+                                                   interest_only_params = interest_only_params,
+                                                   Stan_file_of_the_fused_version = NULL,
+                                                   sampler_settings_to_test = list()))
 NicoStan_args <-  eval(sample_call_of_the_runner$NicoStan_args, envir = environment_of_the_runner_values)
 adapt_delta <-  eval(sample_call_of_the_runner$adapt_delta)
 max_treedepth <-  eval(sample_call_of_the_runner$max_treedepth)
