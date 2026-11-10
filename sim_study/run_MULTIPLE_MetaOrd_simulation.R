@@ -521,7 +521,7 @@ run_multiple_sims <- function(MCMC_seed,
           ## ---- The iterations per chain (4 chains) of each cell of prior sets 1 and 2 ---------------------------------------------------
           ##
           ## (from the 10 pilot fits of 1000 iterations of each cell that reach the min ESS within 10,000 iterations:
-          ##  the ord-biv models with the cutpoints relative to the intercept, and the stratified bivariate)
+          ##  the ord-biv models with the cutpoints relative to the intercept, the stratified bivariate and R&G)
           {
 
                       n_iter_of_sets_1_and_2 <- as.data.frame(matrix(byrow = TRUE, ncol = 7, data = list(
@@ -633,7 +633,43 @@ run_multiple_sims <- function(MCMC_seed,
                             "set_2", "Bivariate",     FALSE, 50, "GAD_2", "R&G_random_C",     700,
                             "set_2", "Bivariate",     FALSE, 50, "HADS",  "ord_biv_fixed_C",  1550,
                             "set_2", "Bivariate",     FALSE, 50, "HADS",  "ord_biv_random_C", 1400,
-                            "set_2", "Bivariate",     FALSE, 50, "HADS",  "R&G_random_C",     950),
+                            "set_2", "Bivariate",     FALSE, 50, "HADS",  "R&G_random_C",     950,
+                            "set_1", "R&G",           TRUE,  10, "BAI",   "ord_biv_fixed_C",  6600,
+                            "set_1", "R&G",           TRUE,  10, "BAI",   "ord_biv_random_C", 4700,
+                            "set_1", "R&G",           TRUE,  10, "BAI",   "R&G_random_C",     4500,
+                            "set_1", "R&G",           TRUE,  10, "GAD_2", "ord_biv_fixed_C",  3900,
+                            "set_1", "R&G",           TRUE,  10, "GAD_2", "ord_biv_random_C", 4050,
+                            "set_1", "R&G",           TRUE,  10, "GAD_2", "R&G_random_C",     3800,
+                            "set_1", "R&G",           TRUE,  10, "HADS",  "ord_biv_fixed_C",  4750,
+                            "set_1", "R&G",           TRUE,  10, "HADS",  "ord_biv_random_C", 4650,
+                            "set_1", "R&G",           TRUE,  10, "HADS",  "R&G_random_C",     4350,
+                            "set_1", "R&G",           TRUE,  50, "BAI",   "ord_biv_fixed_C",  3200,
+                            "set_1", "R&G",           TRUE,  50, "BAI",   "ord_biv_random_C", 2800,
+                            "set_1", "R&G",           TRUE,  50, "BAI",   "R&G_random_C",     4150,
+                            "set_1", "R&G",           TRUE,  50, "GAD_2", "ord_biv_fixed_C",  1600,
+                            "set_1", "R&G",           TRUE,  50, "GAD_2", "ord_biv_random_C", 1150,
+                            "set_1", "R&G",           TRUE,  50, "GAD_2", "R&G_random_C",     1050,
+                            "set_1", "R&G",           TRUE,  50, "HADS",  "ord_biv_fixed_C",  1800,
+                            "set_1", "R&G",           TRUE,  50, "HADS",  "ord_biv_random_C", 1900,
+                            "set_1", "R&G",           TRUE,  50, "HADS",  "R&G_random_C",     2300,
+                            "set_2", "R&G",           TRUE,  10, "BAI",   "ord_biv_fixed_C",  2900,
+                            "set_2", "R&G",           TRUE,  10, "BAI",   "ord_biv_random_C", 3700,
+                            "set_2", "R&G",           TRUE,  10, "BAI",   "R&G_random_C",     6150,
+                            "set_2", "R&G",           TRUE,  10, "GAD_2", "ord_biv_fixed_C",  4850,
+                            "set_2", "R&G",           TRUE,  10, "GAD_2", "ord_biv_random_C", 5950,
+                            "set_2", "R&G",           TRUE,  10, "GAD_2", "R&G_random_C",     6900,
+                            "set_2", "R&G",           TRUE,  10, "HADS",  "ord_biv_fixed_C",  6950,
+                            "set_2", "R&G",           TRUE,  10, "HADS",  "ord_biv_random_C", 5650,
+                            "set_2", "R&G",           TRUE,  10, "HADS",  "R&G_random_C",     5750,
+                            "set_2", "R&G",           TRUE,  50, "BAI",   "ord_biv_fixed_C",  3850,
+                            "set_2", "R&G",           TRUE,  50, "BAI",   "ord_biv_random_C", 3200,
+                            "set_2", "R&G",           TRUE,  50, "BAI",   "R&G_random_C",     4150,
+                            "set_2", "R&G",           TRUE,  50, "GAD_2", "ord_biv_fixed_C",  1350,
+                            "set_2", "R&G",           TRUE,  50, "GAD_2", "ord_biv_random_C", 1200,
+                            "set_2", "R&G",           TRUE,  50, "GAD_2", "R&G_random_C",     1250,
+                            "set_2", "R&G",           TRUE,  50, "HADS",  "ord_biv_fixed_C",  2450,
+                            "set_2", "R&G",           TRUE,  50, "HADS",  "ord_biv_random_C", 1750,
+                            "set_2", "R&G",           TRUE,  50, "HADS",  "R&G_random_C",     2450),
                             dimnames = list(NULL, c("prior_set", "model", "random_thresholds", "n_studies", "test", "DGM",
                                                     "n_iter"))))
                       row_of_this_cell <- which(n_iter_of_sets_1_and_2$prior_set == prior_set &
