@@ -738,71 +738,66 @@ run_multiple_sims <- function(MCMC_seed,
                                             ##
                                                   NicoStan_args = c(list(
                                             ## (every $sample setting that changes sampling, written out)
-                                            adapt_delta                          = if (nzchar(Sys.getenv("ADAPT_DELTA")))
-                                                  as.numeric(Sys.getenv("ADAPT_DELTA")) else 0.80,  ## the PS7 value
+                                            adapt_delta                          = 0.80,  ## the PS7 value
                                             ## (the paper's models, sampled with no auto-chunking library; every model,
                                             ##  the Jones model included, runs its fused AVX file)
                                             auto_chunking                        = FALSE,
-                                            debug                                = Sys.getenv("DUMP_BURNIN_TRACE") == "1",
+                                            debug                                = FALSE,
                                             Stan_file_of_the_fused_version       = Stan_file_of_the_fused_version,
                                             ###
                                             # metric_shape_main                    = "dense", ## --------
-                                            metric_shape_main                    = if (nzchar(Sys.getenv("METRIC_SHAPE_MAIN")))
-                                                  Sys.getenv("METRIC_SHAPE_MAIN") else "diag",    ## --------
+                                            metric_shape_main                    = "diag",    ## --------
                                             ##
                                             nuisance_params                      = nuisance_params,
                                             sample_nuisance                      = !is.null(nuisance_params),
-                                            ## (NUISANCE_TO_TRACK = "none": no nuisance values kept for the summary or the traces)
-                                            nuisance_to_track                    = if (nzchar(Sys.getenv("NUISANCE_TO_TRACK")))
-                                                  strsplit(Sys.getenv("NUISANCE_TO_TRACK"), ",")[[1]] else NULL,
-                                            diffusion_HMC                        = Sys.getenv("DIFFUSION_HMC") != "0",
-                                            diffusion_HMC_integrator             = if (nzchar(Sys.getenv("DIFFUSION_HMC_INTEGRATOR"))) Sys.getenv("DIFFUSION_HMC_INTEGRATOR") else "kick_flow_kick",  ## signature
+                                            ## ("none": no nuisance values kept for the summary or the traces)
+                                            nuisance_to_track                    = "none",
+                                            diffusion_HMC                        = TRUE,
+                                            diffusion_HMC_integrator             = "kick_flow_kick",  ## signature
                                             partitioned_HMC                      = FALSE,  ## R_fn_sample.R:1606
                                             ##
-                                            burnin_algorithm                     = if (nzchar(Sys.getenv("BURNIN_ALGORITHM"))) Sys.getenv("BURNIN_ALGORITHM") else "ESJD", ## --------
+                                            burnin_algorithm                     = "ESJD", ## --------
                                             ##
                                             n_adapt                              = n_burnin - round(n_burnin / 10),
-                                            clip_iter                            = if (nzchar(Sys.getenv("CLIP_ITER"))) as.integer(Sys.getenv("CLIP_ITER")) else NULL, ## 20,
-                                            clip_iter_tau                        = if (nzchar(Sys.getenv("CLIP_ITER_TAU"))) as.integer(Sys.getenv("CLIP_ITER_TAU")) else NULL, ## 50,
+                                            clip_iter                            = 70L,
+                                            clip_iter_tau                        = 200L,
                                             n_refresh                            = round(n_burnin / 20),
                                             parallel_method                      = "RcppParallel",
                                             ##
                                             n_superchains                        = 4,
                                             ##
-                                            learning_rate                        = if (nzchar(Sys.getenv("LEARNING_RATE"))) as.numeric(Sys.getenv("LEARNING_RATE")) else 0.05,
+                                            learning_rate                        = 0.0625,
                                             # learning_rate                        = 0.025,
                                             ##
-                                            eps_initial                          = if (nzchar(Sys.getenv("EPS_INITIAL"))) as.numeric(Sys.getenv("EPS_INITIAL")) else NULL,
-                                            eps_initial_iter                     = if (nzchar(Sys.getenv("EPS_INITIAL_ITER"))) as.integer(Sys.getenv("EPS_INITIAL_ITER")) else NULL,
+                                            eps_initial                          = NULL,
+                                            eps_initial_iter                     = NULL,
                                             ##
-                                            tau_mult                             = if (nzchar(Sys.getenv("TAU_MULT"))) as.numeric(Sys.getenv("TAU_MULT")) else 1.60,  ## R_fn_sample.R:1355
+                                            tau_mult                             = 1.60,  ## R_fn_sample.R:1355
                                             manual_tau                           = FALSE,  ## R_fn_sample.R:1367
                                             tau_if_manual                        = 3.0,  ## R_fn_sample.R:1368
                                             ##
                                             tau_weight_by_p_jump                 = TRUE,  ## R_fn_sample.R:1421
                                             tau_ramp                             = "staged",
-                                            eps_reinit_at_ChEES_handover         = if (nzchar(Sys.getenv("EPS_REINIT_AT_HANDOVER"))) Sys.getenv("EPS_REINIT_AT_HANDOVER") == "1" else FALSE, ## ----
+                                            eps_reinit_at_ChEES_handover         = FALSE, ## ----
                                             ##
-                                            eps_acceptance_mean                  = if (nzchar(Sys.getenv("EPS_ACCEPTANCE_MEAN"))) Sys.getenv("EPS_ACCEPTANCE_MEAN") else "harmonic",
+                                            eps_acceptance_mean                  = "harmonic",
                                             ##
-                                            eps_reinit_after_pre_burnin          = Sys.getenv("EPS_REINIT_AFTER_PRE_BURNIN") != "0",  ## R_fn_sample.R:1425 ## --------
+                                            eps_reinit_after_pre_burnin          = TRUE,  ## R_fn_sample.R:1425 ## --------
                                             ##
-                                            tau_shrink_on_divergence             = Sys.getenv("TAU_SHRINK_ON_DIVERGENCE") == "1",  ## R_fn_sample.R:1426
+                                            tau_shrink_on_divergence             = FALSE,  ## R_fn_sample.R:1426
                                             tau_shrink_factor                    = 0.95,  ## R_fn_sample.R:1427
                                             tau_shrink_min_divergent_chains      = 2,  ## R_fn_sample.R:1428
                                             ##
-                                            share_tau_ii_across_chains_in_burnin = Sys.getenv("SHARE_TAU_II") == "1",
-                                            force_multi_attempts_for_metric      = Sys.getenv("FORCE_MULTI_ATTEMPTS_FOR_METRIC") == "1",
+                                            share_tau_ii_across_chains_in_burnin = FALSE,
+                                            force_multi_attempts_for_metric      = FALSE,
                                             ##
-                                            tau_initial                          = if (nzchar(Sys.getenv("TAU_INITIAL"))) (if (Sys.getenv("TAU_INITIAL") == "pi") pi else if (Sys.getenv("TAU_INITIAL") == "2pi") 2 * pi else Sys.getenv("TAU_INITIAL")) else "adaptive", ## pi ## --------
+                                            tau_initial                          = "adaptive", ## pi ## --------
                                             tau_adaptation_block                 = "main",  ## --------
                                             interest_only                        = NULL,
                                             ##
-                                            tau_sampling_scale                   = if (nzchar(Sys.getenv("TAU_SAMPLING_SCALE"))) as.numeric(Sys.getenv("TAU_SAMPLING_SCALE")) else "none",  ## R_fn_sample.R:1446
-                                            tau_jitter_burnin                    = if (nzchar(Sys.getenv("TAU_JITTER_BURNIN")))
-                                                  Sys.getenv("TAU_JITTER_BURNIN") else "uniform",
-                                            tau_jitter_sampling_type             = if (nzchar(Sys.getenv("TAU_JITTER_BURNIN")))
-                                                  Sys.getenv("TAU_JITTER_BURNIN") else "uniform",  ## same as burn-in
+                                            tau_sampling_scale                   = "none",  ## R_fn_sample.R:1446
+                                            tau_jitter_burnin                    = "uniform",
+                                            tau_jitter_sampling_type             = "uniform",  ## same as burn-in
                                             ##
                                             randomize_tau_burnin                 = TRUE,  ## signature
                                             randomize_tau_sampling               = TRUE,  ## signature
@@ -811,7 +806,7 @@ run_multiple_sims <- function(MCMC_seed,
                                             ##
                                             metric_type_main                     = "Empirical",
                                             ratio_M_main                         = 0.90,  ## R_fn_sample.R:1686
-                                            interval_width_main                  = if (nzchar(Sys.getenv("INTERVAL_WIDTH_MAIN"))) as.integer(Sys.getenv("INTERVAL_WIDTH_MAIN")) else 1,  ## R_fn_sample.R:1689
+                                            interval_width_main                  = 1,  ## R_fn_sample.R:1689
                                             ##
                                             metric_type_nuisance                 = "Empirical",
                                             metric_shape_nuisance                = "diag",  ## R_fn_sample.R:1697
@@ -820,9 +815,9 @@ run_multiple_sims <- function(MCMC_seed,
                                             ##
                                             max_eps_main                         = 1.0,  ## R_fn_sample.R:1708
                                             max_eps_nuisance                     = 1.0,  ## R_fn_sample.R:1709
-                                            max_tau_main                         = if (nzchar(Sys.getenv("MAX_TAU"))) as.numeric(Sys.getenv("MAX_TAU")) else 50,
-                                            max_tau_nuisance                     = if (nzchar(Sys.getenv("MAX_TAU"))) as.numeric(Sys.getenv("MAX_TAU")) else 50,
-                                            max_L                                = if (nzchar(Sys.getenv("MAX_L"))) as.integer(Sys.getenv("MAX_L")) else 1024,  ## R_fn_sample.R:1764
+                                            max_tau_main                         = 50,
+                                            max_tau_nuisance                     = 50,
+                                            max_L                                = 1024,  ## R_fn_sample.R:1764
                                             ##
                                             ## (M_decay_*: helper fns 433 type, 436 scale, 440 power)
                                             M_decay_type                         = "inverse",
@@ -843,17 +838,15 @@ run_multiple_sims <- function(MCMC_seed,
                                             pre_burnin_L                         = NULL,  ## signature
                                             ##
                                             burnin_schedule                      = "automatic",  ## signature
-                                            esjd_jump_power                      = if ((random_thresholds == FALSE) && nzchar(Sys.getenv("ESJD_JUMP_POWER_OF_FIXED_C")))
-                                                                                       as.numeric(Sys.getenv("ESJD_JUMP_POWER_OF_FIXED_C")) else
-                                                                                   if (nzchar(Sys.getenv("ESJD_JUMP_POWER"))) as.numeric(Sys.getenv("ESJD_JUMP_POWER")) else 2,  ## signature
+                                            esjd_jump_power                      = 2,  ## signature
                                             tau_cost_exponent                    = 1,  ## signature
                                             ##
-                                            metric_update_rescales_eps_and_tau   = if (nzchar(Sys.getenv("METRIC_UPDATE_RESCALES"))) Sys.getenv("METRIC_UPDATE_RESCALES") == "1" else FALSE, ## signature ## ----
-                                            metric_update_rescales_tau           = if (nzchar(Sys.getenv("METRIC_UPDATE_RESCALES_TAU"))) Sys.getenv("METRIC_UPDATE_RESCALES_TAU") == "1" else TRUE,
-                                            initial_eps_search_at_each_chain     = Sys.getenv("INITIAL_EPS_SEARCH_AT_EACH_CHAIN") == "1",
+                                            metric_update_rescales_eps_and_tau   = FALSE, ## signature ## ----
+                                            metric_update_rescales_tau           = TRUE,
+                                            initial_eps_search_at_each_chain     = FALSE,
                                             ##
                                             pooled_metric_warm_up                = 8, ## says how many draws it waits for before its first estimate replaces the starting identity metric.
-                                            metric_start_iter                    = if (nzchar(Sys.getenv("METRIC_START_ITER"))) as.integer(Sys.getenv("METRIC_START_ITER")) else round(n_burnin/10) ## says WHEN the metric starts collecting draws.
+                                            metric_start_iter                    = round(n_burnin/10) ## says WHEN the metric starts collecting draws.
                                             ),
                                             ## (METRIC_POOLED_WINDOW_RESETS = none, or iterations split by commas)
                                             if (nzchar(Sys.getenv("METRIC_POOLED_WINDOW_RESETS")))
