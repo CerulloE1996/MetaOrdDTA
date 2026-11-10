@@ -718,7 +718,7 @@ run_multiple_sims <- function(MCMC_seed,
                 priors$prior_beta_mu_SD[1]      <- 1.0
                 priors$prior_beta_SD_SD         <- 0.5
                 ##
-                priors$prior_raw_scale_mu_SD    <- 0.1875   ## log-scale intercept: ONE value for every test
+                priors$prior_raw_scale_mu_SD    <- 1.0      ## log-scale intercept: N(0, 1), every test, no tuning
                 priors$prior_raw_scale_SD_SD    <- 0.5
                 ##
                 priors$prior_kappa_mean         <- log(125)
