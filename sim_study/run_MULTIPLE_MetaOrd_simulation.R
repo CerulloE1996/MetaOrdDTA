@@ -720,6 +720,9 @@ run_multiple_sims <- function(MCMC_seed,
                         tracer = bquote(saveRDS(data, paste0(.(file_of_the_Stan_data),
                                                          if (grepl("init", basename(file))) "_init" else ""))))
             }
+            ## (a test of sampler settings: the settings named in this file replace the values written below)
+            sampler_settings_to_test <- if (nzchar(Sys.getenv("SAMPLER_SETTINGS_TO_TEST")))
+                  readRDS(Sys.getenv("SAMPLER_SETTINGS_TO_TEST")) else list()
             model_samples_obj <- model_prep_obj$sample( seed = MCMC_seed, ## MCMC seed
                                             n_burnin = n_burnin,
                                             n_iter = n_iter,
@@ -736,7 +739,7 @@ run_multiple_sims <- function(MCMC_seed,
                                             # algorithm = "NicoStan",
                                             # algorithm = "Stan",
                                             ##
-                                                  NicoStan_args = c(list(
+                                                  NicoStan_args = utils::modifyList(c(list(
                                             ## (every $sample setting that changes sampling, written out)
                                             adapt_delta                          = 0.80,  ## the PS7 value
                                             ## (the paper's models, sampled with no auto-chunking library; every model,
@@ -761,6 +764,7 @@ run_multiple_sims <- function(MCMC_seed,
                                             n_adapt                              = n_burnin - round(n_burnin / 10),
                                             clip_iter                            = 70L,
                                             clip_iter_tau                        = 200L,
+                                            ##
                                             n_refresh                            = round(n_burnin / 20),
                                             parallel_method                      = "RcppParallel",
                                             ##
@@ -888,7 +892,8 @@ run_multiple_sims <- function(MCMC_seed,
                                                        first_iter_of_the_eps_doublings = if (nzchar(Sys.getenv("FIRST_ITER_OF_THE_EPS_DOUBLINGS")))
                                                              as.integer(Sys.getenv("FIRST_ITER_OF_THE_EPS_DOUBLINGS")) else 60L,
                                                        n_iter_between_the_eps_doublings = if (nzchar(Sys.getenv("N_ITER_BETWEEN_THE_EPS_DOUBLINGS")))
-                                                             as.integer(Sys.getenv("N_ITER_BETWEEN_THE_EPS_DOUBLINGS")) else 5L)))
+                                                             as.integer(Sys.getenv("N_ITER_BETWEEN_THE_EPS_DOUBLINGS")) else 5L)),
+                                                                                    sampler_settings_to_test))
             ##SO
             ## ---- Get summaries:
             ##
