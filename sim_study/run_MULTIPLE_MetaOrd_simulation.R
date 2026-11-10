@@ -741,9 +741,11 @@ run_multiple_sims <- function(MCMC_seed,
                 ##
                 priors$prior_raw_scale_SD_SD    <- c(0.5, 0.5)
                 ##
-                ## (no Box-Cox lambda prior is set here: the model uses its lambda prior line only when the one-hill Se / Sp prior
-                ##  is off (DTA_MA_Jones_Se_Sp_prior.stan, lines 442 to 444), and fn_induced_accuracy_priors switches the one-hill
-                ##  prior on for Jones in every prior set; so nothing here differs by test)
+                ## ---- TO FILL IN (Jones is done LAST, after every other model): the Box-Cox lambda prior, ONE value for every test.
+                ##      NA until it is decided. (As the model stands, this lambda prior line is used only when the one-hill Se / Sp
+                ##      prior is off: DTA_MA_Jones_Se_Sp_prior.stan, lines 442 to 444.)
+                priors$prior_boxcox_lambda_mean <- c(NA, NA)   ## TO FILL IN
+                priors$prior_boxcox_lambda_SD   <- c(NA, NA)   ## TO FILL IN
 
           } else if (model_parameterisation == "Bivariate") {
 
