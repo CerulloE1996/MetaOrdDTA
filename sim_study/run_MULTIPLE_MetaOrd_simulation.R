@@ -1019,6 +1019,8 @@ run_multiple_sims <- function(MCMC_seed,
                                             metric_update_rescales_eps_and_tau   = FALSE, ## signature ## ----
                                             metric_update_rescales_tau           = TRUE,
                                             initial_eps_search_at_each_chain     = FALSE,
+                                            ## (the sampling runs at the step size handed over by the burn-in)
+                                            calibrate_eps_on_sampling_chains_before_sampling = FALSE,
                                             ##
                                             pooled_metric_warm_up                = 8, ## says how many draws it waits for before its first estimate replaces the starting identity metric.
                                             metric_start_iter                    = round(n_burnin/10) ## says WHEN the metric starts collecting draws.
