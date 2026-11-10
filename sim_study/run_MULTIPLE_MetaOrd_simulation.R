@@ -732,6 +732,17 @@ run_multiple_sims <- function(MCMC_seed,
                               priors$prior_kappa_SD <- c(1.25, 1.25)
                               priors$prior_kappa_dof <- c(1000, 1000)
                         }
+                        ## (KAPPA_PRIOR_MEDIAN and KAPPA_PRIOR_SD: a kappa prior to test,
+                        ##  log(kappa) ~ Student-t(1000, log(median), SD) in both classes)
+                        if (nzchar(Sys.getenv("KAPPA_PRIOR_MEDIAN"))) {
+                              kappa_median_to_test <- as.numeric(Sys.getenv("KAPPA_PRIOR_MEDIAN"))
+                              kappa_SD_to_test <- as.numeric(Sys.getenv("KAPPA_PRIOR_SD"))
+                              priors$prior_kappa_mean <- c(log(kappa_median_to_test), log(kappa_median_to_test))
+                              priors$prior_kappa_SD <- c(kappa_SD_to_test, kappa_SD_to_test)
+                              priors$prior_kappa_dof <- c(1000, 1000)
+                              print(paste("kappa prior to test: median = ", kappa_median_to_test,
+                                          ", SD = ", kappa_SD_to_test))
+                        }
                         ##
                         for (kk in 1:n_chains) {
                           init_lists_per_chain[[kk]]$kappa <- c(50, 50)
