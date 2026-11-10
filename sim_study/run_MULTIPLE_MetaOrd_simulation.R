@@ -679,24 +679,30 @@ run_multiple_sims <- function(MCMC_seed,
 
                 ## ---- O-biv-FC (ordinal bivariate, fixed cutpoints):
                 priors$prior_dirichlet_alpha    <- list(rep(1.0, n_thr + 1), rep(1.0, n_thr + 1))  ## Dirichlet(1, ..., 1), each class
+                ##
                 priors$prior_beta_mu_mean[1, 1] <- 0     ## intercept, class 1
                 priors$prior_beta_mu_mean[2, 1] <- 0     ## intercept, class 2
                 priors$prior_beta_mu_SD[1, 1]   <- 1.0
                 priors$prior_beta_mu_SD[2, 1]   <- 1.0
+                ##
                 priors$prior_beta_SD_SD         <- c(0.5, 0.5)
 
           } else if (model_parameterisation == "ord_bivariate" && random_thresholds == TRUE) {
 
                 ## ---- O-biv-RC (ordinal bivariate, random cutpoints): log(kappa) ~ Student-t(dof, mean, SD) in each class
                 priors$prior_dirichlet_alpha    <- list(rep(1.0, n_thr + 1), rep(1.0, n_thr + 1))  ## Dirichlet(1, ..., 1), each class
+                ##
                 priors$prior_beta_mu_mean[1, 1] <- 0     ## intercept, class 1
                 priors$prior_beta_mu_mean[2, 1] <- 0     ## intercept, class 2
                 priors$prior_beta_mu_SD[1, 1]   <- 1.0
                 priors$prior_beta_mu_SD[2, 1]   <- 1.0
+                ##
                 priors$prior_beta_SD_SD         <- c(0.5, 0.5)
+                ##
                 priors$prior_kappa_mean         <- c(log(125), log(125))
                 priors$prior_kappa_SD           <- c(1.0, 1.0)
                 priors$prior_kappa_dof          <- c(1000, 1000)
+                ##
                 priors$kappa_lb                 <- 0.001
                 ## (initial values)
                 for (kk in 1:n_chains) {
@@ -706,14 +712,17 @@ run_multiple_sims <- function(MCMC_seed,
           } else if (model_parameterisation == "R&G" && random_thresholds == TRUE) {
 
                 ## ---- O-HSROC-RC (ordinal HSROC, random cutpoints): log(kappa) ~ Student-t(dof, mean, SD)
-                priors$prior_dirichlet_alpha    <- rep(1.0, n_thr + 1)                              ## Dirichlet(1, ..., 1)
+                priors$prior_dirichlet_alpha    <- rep(1.0, n_thr + 1) ## Dirichlet(1, ..., 1)
+                ##
                 priors$prior_beta_mu_mean[1]    <- 0     ## intercept
                 priors$prior_beta_mu_SD[1]      <- 1.0
                 priors$prior_beta_SD_SD         <- 0.5
-                priors$prior_raw_scale_mu_SD    <- c(HADS = 0.125, GAD_2 = 0.1875, BAI = 0.1875)[[test]]   ## log-scale intercept
+                ##
+                priors$prior_raw_scale_mu_SD    <- 0.1875   ## log-scale intercept: ONE value for every test
                 priors$prior_raw_scale_SD_SD    <- 0.5
-                priors$prior_kappa_mean         <- log(150)
-                priors$prior_kappa_SD           <- 1.25
+                ##
+                priors$prior_kappa_mean         <- log(125)
+                priors$prior_kappa_SD           <- 1.0
                 priors$prior_kappa_dof          <- 1000
                 priors$kappa_lb                 <- 0.001
                 ## (initial values)
