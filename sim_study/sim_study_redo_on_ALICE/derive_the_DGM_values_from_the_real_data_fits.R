@@ -117,10 +117,10 @@ for (test in names(folders)) {
       }
       ## ---- Jones (the Box-Cox cutpoints from the lambda medians, as the model makes them: the Box-Cox of the thresholds
       ##      1, ..., n_thr, then scaled to [-2, 2]):
-      ##      (a fit under the one-hill Se / Sp prior, 5th argument "one_hill": its parameters beta_mu, raw_scale_mu
-      ##      and lambda are the prior's 3 standard Normals, so the model's baseline location and raw scale are read
-      ##      from Xbeta_baseline_* and Xraw_scale_baseline_*, and its lambda from lambda_transformed, which the
-      ##      summary of the fit must hold)
+      ##      (a fit under the one-hill Se / Sp prior, 5th argument "one_hill": its parameters beta_mu,
+      ##      raw_scale_mu and lambda are the prior's 3 standard Normals, so the model's baseline location and
+      ##      raw scale are read from Xbeta_baseline_* and Xraw_scale_baseline_*, and its lambda from
+      ##      lambda_transformed, which the summary of the fit must hold)
       t <- find_fit(folders[[test]], "Jones", FALSE)
       one_hill <- identical(args[5], "one_hill")
       if (is.null(t)) emit("## ---- ", test, ", DGM Jones: NO FIT SAVED") else
