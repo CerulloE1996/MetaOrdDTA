@@ -166,12 +166,13 @@ run_multiple_sims <- function(MCMC_seed,
           use_custom_file <- FALSE
           custom_file_name <- NULL
           ##
-          ## (one file per model: its Se_Sp_prior fused AVX file; use_Se_Sp_prior = 0 is the model's own Dirichlet prior)
+          ## (one file per model: its fused AVX file; ordinal and Jones models: use_Se_Sp_prior = 0 is the model's own prior;
+          ##  the stratified bivariate has one prior only, the Normal on probit Se and Sp, so no such switch)
           if (model_parameterisation == "Bivariate") {
               use_custom_file  <- TRUE
-              custom_file_name <- "DTA_MA_strat_bivariate_Se_Sp_prior_NicoStan_fused_AVX.stan"
+              custom_file_name <- "DTA_MA_strat_bivariate_NicoStan_fused_AVX.stan"
           }
-          ## (the stratified bivariate is sampled from its fused file with no Se / Sp prior block)
+          ## (the stratified bivariate is sampled from its fused file)
           Stan_file_of_the_fused_version <- NULL
           if (model_parameterisation == "Bivariate") {
               Stan_file_of_the_fused_version <- system.file("stan_models", "stan_models_MA",
@@ -719,55 +720,60 @@ run_multiple_sims <- function(MCMC_seed,
           if (random_thresholds == TRUE) {
                 
                     if (model_parameterisation == "ord_bivariate") {
-                        priors$prior_beta_SD_SD <- c(0.5, 0.5)
-                        priors$prior_kappa_mean <- c(log(100), log(100))
-                        priors$prior_kappa_SD <- c(1.0, 1.0)
-                        priors$prior_kappa_dof <- c(5, 3) ## default = c(5, 5)#
-                        if (Sys.getenv("KAPPA_PRIOR") == "current") {
-                              priors$prior_kappa_mean <- c(log(300), log(300))
-                              priors$prior_kappa_SD <- c(0.5, 0.5)
-                              priors$prior_kappa_dof <- c(1000, 1000)
-                        } else if (Sys.getenv("KAPPA_PRIOR") %in% c("", "wide")) {
-                              priors$prior_kappa_mean <- c(log(125), log(125))
-                              priors$prior_kappa_SD <- c(1.0, 1.0)
-                              priors$prior_kappa_dof <- c(1000, 1000)
-                        }
-                        ## (KAPPA_PRIOR_MEDIAN and KAPPA_PRIOR_SD: a kappa prior to test,
-                        ##  log(kappa) ~ Student-t(1000, log(median), SD) in both classes)
-                        if (nzchar(Sys.getenv("KAPPA_PRIOR_MEDIAN"))) {
-                              kappa_median_to_test <- as.numeric(Sys.getenv("KAPPA_PRIOR_MEDIAN"))
-                              kappa_SD_to_test <- as.numeric(Sys.getenv("KAPPA_PRIOR_SD"))
-                              priors$prior_kappa_mean <- c(log(kappa_median_to_test), log(kappa_median_to_test))
-                              priors$prior_kappa_SD <- c(kappa_SD_to_test, kappa_SD_to_test)
-                              priors$prior_kappa_dof <- c(1000, 1000)
-                              print(paste("kappa prior to test: median = ", kappa_median_to_test,
-                                          ", SD = ", kappa_SD_to_test))
-                        }
-                        ##
-                        for (kk in 1:n_chains) {
-                          init_lists_per_chain[[kk]]$kappa <- c(50, 50)
-                        }
+                      
+                            priors$prior_beta_SD_SD <- c(0.5, 0.5)
+                            priors$prior_kappa_mean <- c(log(100), log(100))
+                            priors$prior_kappa_SD <- c(1.0, 1.0)
+                            priors$prior_kappa_dof <- c(5, 3) ## default = c(5, 5)#
+                            ##
+                            if (Sys.getenv("KAPPA_PRIOR") == "current") {
+                                  priors$prior_kappa_mean <- c(log(300), log(300))
+                                  priors$prior_kappa_SD <- c(0.5, 0.5)
+                                  priors$prior_kappa_dof <- c(1000, 1000)
+                            } else if (Sys.getenv("KAPPA_PRIOR") %in% c("", "wide")) {
+                                  priors$prior_kappa_mean <- c(log(125), log(125))
+                                  priors$prior_kappa_SD <- c(1.0, 1.0)
+                                  priors$prior_kappa_dof <- c(1000, 1000)
+                            }
+                            ## (KAPPA_PRIOR_MEDIAN and KAPPA_PRIOR_SD: a kappa prior to test,
+                            ##  log(kappa) ~ Student-t(1000, log(median), SD) in both classes)
+                            if (nzchar(Sys.getenv("KAPPA_PRIOR_MEDIAN"))) {
+                                  kappa_median_to_test <- as.numeric(Sys.getenv("KAPPA_PRIOR_MEDIAN"))
+                                  kappa_SD_to_test <- as.numeric(Sys.getenv("KAPPA_PRIOR_SD"))
+                                  priors$prior_kappa_mean <- c(log(kappa_median_to_test), log(kappa_median_to_test))
+                                  priors$prior_kappa_SD <- c(kappa_SD_to_test, kappa_SD_to_test)
+                                  priors$prior_kappa_dof <- c(1000, 1000)
+                                  print(paste("kappa prior to test: median = ", kappa_median_to_test,
+                                              ", SD = ", kappa_SD_to_test))
+                            }
+                            ##
+                            for (kk in 1:n_chains) {
+                              init_lists_per_chain[[kk]]$kappa <- c(50, 50)
+                            }
+                            
                     } else {
-                        priors$prior_beta_SD_SD <- c(0.5, 0.5)
-                        priors$prior_kappa_mean <- log(100)
-                        priors$prior_kappa_SD <- 1.0
-                        priors$prior_kappa_dof <- 5
-                        ## (KAPPA_PRIOR=current: the tighter kappa prior, for the sampling check of the pop-median model)
-                        if (Sys.getenv("KAPPA_PRIOR") == "current") {
-                              priors$prior_kappa_mean <- log(300)
-                              priors$prior_kappa_SD <- 0.5
-                              priors$prior_kappa_dof <- 1000
-                        } else if (Sys.getenv("KAPPA_PRIOR") %in% c("", "wide")) {
-                              priors$prior_kappa_mean <- log(150)
-                              priors$prior_kappa_SD <- 1.25
-                              priors$prior_kappa_dof <- 1000
-                        }
-                        ##
-                        for (kk in 1:n_chains) {
-                          init_lists_per_chain[[kk]]$kappa <- 50
-                          init_lists_per_chain[[kk]]$beta_SD <- 0.25
-                          init_lists_per_chain[[kk]]$raw_scale_SD <- 0.25
-                        }
+                      
+                            priors$prior_beta_SD_SD <- c(0.5, 0.5)
+                            priors$prior_kappa_mean <- log(100)
+                            priors$prior_kappa_SD <- 1.0
+                            priors$prior_kappa_dof <- 5
+                            ## (KAPPA_PRIOR=current: the tighter kappa prior, for the sampling check of the pop-median model)
+                            if (Sys.getenv("KAPPA_PRIOR") == "current") {
+                                  priors$prior_kappa_mean <- log(300)
+                                  priors$prior_kappa_SD <- 0.5
+                                  priors$prior_kappa_dof <- 1000
+                            } else if (Sys.getenv("KAPPA_PRIOR") %in% c("", "wide")) {
+                                  priors$prior_kappa_mean <- log(150)
+                                  priors$prior_kappa_SD <- 1.25
+                                  priors$prior_kappa_dof <- 1000
+                            }
+                            ##
+                            for (kk in 1:n_chains) {
+                              init_lists_per_chain[[kk]]$kappa <- 50
+                              init_lists_per_chain[[kk]]$beta_SD <- 0.25
+                              init_lists_per_chain[[kk]]$raw_scale_SD <- 0.25
+                            }
+                        
                     }
               
           }
