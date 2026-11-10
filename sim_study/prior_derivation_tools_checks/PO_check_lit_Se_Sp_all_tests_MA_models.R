@@ -632,7 +632,9 @@ fn_prior_only_fit <-  function(test,
                                      model_parameterisation = settings$model_parameterisation,
                                      random_thresholds = random_thresholds)
             interest_only_params <-  eval(interest_only_of_the_runner)
-            NicoStan_args <-  eval(sample_call_of_the_runner$NicoStan_args)
+            NicoStan_args <-  eval(sample_call_of_the_runner$NicoStan_args,
+                                   envir = list2env(list(Stan_file_of_the_fused_version = NULL,
+                                                         sampler_settings_to_test = list())))
             ## (the runner's own Stan file, e.g. DTA_MA_Jones.stan, replaced by the file checked here)
             if (!is.null(NicoStan_args$Stan_file_of_the_fused_version)) {
                   NicoStan_args$Stan_file_of_the_fused_version <-  system.file("stan_models", "stan_models_MA",
