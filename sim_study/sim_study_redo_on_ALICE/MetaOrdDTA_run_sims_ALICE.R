@@ -936,8 +936,9 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                             ## ---- The Stan::math-only file of the model, with no user header ----------------------------------------
                             ##
                             if (Sys.getenv("STAN_MATH_ONLY_MODEL") == "1" && use_custom_file_of_this_scenario) {
+                                  ## (the model's own Stan file, as the runner names it)
                                   custom_file_name_of_this_scenario <- sub("_NicoStan_fused_AVX[.]stan$",
-                                                                           "_Stan_math_only.stan",
+                                                                           ".stan",
                                                                            custom_file_name_of_this_scenario)
                                   custom_cpp_user_header_of_this_scenario <- NULL
                             }
