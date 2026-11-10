@@ -952,7 +952,7 @@ run_multiple_sims <- function(MCMC_seed,
                                             ##
                                             n_superchains                        = 4,
                                             ##
-                                            learning_rate                        = 0.0625,
+                                            learning_rate                        = 0.05,
                                             # learning_rate                        = 0.025,
                                             ##
                                             eps_initial                          = NULL,
@@ -974,10 +974,10 @@ run_multiple_sims <- function(MCMC_seed,
                                             tau_shrink_factor                    = 0.95,  ## R_fn_sample.R:1427
                                             tau_shrink_min_divergent_chains      = 2,  ## R_fn_sample.R:1428
                                             ##
-                                            share_tau_ii_across_chains_in_burnin = FALSE,
+                                            share_tau_ii_across_chains_in_burnin = TRUE,
                                             force_multi_attempts_for_metric      = FALSE,
                                             ##
-                                            tau_initial                          = "adaptive", ## pi ## --------
+                                            tau_initial                          = "pi",       ## pi ## --------
                                             tau_adaptation_block                 = "main",  ## --------
                                             interest_only                        = NULL,
                                             ##
@@ -1027,13 +1027,13 @@ run_multiple_sims <- function(MCMC_seed,
                                             esjd_jump_power                      = 2,  ## signature
                                             tau_cost_exponent                    = 1,  ## signature
                                             ##
-                                            metric_update_rescales_eps_and_tau   = FALSE, ## signature ## ----
+                                            metric_update_rescales_eps_and_tau   = TRUE,  ## signature ## ----
                                             metric_update_rescales_tau           = TRUE,
                                             initial_eps_search_at_each_chain     = FALSE,
                                             ## (the sampling runs at the step size handed over by the burn-in)
                                             calibrate_eps_on_sampling_chains_before_sampling = FALSE,
                                             ##
-                                            pooled_metric_warm_up                = 8, ## says how many draws it waits for before its first estimate replaces the starting identity metric.
+                                            pooled_metric_warm_up                = 16, ## says how many draws it waits for before its first estimate replaces the starting identity metric.
                                             metric_start_iter                    = round(n_burnin/10) ## says WHEN the metric starts collecting draws.
                                             ),
                                             ## (METRIC_POOLED_WINDOW_RESETS = none, or iterations split by commas)
