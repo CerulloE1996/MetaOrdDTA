@@ -1,17 +1,88 @@
+// NicoSIMD_AVX512 version of DTA_MA_strat_bivariate.stan written by NicoStan (source model md5 d5fbe211aa8b666a70c27bd0eaffbad1; NicoSIMD declarations md5 e3c567fd115d2ccf49ec504688009e6b; writer implementation md5 aef1406a74d6694a1d260c4cd31c7a35)
+// NicoSIMD functions used: exp, log, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, log_diff_exp, std_normal_log_qf
 
 
 
 functions {
+    real bmvp_simd_lanes();
+    real nico_exp(real x);
+    real nico_log(real x);
+    real nico_log1m(real x);
+    real nico_log1p_exp(real x);
+    real nico_log1m_exp(real x);
+    real nico_inv_logit(real x);
+    real nico_log_inv_logit(real x);
+    real nico_Phi(real x);
+    real nico_inv_Phi(real x);
+    real nico_tanh(real x);
+    real nico_logit(real x);
+    real nico_log1m_inv_logit(real x);
+    vector nico_exp(vector x);
+    vector nico_log(vector x);
+    vector nico_log1m(vector x);
+    vector nico_log1p_exp(vector x);
+    vector nico_log1m_exp(vector x);
+    vector nico_inv_logit(vector x);
+    vector nico_log_inv_logit(vector x);
+    vector nico_Phi(vector x);
+    vector nico_inv_Phi(vector x);
+    vector nico_tanh(vector x);
+    vector nico_logit(vector x);
+    vector nico_log1m_inv_logit(vector x);
+    row_vector nico_exp(row_vector x);
+    row_vector nico_log(row_vector x);
+    row_vector nico_log1m(row_vector x);
+    row_vector nico_log1p_exp(row_vector x);
+    row_vector nico_log1m_exp(row_vector x);
+    row_vector nico_inv_logit(row_vector x);
+    row_vector nico_log_inv_logit(row_vector x);
+    row_vector nico_Phi(row_vector x);
+    row_vector nico_inv_Phi(row_vector x);
+    row_vector nico_tanh(row_vector x);
+    row_vector nico_logit(row_vector x);
+    row_vector nico_log1m_inv_logit(row_vector x);
+    matrix nico_exp(matrix x);
+    matrix nico_log(matrix x);
+    matrix nico_log1m(matrix x);
+    matrix nico_log1p_exp(matrix x);
+    matrix nico_log1m_exp(matrix x);
+    matrix nico_inv_logit(matrix x);
+    matrix nico_log_inv_logit(matrix x);
+    matrix nico_Phi(matrix x);
+    matrix nico_inv_Phi(matrix x);
+    matrix nico_tanh(matrix x);
+    matrix nico_logit(matrix x);
+    matrix nico_log1m_inv_logit(matrix x);
+    real nico_normal_lpdf(vector y, vector mu, vector sigma);
+    real nico_normal_lpdf(vector y, vector mu, real sigma);
+    real nico_normal_lpdf(vector y, real mu, vector sigma);
+    real nico_normal_lpdf(vector y, real mu, real sigma);
+    real nico_normal_lpdf(row_vector y, row_vector mu, row_vector sigma);
+    real nico_normal_lpdf(array[] real y, vector mu, vector sigma);
+    real nico_normal_lpdf(array[] real y, vector mu, real sigma);
+    real nico_normal_lpdf(array[] real y, real mu, vector sigma);
+    real nico_normal_lpdf(array[] real y, real mu, real sigma);
+    real nico_normal_lpdf(real y, real mu, real sigma);
+    real nico_lgamma(data real x);
+    vector nico_lgamma(vector x);
+    real nico_beta_lpdf(real y, data real alpha, data real beta);
+    real nico_beta_lpdf(vector y, vector alpha, vector beta);
+    real nico_dirichlet_lpdf(vector theta, vector alpha);
+    real nico_lkj_corr_cholesky_lpdf(matrix L, data real eta);
+    real nico_log_diff_exp(real x, real y);
+    vector nico_log_diff_exp(vector x, vector y);
+    real nico_std_normal_log_qf(real x);
+    vector nico_std_normal_log_qf(vector x);
         ////
         //// ---- Include files to compile the necessary custom (user-defined) Stan functions:
         ////
-        #include "Stan_fns_basic.stan"
-        #include "Stan_fns_Box_Cox.stan"
-        #include "Stan_fns_corr.stan" 
-        #include "Stan_fns_ordinal.stan"
-        #include "Stan_fns_log_lik.stan"
-        #include "Stan_fns_Jacobian.stan"
-        #include "Stan_fns_model_fit.stan"
+        #include "Stan_fns_basic_NicoSIMD_AVX.stan"
+        #include "Stan_fns_Box_Cox_NicoSIMD_AVX.stan"
+        #include "Stan_fns_corr_NicoSIMD_AVX.stan"
+        #include "Stan_fns_ordinal_NicoSIMD_AVX.stan"
+        #include "Stan_fns_log_lik_NicoSIMD_AVX.stan"
+        #include "Stan_fns_Jacobian_NicoSIMD_AVX.stan"
+        #include "Stan_fns_model_fit_NicoSIMD_AVX.stan"
 }
 
 
@@ -32,18 +103,11 @@ data {
         // real<lower=0> MA_prior_SD_sens_sd;
         // real<lower=0> MA_prior_SD_spec_sd;
         ////
-        //// ---- Priors directly on Se (c = 1) and Sp (c = 2) at chosen thresholds:
-        //// ---- (hyperparameters on the scale P = Se for c = 1 and P = Sp for c = 2)
-        ////
-        int<lower=0, upper=1> use_Se_Sp_prior;     //// 0 = the location prior at every threshold
-        int<lower=0, upper=n_thr> n_chosen_cutoffs_max;
-        array[2] int<lower=0, upper=n_chosen_cutoffs_max> n_chosen_cutoffs;
-        array[2, n_chosen_cutoffs_max] int<lower=1, upper=n_thr> chosen_cutoffs;
-        array[2] matrix<lower=0.0>[n_chosen_cutoffs_max, 2] prior_Se_Sp_beta;
-        int<lower=2, upper=4> Se_Sp_prior_type;  //// 2 = Betas, 4 = link-scale Normal
-        array[2] matrix[n_chosen_cutoffs_max, 2] prior_Se_Sp_link_mean_SD;  //// Mean and SD of link(Se), link(Sp)
-        ////
         int use_probit_link;  // for consistency with your other models
+        ////
+        // Prior of mu at each threshold: [1=sens, 2=spec][threshold]
+        array[2] vector[n_thr] prior_mu_mean;
+        array[2] vector<lower=0>[n_thr] prior_mu_SD;
 }
 
 
@@ -134,40 +198,6 @@ transformed data {
         }
     }
     
-    ////
-    //// ---- Thresholds that carry the direct Se/Sp prior instead of the location prior:
-    ////
-    array[2, n_thr] int is_chosen;
-    for (c in 1:2) {
-        for (k in 1:n_thr) {
-            is_chosen[c, k] = 0;
-        }
-        int k_previous = 0;
-        for (j in 1:n_chosen_cutoffs[c]) {
-            int k = chosen_cutoffs[c, j];
-            if (k <= k_previous) reject("chosen_cutoffs must rise: c = ", c);
-            is_chosen[c, k] = 1;
-            k_previous = k;
-        }
-    }
-    ////
-    //// ---- Only the two prior types that act on mu[k, c] apply here: this model has no cutpoint vector
-    //// ---- and no segment between cutoffs, so types 1 and 3 have nothing to act on; and the SD of
-    //// ---- type 4 must be positive:
-    ////
-    if (use_Se_Sp_prior == 1 && Se_Sp_prior_type != 2 && Se_Sp_prior_type != 4) {
-        reject("Se_Sp_prior_type must be 2 or 4 here, got ", Se_Sp_prior_type);
-    }
-    if (use_Se_Sp_prior == 1 && Se_Sp_prior_type == 4) {
-        for (c in 1:2) {
-            for (j in 1:n_chosen_cutoffs[c]) {
-                if (prior_Se_Sp_link_mean_SD[c][j, 2] <= 0.0) {
-                    reject("prior_Se_Sp_link_mean_SD must be positive: c = ", c, ", j = ", j);
-                }
-            }
-        }
-    }
-
     print("Studies per threshold: ", n_studies_per_thr);
 }
 
@@ -199,68 +229,34 @@ model {
     //// ---- Priors for each threshold:
     for (k in 1:n_thr) {
       
-          //// ---- The location prior of every threshold that does not carry the Se/Sp prior:
-          if (use_Se_Sp_prior == 0) {
-                mu[k, 1:2] ~ normal(0, 1);
-          } else {
-                if (is_chosen[1, k] == 0) {
-                      mu[k, 1] ~ normal(0, 1);
-                }
-                if (is_chosen[2, k] == 0) {
-                      mu[k, 2] ~ normal(0, 1);
-                }
-          }
+          mu[k, 1:2] ~ nico_normal([prior_mu_mean[1][k], prior_mu_mean[2][k]]',
+                                   [prior_mu_SD[1][k], prior_mu_SD[2][k]]');
           if (n_studies_per_thr[k] > 2) { 
             
-                sigma[k, 1:2] ~ normal(0, 1); 
-                L_Omega[k] ~ lkj_corr_cholesky(2);
+                sigma[k, 1:2] ~ nico_normal(0, 0.5); 
+                L_Omega[k] ~ nico_lkj_corr_cholesky(2);
               
           } else if (n_studies_per_thr[k] == 2) {
                
-                sigma[k, 1:2] ~ normal(0, 0.25); 
-                L_Omega[k] ~ lkj_corr_cholesky(24);
+                sigma[k, 1:2] ~ nico_normal(0, 0.25); 
+                L_Omega[k] ~ nico_lkj_corr_cholesky(12);
                 
           } else if (n_studies_per_thr[k] == 1) {
             
-                sigma[k, 1:2] ~ normal(0, 0.01); 
-                L_Omega[k] ~ lkj_corr_cholesky(50);
+                sigma[k, 1:2] ~ nico_normal(0, 0.01); 
+                L_Omega[k] ~ nico_lkj_corr_cholesky(25);
                 
           } else { 
-                sigma[k, 1:2] ~ normal(0.0, 1.0);
+                sigma[k, 1:2] ~ nico_normal(0.0, 1.0);
           }
             
           // Random effects for studies with this threshold
           for (s in 1:n_studies) {
                // if (study_has_thr[k, s] == 1) {
-                  z[k, s] ~ std_normal();
+                  z[k, s] ~ nico_normal(0, 1);
                // }
           }
           
-    }
-    ////
-    //// ---- The direct Se/Sp prior at the chosen thresholds. Type 4 is a normal straight on mu[k, c],
-    //// ---- which IS the link scale of Se (c = 1) and Sp (c = 2), so it carries no Jacobian. Type 2 is
-    //// ---- a Beta on the scale P = Se (c = 1) or P = Sp (c = 2), with the Jacobian of the link:
-    ////
-    if (use_Se_Sp_prior == 1) {
-          for (c in 1:2) {
-                for (j in 1:n_chosen_cutoffs[c]) {
-                      int k = chosen_cutoffs[c, j];
-                      if (Se_Sp_prior_type == 4) {
-                            target += normal_lupdf(mu[k, c] |
-                                                  prior_Se_Sp_link_mean_SD[c][j, 1],
-                                                  prior_Se_Sp_link_mean_SD[c][j, 2]);
-                      } else {
-                            real P = (use_probit_link == 1) ? Phi(mu[k, c]) : inv_logit(mu[k, c]);
-                            target += beta_lupdf(P | prior_Se_Sp_beta[c, j, 1], prior_Se_Sp_beta[c, j, 2]);
-                            if (use_probit_link == 1) {
-                                  target += std_normal_lupdf(mu[k, c]);
-                            } else {
-                                  target += log_inv_logit(mu[k, c]) + log1m_inv_logit(mu[k, c]);
-                            }
-                      }
-                }
-          }
     }
     //// ---- Likelihood:
     for (k in 1:n_thr) {
@@ -271,10 +267,10 @@ model {
                 int n_nondiseased = TN[k, s] + FP[k, s];
                 
                 if (n_diseased > 0) {
-                    TP[k, s] ~ binomial(n_diseased, Phi(probit_pi[k, s, 1]));
+                    TP[k, s] ~ binomial(n_diseased, nico_Phi(probit_pi[k, s, 1]));
                 }
                 if (n_nondiseased > 0) {
-                    TN[k, s] ~ binomial(n_nondiseased, Phi(probit_pi[k, s, 2]));
+                    TN[k, s] ~ binomial(n_nondiseased, nico_Phi(probit_pi[k, s, 2]));
                 }
                 
             }
@@ -283,6 +279,7 @@ model {
 }
 
 generated quantities {
+    real simd_lanes = bmvp_simd_lanes();
         // Summary statistics for each threshold (matching Jones model output)
         vector[n_thr] Se_baseline;
         vector[n_thr] Sp_baseline;
@@ -306,8 +303,8 @@ generated quantities {
                 Se_baseline[k] = safe_Phi(mu[k, 1]);
                 Sp_baseline[k] = safe_Phi(mu[k, 2]);
             } else {
-                Se_baseline[k] = inv_logit(mu[k, 1]);
-                Sp_baseline[k] = inv_logit(mu[k, 2]);
+                Se_baseline[k] = nico_inv_logit(mu[k, 1]);
+                Sp_baseline[k] = nico_inv_logit(mu[k, 2]);
             }
             Fp_baseline[k] = 1 - Sp_baseline[k];
         }
@@ -346,10 +343,6 @@ generated quantities {
         //     // }
         // }
 }
-
-
-
-
 
 
 

@@ -1562,6 +1562,24 @@ fn_induced_accuracy_priors <- function(priors,
         band <-  list(GAD_2 = 1:6, HADS = 3:17, BAI = 5:43)[[test]]
         SD_of_the_intercept <-  1.0
         ##
+        ## ---- The stratified bivariate: its one prior, a Normal on mu ([[1]] probit Se, [[2]] probit Sp) at every threshold:
+        ##      N(0, 1) at prior set 0 and outside the band; at sets 1 and 2, its mean and SD at every cutoff of the band
+        ##
+        if (model_parameterisation == "Bivariate") {
+              priors$prior_mu_mean <-  list(rep(0, n_thr), rep(0, n_thr))
+              priors$prior_mu_SD <-  list(rep(1, n_thr), rep(1, n_thr))
+              if (prior_set > 0) {
+                    band_priors <-  read.csv(file.path(local_pkg_dir, "sim_study",
+                                                       "Se_Sp_priors_of_the_stratified_bivariate_at_every_band_cutoff_sets_1_and_2.csv"))
+                    band_priors <-  band_priors[band_priors$test == test & band_priors$prior_set == prior_set, ]
+                    priors$prior_mu_mean[[1]][band_priors$threshold] <-  band_priors$Se_probit_mean
+                    priors$prior_mu_mean[[2]][band_priors$threshold] <-  band_priors$Sp_probit_mean
+                    priors$prior_mu_SD[[1]][band_priors$threshold] <-  band_priors$Se_probit_SD
+                    priors$prior_mu_SD[[2]][band_priors$threshold] <-  band_priors$Sp_probit_SD
+              }
+              return(priors)
+        }
+        ##
         ## ---- The cutoffs and the link-scale Normal of class 1 (Sp) and class 2 (Se) of each model:
         ##
         is_an_ordinal_model <-  model_parameterisation %in% c("ord_bivariate", "R&G")
@@ -1581,13 +1599,6 @@ fn_induced_accuracy_priors <- function(priors,
                     SD_of_Sp <-  rep(1, 2)
                     mean_of_Se <-  rep(0, 2)
                     SD_of_Se <-  rep(1, 2)
-              } else {
-                    Se_Sp_prior_type <-  2
-                    cutoffs <-  1:n_thr
-                    mean_of_Sp <-  rep(0, n_thr)
-                    SD_of_Sp <-  rep(1, n_thr)
-                    mean_of_Se <-  rep(0, n_thr)
-                    SD_of_Se <-  rep(1, n_thr)
               }
         } else {
               cutoffs <-  literature_priors$cutoffs
@@ -1596,23 +1607,9 @@ fn_induced_accuracy_priors <- function(priors,
               mean_of_Se <-  literature_priors$Se_mean[[prior_set]]
               SD_of_Se <-  literature_priors$Se_SD
         }
-        ## (the stratified bivariate at sets 1 and 2: a Beta on Se and on Sp at every cutoff of the band, with the mean and
-        ##  variance of the O-biv-FC prior of the set at that cutoff, from its prior-only fit; the Beta follows the skew of
-        ##  the induced prior at the band's ends, which a Normal on the probit scale does not)
-        if (prior_set > 0 && model_parameterisation == "Bivariate") {
-              Se_Sp_prior_type <-  2
-              band_priors <-  read.csv(file.path(local_pkg_dir, "sim_study",
-                                                 "Se_Sp_priors_of_the_stratified_bivariate_at_every_band_cutoff_sets_1_and_2.csv"))
-              band_priors <-  band_priors[band_priors$test == test & band_priors$prior_set == prior_set, ]
-              cutoffs <-  band_priors$threshold
-              mean_of_Sp <-  band_priors$Sp_probit_mean
-              SD_of_Sp <-  band_priors$Sp_probit_SD
-              mean_of_Se <-  band_priors$Se_probit_mean
-              SD_of_Se <-  band_priors$Se_probit_SD
-        }
         n_chosen <-  length(cutoffs)
         ##
-        ## ---- The Se / Sp prior fields (row 1 Sp and row 2 Se, but row 1 Se and row 2 Sp for the stratified bivariate):
+        ## ---- The Se / Sp prior fields (row 1 Sp and row 2 Se):
         ##
         link_mean_SD_of_Sp <-  cbind(mean_of_Sp, SD_of_Sp, deparse.level = 0)
         link_mean_SD_of_Se <-  cbind(mean_of_Se, SD_of_Se, deparse.level = 0)
@@ -1626,20 +1623,11 @@ fn_induced_accuracy_priors <- function(priors,
         ## (type 2: Sp_k ~ Beta(k, K + 1 - k) in row 1 and Se_k ~ Beta(K + 1 - k, k) in row 2)
         beta_of_Sp <-  cbind(cutoffs, n_thr + 1 - cutoffs, deparse.level = 0)
         beta_of_Se <-  cbind(n_thr + 1 - cutoffs, cutoffs, deparse.level = 0)
-        priors$prior_Se_Sp_beta <-  if (model_parameterisation == "Bivariate")
-                                          list(beta_of_Se, beta_of_Sp) else
-                                          list(beta_of_Sp, beta_of_Se)
-        if (prior_set > 0 && model_parameterisation == "Bivariate") {
-              priors$prior_Se_Sp_beta <-  list(cbind(band_priors$Se_beta_a, band_priors$Se_beta_b, deparse.level = 0),
-                                               cbind(band_priors$Sp_beta_a, band_priors$Sp_beta_b, deparse.level = 0))
-        }
-        priors$prior_Se_Sp_link_mean_SD <-  if (model_parameterisation == "Bivariate")
-                                                  list(link_mean_SD_of_Se, link_mean_SD_of_Sp) else
-                                                  list(link_mean_SD_of_Sp, link_mean_SD_of_Se)
+        priors$prior_Se_Sp_beta <-  list(beta_of_Sp, beta_of_Se)
+        priors$prior_Se_Sp_link_mean_SD <-  list(link_mean_SD_of_Sp, link_mean_SD_of_Se)
         ##
         ## ---- Sets 1 and 2: the same prior as priors$Se_Sp_prior, the list the package builds the Stan fields from (without
-        ##      it the package passes the fields with the prior off): the link-scale Normal as its median and 95% limits, the
-        ##      Beta of the stratified bivariate as it is
+        ##      it the package passes the fields with the prior off): the link-scale Normal as its median and 95% limits
         ##
         if (prior_set > 0) {
 
@@ -1654,15 +1642,9 @@ fn_induced_accuracy_priors <- function(priors,
                          upper = fn_inverse_link(mean_of_class + stats::qnorm(0.975) * SD_of_class))
 
               }
-              priors$Se_Sp_prior <-  if (model_parameterisation == "Bivariate") {
-                    list(type = 2,
-                         Se = list(cutoffs = cutoffs, beta = priors$prior_Se_Sp_beta[[1]]),
-                         Sp = list(cutoffs = cutoffs, beta = priors$prior_Se_Sp_beta[[2]]))
-              } else {
-                    list(type = 4,
-                         Sp = fn_median_and_limits(mean_of_Sp, SD_of_Sp),
-                         Se = fn_median_and_limits(mean_of_Se, SD_of_Se))
-              }
+              priors$Se_Sp_prior <-  list(type = 4,
+                                          Sp = fn_median_and_limits(mean_of_Sp, SD_of_Sp),
+                                          Se = fn_median_and_limits(mean_of_Se, SD_of_Se))
 
         }
         ##
@@ -1678,18 +1660,6 @@ fn_induced_accuracy_priors <- function(priors,
               priors$prior_dirichlet_alpha <-  rep(1.0, n_thr + 1)
               priors$prior_beta_mu_mean[1] <-  0
               priors$prior_beta_mu_SD[1] <-  SD_of_the_intercept
-        } else if (model_parameterisation == "Bivariate") {
-              priors$prior_mu_mean <-  list(rep(0, n_thr), rep(0, n_thr))
-              priors$prior_mu_SD <-  list(rep(1, n_thr), rep(1, n_thr))
-              ## (sets 1 and 2: the Normal of mu ([[1]] Se, [[2]] Sp) at every cutoff of the band, on the probit scale)
-              if (prior_set > 0) {
-                    priors$prior_mu_mean[[1]][band_priors$threshold] <-  band_priors$Se_probit_mean
-                    priors$prior_mu_mean[[2]][band_priors$threshold] <-  band_priors$Sp_probit_mean
-                    priors$prior_mu_SD[[1]][band_priors$threshold] <-  band_priors$Se_probit_SD
-                    priors$prior_mu_SD[[2]][band_priors$threshold] <-  band_priors$Sp_probit_SD
-              }
-              ## (set 0: the N(0, 1) location prior at every cutoff, no Se / Sp prior term)
-              if (prior_set == 0) priors$use_Se_Sp_prior <-  0
         }
         ##
         ## ---- Jones: the one-hill Se / Sp prior of prior sets 0, 1 and 2: the baseline location, log(scale) and lambda of
