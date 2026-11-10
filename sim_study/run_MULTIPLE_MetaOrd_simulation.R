@@ -703,7 +703,7 @@ run_multiple_sims <- function(MCMC_seed,
                 priors$prior_kappa_SD           <- c(1.0, 1.0)
                 priors$prior_kappa_dof          <- c(1000, 1000)
                 ##
-                priors$kappa_lb                 <- 0.001
+                # priors$kappa_lb                 <- 0.001
                 ## (initial values)
                 for (kk in 1:n_chains) {
                       init_lists_per_chain[[kk]]$kappa <- c(50, 50)
@@ -718,13 +718,15 @@ run_multiple_sims <- function(MCMC_seed,
                 priors$prior_beta_mu_SD[1]      <- 1.0
                 priors$prior_beta_SD_SD         <- 0.5
                 ##
-                priors$prior_raw_scale_mu_SD    <- 0.25     ## log-scale intercept, every test: the SD of one class is 0.61 to 1.63 times the other's (95%)
+                ## (log-scale intercept, the same for every test: the ratio of the two classes' latent SDs is exp(2 * log-scale),
+                ##  so N(0, 0.125) puts that ratio between 0.61 and 1.63 with 95% prior probability)
+                priors$prior_raw_scale_mu_SD    <- 0.125
                 priors$prior_raw_scale_SD_SD    <- 0.5
                 ##
                 priors$prior_kappa_mean         <- log(125)
                 priors$prior_kappa_SD           <- 1.0
                 priors$prior_kappa_dof          <- 1000
-                priors$kappa_lb                 <- 0.001
+                # priors$kappa_lb                 <- 0.001
                 ## (initial values)
                 for (kk in 1:n_chains) {
                       init_lists_per_chain[[kk]]$kappa        <- 50
