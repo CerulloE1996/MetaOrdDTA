@@ -271,57 +271,7 @@ run_multiple_sims <- function(MCMC_seed,
           # Set priors
           priors <- model_prep_obj$priors
 
-          if (prior_set == "set_0") {
-                priors$prior_dirichlet_alpha <- list( rep(1.0, n_thr + 1), rep(1.0, n_thr + 1))
-          } else if (prior_set %in% c("set_1", "set_2")) {
-                ## (the Jones and R&G priors of prior set 1 / 2 are matched to the ordinal-bivariate reference prior of that
-                ##  set by a prior model, Stan sampling; the reference has alpha = (1, ..., 1))
-                priors$prior_dirichlet_alpha <- list( rep(1.0, n_thr + 1), rep(1.0, n_thr + 1))
-          }
-          ##
-           priors$prior_dirichlet_alpha
-
-          # if (model_parameterisation == "ord_bivariate") {
-          #
-          #       # priors$prior_dirichlet_alpha <- list(prior_dirichlet_alpha,
-          #       #                                      prior_dirichlet_alpha)
-          #       priors$prior_dirichlet_alpha <- generate_dual_ordinal_dirichlet_priors(n_cat = n_thr + 1)
-          #
-          # } else {
-          #
-          #        # priors$prior_dirichlet_alpha <- prior_dirichlet_alpha
-          #        priors$prior_dirichlet_alpha <- generate_ordinal_dirichlet_prior(n_cat = n_thr + 1)
-          #
-          # }
-
-          if (prior_set == "set_0") {
-
-              if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
-
-                      priors$prior_dirichlet_alpha <- rep(1.0, n_thr + 1)
-                      priors$prior_kappa_mean <- log(100)
-                      priors$prior_kappa_SD <- 1.0
-                      priors$kappa_lb <- 0.001
-
-              } else {
-
-                      prior_dirichlet_alpha <- rep(1.0, n_thr + 1)
-                      priors$prior_dirichlet_alpha <-  list(prior_dirichlet_alpha, prior_dirichlet_alpha)
-                      priors$prior_kappa_mean   <-  c(log(100), log(100))
-                      priors$prior_kappa_SD   <-  c(1.0, 1.0)
-                      priors$kappa_lb <-  0.001
-
-              }
-
-          }
-          ##
-          priors$use_probit_link <- 1
-          priors$K_fold_CV_indicator <- rep(1, n_studies_actual)
-          ##
-          if (model_parameterisation == "R&G") {
-              priors$prior_raw_scale_mu_SD <- 1
-              priors$prior_raw_scale_SD_SD <- 1
-          }
+          ## (every prior of every model is set in ONE block further down: "THE PRIORS OF EACH MODEL")
 
           # Set initial values
           if (model_parameterisation == "Bivariate") {
@@ -717,107 +667,79 @@ run_multiple_sims <- function(MCMC_seed,
           init_lists_per_chain <- resize_init_list(  init_lists_per_chain = init_lists_per_chain,
                                                      n_chains_new = n_chains)
           ##
-          if (random_thresholds == TRUE) {
-                
-                    if (model_parameterisation == "ord_bivariate") {
-                      
-                            priors$prior_beta_SD_SD <- c(0.5, 0.5)
-                            priors$prior_kappa_mean <- c(log(100), log(100))
-                            priors$prior_kappa_SD <- c(1.0, 1.0)
-                            priors$prior_kappa_dof <- c(5, 3) ## default = c(5, 5)#
-                            ##
-                            if (Sys.getenv("KAPPA_PRIOR") == "current") {
-                                  priors$prior_kappa_mean <- c(log(300), log(300))
-                                  priors$prior_kappa_SD <- c(0.5, 0.5)
-                                  priors$prior_kappa_dof <- c(1000, 1000)
-                            } else if (Sys.getenv("KAPPA_PRIOR") %in% c("", "wide")) {
-                                  priors$prior_kappa_mean <- c(log(125), log(125))
-                                  priors$prior_kappa_SD <- c(1.0, 1.0)
-                                  priors$prior_kappa_dof <- c(1000, 1000)
-                            }
-                            ## (KAPPA_PRIOR_MEDIAN and KAPPA_PRIOR_SD: a kappa prior to test,
-                            ##  log(kappa) ~ Student-t(1000, log(median), SD) in both classes)
-                            if (nzchar(Sys.getenv("KAPPA_PRIOR_MEDIAN"))) {
-                                  kappa_median_to_test <- as.numeric(Sys.getenv("KAPPA_PRIOR_MEDIAN"))
-                                  kappa_SD_to_test <- as.numeric(Sys.getenv("KAPPA_PRIOR_SD"))
-                                  priors$prior_kappa_mean <- c(log(kappa_median_to_test), log(kappa_median_to_test))
-                                  priors$prior_kappa_SD <- c(kappa_SD_to_test, kappa_SD_to_test)
-                                  priors$prior_kappa_dof <- c(1000, 1000)
-                                  print(paste("kappa prior to test: median = ", kappa_median_to_test,
-                                              ", SD = ", kappa_SD_to_test))
-                            }
-                            ##
-                            for (kk in 1:n_chains) {
-                              init_lists_per_chain[[kk]]$kappa <- c(50, 50)
-                            }
-                            
-                    } else {
-                      
-                            priors$prior_beta_SD_SD <- c(0.5, 0.5)
-                            priors$prior_kappa_mean <- log(100)
-                            priors$prior_kappa_SD <- 1.0
-                            priors$prior_kappa_dof <- 5
-                            ## (KAPPA_PRIOR=current: the tighter kappa prior, for the sampling check of the pop-median model)
-                            if (Sys.getenv("KAPPA_PRIOR") == "current") {
-                                  priors$prior_kappa_mean <- log(300)
-                                  priors$prior_kappa_SD <- 0.5
-                                  priors$prior_kappa_dof <- 1000
-                            } else if (Sys.getenv("KAPPA_PRIOR") %in% c("", "wide")) {
-                                  priors$prior_kappa_mean <- log(150)
-                                  priors$prior_kappa_SD <- 1.25
-                                  priors$prior_kappa_dof <- 1000
-                            }
-                            ##
-                            for (kk in 1:n_chains) {
-                              init_lists_per_chain[[kk]]$kappa <- 50
-                              init_lists_per_chain[[kk]]$beta_SD <- 0.25
-                              init_lists_per_chain[[kk]]$raw_scale_SD <- 0.25
-                            }
-                        
-                    }
-              
-          }
           ##
-          if (model_parameterisation == "ord_bivariate") {
-            
-                    priors$prior_beta_SD_SD <- c(0.5, 0.5)
-                    ##
-                    if (prior_set %in% c("set_1", "set_2")) {
-                          priors$prior_beta_mu_mean[1, 1] <-  0
-                          priors$prior_beta_mu_mean[2, 1] <-  0
-                          priors$prior_beta_mu_SD[1, 1] <-  c(HADS = 0.20, GAD_2 = 0.25, BAI = 0.35)[[test]]
-                          priors$prior_beta_mu_SD[2, 1] <-  c(HADS = 0.20, GAD_2 = 0.25, BAI = 0.35)[[test]]
-                    }
-                
-          } else if (model_parameterisation == "R&G") {
-                
-                    priors$prior_beta_SD_SD      <- 0.5
-                    priors$prior_raw_scale_SD_SD <- 0.5
-                    ##
-                    ## (alpha = (1, ..., 1): the SD of the intercept prior and of the log-scale prior matched to the
-                    ##  ord_biv fixed-cutpoint prior by NicoStan prior-only fits of the pop-median model, 5 seeds, 0.05 rule;
-                    ##  MATCHED_PRIORS=0 keeps the runner's own SDs, for the sampling checks)
-                    if (Sys.getenv("MATCHED_PRIORS") != "0") {
-                          SD_of_the_intercept_matched <-  c(HADS = 1.0, GAD_2 = 1.0, BAI = 1.0)[[test]]
-                          SD_of_the_log_scale_matched <-  c(HADS = 0.25, GAD_2 = 0.25, BAI = 0.25)[[test]]
-                          if (Sys.getenv("KAPPA_PRIOR") %in% c("", "wide")) SD_of_the_log_scale_matched <-  c(HADS = 0.125, GAD_2 = 0.1875, BAI = 0.1875)[[test]]
-                          if (!is.null(SD_of_the_intercept_matched)) priors$prior_beta_mu_SD[1] <-  SD_of_the_intercept_matched
-                          if (!is.null(SD_of_the_log_scale_matched)) priors$prior_raw_scale_mu_SD[1] <-  SD_of_the_log_scale_matched
-                    }
-                
+          ## ---- THE PRIORS OF EACH MODEL: the ONE place where they are set. One branch per model, every value written out,
+          ##      nothing set twice, no environment variable. Not in this block: the Se / Sp prior of prior sets 1 and 2 of the
+          ##      ordinal and Jones models, and the Normal on mu of the stratified bivariate (fn_induced_accuracy_priors, below).
+          ##
+          priors$use_probit_link     <- 1
+          priors$K_fold_CV_indicator <- rep(1, n_studies_actual)
+          ##
+          if (model_parameterisation == "ord_bivariate" && random_thresholds == FALSE) {
+
+                ## ---- O-biv-FC (ordinal bivariate, fixed cutpoints):
+                priors$prior_dirichlet_alpha    <- list(rep(1.0, n_thr + 1), rep(1.0, n_thr + 1))  ## Dirichlet(1, ..., 1), each class
+                priors$prior_beta_mu_mean[1, 1] <- 0     ## intercept, class 1
+                priors$prior_beta_mu_mean[2, 1] <- 0     ## intercept, class 2
+                priors$prior_beta_mu_SD[1, 1]   <- 1.0
+                priors$prior_beta_mu_SD[2, 1]   <- 1.0
+                priors$prior_beta_SD_SD         <- c(0.5, 0.5)
+
+          } else if (model_parameterisation == "ord_bivariate" && random_thresholds == TRUE) {
+
+                ## ---- O-biv-RC (ordinal bivariate, random cutpoints): log(kappa) ~ Student-t(dof, mean, SD) in each class
+                priors$prior_dirichlet_alpha    <- list(rep(1.0, n_thr + 1), rep(1.0, n_thr + 1))  ## Dirichlet(1, ..., 1), each class
+                priors$prior_beta_mu_mean[1, 1] <- 0     ## intercept, class 1
+                priors$prior_beta_mu_mean[2, 1] <- 0     ## intercept, class 2
+                priors$prior_beta_mu_SD[1, 1]   <- 1.0
+                priors$prior_beta_mu_SD[2, 1]   <- 1.0
+                priors$prior_beta_SD_SD         <- c(0.5, 0.5)
+                priors$prior_kappa_mean         <- c(log(125), log(125))
+                priors$prior_kappa_SD           <- c(1.0, 1.0)
+                priors$prior_kappa_dof          <- c(1000, 1000)
+                priors$kappa_lb                 <- 0.001
+                ## (initial values)
+                for (kk in 1:n_chains) {
+                      init_lists_per_chain[[kk]]$kappa <- c(50, 50)
+                }
+
+          } else if (model_parameterisation == "R&G" && random_thresholds == TRUE) {
+
+                ## ---- O-HSROC-RC (ordinal HSROC, random cutpoints): log(kappa) ~ Student-t(dof, mean, SD)
+                priors$prior_dirichlet_alpha    <- rep(1.0, n_thr + 1)                              ## Dirichlet(1, ..., 1)
+                priors$prior_beta_mu_mean[1]    <- 0     ## intercept
+                priors$prior_beta_mu_SD[1]      <- 1.0
+                priors$prior_beta_SD_SD         <- 0.5
+                priors$prior_raw_scale_mu_SD    <- c(HADS = 0.125, GAD_2 = 0.1875, BAI = 0.1875)[[test]]   ## log-scale intercept
+                priors$prior_raw_scale_SD_SD    <- 0.5
+                priors$prior_kappa_mean         <- log(150)
+                priors$prior_kappa_SD           <- 1.25
+                priors$prior_kappa_dof          <- 1000
+                priors$kappa_lb                 <- 0.001
+                ## (initial values)
+                for (kk in 1:n_chains) {
+                      init_lists_per_chain[[kk]]$kappa        <- 50
+                      init_lists_per_chain[[kk]]$beta_SD      <- 0.25
+                      init_lists_per_chain[[kk]]$raw_scale_SD <- 0.25
+                }
+
           } else if (model_parameterisation == "Jones") {
 
-                    priors$prior_beta_SD_SD      <- c(0.5, 0.5)
-                    priors$prior_raw_scale_SD_SD <- c(0.5, 0.5)
-                    ## (the Box-Cox lambda prior of each test, as in the paper)
-                    priors$prior_boxcox_lambda_mean <- rep(c(HADS = 0.75, GAD_2 = 1.0, BAI = 0.5)[[test]], 2)
-                    priors$prior_boxcox_lambda_SD   <- rep(c(HADS = 0.1, GAD_2 = 0.1, BAI = 0.05)[[test]], 2)
+                ## ---- Jones (its Box-Cox lambda prior of each test, as in the paper):
+                priors$prior_beta_SD_SD         <- c(0.5, 0.5)
+                priors$prior_raw_scale_SD_SD    <- c(0.5, 0.5)
+                priors$prior_boxcox_lambda_mean <- rep(c(HADS = 0.75, GAD_2 = 1.0, BAI = 0.5)[[test]], 2)
+                priors$prior_boxcox_lambda_SD   <- rep(c(HADS = 0.1, GAD_2 = 0.1, BAI = 0.05)[[test]], 2)
 
           } else if (model_parameterisation == "Bivariate") {
-                
-                    ##
-                    ## (its Se / Sp priors come from fn_induced_accuracy_priors below)
-            
+
+                ## ---- Stratified bivariate: its ONE prior is the Normal on mu (probit Se, probit Sp) at each threshold,
+                ##      prior_mu_mean and prior_mu_SD, set by fn_induced_accuracy_priors below; nothing else to set here.
+
+          } else {
+
+                stop("no priors are written for this model: ", model_parameterisation, ", random_thresholds = ", random_thresholds)
+
           }
           ##
           ## ---- The induced-accuracy priors of the prior set (set_0, set_1 or set_2) ------------------------------------------------------
@@ -833,8 +755,8 @@ run_multiple_sims <- function(MCMC_seed,
               model_parameterisation %in% c("ord_bivariate", "R&G")) {
                 priors$use_Se_Sp_prior <- 0
           }
-          ## (set 0 never has a Se / Sp prior term, in any model)
-          if (prior_set == "set_0" && model_parameterisation != "Jones") stopifnot(priors$use_Se_Sp_prior == 0)
+          ## (set 0 never has a Se / Sp prior term in the ordinal models; the stratified bivariate has no such term at all)
+          if (prior_set == "set_0" && model_parameterisation %in% c("ord_bivariate", "R&G")) stopifnot(priors$use_Se_Sp_prior == 0)
           ##
           # tibbles_list_testing <- list()
           # ess_vec <- c()
@@ -897,8 +819,10 @@ run_multiple_sims <- function(MCMC_seed,
                 model_parameterisation == "ord_bivariate" && prior_set == "set_0") {
                 priors[names(prior_fields)] <- prior_fields
             }
-            ## (sets 1 and 2 always have their Se / Sp prior term, in every model)
-            if (prior_set %in% c("set_1", "set_2")) stopifnot(priors$use_Se_Sp_prior == 1)
+            ## (sets 1 and 2 always have their Se / Sp prior term in the ordinal and Jones models; the stratified bivariate's
+            ##  one prior is the Normal on mu, with its mean and SD at each threshold)
+            if (prior_set %in% c("set_1", "set_2") && model_parameterisation != "Bivariate") stopifnot(priors$use_Se_Sp_prior == 1)
+            if (model_parameterisation == "Bivariate") stopifnot(!is.null(priors$prior_mu_mean), !is.null(priors$prior_mu_SD))
             time_after_the_model_prep <- Sys.time()
             ## (KEEP_THE_DATA_FILE_IN = a folder: the Stan data of this cmdstanr fit is saved there as it is written)
             if (nzchar(Sys.getenv("KEEP_THE_DATA_FILE_IN")) && sampling_algorithm == "Stan") {
