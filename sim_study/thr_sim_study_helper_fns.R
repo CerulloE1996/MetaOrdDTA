@@ -1692,28 +1692,34 @@ fn_induced_accuracy_priors <- function(priors,
               if (prior_set == 0) priors$use_Se_Sp_prior <-  0
         }
         ##
-        ## ---- Jones: the Se / Sp prior converted to its parameters by the prior conversion model, the trivariate Normal of
-        ##      the baseline location, log(scale) and 5 atanh(lambda / 5) of each class whose induced Se / Sp come closest
-        ##      to the O-biv-FC prior of the set (the chosen cutoffs above are then unused):
+        ## ---- Jones: the one-hill Se / Sp prior of prior sets 0, 1 and 2: the baseline location, log(scale) and lambda of
+        ##      each class as a transform of 3 standard Normals, with the numbers of the test, prior set and class (it
+        ##      replaces the model's other Se / Sp prior terms, so the chosen cutoffs above are then unused):
         ##
         if (model_parameterisation == "Jones") {
-              converted <-  read.csv(file.path(local_pkg_dir, "sim_study",
-                                               "Jones_Se_Sp_priors_converted_by_the_floor_search.csv"))
-              converted <-  converted[converted$test == test & converted$prior_set == prior_set, ]
-              converted <-  converted[order(converted$class), ]
-              stopifnot(nrow(converted) == 2)
-              priors$use_converted_Se_Sp_prior <-  1
-              priors$prior_converted_mean <-  lapply(1:2, function(c) unname(unlist(converted[c, c("mu_1", "mu_2", "mu_3")])))
-              priors$prior_converted_SD <-  lapply(1:2, function(c) unname(unlist(converted[c, c("SD_1", "SD_2", "SD_3")])))
-              priors$prior_converted_L_Omega <-  lapply(1:2, function(c) {
-                    L <-  diag(3)
-                    L[2, 1] <-  converted$L_21[c]
-                    L[2, 2] <-  converted$L_22[c]
-                    L[3, 1] <-  converted$L_31[c]
-                    L[3, 2] <-  converted$L_32[c]
-                    L[3, 3] <-  converted$L_33[c]
-                    L
+              one_hill <-  read.csv(file.path(local_pkg_dir, "sim_study",
+                                              "Jones_one_hill_Se_Sp_priors_of_each_test_set_and_class.csv"))
+              one_hill <-  one_hill[one_hill$test == test & one_hill$prior_set == prior_set, ]
+              one_hill <-  one_hill[order(one_hill$class), ]
+              stopifnot(nrow(one_hill) == 2)
+              fn_values_of_one_name <-  function(class,
+                                                 name,
+                                                 n_values) {
+
+                    unname(unlist(one_hill[class, paste0(name, "_", seq_len(n_values))]))
+
+              }
+              priors$use_Se_Sp_prior <-  1
+              priors$use_converted_Se_Sp_prior <-  0
+              priors$use_one_hill_Se_Sp_prior <-  1
+              priors$prior_one_hill_mean <-  lapply(1:2, fn_values_of_one_name, name = "mu", n_values = 3)
+              priors$prior_one_hill_SD <-  lapply(1:2, fn_values_of_one_name, name = "SD", n_values = 3)
+              priors$prior_one_hill_L_Omega <-  lapply(1:2, function(class) {
+                    matrix(unlist(one_hill[class, paste0("L_Omega_", rep(1:3, 3), "_", rep(1:3, each = 3))]), 3, 3)
               })
+              priors$prior_one_hill_skew <-  lapply(1:2, fn_values_of_one_name, name = "skew", n_values = 3)
+              priors$prior_one_hill_log_tail <-  lapply(1:2, fn_values_of_one_name, name = "log_tail", n_values = 3)
+              priors$prior_one_hill_bend <-  lapply(1:2, fn_values_of_one_name, name = "bend", n_values = 2)
         }
         return(priors)
 
