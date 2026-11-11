@@ -134,7 +134,7 @@ n_chains <- ifelse(parallel::detectCores() > 32, 64, 16)
 ##
 init_lists_per_chain <- replicate(n_chains, inits_for_ord_biv_fixed_thr_model, simplify = FALSE) ## li (inits_for_ord_biv_fixed_thr_model, n_chains)
 ##
-## model_parameterisation <- "R&G"
+## model_parameterisation <- "ord_HSROC"
 ##
 model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(  x = x, 
                                                   n_chains = n_chains,

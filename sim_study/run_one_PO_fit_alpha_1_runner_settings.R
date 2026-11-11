@@ -58,7 +58,7 @@ stopifnot(!is.null(sample_call_of_the_runner))
 ##
 ## ---- The model the runner fits (its fused AVX version) and its nuisance blocks, as the runner names them:
 ##
-model_parameterisation <-  if (model_of_this_fit == "rg_rand") "R&G" else "ord_bivariate"
+model_parameterisation <-  if (model_of_this_fit == "rg_rand") "ord_HSROC" else "ord_bivariate"
 random_thresholds <-  model_of_this_fit != "xu_fixed"
 Dirichlet_random_effects_type <-  if (random_thresholds) "kappa" else "fixed"
 name_of_the_model_family <-  if (model_parameterisation == "ord_bivariate") "DTA_MA_ord_biv_" else "DTA_MA_Gat_"
@@ -130,7 +130,7 @@ model_prep_obj <-  MetaOrdDTA::MetaOrd_model$new(debugging = FALSE,
 ##
 priors <-  model_prep_obj$priors
 priors$prior_dirichlet_alpha <-  list(rep(1.0, n_thr + 1), rep(1.0, n_thr + 1))
-if (model_parameterisation == "R&G") {
+if (model_parameterisation == "ord_HSROC") {
       priors$prior_dirichlet_alpha <-  rep(1.0, n_thr + 1)
       priors$prior_kappa_mean <-  log(100)
       priors$prior_kappa_SD <-  1.0
@@ -143,7 +143,7 @@ if (model_parameterisation == "R&G") {
 }
 priors$use_probit_link <-  1
 priors$K_fold_CV_indicator <-  rep(1, n_studies_actual)
-if (model_parameterisation == "R&G") {
+if (model_parameterisation == "ord_HSROC") {
       priors$prior_raw_scale_mu_SD <-  1
       priors$prior_raw_scale_SD_SD <-  1
 }

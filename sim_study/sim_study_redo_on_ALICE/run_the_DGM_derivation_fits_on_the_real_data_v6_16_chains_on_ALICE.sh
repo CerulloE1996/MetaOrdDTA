@@ -12,8 +12,8 @@
 ## The DGM derivation, sixth pass, on the cleaned real data (per-test files cut from
 ## Klaus_collab_NMA_work/derived_data/Klaus_et_al_data/real_data_8_tests_GAD: test 1 = GAD-2, 3 = HADS,
 ## 4 = BAI), one test per job (sbatch --export=ALL,SIM_TEST_TEST=<GAD_2|HADS|BAI> this file): the sim runner
-## fits its three models (ord-biv fixed-C, ord-biv random-C pop-median, R&G random-C pop-median) to the real
-## data with NicoStan, each with its own Dirichlet(1) ordinal prior (ordinal_prior_type "Dirichlet"; the R&G
+## fits its three models (ord-biv fixed-C, ord-biv random-C pop-median, ord_HSROC random-C pop-median) to the real
+## data with NicoStan, each with its own Dirichlet(1) ordinal prior (ordinal_prior_type "Dirichlet"; the ord_HSROC
 ## model's default Dirichlet on both classes), kappa prior C, 1000 burn-in (clip 70 / 200, learning rate
 ## 0.0625, the 0.25 SD inits), 4000 sampling iterations on each of 16 chains. Each job writes its own TEST_
 ## folder, so the three jobs run at once.
@@ -26,10 +26,10 @@ export SIM_N_SEEDS=1
 export SIM_SEED_OFFSET=0
 export SIM_N_THREADS=16
 export SIM_N_CHAINS_PER_WORKER=16
-export SIM_MODELS="R&G,ord_bivariate"
+export SIM_MODELS="ord_HSROC,ord_bivariate"
 export SIM_REAL_DATA_DIR=$HOME/sim_study_runs/real_data_for_the_DGM_derivation_cleaned
 export SIM_TEST_N_STUDIES=50
-export SIM_TEST_DGM="R&G_random_C"
+export SIM_TEST_DGM="ord_HSROC_random_C"
 export N_ITER_FOR_4_CHAINS=16000
 export N_BURNIN=1000
 export BURNIN_ALGORITHM=ESJD

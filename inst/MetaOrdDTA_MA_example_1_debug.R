@@ -198,7 +198,7 @@ softplus <- FALSE
 # 
 
 {
-  model_parameterisation = "R&G"
+  model_parameterisation = "ord_HSROC"
   box_cox <- FALSE
   cts <- FALSE
   random_thresholds <-  FALSE
@@ -216,7 +216,7 @@ softplus <- FALSE
 # 
 # 
 # {
-#   model_parameterisation = "R&G"
+#   model_parameterisation = "ord_HSROC"
 #   box_cox <- FALSE
 #   cts <- FALSE
 #   random_thresholds <-  TRUE

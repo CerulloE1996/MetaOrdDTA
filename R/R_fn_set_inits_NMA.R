@@ -165,7 +165,7 @@ R_fn_set_inits_NMA <- function(    inits,
             
       } else if (cts == FALSE) { ## ordinal (ord_biv or ord_HSROC)
             
-          if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
+          if (grepl("ord_HSROC|ordinal_HSROC|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
                         
                     # ##
                     # ## Set default inits for the locations ("beta"):

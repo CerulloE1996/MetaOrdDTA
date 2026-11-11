@@ -115,7 +115,7 @@ fn_ord_HSROC_native_prior_integration_bank <- function(native_prior_draws,
          reference_beta_baseline_mean = projections$beta_mean,
          reference_beta_baseline_SD = projections$beta_SD,
          native_stan_data = native_stan_data,
-         scope = "native R&G baseline marginal accuracy; not predictive accuracy or joint curve matching")
+         scope = "native ord_HSROC baseline marginal accuracy; not predictive accuracy or joint curve matching")
 
 }
 
@@ -243,7 +243,7 @@ fn_data_for_deriving_ord_HSROC_marginal_accuracy_prior <- function(reference_Se_
          native_stan_data = native_prior_bank$native_stan_data,
          objective = objective,
          scope = native_prior_bank$scope,
-         approximation = "self-normalised importance integration over the paired native R&G prior bank")
+         approximation = "self-normalised importance integration over the paired native ord_HSROC prior bank")
 
 }
 

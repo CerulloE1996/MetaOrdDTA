@@ -29,7 +29,7 @@ R_fn_get_stan_model_file_name <- function( custom_file_name,
                   ##
                   ## Now get the Stan model file name string:
                   ##
-                  if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis",
+                  if (grepl("ord_HSROC|ordinal_HSROC|HSROC|Gatsonis",
                             model_parameterisation,
                             ignore.case = TRUE)) { 
                     file_string_2 <- "ord_HSROC_"
@@ -110,7 +110,7 @@ R_fn_get_stan_model_file_name <- function( custom_file_name,
         ## The ordinal-HSROC model has random cutpoints only (its fixed-cutpoint version is not a valid model):
         ##
         if (grepl("ord_HSROC_FIXEDthr", stan_model_file_name, fixed = TRUE)) {
-          stop("The ordinal-HSROC (R&G) model has random cutpoints only: set random_thresholds = TRUE.")
+          stop("The ordinal-HSROC (ord_HSROC) model has random cutpoints only: set random_thresholds = TRUE.")
         }
         ##
         ## The random-cutpoint models are the pop-median ones only, MA and NMA:

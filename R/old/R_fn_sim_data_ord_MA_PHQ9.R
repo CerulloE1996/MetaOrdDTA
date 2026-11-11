@@ -223,7 +223,7 @@ R_fn_sim_data_ord_MA_PHQ9 <- function(   seed = 123,
                # scale_nd[5] <- exp(-0.5*true_raw_scale_mu_PHQ_9_Cerullo_Gat);
                # scale_d[5]  <- exp(+0.5*true_raw_scale_mu_PHQ_9_Cerullo_Gat);
                ##
-               ## get the "raw" scale params (if using R&G HSROC-based param.):
+               ## get the "raw" scale params (if using ord_HSROC HSROC-based param.):
                ##
                # raw_scale_nd <- log(scale_nd)*(-2.0)
                # raw_scale_d  <- log(scale_d)*(+2.0)

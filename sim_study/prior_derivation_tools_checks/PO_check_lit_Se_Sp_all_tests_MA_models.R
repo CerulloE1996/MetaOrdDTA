@@ -262,7 +262,7 @@ fn_settings_of_a_model <-  function(stan_model_file) {
                    },
            priors_matched_by_a_prior_model = priors_matched_by_a_prior_model,
            model_parameterisation = model_parameterisation,
-           label_of_the_runner = if (strat_biv) "Bivariate" else if (Jones) "Jones" else if (ord_HSROC) "R&G" else
+           label_of_the_runner = if (strat_biv) "Bivariate" else if (Jones) "Jones" else if (ord_HSROC) "ord_HSROC" else
                                  "ord_bivariate",
            random_thresholds = random_thresholds,
            Dirichlet_random_effects_type = if (random_thresholds) "kappa" else "fixed",
@@ -300,7 +300,7 @@ fn_runner_priors_of_a_model <-  function(priors,
       ##
       ## ---- The Dirichlet and kappa priors: ord_HSROC, else ord_biv and Jones -------------------------------------------------------
       ##
-      if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
+      if (grepl("ord_HSROC|ordinal_HSROC|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
               priors$prior_dirichlet_alpha <- rep(1.0, n_thr + 1)
               priors$prior_kappa_mean <- log(100)
               priors$prior_kappa_SD <- 1.0
@@ -318,7 +318,7 @@ fn_runner_priors_of_a_model <-  function(priors,
       ##
       ## ---- The raw-scale priors of ord_HSROC ---------------------------------------------------------------------------------------
       ##
-      if (model_parameterisation == "R&G") {
+      if (model_parameterisation == "ord_HSROC") {
           priors$prior_raw_scale_mu_SD <- 1
           priors$prior_raw_scale_SD_SD <- 1
       }
@@ -348,7 +348,7 @@ fn_runner_priors_of_a_model <-  function(priors,
       ##
       if (model_parameterisation == "ord_bivariate") {
             priors$prior_beta_SD_SD <- c(0.5, 0.5)
-      } else if (model_parameterisation == "R&G") {
+      } else if (model_parameterisation == "ord_HSROC") {
             priors$prior_beta_SD_SD      <- 0.5
             priors$prior_raw_scale_SD_SD <- 0.5
       } else if (model_parameterisation == "Jones") {

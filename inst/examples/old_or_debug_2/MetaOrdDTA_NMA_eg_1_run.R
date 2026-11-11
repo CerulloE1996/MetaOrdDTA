@@ -99,7 +99,7 @@ devtools::install(local_pkg_dir,
 
 
 {
-  model_parameterisation = "R&G"
+  model_parameterisation = "ord_HSROC"
   box_cox <- FALSE
   cts <- FALSE
   ##
@@ -120,7 +120,7 @@ devtools::install(local_pkg_dir,
 
 
 {
-  model_parameterisation = "R&G"
+  model_parameterisation = "ord_HSROC"
   box_cox <- FALSE
   cts <- FALSE
   ##

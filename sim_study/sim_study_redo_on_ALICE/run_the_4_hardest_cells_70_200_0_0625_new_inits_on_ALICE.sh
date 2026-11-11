@@ -21,7 +21,7 @@ export SIM_SEED_OFFSET=0
 export SIM_N_SEEDS=30
 export SIM_N_THREADS=64
 export DUMP_BURNIN_TRACE=1
-export SIM_MODELS="R&G"
+export SIM_MODELS="ord_HSROC"
 T=$HOME/MetaOrdDTA_outputs/sim_study/TEST_fixed_raw_C_J_sim_results_NicoStan_MCSE_0.125_alpha_prior_flat_1
 [ -d $T ] && mv $T ${T}_set_aside_before_batch_6
 run_variant() {

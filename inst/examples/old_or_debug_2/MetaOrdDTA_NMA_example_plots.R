@@ -2706,7 +2706,7 @@ ggsave("DUMMY_Application_baseline_Se_Sp_vs_thr_panel_w_CrI_PrI.png", plots_DUMM
 #   softplus = FALSE
 #   ##
 #   ##
-#   model_parameterisation = "R&G"
+#   model_parameterisation = "ord_HSROC"
 #   ##
 #   random_thresholds = TRUE
 #   Dirichlet_random_effects_type = "kappa"

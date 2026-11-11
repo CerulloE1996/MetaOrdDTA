@@ -3,11 +3,11 @@
 ##
 ## Usage: Rscript derive_the_DGM_values_from_the_real_data_fits.R <folder of GAD_2> <folder of HADS> <folder of BAI> <out file>
 ## Each folder holds the results lists of the runner's fits to the REAL data of one test: ord-biv fixed-C, ord-biv random-C
-## pop-median and R&G random-C pop-median. The DGM values are the posterior medians (the "50%" column of the summary):
+## pop-median and ord_HSROC random-C pop-median. The DGM values are the posterior medians (the "50%" column of the summary):
 ## ord_biv_random_C: beta_mu, beta_SD, beta_corr, C_nd / C_d (= C_mu of each class), alpha_nd / alpha_d (= 0.01 + phi * kappa,
 ## the model's own line), C_nd_SD_prob_scale / C_d_SD_prob_scale (compute_dirichlet_SDs of the alpha, the function of the
 ## sim data file, the first n_thr of the n_cat category SDs, as the old values); ord_biv_fixed_C: beta_mu, beta_SD, beta_corr, C_nd / C_d (the cutpoints from C_raw_vec: C[1] = C_raw[1],
-## C[k] = C[k - 1] + exp(C_raw[k]), the fixed-cutpoint model's own transform with softplus = 0); R&G_random_C: beta_mu,
+## C[k] = C[k - 1] + exp(C_raw[k]), the fixed-cutpoint model's own transform with softplus = 0); ord_HSROC_random_C: beta_mu,
 ## beta_SD, raw_scale_mu, raw_scale_SD, C (= C_mu), alpha, C_SD_prob_scale.
 args <- commandArgs(trailingOnly = TRUE)
 folders <- args[1:3]
@@ -101,11 +101,11 @@ for (test in names(folders)) {
       emit(L, "$Ord_bivariate$C_nd <- ", fmt(cutpoints_from_C_raw(C_raw[1, ])))
       emit(L, "$Ord_bivariate$C_d  <- ", fmt(cutpoints_from_C_raw(C_raw[2, ])))
       }
-      ## ---- R&G random-C (pop-median):
-      t <- find_fit(folders[[test]], "R&G", TRUE)
-      if (is.null(t)) emit("## ---- ", test, ", DGM R&G_random_C: NO FIT SAVED") else {
+      ## ---- ord_HSROC random-C (pop-median):
+      t <- find_fit(folders[[test]], "ord_HSROC", TRUE)
+      if (is.null(t)) emit("## ---- ", test, ", DGM ord_HSROC_random_C: NO FIT SAVED") else {
       alpha <- 0.01 + median_of(t, "dirichlet_phi") * median_of(t, "kappa")
-      emit("## ---- ", test, ", DGM R&G_random_C (real-data fit of the R&G random-cutpoint pop-median model):")
+      emit("## ---- ", test, ", DGM ord_HSROC_random_C (real-data fit of the ord_HSROC random-cutpoint pop-median model):")
       emit(L, "$Ord_HSROC$beta_mu <- ", fmt1(median_of(t, "beta_mu")))
       emit(L, "$Ord_HSROC$beta_SD <-  ", fmt1(median_of(t, "beta_SD")), "*reduction_factor")
       emit(L, "$Ord_HSROC$raw_scale_mu <-  ", fmt1(median_of(t, "raw_scale_mu")))

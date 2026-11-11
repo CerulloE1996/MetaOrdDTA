@@ -277,7 +277,7 @@ n_threads_to_use_HPC <- if (nzchar(Sys.getenv("SIM_N_THREADS"))) as.integer(Sys.
 # head(xu_false_redfact1)
 #
 # rg_false_redfact1 <- list.files(output_dir,
-#                                 pattern = ".*GAD_2.*red_fact_1.*R&G_random_C.*n_studies_10.*rand_thr_FALSE.*",
+#                                 pattern = ".*GAD_2.*red_fact_1.*ord_HSROC_random_C.*n_studies_10.*rand_thr_FALSE.*",
 #                                 full.names = FALSE)
 # length(rg_false_redfact1)
 # head(rg_false_redfact1)
@@ -340,7 +340,7 @@ sim_study_type <- "paper" ## ----
 # sim_study_type <- "RC_ord_biv_median_vs_pop_median"
 # sim_study_type <- "RC_ord_HSROC_median_vs_pop_median"
 ##
-## ---- The prior of the ordinal models (ord_bivariate, R&G): their own Dirichlet prior on the cutpoints or the Se / Sp prior --------------------
+## ---- The prior of the ordinal models (ord_bivariate, ord_HSROC): their own Dirichlet prior on the cutpoints or the Se / Sp prior --------------------
 ##
 ## ("Dirichlet" = priors$use_Se_Sp_prior <- 0, each model's own Dirichlet prior on the cutpoints; "Se_Sp" =
 ##  priors$use_Se_Sp_prior <- 1, the direct Se / Sp prior, type 4: N(0, 1) on probit Sp and probit Se at every
@@ -402,11 +402,11 @@ output_dir <- MetaOrdDTA::metaorddta_output_path(
 ##
 ## ---- DGM:
 ##
-DGM_vec <- c("ord_biv_fixed_C", "Jones", "ord_biv_random_C", "R&G_random_C") ## ----
-# DGM_vec <- c("ord_biv_random_C", "R&G_random_C")
+DGM_vec <- c("ord_biv_fixed_C", "Jones", "ord_biv_random_C", "ord_HSROC_random_C") ## ----
+# DGM_vec <- c("ord_biv_random_C", "ord_HSROC_random_C")
 # DGM_vec <- "Jones"
 # DGM_vec <- "ord_biv_random_C"
-# DGM_vec <- "R&G_random_C"
+# DGM_vec <- "ord_HSROC_random_C"
 ## (SIM_DGMS, e.g. "ord_biv_fixed_C,Jones", runs those DGMs only)
 if (nzchar(Sys.getenv("SIM_DGMS"))) DGM_vec <- strsplit(Sys.getenv("SIM_DGMS"), ",")[[1]]
 ##
@@ -414,18 +414,18 @@ n_studies_vals_vec <- c(10, 50) ## ----
 ##
 ## ---- model_parameterisation:
 ##
-# model_param_vec <- c("Jones", "ord_bivariate", "R&G", "Bivariate")
-# model_param_vec <- c("ord_bivariate", "Jones", "R&G")
+# model_param_vec <- c("Jones", "ord_bivariate", "ord_HSROC", "Bivariate")
+# model_param_vec <- c("ord_bivariate", "Jones", "ord_HSROC")
 # model_param_vec <- "Bivariate"
 # model_param_vec <- c("Jones", "Bivariate")
 # model_param_vec <- "Jones"
-# model_param_vec <- "R&G"
-# model_param_vec <- c("ord_bivariate", "R&G")
+# model_param_vec <- "ord_HSROC"
+# model_param_vec <- c("ord_bivariate", "ord_HSROC")
 # model_param_vec <- "ord_bivariate"
-# model_param_vec <- c("ord_bivariate", "R&G", "Bivariate")
+# model_param_vec <- c("ord_bivariate", "ord_HSROC", "Bivariate")
 # model_param_vec <- c("ord_bivariate", "Bivariate")
 # model_param_vec <- "ord_bivariate"
-model_param_vec <- c("ord_bivariate", "R&G", "Jones", "Bivariate")
+model_param_vec <- c("ord_bivariate", "ord_HSROC", "Jones", "Bivariate")
 ## (SIM_MODELS, e.g. "ord_bivariate,Jones", runs those models only)
 if (nzchar(Sys.getenv("SIM_MODELS"))) model_param_vec <- strsplit(Sys.getenv("SIM_MODELS"), ",")[[1]]
 ##
@@ -455,7 +455,7 @@ if (sim_study_type == "RC_ord_biv_median_vs_pop_median") {
 ## ---- Settings of the RC ord_HSROC median vs pop-median sim study -------------------------------------------------------------------
 ##
 if (sim_study_type == "RC_ord_HSROC_median_vs_pop_median") {
-      model_param_vec          <- "R&G"
+      model_param_vec          <- "ord_HSROC"
       random_thresholds_vec    <- TRUE
       RC_ord_HSROC_model_vec   <- c("median", "pop_median")
 }
@@ -666,7 +666,7 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                     if (sim_study_type == "paper" && isTRUE(scenario_row$random_thresholds) &&
                         Sys.getenv("POPMED") != "0" &&
                         scenario_row$model_parameterisation %in% c("ord_bivariate", 
-                                                                   "R&G")) {
+                                                                   "ord_HSROC")) {
                           
                               scenario_row$custom_file_name <- list(
                                     if (scenario_row$model_parameterisation == "ord_bivariate") {
@@ -715,7 +715,7 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                     ##
                     ## (the same test as the worker's: run_MULTIPLE_MetaOrd_simulation.R, "The direct Se/Sp prior")
                     uses_the_Se_Sp_prior <- ordinal_prior_type == "Se_Sp" &&
-                                            scenario_row$model_parameterisation %in% c("ord_bivariate", "R&G") &&
+                                            scenario_row$model_parameterisation %in% c("ord_bivariate", "ord_HSROC") &&
                                             scenario_row$prior_set == "set_0"
                     if (uses_the_Se_Sp_prior &&
                         identical(scenario_row$custom_file_name[[1]],
@@ -891,11 +891,11 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                             NicoSIMD_user_header <- file.path(find.package("NicoSIMD"), "include", "NicoSIMD",
                                                               "stan_external_functions_of_NicoSIMD.hpp")
                             use_custom_file_of_this_scenario <- scenario_row$model_parameterisation %in%
-                                  c("Bivariate", "ord_bivariate", "R&G")
+                                  c("Bivariate", "ord_bivariate", "ord_HSROC")
                             custom_file_name_of_this_scenario <- if (scenario_row$model_parameterisation ==
                                                                    "Bivariate") {
                                   "DTA_MA_strat_bivariate_NicoStan_fused_AVX.stan"
-                            } else if (scenario_row$model_parameterisation %in% c("ord_bivariate", "R&G")) {
+                            } else if (scenario_row$model_parameterisation %in% c("ord_bivariate", "ord_HSROC")) {
                                   paste0(if (scenario_row$model_parameterisation == "ord_bivariate") "DTA_MA_ord_biv_" else
                                          "DTA_MA_ord_HSROC_",
                                          if (scenario_row$random_thresholds) "RANDthr_kappa" else "FIXEDthr",
@@ -927,7 +927,7 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                             }
                             if (sim_study_type == "paper" && isTRUE(scenario_row$random_thresholds) &&
                                 Sys.getenv("POPMED") != "0" &&
-                                scenario_row$model_parameterisation %in% c("ord_bivariate", "R&G")) {
+                                scenario_row$model_parameterisation %in% c("ord_bivariate", "ord_HSROC")) {
                                   custom_file_name_of_this_scenario <- scenario_row$custom_file_name[[1]]
                                   custom_cpp_user_header_of_this_scenario <-
                                         scenario_row$custom_cpp_user_header_file_path[[1]]
@@ -945,7 +945,7 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                             Stan_model_name_of_this_scenario <- MetaOrdDTA:::R_fn_get_stan_model_file_name(
                                   custom_file_name              = custom_file_name_of_this_scenario,
                                   # use_Se_Sp_prior               = scenario_row$model_parameterisation %in%
-                                  #                                 c("ord_bivariate", "R&G"),
+                                  #                                 c("ord_bivariate", "ord_HSROC"),
                                   ## (as the worker: priors$use_Se_Sp_prior, run_MULTIPLE_MetaOrd_simulation)
                                   # use_Se_Sp_prior               = FALSE,
                                   use_Se_Sp_prior               = uses_the_Se_Sp_prior,

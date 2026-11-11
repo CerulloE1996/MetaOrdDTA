@@ -282,7 +282,7 @@ model {
         // target += std_normal_lpdf(to_vector(raw_scale_z)); // part of between-study model, NOT prior
 
         target += nico_normal_lupdf(to_vector(raw_scale_z) | 0, 1); // part of between-study model, NOT prior
-        // target += raw_scale_to_scale_log_det_J_lp(raw_scale, softplus); // no Jacobian needed for R&G models as it cancels out (since + then -).
+        // target += raw_scale_to_scale_log_det_J_lp(raw_scale, softplus); // no Jacobian needed for ord_HSROC models as it cancels out (since + then -).
         // target += raw_C_to_C_log_det_J_lp(C_raw, softplus);
         target += nico_log_det_jacobian_of_cutpoints_from_raw_differences(C_raw, softplus);
         ////

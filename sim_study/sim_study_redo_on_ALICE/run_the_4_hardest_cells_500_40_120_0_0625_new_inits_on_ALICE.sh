@@ -9,7 +9,7 @@
 #SBATCH --time=04:00:00
 #SBATCH --output=/home/e/ec376/sim_study_runs/logs/%x_%j.out
 ##
-## The ord_HSROC random-cutpoint pop-median model on the BAI R&G (10 and 50 studies) and HADS R&G data, the ord_biv on BAI and
+## The ord_HSROC random-cutpoint pop-median model on the BAI ord_HSROC (10 and 50 studies) and HADS ord_HSROC data, the ord_biv on BAI and
 ## The 4 hardest cells, 30 seeds each, 500 burn-in iterations with clip_iter 40 / clip_iter_tau 120 and learning rate
 ## 0.0625, on the library with the 0.25 SD inits; the burn-in record of every fit saved.
 module load R/4.3.1 > /dev/null 2>&1
@@ -21,7 +21,7 @@ export SIM_SEED_OFFSET=0
 export SIM_N_SEEDS=30
 export SIM_N_THREADS=64
 export DUMP_BURNIN_TRACE=1
-export SIM_MODELS="R&G"
+export SIM_MODELS="ord_HSROC"
 T=$HOME/MetaOrdDTA_outputs/sim_study/TEST_fixed_raw_C_J_sim_results_NicoStan_MCSE_0.125_alpha_prior_flat_1
 [ -d $T ] && mv $T ${T}_set_aside_before_the_500_test
 run_variant() {

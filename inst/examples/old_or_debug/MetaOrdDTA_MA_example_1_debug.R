@@ -157,7 +157,7 @@ softplus <- FALSE
 }
 
 {
-  model_parameterisation = "R&G"
+  model_parameterisation = "ord_HSROC"
   box_cox <- FALSE
   cts <- FALSE
   random_thresholds <-  FALSE
@@ -187,7 +187,7 @@ softplus <- FALSE
 }
 
 # {
-#   model_parameterisation = "R&G"
+#   model_parameterisation = "ord_HSROC"
 #   box_cox <- FALSE
 #   cts <- FALSE
 #   random_thresholds <-  TRUE
@@ -367,7 +367,7 @@ if (model_parameterisation == "ord_bivariate") {
             priors$prior_beta_SD_mean <- rep(0.0, 2)
             priors$prior_beta_SD_SD   <- rep(1.0, 2)
       
-} else if (model_parameterisation == "R&G") { 
+} else if (model_parameterisation == "ord_HSROC") { 
       
           for (kk in 1:n_chains) {
                 mat <- matrix(-3.0, nrow = n_studies, ncol = n_thr)

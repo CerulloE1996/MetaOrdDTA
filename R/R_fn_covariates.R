@@ -705,7 +705,7 @@ R_fn_get_covariate_info_MA <- function(  intercept_only,
             
             if (is.null(X)) { ## i.e. intercept-only 
                     
-                    if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
+                    if (grepl("ord_HSROC|ordinal_HSROC|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
                       
                             X_t <- matrix(1.0, nrow = n_studies, ncol = 1)
                             cov_info_list$X <- X_t
@@ -737,7 +737,7 @@ R_fn_get_covariate_info_MA <- function(  intercept_only,
                     
             } else {  ## i.e. if covariates
                     
-                    if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
+                    if (grepl("ord_HSROC|ordinal_HSROC|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
                       
                             cov_info_list$X <- X
                             cov_info_list$n_covariates  <-  ncol(X)
@@ -792,7 +792,7 @@ R_fn_get_covariate_info_NMA <- function( intercept_only,
             
             if (is.null(X)) { ## i.e. intercept-only 
               
-                  if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
+                  if (grepl("ord_HSROC|ordinal_HSROC|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
                     
                           X_t <- matrix(1.0, nrow = n_studies, ncol = 1)
                           cov_info_list$X <- rep(list(X_t), n_index_tests)
@@ -822,7 +822,7 @@ R_fn_get_covariate_info_NMA <- function( intercept_only,
               
             } else { ## i.e. if covariates
               
-                  if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
+                  if (grepl("ord_HSROC|ordinal_HSROC|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
                           
                           cov_info_list$X <- X
                           cov_info_list$n_covariates  <-  c() ##  ncol(X)

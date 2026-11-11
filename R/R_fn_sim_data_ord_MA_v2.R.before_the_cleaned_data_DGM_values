@@ -262,7 +262,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
           # round(mean(c(true_mean_GAD_2_params_list$Ord_bivariate$C_nd_SD_prob_scale)), 4) ## 0.036
           # round(mean(c(true_mean_GAD_2_params_list$Ord_bivariate$C_d_SD_prob_scale)),  4) ## 0.068
           # ##
-          # ## ---- R&G_random_C:
+          # ## ---- ord_HSROC_random_C:
           # ##
           # round(mean(c(true_mean_GAD_2_params_list$Ord_HSROC$C_SD_prob_scale)), 4) ## 0.0685
           # ##
@@ -274,7 +274,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
           # round(mean(c(true_mean_HADS_params_list$Ord_bivariate$C_nd_SD_prob_scale)), 4) ## 0.0104
           # round(mean(c(true_mean_HADS_params_list$Ord_bivariate$C_d_SD_prob_scale)),  4) ## 0.0108
           # ##
-          # ## ---- R&G_random_C:
+          # ## ---- ord_HSROC_random_C:
           # ##
           # round(mean(c(true_mean_HADS_params_list$Ord_HSROC$C_SD_prob_scale)), 4) ## 0.0095
           # ## 
@@ -285,7 +285,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
           # round(mean(c(true_mean_BAI_params_list$Ord_bivariate$C_nd_SD_prob_scale)), 4)  ## 0.0045
           # round(mean(c(true_mean_BAI_params_list$Ord_bivariate$C_d_SD_prob_scale)),  4)  ## 0.0026
           # ##
-          # ## ---- R&G_random_C:
+          # ## ---- ord_HSROC_random_C:
           # ##
           # round(mean(c(true_mean_BAI_params_list$Ord_HSROC$C_SD_prob_scale)), 4) ## 0.0031
           ##
@@ -341,7 +341,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   true_mean_GAD_2_params_list$Jones$raw_scale_SD <- c(0.0853, 0.283)*reduction_factor
                   true_mean_GAD_2_params_list$Jones$raw_scale_corr <- -0.247
               
-            } else if (DGM == "R&G_random_C") {
+            } else if (DGM == "ord_HSROC_random_C") {
               
                   true_mean_GAD_2_params_list$Ord_HSROC$beta_mu <- -0.710
                   true_mean_GAD_2_params_list$Ord_HSROC$beta_SD <-  0.392*reduction_factor
@@ -480,7 +480,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   true_mean_HADS_params_list$Jones$raw_scale_SD <- c(0.116, 0.116)*reduction_factor
                   true_mean_HADS_params_list$Jones$raw_scale_corr <- 0.269
               
-            } else if (DGM == "R&G_random_C") {
+            } else if (DGM == "ord_HSROC_random_C") {
                   
                   true_mean_HADS_params_list$Ord_HSROC$beta_mu <- -0.745
                   true_mean_HADS_params_list$Ord_HSROC$beta_SD <-  0.204*reduction_factor
@@ -642,7 +642,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   true_mean_BAI_params_list$Jones$raw_scale_SD <- c(0.166, 0.358)*reduction_factor
                   true_mean_BAI_params_list$Jones$raw_scale_corr <- 0.299
                   
-            } else if (DGM == "R&G_random_C") {
+            } else if (DGM == "ord_HSROC_random_C") {
                   
                   true_mean_BAI_params_list$Ord_HSROC$beta_mu <- -0.764
                   true_mean_BAI_params_list$Ord_HSROC$beta_SD <-  0.333*reduction_factor
@@ -798,7 +798,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   raw_scale_SD_d[3]         <- true_mean_BAI_params_list$Jones$raw_scale_SD[2]
                   raw_scale_corr[3]         <- true_mean_BAI_params_list$Jones$raw_scale_corr
             
-          } else if (DGM == "R&G_random_C") { 
+          } else if (DGM == "ord_HSROC_random_C") { 
             
                   # Set bivariate locations
                   location_mu  <- c(0, 0, 0, 0, 0)
@@ -937,7 +937,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                           thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- true_mean_GAD_2_params_list$Jones$C_nd
                           thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]]  <- true_mean_GAD_2_params_list$Jones$C_d
                       
-                    } else if (DGM == "R&G_random_C") { 
+                    } else if (DGM == "ord_HSROC_random_C") { 
                       
                           thresholds <- generate_ordered_thresholds_induced_dirichlet( alpha_vec = true_mean_GAD_2_params_list$Ord_HSROC$alpha,
                                                                                        use_probit_link =  TRUE)
@@ -970,7 +970,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                           thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- true_mean_BAI_params_list$Jones$C_nd
                           thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]]  <- true_mean_BAI_params_list$Jones$C_d
                       
-                    } else if (DGM == "R&G_random_C") { 
+                    } else if (DGM == "ord_HSROC_random_C") { 
                       
                           thresholds <- generate_ordered_thresholds_induced_dirichlet( alpha_vec = true_mean_BAI_params_list$Ord_HSROC$alpha,
                                                                                        use_probit_link =  TRUE)
@@ -1002,7 +1002,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                           thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- true_mean_HADS_params_list$Jones$C_nd
                           thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]]  <- true_mean_HADS_params_list$Jones$C_d
                       
-                    } else if (DGM == "R&G_random_C") { 
+                    } else if (DGM == "ord_HSROC_random_C") { 
                       
                           thresholds <- generate_ordered_thresholds_induced_dirichlet( alpha_vec = true_mean_HADS_params_list$Ord_HSROC$alpha,
                                                                                        use_probit_link =  TRUE)
@@ -1086,7 +1086,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                             scale_nd_study_s <- rep(1, n_tests)
                             scale_d_study_s  <- rep(1, n_tests)
                           
-                    } else if (DGM == "R&G_random_C") {
+                    } else if (DGM == "ord_HSROC_random_C") {
                       
                             location_nd_study_s <- location_d_study_s <- c()
                             scale_nd_study_s <- scale_d_study_s <- c()

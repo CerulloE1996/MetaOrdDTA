@@ -152,7 +152,7 @@ model {
         ////
         target += std_normal_lpdf(to_vector(beta_z)); // part of between-study model, NOT prior
         target += std_normal_lpdf(to_vector(raw_scale_z)); // part of between-study model, NOT prior
-        // target += raw_scale_to_scale_log_det_J_lp(raw_scale, softplus); // no Jacobian needed for R&G models as it cancels out (since + then -).
+        // target += raw_scale_to_scale_log_det_J_lp(raw_scale, softplus); // no Jacobian needed for ord_HSROC models as it cancels out (since + then -).
         ////
         //// ---- Increment the log-likelihood:
         ////

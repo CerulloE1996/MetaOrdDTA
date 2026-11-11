@@ -45,7 +45,7 @@ R_fn_set_Se_Sp_prior_MA <-  function(priors,
       ## ---- without priors$Se_Sp_prior: the fields with the prior off, the model's own prior on the cutpoints:
       ##
       if (is.null(priors[["Se_Sp_prior"]])) {
-            is_the_ord_HSROC <-  grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)
+            is_the_ord_HSROC <-  grepl("ord_HSROC|ordinal_HSROC|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)
             on_both_classes <-  is_the_ord_HSROC && isTRUE(random_thresholds) &&
                                 identical(HSROC_Dirichlet_prior, "both_classes")
             priors$use_Se_Sp_prior <-  if (on_both_classes) 1 else 0

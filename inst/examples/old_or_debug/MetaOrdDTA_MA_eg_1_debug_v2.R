@@ -183,7 +183,7 @@ softplus <- FALSE
 # }
 # 
 # {
-#   model_parameterisation = "R&G"
+#   model_parameterisation = "ord_HSROC"
 #   box_cox <- FALSE
 #   cts <- FALSE
 #   random_thresholds <-  FALSE
@@ -213,7 +213,7 @@ softplus <- FALSE
 # }
 # 
 # # {
-# #   model_parameterisation = "R&G"
+# #   model_parameterisation = "ord_HSROC"
 # #   box_cox <- FALSE
 # #   cts <- FALSE
 # #   random_thresholds <-  TRUE
@@ -429,7 +429,7 @@ if (model_parameterisation == "ord_bivariate") {
 
             
       
-} else if (model_parameterisation == "R&G") { 
+} else if (model_parameterisation == "ord_HSROC") { 
       
           for (kk in 1:n_chains) {
                 mat <- matrix(-3.0, nrow = n_studies, ncol = n_thr)

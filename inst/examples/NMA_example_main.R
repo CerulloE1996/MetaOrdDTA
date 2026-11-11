@@ -414,7 +414,7 @@ if (intercept_only) {
         ##
         cov_data$X <- X
         ##
-        if (model_parameterisation == "R&G") { 
+        if (model_parameterisation == "ord_HSROC") { 
           baseline_case <- 1
           cov_data$baseline_case    <- rep(list(baseline_case), n_index_tests)
         } else { 
@@ -1838,7 +1838,7 @@ make_latex_table_k_fold_CV(comparison)
 # new_cov_data$baseline_case_d  <- baseline_case
 ##
 ##
-# if (model_parameterisation == "R&G") { 
+# if (model_parameterisation == "ord_HSROC") { 
 # #   new_cov_data$baseline_case    <- rep(list(new_cov_data$baseline_case), n_index_tests)
 # # } else { 
 #   new_cov_data$baseline_case_nd <- rep(list(new_cov_data$baseline_case_nd), n_index_tests)

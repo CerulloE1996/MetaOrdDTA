@@ -201,11 +201,11 @@ init_lists_per_chain <- NULL
 #   # }
 #   
 #   
-#     if ((model_parameterisation == "R&G") && (random_thresholds == FALSE)) {
+#     if ((model_parameterisation == "ord_HSROC") && (random_thresholds == FALSE)) {
 #       
 #       custom_file_name <- "DTA_MA_Gat_FIXEDthr.stan"
 #       
-#     } else if ((model_parameterisation == "R&G") && (random_thresholds == TRUE)) {
+#     } else if ((model_parameterisation == "ord_HSROC") && (random_thresholds == TRUE)) {
 #       
 #       custom_file_name <- "DTA_MA_Gat_RANDthr_kappa.stan"
 #       
@@ -251,7 +251,7 @@ init_lists_per_chain <- NULL
 #       cov_data$X <- X
 #       ##
 #       
-#       if (model_parameterisation == "R&G") { 
+#       if (model_parameterisation == "ord_HSROC") { 
 #         cov_data$baseline_case    <- cov_data_list$baseline_case
 #       } else { 
 #         cov_data$baseline_case_nd <- cov_data_list$baseline_case_nd
@@ -417,7 +417,7 @@ if (model_parameterisation == "Bivariate") {
 
 }
 
-if (model_parameterisation == "R&G") {
+if (model_parameterisation == "ord_HSROC") {
 
     priors$prior_raw_scale_mu_SD <- 1
     priors$prior_raw_scale_SD_SD <- 1
@@ -552,7 +552,7 @@ try({
 # new_cov_data$baseline_case_d  <- baseline_case
 # ##
 # ##
-# if (model_parameterisation == "R&G") { 
+# if (model_parameterisation == "ord_HSROC") { 
 #  new_cov_data$baseline_case    <- baseline_case
 # } else { 
 #  new_cov_data$baseline_case_nd <- baseline_case

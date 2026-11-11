@@ -107,7 +107,7 @@ start_sim_index <- 1
 
 
 {
-  model_parameterisation = "R&G"
+  model_parameterisation = "ord_HSROC"
   box_cox <- FALSE
   cts <- FALSE
   ##
@@ -128,7 +128,7 @@ start_sim_index <- 1
 
 
 {
-  model_parameterisation = "R&G"
+  model_parameterisation = "ord_HSROC"
   box_cox <- FALSE
   cts <- FALSE
   ##
@@ -460,7 +460,7 @@ use_custom_file <- FALSE
 #                      random_thresholds = FALSE,
 #                      Dirichlet_random_effects_type = "fixed"),
 #                 ##
-#                 list(model_parameterisation = "R&G",   
+#                 list(model_parameterisation = "ord_HSROC",   
 #                      start_sim_index = 16,
 #                      n_sims = 550,
 #                      box_cox = FALSE, 
@@ -478,7 +478,7 @@ use_custom_file <- FALSE
 #                      random_thresholds = TRUE,
 #                      Dirichlet_random_effects_type = "kappa"),
 #                 ##
-#                 list(model_parameterisation = "R&G", 
+#                 list(model_parameterisation = "ord_HSROC", 
 #                      start_sim_index = 16,
 #                      n_sims = 400,
 #                      box_cox = FALSE, 
@@ -537,7 +537,7 @@ use_custom_file <- FALSE
 #                      random_thresholds = FALSE,
 #                      Dirichlet_random_effects_type = "fixed"),
 #                 ##
-#                 list(model_parameterisation = "R&G",   
+#                 list(model_parameterisation = "ord_HSROC",   
 #                      start_sim_index = 16,
 #                      n_sims = 200,
 #                      box_cox = FALSE, 
@@ -555,7 +555,7 @@ use_custom_file <- FALSE
 #                      random_thresholds = TRUE,
 #                      Dirichlet_random_effects_type = "kappa"),
 #                 ##
-#                 list(model_parameterisation = "R&G", 
+#                 list(model_parameterisation = "ord_HSROC", 
 #                      start_sim_index = 16,
 #                      n_sims = 150,
 #                      box_cox = FALSE, 
@@ -614,7 +614,7 @@ use_custom_file <- FALSE
 #                      random_thresholds = FALSE,
 #                      Dirichlet_random_effects_type = "fixed"),
 #                 ##
-#                 list(model_parameterisation = "R&G",   
+#                 list(model_parameterisation = "ord_HSROC",   
 #                      start_sim_index = 16,
 #                      n_sims = 450,
 #                      box_cox = FALSE, 
@@ -632,7 +632,7 @@ use_custom_file <- FALSE
 #                      random_thresholds = TRUE,
 #                      Dirichlet_random_effects_type = "kappa"),
 #                 ##
-#                 list(model_parameterisation = "R&G", 
+#                 list(model_parameterisation = "ord_HSROC", 
 #                      start_sim_index = 16,
 #                      n_sims = 350,
 #                      box_cox = FALSE, 
@@ -693,7 +693,7 @@ use_custom_file <- FALSE
 #                random_thresholds = FALSE,
 #                Dirichlet_random_effects_type = "fixed"),
 #           ##
-#           list(model_parameterisation = "R&G",   
+#           list(model_parameterisation = "ord_HSROC",   
 #                start_sim_index = 51,
 #                n_sims = 2100,
 #                box_cox = FALSE, 
@@ -711,7 +711,7 @@ use_custom_file <- FALSE
 #                random_thresholds = TRUE,
 #                Dirichlet_random_effects_type = "kappa"),
 #           ##
-#           list(model_parameterisation = "R&G", 
+#           list(model_parameterisation = "ord_HSROC", 
 #                start_sim_index = 51,
 #                n_sims = 1800,
 #                box_cox = FALSE, 
@@ -771,7 +771,7 @@ use_custom_file <- FALSE
 #       #      random_thresholds = FALSE,
 #       #      Dirichlet_random_effects_type = "fixed"),
 #       # ##
-#       list(model_parameterisation = "R&G",   
+#       list(model_parameterisation = "ord_HSROC",   
 #            start_sim_index = 1,
 #            n_sims = 650,
 #            box_cox = FALSE, 
@@ -789,7 +789,7 @@ use_custom_file <- FALSE
 #       #      random_thresholds = TRUE,
 #       #      Dirichlet_random_effects_type = "kappa"),
 #       # ##
-#       list(model_parameterisation = "R&G", 
+#       list(model_parameterisation = "ord_HSROC", 
 #            start_sim_index = 1,
 #            n_sims = 600,
 #            box_cox = FALSE, 
@@ -849,7 +849,7 @@ use_custom_file <- FALSE
 #            random_thresholds = FALSE,
 #            Dirichlet_random_effects_type = "fixed"),
 #       ##
-#       list(model_parameterisation = "R&G",   
+#       list(model_parameterisation = "ord_HSROC",   
 #            start_sim_index = 51,
 #            n_sims = 2500,
 #            box_cox = FALSE, 
@@ -867,7 +867,7 @@ use_custom_file <- FALSE
 #            random_thresholds = TRUE,
 #            Dirichlet_random_effects_type = "kappa"),
 #       ##
-#       list(model_parameterisation = "R&G", 
+#       list(model_parameterisation = "ord_HSROC", 
 #            start_sim_index = 51,
 #            n_sims = 1900,
 #            box_cox = FALSE, 
@@ -1530,7 +1530,7 @@ sim_configs <- list(
   #       index_test_MA = "BAI",
   #       vec_index_inner = 5:43,
   #       n_studies = 10,
-  #       model_parameterisation = "R&G",
+  #       model_parameterisation = "ord_HSROC",
   #       alpha_pi = "one",
   #       start_sim_index = start_sim_index,
   #       n_sims = start_sim_index + 600,
@@ -1554,7 +1554,7 @@ sim_configs <- list(
   #       index_test_MA = "BAI",
   #       vec_index_inner = 5:43,
   #       n_studies = 10,
-  #       model_parameterisation = "R&G",
+  #       model_parameterisation = "ord_HSROC",
   #       alpha_pi = "one",
   #       start_sim_index = start_sim_index,
   #       n_sims =  start_sim_index + 600,
@@ -1676,7 +1676,7 @@ sim_configs <- list(
   #       index_test_MA = "BAI",
   #       vec_index_inner = 5:43,
   #       n_studies = 50,
-  #       model_parameterisation = "R&G",
+  #       model_parameterisation = "ord_HSROC",
   #       alpha_pi = "one",
   #       start_sim_index = start_sim_index,
   #       n_sims = start_sim_index + 150,
@@ -1700,7 +1700,7 @@ sim_configs <- list(
   #       index_test_MA = "BAI",
   #       vec_index_inner = 5:43,
   #       n_studies = 50,
-  #       model_parameterisation = "R&G",
+  #       model_parameterisation = "ord_HSROC",
   #       alpha_pi = "one",
   #       start_sim_index = start_sim_index,
   #       n_sims =  start_sim_index + 120,
@@ -2029,9 +2029,9 @@ kappa_samples <- exp(log_kappa_samples)
 summary(kappa_samples)
 quantile(kappa_samples, probs = c(0.025, 0.5, 0.975))
 
-# readRDS("simulation_results/test_GAD_7N_500n_studies_10param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_flatscale_het_1het_nd_0.488het_d_0.669cut_SD_1_complete_results_list.RDS")
+# readRDS("simulation_results/test_GAD_7N_500n_studies_10param_ord_HSROCsoft_FALSErand_thr_FALSEalpha_pi_flatscale_het_1het_nd_0.488het_d_0.669cut_SD_1_complete_results_list.RDS")
 # 
-# readRDS("simulation_results/test_GAD_7N_500n_studies_10param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_flatscale_het_1het_nd_0.488het_d_0.669cut_SD_1.RDS")
+# readRDS("simulation_results/test_GAD_7N_500n_studies_10param_ord_HSROCsoft_FALSErand_thr_FALSEalpha_pi_flatscale_het_1het_nd_0.488het_d_0.669cut_SD_1.RDS")
 # 
 # 
 
@@ -2058,7 +2058,7 @@ require(stringr)
 #  
 # param <- "Jones"
 param <- "ord_bivariate"
-# param <- "R&G"
+# param <- "ord_HSROC"
 ##
 # n_studies <- 10 ; index_test_MA <- "GAD_2" ; model_parameterisation <- param ; random_thresholds <- FALSE ##  
 n_studies <- 10 ; index_test_MA <- "GAD_2" ; model_parameterisation <- param ; random_thresholds <- TRUE  ##   
@@ -2594,9 +2594,9 @@ complete_results_list_GAD_2_50studies_500N_Jones <- readRDS(file.path(MetaOrdDTA
 file_name <- "test_GAD_2N_500n_studies_50param_ord_bivariatesoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_GAD_2_50studies_500N_ord_biv_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
-## ---- R&G, Fixed:
+## ---- ord_HSROC, Fixed:
 ##
-file_name <- "test_GAD_2N_500n_studies_50param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
+file_name <- "test_GAD_2N_500n_studies_50param_ord_HSROCsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_GAD_2_50studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
 # ---- ord_bivariate, Random C:
@@ -2604,9 +2604,9 @@ complete_results_list_GAD_2_50studies_500N_RG_fixed_alpha2 <- readRDS(file.path(
 file_name <- "test_GAD_2N_500n_studies_50param_ord_bivariatesoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_GAD_2_50studies_500N_ord_biv_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
-# ---- R&G, Random C:
+# ---- ord_HSROC, Random C:
 #
-file_name <- "test_GAD_2N_500n_studies_50param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
+file_name <- "test_GAD_2N_500n_studies_50param_ord_HSROCsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_GAD_2_50studies_500N_RG_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 # ##
 ##
@@ -2628,9 +2628,9 @@ complete_results_list_HADS_50studies_500N_Jones <- readRDS(file.path(MetaOrdDTA:
 file_name <- "test_HADSN_500n_studies_50param_ord_bivariatesoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_HADS_50studies_500N_ord_biv_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
-## ---- R&G, Fixed:
+## ---- ord_HSROC, Fixed:
 ##
-file_name <- "test_HADSN_500n_studies_50param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
+file_name <- "test_HADSN_500n_studies_50param_ord_HSROCsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_HADS_50studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- ord_bivariate, Random C:
@@ -2639,9 +2639,9 @@ file_name <- "test_HADSN_500n_studies_50param_ord_bivariatesoft_FALSErand_thr_TR
 complete_results_list_HADS_50studies_500N_ord_biv_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
 ##
-## ---- R&G, Random C:
+## ---- ord_HSROC, Random C:
 ##
-file_name <- "test_HADSN_500n_studies_50param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
+file_name <- "test_HADSN_500n_studies_50param_ord_HSROCsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_HADS_50studies_500N_RG_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ----------- For BAI ---------------------------------------------------------------------------------------------- :
@@ -2662,9 +2662,9 @@ complete_results_list_BAI_50studies_500N_Jones <- readRDS(file.path(MetaOrdDTA::
 file_name <- "test_BAIN_500n_studies_50param_ord_bivariatesoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_BAI_50studies_500N_ord_biv_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
-## ---- R&G, Fixed:
+## ---- ord_HSROC, Fixed:
 ##
-file_name <- "test_BAIN_500n_studies_50param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
+file_name <- "test_BAIN_500n_studies_50param_ord_HSROCsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_BAI_50studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- ord_bivariate, Random C:
@@ -2672,9 +2672,9 @@ complete_results_list_BAI_50studies_500N_RG_fixed_alpha2 <- readRDS(file.path(Me
 file_name <- "test_BAIN_500n_studies_50param_ord_bivariatesoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_BAI_50studies_500N_ord_biv_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
-## ---- R&G, Random C:
+## ---- ord_HSROC, Random C:
 ##
-file_name <- "test_BAIN_500n_studies_50param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
+file_name <- "test_BAIN_500n_studies_50param_ord_HSROCsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_BAI_50studies_500N_RG_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ##
@@ -2699,9 +2699,9 @@ complete_results_list_GAD_2_10studies_500N_Jones <- readRDS(file.path(MetaOrdDTA
 file_name <- "test_GAD_2N_500n_studies_10param_ord_bivariatesoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_GAD_2_10studies_500N_ord_biv_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
-## ---- R&G, Fixed:
+## ---- ord_HSROC, Fixed:
 ##
-file_name <- "test_GAD_2N_500n_studies_10param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
+file_name <- "test_GAD_2N_500n_studies_10param_ord_HSROCsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_GAD_2_10studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
 # ---- ord_bivariate, Random C:
@@ -2709,9 +2709,9 @@ complete_results_list_GAD_2_10studies_500N_RG_fixed_alpha2 <- readRDS(file.path(
 file_name <- "test_GAD_2N_500n_studies_10param_ord_bivariatesoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_GAD_2_10studies_500N_ord_biv_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
-# ---- R&G, Random C:
+# ---- ord_HSROC, Random C:
 #
-file_name <- "test_GAD_2N_500n_studies_10param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
+file_name <- "test_GAD_2N_500n_studies_10param_ord_HSROCsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_GAD_2_10studies_500N_RG_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 # ##
 ##
@@ -2733,9 +2733,9 @@ complete_results_list_HADS_10studies_500N_Jones <- readRDS(file.path(MetaOrdDTA:
 file_name <- "test_HADSN_500n_studies_10param_ord_bivariatesoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_HADS_10studies_500N_ord_biv_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
-## ---- R&G, Fixed:
+## ---- ord_HSROC, Fixed:
 ##
-file_name <- "test_HADSN_500n_studies_10param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
+file_name <- "test_HADSN_500n_studies_10param_ord_HSROCsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_HADS_10studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- ord_bivariate, Random C:
@@ -2744,9 +2744,9 @@ file_name <- "test_HADSN_500n_studies_10param_ord_bivariatesoft_FALSErand_thr_TR
 complete_results_list_HADS_10studies_500N_ord_biv_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 #
 ##
-## ---- R&G, Random C:
+## ---- ord_HSROC, Random C:
 ##
-file_name <- "test_HADSN_500n_studies_10param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
+file_name <- "test_HADSN_500n_studies_10param_ord_HSROCsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_HADS_10studies_500N_RG_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ----------- For BAI ---------------------------------------------------------------------------------------------- :
@@ -2767,9 +2767,9 @@ complete_results_list_BAI_10studies_500N_Jones <- readRDS(file.path(MetaOrdDTA::
 file_name <- "test_BAIN_500n_studies_10param_ord_bivariatesoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_BAI_10studies_500N_ord_biv_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
-## ---- R&G, Fixed:
+## ---- ord_HSROC, Fixed:
 ##
-file_name <- "test_BAIN_500n_studies_10param_R&Gsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
+file_name <- "test_BAIN_500n_studies_10param_ord_HSROCsoft_FALSErand_thr_FALSEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_BAI_10studies_500N_RG_fixed_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
 ## ---- ord_bivariate, Random C:
@@ -2777,9 +2777,9 @@ complete_results_list_BAI_10studies_500N_RG_fixed_alpha2 <- readRDS(file.path(Me
 file_name <- "test_BAIN_500n_studies_10param_ord_bivariatesoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_BAI_10studies_500N_ord_biv_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 ##
-## ---- R&G, Random C:
+## ---- ord_HSROC, Random C:
 ##
-file_name <- "test_BAIN_500n_studies_10param_R&Gsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
+file_name <- "test_BAIN_500n_studies_10param_ord_HSROCsoft_FALSErand_thr_TRUEalpha_pi_one_complete_results_list.RDS"
 complete_results_list_BAI_10studies_500N_RG_random_alpha2 <- readRDS(file.path(MetaOrdDTA::metaorddta_output_path("simulation_results"), file_name))
 
 }
@@ -2791,28 +2791,28 @@ complete_results_list_BAI_10studies_500N_RG_random_alpha2 <- readRDS(file.path(M
 # model_parameterisation <- "Jones"  ; alpha_pi <- "flat" ;  n_studies <- 10 ; test <- "GAD_2" ; random_thresholds <- FALSE
 # model_parameterisation <- "ord_bivariate"     ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "GAD_2" ; random_thresholds <- FALSE
 # model_parameterisation <- "ord_bivariate"     ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "GAD_2" ; random_thresholds <- TRUE
-# model_parameterisation <- "R&G"    ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "GAD_2" ; random_thresholds <- FALSE
-# model_parameterisation <- "R&G"    ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "GAD_2" ; random_thresholds <- TRUE
+# model_parameterisation <- "ord_HSROC"    ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "GAD_2" ; random_thresholds <- FALSE
+# model_parameterisation <- "ord_HSROC"    ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "GAD_2" ; random_thresholds <- TRUE
 # ##
 # model_parameterisation <- "Jones" ; alpha_pi <- "flat" ;  n_studies <- 50 ; test <- "GAD_2" ; random_thresholds <- FALSE
 # model_parameterisation <- "ord_bivariate"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "GAD_2" ; random_thresholds <- FALSE
 # model_parameterisation <- "ord_bivariate"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "GAD_2" ; random_thresholds <- TRUE
-# model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "GAD_2" ; random_thresholds <- FALSE
-# model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "GAD_2" ; random_thresholds <- TRUE
+# model_parameterisation <- "ord_HSROC"   ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "GAD_2" ; random_thresholds <- FALSE
+# model_parameterisation <- "ord_HSROC"   ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "GAD_2" ; random_thresholds <- TRUE
 # ## 
 # ## ---- HADS:
 # ##
 # model_parameterisation <- "Jones" ; alpha_pi <- "flat" ;  n_studies <- 10 ; test <- "HADS" ; random_thresholds <- FALSE
 model_parameterisation <- "ord_bivariate"    ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "HADS" ; random_thresholds <- FALSE
 # model_parameterisation <- "ord_bivariate"    ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "HADS" ; random_thresholds <- TRUE
-# model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "HADS" ; random_thresholds <- FALSE
-# model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "HADS" ; random_thresholds <- TRUE
+# model_parameterisation <- "ord_HSROC"   ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "HADS" ; random_thresholds <- FALSE
+# model_parameterisation <- "ord_HSROC"   ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "HADS" ; random_thresholds <- TRUE
 # ##
 # model_parameterisation <- "Jones" ; alpha_pi <- "flat" ;  n_studies <- 50 ; test <- "HADS" ; random_thresholds <- FALSE
 model_parameterisation <- "ord_bivariate"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "HADS" ; random_thresholds <- FALSE
 # model_parameterisation <- "ord_bivariate"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "HADS" ; random_thresholds <- TRUE
-# model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "HADS" ; random_thresholds <- FALSE
-# model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "HADS" ; random_thresholds <- TRUE
+# model_parameterisation <- "ord_HSROC"   ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "HADS" ; random_thresholds <- FALSE
+# model_parameterisation <- "ord_HSROC"   ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "HADS" ; random_thresholds <- TRUE
 ## 
 ## ---- BAI:
 ##
@@ -2820,15 +2820,15 @@ model_parameterisation <- "ord_bivariate"    ; alpha_pi <- "one"  ;  n_studies <
 # model_parameterisation <- "Jones" ; alpha_pi <- "flat" ;  n_studies <- 10 ; test <- "BAI" ; random_thresholds <- FALSE
 # model_parameterisation <- "ord_bivariate"    ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "BAI" ; random_thresholds <- FALSE
 model_parameterisation <- "ord_bivariate"    ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "BAI" ; random_thresholds <- TRUE
-# model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "BAI" ; random_thresholds <- FALSE
-# model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "BAI" ; random_thresholds <- TRUE
+# model_parameterisation <- "ord_HSROC"   ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "BAI" ; random_thresholds <- FALSE
+# model_parameterisation <- "ord_HSROC"   ; alpha_pi <- "one"  ;  n_studies <- 10 ; test <- "BAI" ; random_thresholds <- TRUE
 ##
 model_parameterisation <- "Bivariate" ; alpha_pi <- "flat" ;  n_studies <- 50 ; test <- "BAI" ; random_thresholds <- FALSE
 # model_parameterisation <- "Jones" ; alpha_pi <- "flat" ;  n_studies <- 50 ; test <- "BAI" ; random_thresholds <- FALSE
 # model_parameterisation <- "ord_bivariate"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "BAI" ; random_thresholds <- FALSE
 model_parameterisation <- "ord_bivariate"    ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "BAI" ; random_thresholds <- TRUE
-# model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "BAI" ; random_thresholds <- FALSE
-# model_parameterisation <- "R&G"   ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "BAI" ; random_thresholds <- TRUE
+# model_parameterisation <- "ord_HSROC"   ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "BAI" ; random_thresholds <- FALSE
+# model_parameterisation <- "ord_HSROC"   ; alpha_pi <- "one"  ;  n_studies <- 50 ; test <- "BAI" ; random_thresholds <- TRUE
  
 
 # library(foreach)

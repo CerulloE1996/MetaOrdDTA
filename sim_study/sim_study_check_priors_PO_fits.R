@@ -35,7 +35,7 @@
       parameterisation_of_each_model <-  c(ord_biv_FC = "ord_bivariate",
                                            Bivariate = "Bivariate",
                                            ord_biv_RC = "ord_bivariate",
-                                           ordHSROC_RC = "R&G")
+                                           ordHSROC_RC = "ord_HSROC")
       random_thresholds_of_each_model <-  c(ord_biv_FC = FALSE,
                                             Bivariate = FALSE,
                                             ord_biv_RC = TRUE,

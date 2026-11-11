@@ -15,7 +15,7 @@ true_mean_GAD_2_params_list$Ord_bivariate$beta_SD <- c(0.333852, 0.49927)*reduct
 true_mean_GAD_2_params_list$Ord_bivariate$beta_corr <- 0.3262
 true_mean_GAD_2_params_list$Ord_bivariate$C_nd <- c(-1.25338, -0.5344, 0.143803, 0.480506, 0.903026, 1.26009)
 true_mean_GAD_2_params_list$Ord_bivariate$C_d  <- c(-1.66364, -0.931165, -0.148647, 0.281326, 0.840248, 1.36835)
-## ---- GAD_2, DGM R&G_random_C (real-data fit of the R&G random-cutpoint pop-median model):
+## ---- GAD_2, DGM ord_HSROC_random_C (real-data fit of the ord_HSROC random-cutpoint pop-median model):
 true_mean_GAD_2_params_list$Ord_HSROC$beta_mu <- -0.7707
 true_mean_GAD_2_params_list$Ord_HSROC$beta_SD <-  0.2082*reduction_factor
 true_mean_GAD_2_params_list$Ord_HSROC$raw_scale_mu <-  -0.07678
@@ -42,7 +42,7 @@ true_mean_HADS_params_list$Ord_bivariate$beta_SD <- c(0.246665, 0.416985)*reduct
 true_mean_HADS_params_list$Ord_bivariate$beta_corr <- 0.2984
 true_mean_HADS_params_list$Ord_bivariate$C_nd <- c(-2.64068, -2.2019, -1.85546, -1.54933, -1.28514, -1.03614, -0.759869, -0.506149, -0.262958, -0.0487165, 0.127981, 0.323098, 0.513905, 0.722585, 0.959975, 1.14368, 1.36867, 1.57151, 1.77229, 2.06995, 2.5757)
 true_mean_HADS_params_list$Ord_bivariate$C_d  <- c(-2.44667, -2.31902, -1.92666, -1.6829, -1.47861, -1.26503, -0.997596, -0.775894, -0.532189, -0.2462, 0.00179168, 0.195661, 0.427953, 0.704048, 0.96746, 1.23852, 1.42358, 1.58297, 1.75629, 2.12491, 2.34327)
-## ---- HADS, DGM R&G_random_C (real-data fit of the R&G random-cutpoint pop-median model):
+## ---- HADS, DGM ord_HSROC_random_C (real-data fit of the ord_HSROC random-cutpoint pop-median model):
 true_mean_HADS_params_list$Ord_HSROC$beta_mu <- -0.7684
 true_mean_HADS_params_list$Ord_HSROC$beta_SD <-  0.2108*reduction_factor
 true_mean_HADS_params_list$Ord_HSROC$raw_scale_mu <-  -0.02158
@@ -69,7 +69,7 @@ true_mean_BAI_params_list$Ord_bivariate$beta_SD <- c(0.348273, 0.272553)*reducti
 true_mean_BAI_params_list$Ord_bivariate$beta_corr <- 0.04958
 true_mean_BAI_params_list$Ord_bivariate$C_nd <- c(-2.69462, -2.36426, -2.11741, -1.95601, -1.7805, -1.65678, -1.50849, -1.40271, -1.29573, -1.21113, -1.11148, -1.02238, -0.91633, -0.855282, -0.782072, -0.694874, -0.626753, -0.557699, -0.502658, -0.455084, -0.403293, -0.356654, -0.293822, -0.226926, -0.171242, -0.122635, -0.082142, -0.0509156, -0.0128161, 0.0212032, 0.0784506, 0.118243, 0.137818, 0.173346, 0.202437, 0.258776, 0.315039, 0.388511, 0.412518, 0.43718, 0.457004, 0.501221, 0.524969, 0.579891, 0.659086, 0.692553, 0.774077, 0.791029, 0.808353, 0.833945, 0.859866, 0.887101, 0.959809, 0.988268, 1.02556, 1.06534, 1.13205, 1.17706, 1.22603, 1.28076, 1.40725, 1.57579, 1.69423)
 true_mean_BAI_params_list$Ord_bivariate$C_d  <- c(-2.81353, -2.69318, -2.51778, -2.40049, -2.17404, -2.0777, -1.99654, -1.88846, -1.82024, -1.70997, -1.66864, -1.54401, -1.47223, -1.40547, -1.28523, -1.16095, -1.07711, -0.91512, -0.831939, -0.76927, -0.711523, -0.654276, -0.557369, -0.500307, -0.425852, -0.395634, -0.324585, -0.256355, -0.211614, -0.190709, -0.103656, -0.0350255, -0.00190086, 0.0318826, 0.0659227, 0.136484, 0.150452, 0.202431, 0.275035, 0.309601, 0.376959, 0.472954, 0.504204, 0.536576, 0.571901, 0.630985, 0.694821, 0.749168, 0.808238, 0.842928, 0.879414, 0.908491, 0.937733, 0.990607, 1.04889, 1.12948, 1.17316, 1.2212, 1.27564, 1.33801, 1.41427, 1.5098, 1.96823)
-## ---- BAI, DGM R&G_random_C (real-data fit of the R&G random-cutpoint pop-median model):
+## ---- BAI, DGM ord_HSROC_random_C (real-data fit of the ord_HSROC random-cutpoint pop-median model):
 true_mean_BAI_params_list$Ord_HSROC$beta_mu <- -0.7868
 true_mean_BAI_params_list$Ord_HSROC$beta_SD <-  0.299*reduction_factor
 true_mean_BAI_params_list$Ord_HSROC$raw_scale_mu <-  -0.03253

@@ -305,7 +305,7 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                     #'@param random_thresholds \code{TRUE} fits the random-cutpoint (pop-median) model, \code{FALSE} the
                     #'fixed-cutpoint one.
                     #'@param Dirichlet_random_effects_type See class documentation for details.
-                    #'@param HSROC_Dirichlet_prior Ordinal-HSROC (R&G) random-cutpoint model only. \code{"both_classes"} (the default)
+                    #'@param HSROC_Dirichlet_prior Ordinal-HSROC (ord_HSROC) random-cutpoint model only. \code{"both_classes"} (the default)
                     #'puts its Dirichlet(alpha) prior on the induced ordinal probabilities of both classes (Sp and Se) at the
                     #'population-median cutpoints; \code{"shared_ordinal_priors"} puts it on the one shared cutpoint set (dirichlet_phi).
                     ##
@@ -416,7 +416,7 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                     ##
                                     if (grepl("ord_biv|ordinal_biv|biv|O-", model_parameterisation, ignore.case = TRUE)) {
                                       
-                                    } else if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
+                                    } else if (grepl("ord_HSROC|ordinal_HSROC|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
                                       
                                     } else { 
                                       stop("Invalid 'model_parameterisation' selected, must be one of: 'Jones', 'ord_biv', or 'ord_HSROC'")
@@ -640,7 +640,7 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                         ##
                                         if (grepl("ord_biv|ordinal_biv|biv|O-", model_parameterisation, ignore.case = TRUE)) {
                                           
-                                        } else if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
+                                        } else if (grepl("ord_HSROC|ordinal_HSROC|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
                                           
                                         } else { 
                                           stop("Invalid 'model_parameterisation' selected, must be one of: 'Jones', 'ord_biv', or 'ord_HSROC'")

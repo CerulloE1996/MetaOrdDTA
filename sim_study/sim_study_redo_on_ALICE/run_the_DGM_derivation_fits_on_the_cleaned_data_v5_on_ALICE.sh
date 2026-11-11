@@ -12,7 +12,7 @@
 ## The DGM re-derivation, fifth pass, on the CLEANED real data (per-test files cut from
 ## Klaus_collab_NMA_work/derived_data/Klaus_et_al_data/real_data_8_tests_GAD: test 1 = GAD-2, 3 = HADS, 4 = BAI), one
 ## test per job (sbatch --export=ALL,SIM_TEST_TEST=<GAD_2|HADS|BAI> this file): the sim runner fits its models (ord-biv
-## fixed-C, ord-biv random-C pop-median, R&G random-C pop-median; the final flat alpha = 1 priors, kappa prior C, the
+## fixed-C, ord-biv random-C pop-median, ord_HSROC random-C pop-median; the final flat alpha = 1 priors, kappa prior C, the
 ## band-matched priors) to the real data with NicoStan, 1000 burn-in (clip 70 / 200, learning rate 0.0625, the 0.25 SD
 ## inits), 4000 sampling iterations over 4 chains. Each job writes its own TEST_ folder, so the three jobs run at once.
 module load R/4.3.1 > /dev/null 2>&1
@@ -23,10 +23,10 @@ export SIM_TEST=1
 export SIM_N_SEEDS=1
 export SIM_SEED_OFFSET=0
 export SIM_N_THREADS=12
-export SIM_MODELS="R&G,ord_bivariate"
+export SIM_MODELS="ord_HSROC,ord_bivariate"
 export SIM_REAL_DATA_DIR=$HOME/sim_study_runs/real_data_for_the_DGM_derivation_cleaned
 export SIM_TEST_N_STUDIES=50
-export SIM_TEST_DGM="R&G_random_C"
+export SIM_TEST_DGM="ord_HSROC_random_C"
 export N_ITER_FOR_4_CHAINS=4000
 export N_BURNIN=1000
 export BURNIN_ALGORITHM=ESJD

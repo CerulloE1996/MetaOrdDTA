@@ -134,7 +134,7 @@ R_fn_set_priors_MA <- function(   priors,
           
                   message("Configuring priors for ordinal model")
                   ##
-                  if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
+                  if (grepl("ord_HSROC|ordinal_HSROC|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
                     
                           message("Configuring priors for ord_HSROC model")
                           ##
@@ -216,7 +216,7 @@ R_fn_set_priors_MA <- function(   priors,
                           ##
                           ## Set default priors for the cutpoints (using Dirichlet ** priors ** (not model) on the "Induced-Dirichlet" ordinal probs):
                           ##
-                          if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
+                          if (grepl("ord_HSROC|ordinal_HSROC|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
                             priors$prior_dirichlet_alpha <- if_null_then_set_to(priors$prior_dirichlet_alpha, 
                                                                                 rep(1.0, n_cat))
                           } else { 
@@ -230,7 +230,7 @@ R_fn_set_priors_MA <- function(   priors,
                               ##
                               ## Set default priors for the cutpoints  (using Dirichlet ** between-study model ** (not priors) on the "Induced-Dirichlet" ordinal probs):
                               ##
-                          if (grepl("ord_HSROC|ordinal_HSROC|R&G|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
+                          if (grepl("ord_HSROC|ordinal_HSROC|HSROC|Gatsonis", model_parameterisation, ignore.case = TRUE)) {
                             
                                 priors$prior_dirichlet_alpha <- if_null_then_set_to( priors$prior_dirichlet_alpha, 
                                                                                      rep(1.0, n_thr + 1))

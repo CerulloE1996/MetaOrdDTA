@@ -265,7 +265,7 @@ require(foreach)
 # head(xu_false_redfact1)
 # 
 # rg_false_redfact1 <- list.files(output_dir, 
-#                                 pattern = ".*GAD_2.*red_fact_1.*R&G_random_C.*n_studies_10.*rand_thr_FALSE.*", 
+#                                 pattern = ".*GAD_2.*red_fact_1.*ord_HSROC_random_C.*n_studies_10.*rand_thr_FALSE.*", 
 #                                 full.names = FALSE)
 # length(rg_false_redfact1)
 # head(rg_false_redfact1)
@@ -302,11 +302,11 @@ test_vals_vec <- "BAI"
 ##
 ## ---- DGM:
 ## 
-DGM_vec <- c("Jones", "ord_biv_fixed_C", "ord_biv_random_C", "R&G_random_C")
+DGM_vec <- c("Jones", "ord_biv_fixed_C", "ord_biv_random_C", "ord_HSROC_random_C")
 # DGM_vec <- "Jones"
 # DGM_vec <- "ord_biv_fixed_C"
 # DGM_vec <- "ord_biv_random_C"
-# DGM_vec <- "R&G_random_C"
+# DGM_vec <- "ord_HSROC_random_C"
 ##
 n_studies_vals_vec <- 10
 # n_studies_vals_vec <- 50
@@ -314,12 +314,12 @@ n_studies_vals_vec <- 10
 ##
 ## ---- model_parameterisation:
 ##
-# model_param_vec <- c("Jones", "ord_bivariate", "R&G", "Bivariate")
-# model_param_vec <- c("ord_bivariate", "Jones", "R&G")
+# model_param_vec <- c("Jones", "ord_bivariate", "ord_HSROC", "Bivariate")
+# model_param_vec <- c("ord_bivariate", "Jones", "ord_HSROC")
 model_param_vec <- "Bivariate"
 # model_param_vec <- c("Jones", "Bivariate")
 # model_param_vec <- "Jones"
-# model_param_vec <- "R&G"
+# model_param_vec <- "ord_HSROC"
 ##
 ## ----
 ##
@@ -431,7 +431,7 @@ results_GAD_2_n_studies_10_summary %>%
          mcse_met, MCSE_val, n_sims, min_sims_needed,
          avg_RMSE, avg_abs_bias,
          mean_min_ESS) %>%
-  filter(DGM == "R&G_random_C") %>%
+  filter(DGM == "ord_HSROC_random_C") %>%
   print(n = 100, width = 9000)
 ##
 ## ---- GAD-2; n_studies = 50:  -----------------------------------------------------
@@ -482,7 +482,7 @@ results_GAD_2_n_studies_50_summary %>%
          mcse_met, MCSE_val, n_sims, min_sims_needed,
          avg_RMSE, avg_abs_bias,
          mean_min_ESS) %>%
-  filter(DGM == "R&G_random_C") %>%
+  filter(DGM == "ord_HSROC_random_C") %>%
   print(n = 100, width = 9000)
 ##
 ##  --------------------------------------------------------------------
@@ -506,7 +506,7 @@ create_MetaOrd_summary_3( ## ---- (ord_bivariate, ord_bivariate, Jones, ordinal-
   rel_diff_threshold = 10)
 ##
 create_MetaOrd_summary_3( ## ---- (ord_bivariate, Jones, ordinal-HSROC, ord_bivariate) > Bivariate
-  data =  filter(results_GAD_2_n_studies_10_summary, DGM == "R&G_random_C"),
+  data =  filter(results_GAD_2_n_studies_10_summary, DGM == "ord_HSROC_random_C"),
   metric = metric,
   rel_diff_threshold = 10)
 ##
@@ -529,7 +529,7 @@ create_MetaOrd_summary_3( ## ---- (ord_bivariate, ord_bivariate, ordinal-HSROC) 
   rel_diff_threshold = 10)
 ##
 create_MetaOrd_summary_3( ## ---- All 5 models tied
-  data =  filter(results_GAD_2_n_studies_50_summary, DGM == "R&G_random_C"),
+  data =  filter(results_GAD_2_n_studies_50_summary, DGM == "ord_HSROC_random_C"),
   metric = metric,
   rel_diff_threshold = 10)
 
@@ -600,7 +600,7 @@ results_HADS_n_studies_10_summary %>%
          avg_RMSE,
          avg_abs_bias,
          mean_min_ESS) %>%
-  filter(DGM == "R&G_random_C") %>%
+  filter(DGM == "ord_HSROC_random_C") %>%
   print(n = 100, width = 9000)
 # ##
 # # A tibble: 2 × 13
@@ -675,7 +675,7 @@ results_HADS_n_studies_50_summary %>%
          avg_RMSE,
          avg_abs_bias,
          mean_min_ESS) %>%
-  filter(DGM == "R&G_random_C") %>%
+  filter(DGM == "ord_HSROC_random_C") %>%
   print(n = 100, width = 9000)
 ##
 ##  --------------------------------------------------------------------
@@ -699,7 +699,7 @@ create_MetaOrd_summary_3(
   rel_diff_threshold = 10)
 ##
 create_MetaOrd_summary_3(
-  data =  filter(results_HADS_n_studies_10_summary, DGM == "R&G_random_C"),
+  data =  filter(results_HADS_n_studies_10_summary, DGM == "ord_HSROC_random_C"),
   metric = metric,
   rel_diff_threshold = 10)
 ##
@@ -721,7 +721,7 @@ create_MetaOrd_summary_3(
   rel_diff_threshold = 10)
 ##
 create_MetaOrd_summary_3(
-  data =  filter(results_HADS_n_studies_50_summary, DGM == "R&G_random_C"),
+  data =  filter(results_HADS_n_studies_50_summary, DGM == "ord_HSROC_random_C"),
   metric = metric,
   rel_diff_threshold = 10)
 ##
@@ -782,7 +782,7 @@ results_BAI_n_studies_10_summary %>%
          avg_RMSE,
          avg_abs_bias,
          mean_min_ESS) %>%
-  filter(DGM == "R&G_random_C") %>%
+  filter(DGM == "ord_HSROC_random_C") %>%
   print(n = 100, width = 9000)
 ## 
 ## ---- BAI; n_studies = 50: --------------------------------------------------------------------------------------------------------
@@ -836,7 +836,7 @@ results_BAI_n_studies_50_summary %>%
          avg_RMSE,
          avg_abs_bias,
          mean_min_ESS) %>%
-  filter(DGM == "R&G_random_C") %>%
+  filter(DGM == "ord_HSROC_random_C") %>%
   print(n = 100, width = 9000)
 ##
 ##  --------------------------------------------------------------------
@@ -860,7 +860,7 @@ create_MetaOrd_summary_3(
   rel_diff_threshold = 10)
 ##
 create_MetaOrd_summary_3(
-  data =  filter(results_BAI_n_studies_10_summary, DGM == "R&G_random_C"),
+  data =  filter(results_BAI_n_studies_10_summary, DGM == "ord_HSROC_random_C"),
   metric = metric,
   rel_diff_threshold = 10)
 ##
@@ -882,7 +882,7 @@ create_MetaOrd_summary_3(
   rel_diff_threshold = 10)
 ##
 create_MetaOrd_summary_3(
-  data =  filter(results_BAI_n_studies_50_summary, DGM == "R&G_random_C"),
+  data =  filter(results_BAI_n_studies_50_summary, DGM == "ord_HSROC_random_C"),
   metric = metric,
   rel_diff_threshold = 10)
 
@@ -948,7 +948,7 @@ nrow(mat$diseased)
       #                                                                                                 model_parameterisation ))
       # 
       # data <- data_0 %>% 
-      #   dplyr::mutate( model_parameterisation = case_when( model_parameterisation == "R&G" ~ "Ord-HSROC",
+      #   dplyr::mutate( model_parameterisation = case_when( model_parameterisation == "ord_HSROC" ~ "Ord-HSROC",
       #                                                      model_parameterisation == "ord_bivariate"  ~ "Ord-Biv",
       #                                                      TRUE ~ model_parameterisation ))
       # data
@@ -995,7 +995,7 @@ require(patchwork)
 DGM_names <- c("Jones",
                "ord_biv_fixed_C",
                "ord_biv_random_C",
-               "R&G_random_C")
+               "ord_HSROC_random_C")
 ##
 test_vec <- c("GAD-2", 
               "HADS",
@@ -1012,7 +1012,7 @@ base_size <- 14
 # dgm <- "Jones"
 # dgm <- "ord_biv_fixed_C"
 # dgm <- "ord_biv_random_C"
-dgm <- "R&G_random_C"
+dgm <- "ord_HSROC_random_C"
 ##
 test <- "GAD-2"
 # test <- "HADS"
@@ -1176,34 +1176,34 @@ ggsave("Sim_study_Coverage_BAI.png",   plot_Cvg_BAI,   width = 11*mult, height =
 # ggsave("Sim_study_Bias_GAD_2_DGM_1_Jones.png", bias_plots[["GAD-2"]][["Jones"]], width = 9, height = 16, dpi = dpi)
 # ggsave("Sim_study_Bias_GAD_2_DGM_2_ord_biv_fixed.png", bias_plots[["GAD-2"]][["ord_biv_fixed_C"]], width = 21, height = 9, dpi = dpi)
 # ggsave("Sim_study_Bias_GAD_2_DGM_3_ord_biv_random.png", bias_plots[["GAD-2"]][["ord_biv_random_C"]], width = 21, height = 9, dpi = dpi)
-# ggsave("Sim_study_Bias_GAD_2_DGM_4_R&G_random.png", bias_plots[["GAD-2"]][["R&G_random_C"]], width = 21, height = 9, dpi = dpi)
+# ggsave("Sim_study_Bias_GAD_2_DGM_4_ord_HSROC_random.png", bias_plots[["GAD-2"]][["ord_HSROC_random_C"]], width = 21, height = 9, dpi = dpi)
 # ##
 # ggsave("Sim_study_Bias_HADS_DGM_1_Jones.png", bias_plots[["HADS"]][["Jones"]], width = 21, height = 9, dpi = dpi)
 # ggsave("Sim_study_Bias_HADS_DGM_2_ord_biv_fixed.png", bias_plots[["HADS"]][["ord_biv_fixed_C"]], width = 21, height = 9, dpi = dpi)
 # ggsave("Sim_study_Bias_HADS_DGM_3_ord_biv_random.png", bias_plots[["HADS"]][["ord_biv_random_C"]], width = 21, height = 9, dpi = dpi)
-# ggsave("Sim_study_Bias_HADS_DGM_4_R&G_random.png", bias_plots[["HADS"]][["R&G_random_C"]], width = 21, height = 9, dpi = dpi)
+# ggsave("Sim_study_Bias_HADS_DGM_4_ord_HSROC_random.png", bias_plots[["HADS"]][["ord_HSROC_random_C"]], width = 21, height = 9, dpi = dpi)
 # ##
 # ggsave("Sim_study_Bias_BAI_DGM_1_Jones.png", bias_plots[["BAI"]][["Jones"]], width = 21, height = 9, dpi = dpi)
 # ggsave("Sim_study_Bias_BAI_DGM_2_ord_biv_fixed.png", bias_plots[["BAI"]][["ord_biv_fixed_C"]], width = 21, height = 9, dpi = dpi)
 # ggsave("Sim_study_Bias_BAI_DGM_3_ord_biv_random.png", bias_plots[["BAI"]][["ord_biv_random_C"]], width = 21, height = 9, dpi = dpi)
-# ggsave("Sim_study_Bias_BAI_DGM_4_R&G_random.png", bias_plots[["BAI"]][["R&G_random_C"]], width = 21, height = 9, dpi = dpi)
+# ggsave("Sim_study_Bias_BAI_DGM_4_ord_HSROC_random.png", bias_plots[["BAI"]][["ord_HSROC_random_C"]], width = 21, height = 9, dpi = dpi)
 # ##
 # ## ----
 # ##
 # ggsave("Sim_study_Coverage_GAD_2_DGM_1_Jones.png", coverage_plots[["GAD-2"]][["Jones"]], width = 21, height = 9, dpi = dpi)
 # ggsave("Sim_study_Coverage_GAD_2_DGM_2_ord_biv_fixed.png", coverage_plots[["GAD-2"]][["ord_biv_fixed_C"]], width = 21, height = 9, dpi = dpi)
 # ggsave("Sim_study_Coverage_GAD_2_DGM_3_ord_biv_random.png", coverage_plots[["GAD-2"]][["ord_biv_random_C"]], width = 21, height = 9, dpi = dpi)
-# ggsave("Sim_study_Coverage_GAD_2_DGM_4_R&G_random.png", coverage_plots[["GAD-2"]][["R&G_random_C"]], width = 21, height = 9, dpi = dpi)
+# ggsave("Sim_study_Coverage_GAD_2_DGM_4_ord_HSROC_random.png", coverage_plots[["GAD-2"]][["ord_HSROC_random_C"]], width = 21, height = 9, dpi = dpi)
 # ##
 # ggsave("Sim_study_Coverage_HADS_DGM_1_Jones.png", coverage_plots[["HADS"]][["Jones"]], width = 21, height = 9, dpi = dpi)
 # ggsave("Sim_study_Coverage_HADS_DGM_2_ord_biv_fixed.png", coverage_plots[["HADS"]][["ord_biv_fixed_C"]], width = 21, height = 9, dpi = dpi)
 # ggsave("Sim_study_Coverage_HADS_DGM_3_ord_biv_random.png", coverage_plots[["HADS"]][["ord_biv_random_C"]], width = 21, height = 9, dpi = dpi)
-# ggsave("Sim_study_Coverage_HADS_DGM_4_R&G_random.png", coverage_plots[["HADS"]][["R&G_random_C"]], width = 21, height = 9, dpi = dpi)
+# ggsave("Sim_study_Coverage_HADS_DGM_4_ord_HSROC_random.png", coverage_plots[["HADS"]][["ord_HSROC_random_C"]], width = 21, height = 9, dpi = dpi)
 # ##
 # ggsave("Sim_study_Coverage_BAI_DGM_1_Jones.png", coverage_plots[["BAI"]][["Jones"]], width = 21, height = 9, dpi = dpi)
 # ggsave("Sim_study_Coverage_BAI_DGM_2_ord_biv_fixed.png", coverage_plots[["BAI"]][["ord_biv_fixed_C"]], width = 21, height = 9, dpi = dpi)
 # ggsave("Sim_study_Coverage_BAI_DGM_3_ord_biv_random.png", coverage_plots[["BAI"]][["ord_biv_random_C"]], width = 21, height = 9, dpi = dpi)
-# ggsave("Sim_study_Coverage_BAI_DGM_4_R&G_random.png", coverage_plots[["BAI"]][["R&G_random_C"]], width = 21, height = 9, dpi = dpi)
+# ggsave("Sim_study_Coverage_BAI_DGM_4_ord_HSROC_random.png", coverage_plots[["BAI"]][["ord_HSROC_random_C"]], width = 21, height = 9, dpi = dpi)
 # 
 
  

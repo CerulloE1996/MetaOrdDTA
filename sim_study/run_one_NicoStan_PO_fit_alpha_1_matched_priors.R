@@ -102,14 +102,14 @@ stopifnot(!is.null(sample_call_of_the_runner))
 model_parameterisation <-  switch(model_of_this_fit,
                                   xu_fixed       = "ord_bivariate",
                                   xu_rand_popmed = "ord_bivariate",
-                                  rg_rand_popmed = "R&G",
+                                  rg_rand_popmed = "ord_HSROC",
                                   jones          = "Jones")
 random_thresholds <-  model_of_this_fit %in% c("xu_rand_popmed", "rg_rand_popmed")
 Dirichlet_random_effects_type <-  if (random_thresholds) "kappa" else "fixed"
 is_a_pop_median_model <-  random_thresholds
 use_custom_file <-  FALSE
 custom_file_name <-  NULL
-if (model_parameterisation %in% c("ord_bivariate", "R&G")) {
+if (model_parameterisation %in% c("ord_bivariate", "ord_HSROC")) {
       use_custom_file  <- TRUE
       name_of_the_model_family <- if (model_parameterisation == "ord_bivariate") "DTA_MA_ord_biv_" else
                                   "DTA_MA_ord_HSROC_"
@@ -142,7 +142,7 @@ interest_only_params <- if (model_parameterisation == "ord_bivariate") {
                                   if (random_thresholds) c("beta_mu", "dirichlet_phi")
                                   else c("beta_mu", "C_raw_vec")
   
-                        } else if (model_parameterisation == "R&G") {
+                        } else if (model_parameterisation == "ord_HSROC") {
                           
                                   if (random_thresholds) c("beta_mu", "raw_scale_mu", "dirichlet_phi")
                                   else c("beta_mu", "raw_scale_mu", "C_raw_vec")
@@ -230,8 +230,8 @@ model_prep_obj <-  MetaOrdDTA::MetaOrd_model$new(debugging = FALSE,
 ##      433-452, 456-487, 598-600):
 ##
 priors <-  model_prep_obj$priors
-if (model_parameterisation %in% c("ord_bivariate", "R&G")) {
-      if (model_parameterisation == "R&G") {
+if (model_parameterisation %in% c("ord_bivariate", "ord_HSROC")) {
+      if (model_parameterisation == "ord_HSROC") {
             priors$prior_dirichlet_alpha <-  rep(1.0, n_thr + 1)
             priors$prior_kappa_mean <-  log(100)
             priors$prior_kappa_SD <-  1.0
@@ -245,7 +245,7 @@ if (model_parameterisation %in% c("ord_bivariate", "R&G")) {
       priors$use_probit_link <-  1
 }
 priors$K_fold_CV_indicator <-  rep(1, n_studies_actual)
-if (model_parameterisation == "R&G") {
+if (model_parameterisation == "ord_HSROC") {
       priors$prior_raw_scale_mu_SD <-  1
       priors$prior_raw_scale_SD_SD <-  1
 }
@@ -292,7 +292,7 @@ if (random_thresholds == TRUE) {
 }
 if (model_parameterisation == "ord_bivariate") {
       priors$prior_beta_SD_SD <- c(0.5, 0.5)
-} else if (model_parameterisation == "R&G") {
+} else if (model_parameterisation == "ord_HSROC") {
       priors$prior_beta_SD_SD      <- 0.5
       priors$prior_raw_scale_SD_SD <- 0.5
 } else if (model_parameterisation == "Jones") {
@@ -314,8 +314,8 @@ if (nzchar(Sys.getenv("PRIOR_RAW_SCALE_SD_SD"))) {
 ##
 ## ---- The hyperparameters given (the runner's own values printed first):
 ##
-if (model_parameterisation == "R&G") {
-      message(paste0("  the runner's R&G priors: beta_mu ~ N(", priors$prior_beta_mu_mean[1], ", ",
+if (model_parameterisation == "ord_HSROC") {
+      message(paste0("  the runner's ord_HSROC priors: beta_mu ~ N(", priors$prior_beta_mu_mean[1], ", ",
                      priors$prior_beta_mu_SD[1], "), raw_scale_mu ~ N(", priors$prior_raw_scale_mu_mean[1], ", ",
                      priors$prior_raw_scale_mu_SD[1], ")"))
       if (SD_1_given != "runner") priors$prior_beta_mu_SD[1] <-  as.numeric(SD_1_given)

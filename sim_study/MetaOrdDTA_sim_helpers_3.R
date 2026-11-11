@@ -141,7 +141,7 @@ get_true_values <- function(DGM,
       true_DGM_Fp <- c(60.354, 31.192, 14.931, 6.847, 3.057, 1.341)/100
       true_DGM_Sp <- 1 - true_DGM_Fp
 
-    } else if (DGM == "R&G_random_C") {
+    } else if (DGM == "ord_HSROC_random_C") {
 
 #       true_DGM_Se <- c(96.176, 85.168, 62.919, 47.441, 30.192, 17.019)/100
 #       true_DGM_Se <- c(97.543, 87.703, 66.175, 50.498, 30.885, 15.610)/100
@@ -226,7 +226,7 @@ get_true_values <- function(DGM,
                        0.727, 0.435, 0.255, 0.147, 0.083)/100
       true_DGM_Sp <- 1 - true_DGM_Fp
 
-    } else if (DGM == "R&G_random_C") {
+    } else if (DGM == "ord_HSROC_random_C") {
 
 #       true_DGM_Se <- c(99.844, 99.415, 98.524, 97.028, 94.781, 91.778, 87.34, 81.7,
 #                        74.824, 67.179, 60.115, 52.512, 44.642, 36.561, 28.316, 22.163,
@@ -390,7 +390,7 @@ get_true_values <- function(DGM,
                        0.184, 0.164, 0.146, 0.131, 0.117, 0.104, 0.093)/100
       true_DGM_Sp <- 1 - true_DGM_Fp
 
-    } else if (DGM == "R&G_random_C") {
+    } else if (DGM == "ord_HSROC_random_C") {
 
 #       true_DGM_Se <- c(99.749, 99.3, 98.626, 97.931, 96.839, 95.8, 94.261, 92.873,
 #                        91.173, 89.522, 87.823, 85.811, 83.324, 81.626, 79.435, 76.254,
@@ -488,9 +488,9 @@ create_MetaOrd_scenarios <- function() {
       # Define all parameter combinations
       scenario_df <- expand.grid(
         index_test_MA = c("GAD_2", "HADS", "BAI"),
-        DGM = c("ord_biv_fixed_C", "Jones", "ord_biv_random_C", "R&G_random_C"),
+        DGM = c("ord_biv_fixed_C", "Jones", "ord_biv_random_C", "ord_HSROC_random_C"),
         n_studies = c(10, 50),
-        model_parameterisation = c("Jones", "ord_bivariate", "Bivariate", "R&G"),
+        model_parameterisation = c("Jones", "ord_bivariate", "Bivariate", "ord_HSROC"),
         prior_set = c("set_0", "set_1", "set_2"),
         # box_cox = c(FALSE, TRUE),
         softplus = c(FALSE),
@@ -504,14 +504,14 @@ create_MetaOrd_scenarios <- function() {
           # !(DGM == "ord_biv_fixed_C" & (random_thresholds == TRUE)),
           # !((DGM == "Jones") & (random_thresholds == TRUE)),
           !(model_parameterisation == "Bivariate" & random_thresholds == TRUE),
-          !(model_parameterisation == "R&G" & random_thresholds == FALSE),
+          !(model_parameterisation == "ord_HSROC" & random_thresholds == FALSE),
           !(model_parameterisation %in% c("Jones", "Bivariate") & random_thresholds == TRUE)
         ) %>%
         mutate(
           scenario_id = row_number(),
           Dirichlet_random_effects_type = case_when(
             random_thresholds & model_parameterisation == "ord_bivariate" ~ "kappa",
-            random_thresholds & model_parameterisation == "R&G" ~ "kappa",
+            random_thresholds & model_parameterisation == "ord_HSROC" ~ "kappa",
             TRUE ~ "fixed"
           ),
           # Add other fixed parameters

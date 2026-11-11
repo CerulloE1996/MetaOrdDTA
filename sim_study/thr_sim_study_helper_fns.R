@@ -114,7 +114,7 @@ create_RMSE_plot <- function(  data,
                              x == "Jones"        ~ "DGM: Jones",
                              x == "ord_biv_fixed_C"   ~ "DGM: Ord-Biv-FC",
                              x == "ord_biv_random_C"  ~ "DGM: Ord-Biv-RC", 
-                             x == "R&G_random_C" ~ "DGM: Ord-HSROC-RC",
+                             x == "ord_HSROC_random_C" ~ "DGM: Ord-HSROC-RC",
                              TRUE ~ x
                            )
                          }
@@ -242,7 +242,7 @@ create_bias_plot <- function(  data,
                            x == "Jones"        ~ "DGM: Jones",
                            x == "ord_biv_fixed_C"   ~ "DGM: Ord-Biv-FC",
                            x == "ord_biv_random_C"  ~ "DGM: Ord-Biv-RC", 
-                           x == "R&G_random_C" ~ "DGM: Ord-HSROC-RC",
+                           x == "ord_HSROC_random_C" ~ "DGM: Ord-HSROC-RC",
                            TRUE ~ x
                          )
                        }
@@ -327,7 +327,7 @@ create_coverage_plot <- function(data,
                            x == "Jones"        ~ "DGM: Jones",
                            x == "ord_biv_fixed_C"   ~ "DGM: Ord-Biv-FC",
                            x == "ord_biv_random_C"  ~ "DGM: Ord-Biv-RC",
-                           x == "R&G_random_C" ~ "DGM: Ord-HSROC-RC",
+                           x == "ord_HSROC_random_C" ~ "DGM: Ord-HSROC-RC",
                            TRUE ~ x
                          )
                        }
@@ -413,7 +413,7 @@ create_width_plot <- function(data,
                            x == "Jones"        ~ "DGM: Jones",
                            x == "ord_biv_fixed_C"   ~ "DGM: Ord-Biv-FC",
                            x == "ord_biv_random_C"  ~ "DGM: Ord-Biv-RC",
-                           x == "R&G_random_C" ~ "DGM: Ord-HSROC-RC",
+                           x == "ord_HSROC_random_C" ~ "DGM: Ord-HSROC-RC",
                            TRUE ~ x
                          )
                        }
@@ -428,7 +428,7 @@ create_width_plot <- function(data,
 R_fn_edit_sim_data_tibble <- function(data_0) { 
   
       data <- data_0 %>% 
-        dplyr::mutate( model_parameterisation = case_when( model_parameterisation == "R&G" ~ "Ord-HSROC",
+        dplyr::mutate( model_parameterisation = case_when( model_parameterisation == "ord_HSROC" ~ "Ord-HSROC",
                                                            model_parameterisation == "ord_bivariate"  ~ "Ord-Biv",
                                                            TRUE ~ model_parameterisation ))
       data
@@ -450,7 +450,7 @@ R_fn_edit_sim_data_tibble <- function(data_0) {
       data$DGM <- factor(data$DGM, levels = c(  "Jones", 
                                                 "ord_biv_fixed_C", 
                                                 "ord_biv_random_C", 
-                                                "R&G_random_C"))
+                                                "ord_HSROC_random_C"))
       
       return(data)
       
@@ -1541,7 +1541,7 @@ fn_induced_accuracy_priors <- function(priors,
                                        prior_set) {
 
         stopifnot(prior_set %in% c(0, 1, 2), test %in% c("GAD_2", "HADS", "BAI"),
-                  model_parameterisation %in% c("ord_bivariate", "R&G", "Jones", "Bivariate"))
+                  model_parameterisation %in% c("ord_bivariate", "ord_HSROC", "Jones", "Bivariate"))
         ##
         ## ---- Prior sets 1 and 2 on the probit scale (Table "Informative induced-accuracy priors"):
         ##
@@ -1581,7 +1581,7 @@ fn_induced_accuracy_priors <- function(priors,
         ##
         ## ---- The cutoffs and the link-scale Normal of class 1 (Sp) and class 2 (Se) of each model:
         ##
-        is_an_ordinal_model <-  model_parameterisation %in% c("ord_bivariate", "R&G")
+        is_an_ordinal_model <-  model_parameterisation %in% c("ord_bivariate", "ord_HSROC")
         Se_Sp_prior_type <-  4
         if (prior_set == 0) {
               if (is_an_ordinal_model) {

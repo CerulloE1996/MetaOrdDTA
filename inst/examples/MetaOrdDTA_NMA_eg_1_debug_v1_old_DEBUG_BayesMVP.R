@@ -498,7 +498,7 @@ if (intercept_only) {
         cov_data$X <- X
         ##
         
-        if (model_parameterisation == "R&G") { 
+        if (model_parameterisation == "ord_HSROC") { 
           baseline_case <- 1
           cov_data$baseline_case    <- rep(list(baseline_case), n_index_tests)
         } else { 
@@ -1372,7 +1372,7 @@ MetaOrdDTA:::extract_params_from_tibble_batch(debugging = FALSE,
 # new_cov_data$baseline_case_d  <- baseline_case
 ##
 ##
-# if (model_parameterisation == "R&G") { 
+# if (model_parameterisation == "ord_HSROC") { 
 # #   new_cov_data$baseline_case    <- rep(list(new_cov_data$baseline_case), n_index_tests)
 # # } else { 
 #   new_cov_data$baseline_case_nd <- rep(list(new_cov_data$baseline_case_nd), n_index_tests)
@@ -3334,7 +3334,7 @@ new_cov_data$baseline_case_nd <- baseline_case
 new_cov_data$baseline_case_d  <- baseline_case
 ##
 ##
-if (model_parameterisation == "R&G") { 
+if (model_parameterisation == "ord_HSROC") { 
   new_cov_data$baseline_case    <- rep(list(baseline_case), n_index_tests)
 } else { 
   new_cov_data$baseline_case_nd <- rep(list(new_cov_data$baseline_case_nd), n_index_tests)
@@ -4152,7 +4152,7 @@ outs_kfold
   softplus = FALSE
   ##
   ##
-  model_parameterisation = "R&G"
+  model_parameterisation = "ord_HSROC"
   ##
   random_thresholds = TRUE
   Dirichlet_random_effects_type = "kappa"

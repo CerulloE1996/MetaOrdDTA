@@ -1,5 +1,5 @@
 ##
-## ---- Ordinal-HSROC (R&G) priors matched to the ordinal-bivariate reference prior ---------------------------------------------------
+## ---- Ordinal-HSROC (ord_HSROC) priors matched to the ordinal-bivariate reference prior ---------------------------------------------------
 ##
 ## The trace of Se and Sp at each threshold from the prior-only fit of the ordinal-bivariate (fixed-cutpoint) model under
 ## the flat prior (alpha = 1) or under prior set 1 or 2 is the data; each draw of it is given the ordinal-HSROC model's
