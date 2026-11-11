@@ -38,6 +38,8 @@ functions {
                                                           data int Se_Sp_prior_type,
                                                           vector prior_Se_Sp_dirichlet_A, matrix prior_Se_Sp_beta,
                                                           matrix prior_Se_Sp_link_mean_SD);
+        vector nico_dirichlet_cutpoint_medians_and_sum_of_log_J(vector P_lower, vector P_upper, real kappa,
+                                                                data int use_probit_link);
         real nico_expm1(real x);
         real nico_dirichlet_with_Se_Sp_prior_lpdf(vector phi,
                                                   vector log_J,
@@ -481,17 +483,13 @@ model {
                     ////      median of each cutpoint (anchored at the baseline case at the prior means) minus Xbeta_baseline.
                     ////      Their prior is the fixed-cutpoint model's own prior of C - Xbeta_baseline (the Se / Sp prior at
                     ////      the chosen cutoffs, the Dirichlet of each segment between them), with the Jacobian of every median:
-                    vector[n_thr] C_mu_minus_Xbeta_baseline;
-                    real log_J_of_every_median = 0.0;
-                    ////
-                    for (k in 1:n_thr) {
-                         vector[2] median_and_log_J = nico_dirichlet_cutpoint_median_and_log_J( P_of_alpha[k],
-                                                                                                P_upper_of_alpha[k],
-                                                                                                alpha_0,
-                                                                                                use_probit_link);
-                         C_mu_minus_Xbeta_baseline[k] = baseline_location[c] + median_and_log_J[1] - Xbeta_baseline;
-                         log_J_of_every_median += median_and_log_J[2] + nico_log(kappa[c] / alpha_0);
-                    }
+                    //// (the population median of every cutpoint and the sum of the logs of their Jacobians, in one call)
+                    vector[n_thr + 1] popmed_of_every_cutpoint_and_sum_of_log_J =
+                          nico_dirichlet_cutpoint_medians_and_sum_of_log_J(P_of_alpha, P_upper_of_alpha, alpha_0, use_probit_link);
+                    vector[n_thr] C_mu_minus_Xbeta_baseline = baseline_location[c] + popmed_of_every_cutpoint_and_sum_of_log_J[1:n_thr] -
+                                                              Xbeta_baseline;
+                    real log_J_of_every_median = popmed_of_every_cutpoint_and_sum_of_log_J[n_thr + 1] +
+                                                 n_thr * nico_log(kappa[c] / alpha_0);
                     ////
                     target += log_J_of_every_median;
                     target += nico_induced_dirichlet_with_Se_Sp_prior_lupdf(
