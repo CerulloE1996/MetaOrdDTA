@@ -236,7 +236,6 @@ transformed parameters {
         //        C[c][s, ] =  construct_C(C_raw[c][s, 1:n_thr], softplus);
         //   }
         // }
-
         //// (the reported cutpoints of each study only, study after study, as construct_C on each study's own)
         array[2] vector[n_C] C;
         for (c in 1:2) {
@@ -250,8 +249,8 @@ transformed parameters {
               }
         }
         ////
-        //// ---- Under the Se / Sp prior: cutpoints relative to the intercept of the baseline case (the Se / Sp
-        ////      prior and the likelihood hold C - Xbeta only, so the raw cutpoints are then free of beta_mu):
+        //// ---- Under the Se / Sp prior: cutpoints relative to the intercept of the baseline case, as in the
+        ////      fixed-cutpoint model (DTA_MA_ord_biv_FIXEDthr_Se_Sp_prior.stan):
         ////
         if (use_Se_Sp_prior == 1) {
              C[1] += dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd]));
@@ -265,14 +264,10 @@ transformed parameters {
         ////
         //// ---- Study-level random effects (after Cholesky decomposition):
         ////
-        // matrix[n_studies, 2] beta_random;
-        // for (s in 1:n_studies) {
-        //      beta_random[s, ] =  beta_z[s, ] * beta_L_Sigma;
-        // }
-
-        //// (every study's row times beta_L_Sigma at once)
-        // matrix[n_studies, 2] beta_random = beta_z * beta_L_Sigma;
-        matrix[n_studies, 2] beta_random = to_matrix(beta_z) * beta_L_Sigma;
+        matrix[n_studies, 2] beta_random;
+        for (s in 1:n_studies) {
+             beta_random[s, ] =  beta_z[s, ] * beta_L_Sigma;
+        }
         ////
         //// ---- Linear predictors for each disease statu + apply covariates for non-diseased and diseased groups:
         ////
@@ -295,29 +290,19 @@ model {
         beta_mu[2, 1:n_covariates_d]  ~ normal(
                                           prior_beta_mu_mean[2, 1:n_covariates_d],
                                           prior_beta_mu_SD[2, 1:n_covariates_d]);
-        // ////
-        // beta_SD ~ normal(prior_beta_SD_mean, prior_beta_SD_SD);
-
-        // to_vector(beta_mu[1, 1:n_covariates_nd]) ~ normal(
-        //                                             to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd]),
-        //                                             to_vector(prior_beta_mu_SD[1, 1:n_covariates_nd]));
-        // to_vector(beta_mu[2, 1:n_covariates_d])  ~ normal(
-        //                                             to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]),
-        //                                             to_vector(prior_beta_mu_SD[2, 1:n_covariates_d]));
         ////
         to_vector(beta_SD) ~ normal(prior_beta_SD_mean, prior_beta_SD_SD);
         beta_L_Omega ~ lkj_corr_cholesky(prior_beta_corr_LKJ);
         ////
-        vector[2] baseline_location;  //// the baseline case at the prior means (the anchor point, under every prior set)
-        baseline_location[1] = dot_product(baseline_case_nd, to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd]));
-        baseline_location[2] = dot_product(baseline_case_d,  to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]));
+        vector[2] baseline_location_prior;  //// the baseline case at the prior means (the same under every prior set)
+        baseline_location_prior[1] = dot_product(baseline_case_nd, to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd]));
+        baseline_location_prior[2] = dot_product(baseline_case_d,  to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]));
         ////
         real Xbeta_baseline_nd = dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd]));
         real Xbeta_baseline_d  = dot_product(baseline_case_d,  to_vector(beta_mu[2, 1:n_covariates_d]));
         ////
         for (c in 1:2) {
-           log_kappa[c] ~ student_t(prior_kappa_dof[c], prior_kappa_mean[c], prior_kappa_SD[c]);
-           // kappa[c] ~ normal(0, 100);
+           log_kappa[c] ~ student_t(prior_kappa_dof[c], prior_kappa_mean[c], prior_kappa_SD[c]); // kappa[c] ~ normal(0, 100);
            target += -log_kappa[c];
            ////
            if (use_Se_Sp_prior == 1 && n_chosen_cutoffs[c] > 0) {
@@ -339,9 +324,10 @@ model {
                     real alpha_0 = sum(alpha[c]);
                     vector[n_thr] P_of_alpha = cumulative_sum(alpha[c][1:n_thr]) / alpha_0;
                     vector[n_thr] P_upper_of_alpha = reverse(cumulative_sum(reverse(alpha[c][2:n_cat]))) / alpha_0;
-                    //// ---- The summary cutpoints of class c relative to the intercept, at EVERY threshold: the population
-                    ////      median of each cutpoint (anchored at the baseline case at the prior means) minus Xbeta_baseline.
-                    ////      Their prior is the fixed-cutpoint model's own prior of C - Xbeta_baseline (the Se / Sp prior at
+                    //// ---- C_mu - Xbeta_baseline of class c at EVERY threshold: the quantity that Se and Sp are made of
+                    ////      (generated quantities: Phi(-(C_mu - Xbeta_baseline))). C_mu is baseline_location_prior plus the
+                    ////      population median of the cutpoint, as in generated quantities.
+                    ////      Its prior is the fixed-cutpoint model's own prior of C - Xbeta_baseline (the Se / Sp prior at
                     ////      the chosen cutoffs, the Dirichlet of each segment between them), with the Jacobian of every median:
                     vector[n_thr] C_mu_minus_Xbeta_baseline;
                     real log_J_of_every_median = 0.0;
@@ -351,7 +337,8 @@ model {
                                                                                            P_upper_of_alpha[k],
                                                                                            alpha_0,
                                                                                            use_probit_link);
-                         C_mu_minus_Xbeta_baseline[k] = baseline_location[c] + median_and_log_J[1] - Xbeta_baseline;
+                         real C_mu_k = baseline_location_prior[c] + median_and_log_J[1];
+                         C_mu_minus_Xbeta_baseline[k] = C_mu_k - Xbeta_baseline;
                          log_J_of_every_median += median_and_log_J[2] + log(kappa[c] / alpha_0);
                     }
                     ////
@@ -389,8 +376,8 @@ model {
         ////      random-effect cutpoints), every study's cutpoints in one node per class, as
         ////      induced_dirichlet_given_C on each row:
         for (c in 1:2) {
-             //// (anchored at the baseline case at the prior means, under every prior set)
-             real C_anchor = baseline_location[c];
+             //// (the study cutpoints are measured from baseline_location_prior, the baseline case at the prior means,
+             ////  under every prior set)
              //// (the reported cutpoints of each study only: the alpha of each segment between them is the sum of
              ////  alpha[c] over its categories, the same distribution with the other cutpoints integrated out)
              vector[n_cat + 1] cumulative_alpha = append_row(0.0, cumulative_sum(alpha[c]));
@@ -400,7 +387,7 @@ model {
                   if (n_reported_cutpoints[s] > 0) {
                        int p_1 = first_C_of_each_study[s];
                        int p_2 = p_1 + n_reported_cutpoints[s] - 1;
-                       target += induced_dirichlet_given_C_on_the_log_scale_lupdf(C[c][p_1:p_2] - C_anchor |
+                       target += induced_dirichlet_given_C_on_the_log_scale_lupdf(C[c][p_1:p_2] - baseline_location_prior[c] |
                                                                                   alpha_of_each_segment[(p_1 + s - 1):(p_2 + s)],
                                                                                   use_probit_link);
                   }
@@ -496,11 +483,12 @@ generated quantities {
          real alpha_0 = sum(alpha[c]);
          vector[n_thr] P = cumulative_sum(alpha[c][1:n_thr]) / alpha_0;
          vector[n_thr] P_upper = reverse(cumulative_sum(reverse(alpha[c][2:n_cat]))) / alpha_0;
-         //// (anchored at the baseline case at the prior means, under every prior set)
-         real C_anchor = (c == 1) ? dot_product(baseline_case_nd, to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd])) :
-                                    dot_product(baseline_case_d,  to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]));
+         //// (the baseline case at the prior means, as baseline_location_prior in the model block, under every prior set)
+         real baseline_location_prior_of_class_c =
+                    (c == 1) ? dot_product(baseline_case_nd, to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd])) :
+                               dot_product(baseline_case_d,  to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]));
          for (k in 1:n_thr) {
-            C_mu[c][k] = C_anchor +
+            C_mu[c][k] = baseline_location_prior_of_class_c +
                          dirichlet_cutpoint_median(P[k], P_upper[k], alpha_0, use_probit_link);
          }
       }

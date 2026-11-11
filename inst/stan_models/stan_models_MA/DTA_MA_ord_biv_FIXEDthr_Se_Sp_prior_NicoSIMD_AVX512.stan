@@ -1,4 +1,4 @@
-// NicoSIMD_AVX512 version of DTA_MA_ord_biv_FIXEDthr_Se_Sp_prior.stan written by NicoStan (source model md5 9529b3f4f97eeab9c20b82f8cfcd7962; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
+// NicoSIMD_AVX512 version of DTA_MA_ord_biv_FIXEDthr_Se_Sp_prior.stan written by NicoStan (source model md5 7490b157835658b959479dd006f4d159; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
 // NicoSIMD functions used: exp, log, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, log_diff_exp, std_normal_log_qf
 
 
@@ -89,7 +89,7 @@ functions {
         //                              vector C_vec, 
         //                              vector alpha, 
         //                              int use_probit,
-        //                              real anchor) {
+        //                              real baseline_location_prior) {
         //                                
         //           int K = num_elements(ord_probs);
         //           int n_thr = K - 1;
@@ -99,10 +99,10 @@ functions {
         //           // Jacobian: d(cumul_prob)/d(C) = pdf(C)
         //           for (k in 1:n_thr) {
         //               if (use_probit == 1) {
-        //                   lp += std_normal_lpdf(C_vec[k] - anchor);
+        //                   lp += std_normal_lpdf(C_vec[k] - baseline_location_prior);
         //               } else {
         //                   // logistic density
-        //                   lp += log_inv_logit(C_vec[k] - anchor) + log1m_inv_logit(C_vec[k] - anchor);
+        //                   lp += log_inv_logit(C_vec[k] - baseline_location_prior) + log1m_inv_logit(C_vec[k] - baseline_location_prior);
         //               }
         //           }
         //           return lp;
@@ -111,10 +111,10 @@ functions {
         
         // real induced_dirichlet_lpdf( vector c, 
         //                              vector alpha, 
-        //                              real anchor) {
+        //                              real baseline_location_prior) {
         //                                
         //           int K = num_elements(c) + 1;
-        //           vector[K - 1] sigma = Phi(c - anchor);
+        //           vector[K - 1] sigma = Phi(c - baseline_location_prior);
         //           vector[K] p;
         //           matrix[K, K] J = rep_matrix(0, K, K);
         //           
@@ -129,7 +129,7 @@ functions {
         //           
         //           // Diagonal entries of Jacobian
         //           for (k in 2:K) {
-        //             real rho = std_normal_lpdf(c - anchor[k - 1]); // sigma[k - 1] * (1 - sigma[k - 1]);
+        //             real rho = std_normal_lpdf(c - baseline_location_prior[k - 1]); // sigma[k - 1] * (1 - sigma[k - 1]);
         //             J[k, k] = - rho;
         //             J[k - 1, k] = rho;
         //           }
@@ -186,8 +186,8 @@ data {
         ////
         //// ---- alpha = (1, ..., 1) through this prior (the same density, up to a constant): use_Se_Sp_prior = 1,
         //// ---- Se_Sp_prior_type = 4, every cutoff chosen in both classes (n_chosen_cutoffs = (n_thr, n_thr)), and
-        //// ---- prior_Se_Sp_link_mean_SD = (0, 1) at every cutoff, i.e. C_k ~ normal(anchor, 1) for every k, kept
-        //// ---- in rising order (anchor = prior_beta_mu_mean[c, 1]; a single chosen cutoff is NOT alpha = 1):
+        //// ---- prior_Se_Sp_link_mean_SD = (0, 1) at every cutoff, i.e. C_k ~ normal(baseline_location_prior, 1) for every k, kept
+        //// ---- in rising order (baseline_location_prior = prior_beta_mu_mean[c, 1]; a single chosen cutoff is NOT alpha = 1):
         ////
         int<lower=0, upper=1> use_Se_Sp_prior;     //// 0 = original cutpoint prior
         int<lower=1, upper=4> Se_Sp_prior_type;    //// 1 = Dirichlet, 2-3 = Betas, 4 = link-scale Normal
@@ -232,13 +232,6 @@ transformed data {
                    }
               }
        }
-        ////
-        //// ---- Anchor of the cutpoints: the prior mean of the intercept (prior intercepts as anchor point):
-        ////
-        vector[2] C_anchor;
-        for (c in 1:2) {
-             C_anchor[c] = prior_beta_mu_mean[c, 1];
-        }
         ////
         //// ---- Sums of prior_dirichlet_alpha over the segments between chosen cutoffs:
         ////
@@ -315,23 +308,21 @@ model {
         ////
         //// ---- Priors: 
         ////
-        beta_mu[1, 1:n_covariates_nd] ~ nico_normal(
-                                          prior_beta_mu_mean[1, 1:n_covariates_nd],
-                                          prior_beta_mu_SD[1, 1:n_covariates_nd]);
-        beta_mu[2, 1:n_covariates_d]  ~ nico_normal(
-                                          prior_beta_mu_mean[2, 1:n_covariates_d],
-                                          prior_beta_mu_SD[2, 1:n_covariates_d]);
+        beta_mu[1, 1:n_covariates_nd] ~ nico_normal( prior_beta_mu_mean[1, 1:n_covariates_nd],
+                                                prior_beta_mu_SD[1, 1:n_covariates_nd]);
+        beta_mu[2, 1:n_covariates_d]  ~ nico_normal( prior_beta_mu_mean[2, 1:n_covariates_d],
+                                                prior_beta_mu_SD[2, 1:n_covariates_d]);
         ////
         beta_SD ~ normal(prior_beta_SD_mean, prior_beta_SD_SD);
         beta_L_Omega ~ nico_lkj_corr_cholesky(prior_beta_corr_LKJ); 
-        //// 
-        //// ---- Induced-dirichlet ** Prior ** model:
-        //// 
         ////
-        //// ---- Cutpoints at the constant anchor (C_anchor, transformed data):
+        vector[2] baseline_location_prior;  //// the baseline case at the prior means (the same under every prior set)
+        baseline_location_prior[1] = dot_product(baseline_case_nd, to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd]));
+        baseline_location_prior[2] = dot_product(baseline_case_d,  to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]));
+        ////
+        //// ---- Induced-dirichlet ** Prior ** model:
         ////
         for (c in 1:2) {
-             vector[n_thr] C_shifted = C[c] - C_anchor[c];
              if (use_Se_Sp_prior == 1 && n_chosen_cutoffs[c] > 0) {
                  
                     matrix[n_chosen_cutoffs[c], 2] prior_beta_of_this_class = prior_Se_Sp_beta[c][1:n_chosen_cutoffs[c], ];
@@ -346,8 +337,15 @@ model {
                     real Xbeta_baseline =  (c == 1) ?
                                            dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd])) :
                                            dot_product(baseline_case_d,  to_vector(beta_mu[2, 1:n_covariates_d]));
+                    ////
+                    //// ---- C_mu - Xbeta_baseline of class c: the quantity that Se and Sp are made of (generated
+                    ////      quantities: Phi(-(C - Xbeta_baseline))). The cutpoints are fixed, so C is itself the summary
+                    ////      cutpoint C_mu. The random-cutpoint model (DTA_MA_ord_biv_RANDthr_kappa_popmed_Se_Sp_prior.stan)
+                    ////      has this same prior on its own C_mu - Xbeta_baseline:
+                    vector[n_thr] C_mu_minus_Xbeta_baseline = C[c] - Xbeta_baseline;
+                    ////
                     target += induced_dirichlet_with_Se_Sp_prior_lupdf(
-                              C[c] - Xbeta_baseline | prior_dirichlet_alpha[c],
+                              C_mu_minus_Xbeta_baseline | prior_dirichlet_alpha[c],
                               alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
                               chosen_cutoffs[c, 1:n_chosen_cutoffs[c]],
                               Se_Sp_prior_type,
@@ -357,17 +355,18 @@ model {
                               use_probit_link);
                             
              } else {
-               
-                    vector[n_cat] Ind_Dir_ord_prob; //// = cumul_probs_to_ord_probs(Phi(C));
-                    if (use_probit_link == 1) Ind_Dir_ord_prob = cumul_probs_to_ord_probs(nico_Phi(C_shifted));
-                    else                      Ind_Dir_ord_prob = cumul_probs_to_ord_probs(nico_inv_logit(C_shifted));
+
+                    //// (the cutpoints measured from baseline_location_prior, the baseline case at the prior means)
+                    vector[n_thr] C_mu_minus_baseline_location_prior = C[c] - baseline_location_prior[c];
                     ////
-                    // real anchor_ct = prior_beta_mu_mean[c, 1]; // prior intercepts as anchor point
-                    // target += induced_dirichlet_lpdf(Ind_Dir_ord_prob | C[c], prior_dirichlet_alpha[c],
-                    //                                   1, anchor_ct);
-                    // target += induced_dirichlet_lpdf(C[c] | prior_dirichlet_alpha[c], anchor_ct);
+                    vector[n_cat] Ind_Dir_ord_prob; //// = cumul_probs_to_ord_probs(Phi(C));
+                    if (use_probit_link == 1) Ind_Dir_ord_prob = cumul_probs_to_ord_probs(nico_Phi(C_mu_minus_baseline_location_prior));
+                    else                      Ind_Dir_ord_prob = cumul_probs_to_ord_probs(nico_inv_logit(C_mu_minus_baseline_location_prior));
+                    ////
                     Ind_Dir_ord_prob ~ induced_dirichlet_given_C(
-                                       C_shifted, prior_dirichlet_alpha[c], use_probit_link);
+                                       C_mu_minus_baseline_location_prior, 
+                                       prior_dirichlet_alpha[c], 
+                                       use_probit_link);
                     // more efficient than Betancourt et al. and works fine.
                   
              }
@@ -388,8 +387,10 @@ model {
             ////
             // real scale = 1.0; // since using "ord_bivariate-like"" param.
             array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_to_fixed_hetero_C(
-                                                            C, Xbeta, n_studies, 
-                                                            n_obs_cutpoints, cutpoint_index);
+                                                            C, Xbeta, 
+                                                            n_studies, 
+                                                            n_obs_cutpoints,
+                                                            cutpoint_index);
             target += compute_log_lik_binomial_fact_lp(
                       latent_surv, use_probit_link, n_thr, n_studies, 
                       x_2, n, N_total, n_obs_cutpoints,
