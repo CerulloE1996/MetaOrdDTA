@@ -38,7 +38,7 @@ thresholds.
 The R package implements two primary model parameterizations: 1. The
 "ord_bivariate" (based on an extended version of the Xu et al, 2013 single-study
 model) approach, which uses freely estimated location parameters with
-explicit between-study correlation modeling, and: 2. The "R&G"
+explicit between-study correlation modeling, and: 2. The "ord_HSROC"
 parameterization, which extends the widely-used HSROC model (Rutter &
 Gatsonis, 2001) to multiple/missing thresholds with implicit correlation
 modelling. - Both (1) and (2) model parameterisations above can be
@@ -113,7 +113,7 @@ MetaOrdDTA can fit the following models:
         groups - namely we assume that the location in the diseased
         group is $+\beta$ and $-\beta$ in the diseased and non-diseased
         groups, respectively.
-    -   Both the "ord_bivariate" and "R&G" -based models can be fit using either
+    -   Both the "ord_bivariate" and "ord_HSROC" -based models can be fit using either
         fixed-effects or random-effects thresholds/cutpoints (please see
         **section 3** below for more details on this).
 -   MetaOrdDTA can also fit the "multiple thresholds" model proposed by
@@ -187,7 +187,7 @@ obtained from our simulation study:
 # 3. Some other facts about MetaOrdDTA:
 
 -   All of the ordinal models (both ord_bivariate-based [Xu et al, 2013] and
-    R&G-based [Rutter & Gatsonis, 2001] models) make use of one of the
+    ord_HSROC-based [Rutter & Gatsonis, 2001] models) make use of one of the
     following "induced Dirichlet" cutpoint models, depending on whether
     you use a fixed-effect (aka "complete-pooling") or a random-effect
     (aka "partial-pooling") between study model on the cutpoint
