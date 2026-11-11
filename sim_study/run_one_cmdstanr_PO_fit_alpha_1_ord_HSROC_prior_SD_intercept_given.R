@@ -1,5 +1,5 @@
 ##
-## ==== run_one_cmdstanr_PO_fit_alpha_1_Gat_prior_SD_intercept_given.R
+## ==== run_one_cmdstanr_PO_fit_alpha_1_ord_HSROC_prior_SD_intercept_given.R
 ##
 ## ---- One cmdstanr prior-only fit of the ord_HSROC random-kappa model and one test with the runner's alpha = (1, ..., 1)
 ##      prior, except that the SD of the intercept prior (beta_mu) and the SD of the log-scale prior (raw_scale_mu)
@@ -64,7 +64,7 @@ stopifnot(!is.null(sample_call_of_the_runner))
 model_parameterisation <-  if (model_of_this_fit == "rg_rand") "ord_HSROC" else "ord_bivariate"
 random_thresholds <-  model_of_this_fit != "xu_fixed"
 Dirichlet_random_effects_type <-  if (random_thresholds) "kappa" else "fixed"
-name_of_the_model_family <-  if (model_parameterisation == "ord_bivariate") "DTA_MA_ord_biv_" else "DTA_MA_Gat_"
+name_of_the_model_family <-  if (model_parameterisation == "ord_bivariate") "DTA_MA_ord_biv_" else "DTA_MA_ord_HSROC_"
 custom_file_name <-  paste0(name_of_the_model_family,
                             if (random_thresholds) "RANDthr_kappa" else "FIXEDthr",
                             "_NicoStan_fused_AVX.stan")

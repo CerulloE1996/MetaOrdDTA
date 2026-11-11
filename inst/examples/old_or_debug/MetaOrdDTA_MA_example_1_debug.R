@@ -984,7 +984,7 @@ ppc_outs <- induced_Dirichlet_ppc_plot(method = "kappa",
 #       softplus = TRUE
 #       ##
 #       ##
-#       model_parameterisation = "Gatsonis"
+#       model_parameterisation = "ord_HSROC"
 #       random_thresholds = FALSE
 #       Dirichlet_random_effects_type = "none"
 #       box_cox <- FALSE ## cannot input ACTUAL NA's into Stan!

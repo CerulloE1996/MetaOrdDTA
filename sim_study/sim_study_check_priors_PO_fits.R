@@ -31,7 +31,7 @@
       custom_file_of_each_model <-  c(ord_biv_FC = "DTA_MA_ord_biv_FIXEDthr_NicoStan_fused_AVX.stan",
                                       Bivariate = "DTA_MA_strat_bivariate_NicoStan_fused_AVX.stan",
                                       ord_biv_RC = "DTA_MA_ord_biv_RANDthr_kappa_NicoStan_fused_AVX.stan",
-                                      ordHSROC_RC = "DTA_MA_Gat_RANDthr_kappa_NicoStan_fused_AVX.stan")
+                                      ordHSROC_RC = "DTA_MA_ord_HSROC_RANDthr_kappa_NicoStan_fused_AVX.stan")
       parameterisation_of_each_model <-  c(ord_biv_FC = "ord_bivariate",
                                            Bivariate = "Bivariate",
                                            ord_biv_RC = "ord_bivariate",

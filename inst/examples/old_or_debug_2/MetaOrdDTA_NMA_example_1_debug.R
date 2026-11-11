@@ -182,7 +182,7 @@ softplus <- TRUE
 
 
 {
-  model_parameterisation = "Gatsonis"
+  model_parameterisation = "ord_HSROC"
   box_cox <- FALSE
   cts <- FALSE
   random_thresholds <-  FALSE
@@ -221,7 +221,7 @@ softplus <- TRUE
 
 
 {
-  model_parameterisation = "Gatsonis"
+  model_parameterisation = "ord_HSROC"
   box_cox <- FALSE
   cts <- FALSE
   random_thresholds <-  TRUE

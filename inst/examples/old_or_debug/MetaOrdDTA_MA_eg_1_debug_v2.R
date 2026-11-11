@@ -1288,7 +1288,7 @@ dplyr::filter(tibble_all, (stringr::str_detect(parameter, "Sp_mean_overall_measu
 #       softplus = TRUE
 #       ##
 #       ##
-#       model_parameterisation = "Gatsonis"
+#       model_parameterisation = "ord_HSROC"
 #       random_thresholds = FALSE
 #       Dirichlet_random_effects_type = "none"
 #       box_cox <- FALSE ## cannot input ACTUAL NA's into Stan!

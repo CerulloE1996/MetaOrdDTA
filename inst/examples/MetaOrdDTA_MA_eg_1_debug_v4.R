@@ -203,11 +203,11 @@ init_lists_per_chain <- NULL
 #   
 #     if ((model_parameterisation == "ord_HSROC") && (random_thresholds == FALSE)) {
 #       
-#       custom_file_name <- "DTA_MA_Gat_FIXEDthr.stan"
+#       custom_file_name <- "DTA_MA_ord_HSROC_FIXEDthr.stan"
 #       
 #     } else if ((model_parameterisation == "ord_HSROC") && (random_thresholds == TRUE)) {
 #       
-#       custom_file_name <- "DTA_MA_Gat_RANDthr_kappa.stan"
+#       custom_file_name <- "DTA_MA_ord_HSROC_RANDthr_kappa.stan"
 #       
 #     } else if ((model_parameterisation == "ord_bivariate") && (random_thresholds == FALSE)) {
 #       
