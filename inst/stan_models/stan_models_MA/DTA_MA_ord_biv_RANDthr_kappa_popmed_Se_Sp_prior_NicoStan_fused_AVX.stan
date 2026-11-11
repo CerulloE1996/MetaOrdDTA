@@ -442,9 +442,9 @@ model {
         to_vector(beta_SD) ~ nico_normal(prior_beta_SD_mean, prior_beta_SD_SD);
         beta_L_Omega ~ nico_lkj_corr_cholesky(prior_beta_corr_LKJ);
         ////
-        vector[2] baseline_location;  //// the prior mean of the intercept (prior intercepts as anchor point)
-        baseline_location[1] = prior_beta_mu_mean[1, 1];
-        baseline_location[2] = prior_beta_mu_mean[2, 1];
+        vector[2] baseline_location;  //// the baseline case at the prior means (the anchor point, under every prior set)
+        baseline_location[1] = dot_product(baseline_case_nd, to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd]));
+        baseline_location[2] = dot_product(baseline_case_d,  to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]));
         ////
         for (c in 1:2) {
            log_kappa[c] ~ nico_student_t(prior_kappa_dof[c], prior_kappa_mean[c], prior_kappa_SD[c]);
@@ -480,7 +480,7 @@ model {
                                                                                                 P_upper_of_alpha[k],
                                                                                                 alpha_0,
                                                                                                 use_probit_link);
-                         C_mu[j]  = Xbeta_baseline + median_and_log_J[1]; // Xbeta_baseline = anchor of the Se / Sp prior route.
+                         C_mu[j]  = baseline_location[c] + median_and_log_J[1]; //// (anchored at the baseline case at the prior means)
                          log_J[j] = median_and_log_J[2] + nico_log(kappa[c] / alpha_0);
                     }
                     ////
@@ -521,12 +521,8 @@ model {
         ////      induced_dirichlet_given_C on each row (NicoSIMD's induced Dirichlet density, used as
         ////      this model, not as a prior):
         for (c in 1:2) {
-             //// (anchored at the prior mean of the intercept; at Xbeta_baseline under the Se / Sp prior route, as
-             ////  the fixed-cutpoint model's Se / Sp route is)
-             real C_anchor = (use_Se_Sp_prior == 1) ?
-                  ((c == 1) ? dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd])) :
-                              dot_product(baseline_case_d, to_vector(beta_mu[2, 1:n_covariates_d]))) :
-                  baseline_location[c];
+             //// (anchored at the baseline case at the prior means, under every prior set)
+             real C_anchor = baseline_location[c];
              //// (the reported cutpoints of each study only: the alpha of each segment between them is the sum of
              ////  alpha[c] over its categories, the same distribution with the other cutpoints integrated out)
              vector[n_cat + 1] cumulative_alpha = append_row(0.0, cumulative_sum(alpha[c]));
@@ -623,11 +619,9 @@ generated quantities {
          real alpha_0 = sum(alpha[c]);
          vector[n_thr] P = cumulative_sum(alpha[c][1:n_thr]) / alpha_0;
          vector[n_thr] P_upper = reverse(cumulative_sum(reverse(alpha[c][2:n_cat]))) / alpha_0;
-         //// (anchored at the prior mean of the intercept; at Xbeta_baseline under the Se / Sp prior route)
-         real C_anchor = (use_Se_Sp_prior == 1) ?
-              ((c == 1) ? dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd])) :
-                          dot_product(baseline_case_d, to_vector(beta_mu[2, 1:n_covariates_d]))) :
-              prior_beta_mu_mean[c, 1];
+         //// (anchored at the baseline case at the prior means, under every prior set)
+         real C_anchor = (c == 1) ? dot_product(baseline_case_nd, to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd])) :
+                                    dot_product(baseline_case_d,  to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]));
          for (k in 1:n_thr) {
             C_mu[c][k] = C_anchor +
                          nico_dirichlet_cutpoint_median_and_log_J(P[k], P_upper[k], alpha_0, use_probit_link)[1];
