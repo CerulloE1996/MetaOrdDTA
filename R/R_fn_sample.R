@@ -75,9 +75,7 @@ R_fn_sample_stan_model  <-    function(   debugging = FALSE,
                 elapsed <- tictoc::toc(quiet = !debugging)
                 time_total <- unname(elapsed$toc - elapsed$tic)
                 if (debugging) message("time_total = ", time_total)
-                
-                gc(reset = TRUE)
-            
+
           }
           
           
