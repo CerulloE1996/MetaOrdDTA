@@ -528,7 +528,7 @@ model {
         //// ---- Induced-dirichlet between study ** model ** (NOT a prior: part of the likelihood since
         ////      random-effect cutpoints), every study's cutpoints in one node, as
         ////      induced_dirichlet_given_C on each row:
-        //// (anchored at the prior mean of the mid-location)
+        //// (anchored at the mid-location of the baseline case at the prior means, under every prior set)
         {
              //// (the reported cutpoints of each study only: the alpha of each segment between them is the sum of
              ////  alpha over its categories, the same distribution with the other cutpoints integrated out)
@@ -541,7 +541,7 @@ model {
                        int p_2 = p_1 + n_reported_cutpoints[s] - 1;
                        target += induced_dirichlet_given_C_on_the_log_scale_lupdf(C[p_1:p_2] -
                                                                                   0.5 * (mult_nd + mult_d) *
-                                                                                  prior_beta_mu_mean[1] |
+                                                                                  dot_product(baseline_case, prior_beta_mu_mean) |
                                                                                   alpha_of_each_segment[(p_1 + s - 1):(p_2 + s)],
                                                                                   use_probit_link);
                   }
@@ -627,7 +627,7 @@ generated quantities {
       // }
       {
          //// (the shapes of the Beta of each cutpoint from alpha itself: sum(alpha) = kappa + 0.01 * n_cat; the
-         ////  study cutpoints are anchored at 0.5 * (mult_nd + mult_d) * prior_beta_mu_mean[1] = 0)
+         ////  study cutpoints are anchored at 0.5 * (mult_nd + mult_d) * dot_product(baseline_case, prior_beta_mu_mean) = 0)
          real alpha_0 = sum(alpha);
          vector[n_thr] P = cumulative_sum(alpha[1:n_thr]) / alpha_0;
          vector[n_thr] P_upper = reverse(cumulative_sum(reverse(alpha[2:n_cat]))) / alpha_0;
