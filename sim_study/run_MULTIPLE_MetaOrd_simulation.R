@@ -1268,7 +1268,7 @@ run_multiple_sims <- function(MCMC_seed,
                                                                 # min_ESS_thr = if (n_studies == 10) 500 else 100,
                                                                 # min_ESS_thr = if (n_studies == 10) 250 else 50,
                                                               vec_index_inner = vec_index_inner,
-                                                              min_studies_per_threshold = NULL)
+                                                              min_studies_per_threshold = 3)  ## (the value the results tables are made with, MetaOrdDTA_print_results.R)
 
 
 
