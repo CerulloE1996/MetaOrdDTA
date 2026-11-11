@@ -756,14 +756,6 @@ run_multiple_sims <- function(MCMC_seed,
             if (prior_set %in% c("set_1", "set_2") && model_parameterisation != "Bivariate") stopifnot(priors$use_Se_Sp_prior == 1)
             if (model_parameterisation == "Bivariate") stopifnot(!is.null(priors$prior_mu_mean), !is.null(priors$prior_mu_SD))
             time_after_the_model_prep <- Sys.time()
-            ## (KEEP_THE_DATA_FILE_IN = a folder: the Stan data of this cmdstanr fit is saved there as it is written)
-            if (nzchar(Sys.getenv("KEEP_THE_DATA_FILE_IN")) && sampling_algorithm == "Stan") {
-                  file_of_the_Stan_data <- file.path(Sys.getenv("KEEP_THE_DATA_FILE_IN"),
-                                                     paste0("seed_", seed, "_", file_name_string, ".rds"))
-                  trace("write_stan_json", where = asNamespace("cmdstanr"), print = FALSE,
-                        tracer = bquote(saveRDS(data, paste0(.(file_of_the_Stan_data),
-                                                         if (grepl("init", basename(file))) "_init" else ""))))
-            }
             model_samples_obj <- model_prep_obj$sample( seed = MCMC_seed, ## MCMC seed
                                             n_burnin = n_burnin,
                                             n_iter = n_iter,
@@ -908,10 +900,6 @@ run_multiple_sims <- function(MCMC_seed,
             tibble_main <- model_summary_obj$get_summary_main()
             tibble_gq   <- model_summary_obj$get_summary_generated_quantities()
             tibble_all  <- rbind(tibble_main, tibble_gq)
-            if (nzchar(Sys.getenv("DUMP_SUMMARY"))) {
-                  saveRDS(tibble_all, file.path(output_dir, paste0("summary_of_every_parameter_of_seed_", seed, "_",
-                                                                   file_name_string, ".rds")))
-            }
             ##
             # tibbles_list_testing[[MCMC_seed]] <- tibble_gq
 
@@ -978,14 +966,6 @@ run_multiple_sims <- function(MCMC_seed,
               }
               n_divergent <- sum(n_divergent_per_chain)
               percent_divergent <- 100 * n_divergent / (n_chains * n_iter)
-              ## (KEEP_THE_DIVERGENCE_TRACE_IN = a folder: the divergence trace and the draws of this NicoStan fit are saved there)
-              if (nzchar(Sys.getenv("KEEP_THE_DIVERGENCE_TRACE_IN")) && sampling_algorithm == "NicoStan") {
-                    outs_of_this_fit <- model_samples_obj$internal_obj$outs_stan_sampling
-                    saveRDS(list(div_trace = outs_of_this_fit$NicoStan_model_obj$result$sampling_object[[2]],
-                                 draws_array = outs_of_this_fit$draws_array),
-                            file.path(Sys.getenv("KEEP_THE_DIVERGENCE_TRACE_IN"),
-                                      paste0("seed_", seed, "_", file_name_string, ".rds")))
-              }
               cat(sprintf("Seed %d: min ESS = %.0f (threshold %.0f), divergent = %d of %d (%.3f%%, max %.1f%%)\n",
                           seed,
                           min_ESS,
@@ -1060,30 +1040,6 @@ run_multiple_sims <- function(MCMC_seed,
                                                   col.names = !file.exists(file_of_the_HMC_log),
                                                   append = TRUE))
               ##
-              if (Sys.getenv("DUMP_BURNIN_TRACE") == "1") {
-                    NicoStan_result_of_this_fit <- tryCatch(
-                          model_samples_obj$internal_obj$outs_stan_sampling$NicoStan_model_obj$result,
-                          error = function(e) NULL)
-                    if (!is.null(NicoStan_result_of_this_fit)) {
-                          burnin_of_this_fit <- NicoStan_result_of_this_fit$burnin_object
-                          saveRDS(list(seed = seed,
-                                       n_burnin = n_burnin,
-                                       burnin_tau = burnin_of_this_fit$burnin_tau_main_ii_all_chains,
-                                       burnin_eps = burnin_of_this_fit$burnin_eps_main_all_chains,
-                                       burnin_L = burnin_of_this_fit$burnin_L_main_ii_all_chains,
-                                       burnin_div = burnin_of_this_fit$burnin_div_main_all_chains,
-                                       burnin_p_jump = burnin_of_this_fit$burnin_p_jump_main_all_chains,
-                                       burnin_tau_update_records = burnin_of_this_fit$burnin_tau_update_records,
-                                       burnin_schedule = burnin_of_this_fit$burnin_schedule,
-                                       burnin_start_main = burnin_of_this_fit$burnin_start_main_all_chains,
-                                       restarts_of_stuck_chains = burnin_of_this_fit$restarts_of_stuck_chains,
-                                       theta_main_end_of_burnin = burnin_of_this_fit$theta_main_vectors_all_chains_input_from_R,
-                                       theta_us_end_of_burnin = burnin_of_this_fit$theta_us_vectors_all_chains_input_from_R,
-                                       eps_calibration = NicoStan_result_of_this_fit$eps_calibration_on_sampling_chains,
-                                       HMC_info = HMC_info_of_this_fit),
-                                  file.path(output_dir, paste0("burnin_trace_of_seed_", seed, "_", file_name_string, ".rds")))
-                    }
-              }
               ##
               # ess_vec[MCMC_seed] <- min_ESS
 
