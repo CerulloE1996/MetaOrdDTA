@@ -74,7 +74,7 @@ fn_derive_HADS_prior_inputs <- function(model_samples_obj,
                                                                raw_cutoff_grid = raw_cutoff_grid,
                                                                targets = targets)
     model_code <- verified$provenance$model_code
-    model <- switch(model_code, DTA_MA_Jones = "Jones", DTA_MA_ord_HSROC_RANDthr_kappa = "R_and_G")
+    model <- switch(model_code, DTA_MA_Jones = "Jones", DTA_MA_ord_HSROC_RANDthr_kappa = "ord_HSROC")
 
     if (is.null(model)) stop("This example requires the actual Jones or ord_HSROC random-cutpoint native fit.")
 
@@ -122,7 +122,7 @@ fn_derive_HADS_prior_inputs <- function(model_samples_obj,
                                                                target_points_per_task = target_points_per_task,
                                                                estimate = estimate,
                                                                prior_values = prior_values)
-    derive <- fn_derive_the_R_and_G_marginal_accuracy_prior_by_sampling
+    derive <- fn_derive_the_ord_HSROC_marginal_accuracy_prior_by_sampling
 
     result <- derive(request = request,
                       initial_values_per_chain = initial_values_per_chain,

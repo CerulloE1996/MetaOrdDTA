@@ -13,7 +13,7 @@ fn_MetaOrdDTA_inputs_from_sampled_baseline_priors <- function(result,
                                                              model) {
 
     if (!is.character(model) || length(model) != 1 || is.na(model)
-        || !(model %in% c("Jones", "R_and_G")) || !is.list(result$prior_values)
+        || !(model %in% c("Jones", "ord_HSROC")) || !is.list(result$prior_values)
         || !is.list(request$stan_data) || !is.list(native_stan_data)) {
         stop("Supply the sampled derivation result, its request, actual native data and explicit model.")
     }

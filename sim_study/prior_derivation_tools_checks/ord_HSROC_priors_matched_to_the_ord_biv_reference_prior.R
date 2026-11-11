@@ -5,7 +5,7 @@
 ## the flat prior (alpha = 1) or under prior set 1 or 2 is the data; each draw of it is given the ordinal-HSROC model's
 ## priors (beta_mu ~ normal(prior_beta_mu_mean, prior_beta_mu_SD), with raw_scale_mu at prior_raw_scale_mu_mean and the
 ## cutpoints at the mean of their induced Dirichlet prior with alpha = 1) that copy the trace are found by Stan sampling
-## (prior_model_for_R_and_G_params.stan); prior_raw_scale_mu_SD stays at its default. The draws copied are
+## (prior_model_for_ord_HSROC_params.stan); prior_raw_scale_mu_SD stays at its default. The draws copied are
 ## n_draws_to_copy of the trace, evenly spaced.
 ## Rscript arguments: "tests=GAD_2,HADS", "references=flat,1,2".
 ##
@@ -38,7 +38,7 @@
 ##
 ## ---- The prior model ---------------------------------------------------------------------------------------------------------------
 ##
-model <-  cmdstanr::cmdstan_model(file.path(checks_dir, "prior_model_for_R_and_G_params.stan"),
+model <-  cmdstanr::cmdstan_model(file.path(checks_dir, "prior_model_for_ord_HSROC_params.stan"),
                                   include_paths = file.path(local_pkg_dir, "inst", "stan_functions"))
 names_of_the_params <-  c("prior_beta_mu_mean", "prior_beta_mu_SD", "prior_raw_scale_mu_mean")
 ##
@@ -125,7 +125,7 @@ for (reference in references_to_match) {
             saveRDS(list(matched_priors = matched_priors[length(matched_priors)],
                          table_of_the_matched_priors = rows[[length(rows)]],
                          seed = seed),
-                    file.path(checks_dir, paste0("R_and_G_priors_matched_to_the_ord_biv_reference_prior_",
+                    file.path(checks_dir, paste0("ord_HSROC_priors_matched_to_the_ord_biv_reference_prior_",
                                                  if (reference == "flat") "flat" else paste0("set_", reference), "_", test,
                                                  ".rds")))
 
@@ -134,7 +134,7 @@ for (reference in references_to_match) {
 ##
 ## ---- Every reference and test in one file -------------------------------------------------------------------------------------------
 ##
-files_of_each <-  list.files(checks_dir, pattern = "^R_and_G_priors_matched_to_the_ord_biv_reference_prior_(flat|set_1|set_2)_.*[.]rds$",
+files_of_each <-  list.files(checks_dir, pattern = "^ord_HSROC_priors_matched_to_the_ord_biv_reference_prior_(flat|set_1|set_2)_.*[.]rds$",
                              full.names = TRUE)
 each <-  lapply(files_of_each, readRDS)
 table_of_the_matched_priors <-  do.call(rbind, lapply(each, `[[`, "table_of_the_matched_priors"))
@@ -142,4 +142,4 @@ print(table_of_the_matched_priors, row.names = FALSE)
 saveRDS(list(matched_priors = do.call(base::c, lapply(each, `[[`, "matched_priors")),
              table_of_the_matched_priors = table_of_the_matched_priors,
              seed = seed),
-        file.path(checks_dir, "R_and_G_priors_matched_to_the_ord_biv_reference_priors_by_a_prior_model.rds"))
+        file.path(checks_dir, "ord_HSROC_priors_matched_to_the_ord_biv_reference_priors_by_a_prior_model.rds"))

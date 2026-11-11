@@ -15,8 +15,8 @@ fn_marginal_prior_request_from_accuracy_targets <- function(target_distributions
                                                             prior_values) {
 
     if (!is.character(model) || length(model) != 1 || is.na(model)
-        || !(model %in% c("Jones", "R_and_G")) || !identical(objective, "marginal_composite")) {
-        stop("Select Jones or R_and_G and the marginal_composite objective explicitly.")
+        || !(model %in% c("Jones", "ord_HSROC")) || !identical(objective, "marginal_composite")) {
+        stop("Select Jones or ord_HSROC and the marginal_composite objective explicitly.")
     }
 
     if (!is.list(target_distributions) || !is.data.frame(target_distributions$target_draws)

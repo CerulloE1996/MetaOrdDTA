@@ -364,7 +364,7 @@ fn_check_the_beta_only_prior_measure <- function(stan_data,
                                                  model_kind) {
 
     if (!is.list(stan_data) || !is.character(model_kind) || length(model_kind) != 1
-        || !model_kind %in% c("Jones", "R_and_G")) {
+        || !model_kind %in% c("Jones", "ord_HSROC")) {
         stop("Supply the actual marginal-likelihood data and explicit receiving-model kind.")
     }
 
@@ -553,7 +553,7 @@ fn_derive_a_marginal_accuracy_prior_by_sampling <- function(request,
                                                           model_kind) {
 
     if (!is.list(request) || !identical(request$objective, "marginal_composite")
-        || !is.list(request$stan_data) || !model_kind %in% c("Jones", "R_and_G")) {
+        || !is.list(request$stan_data) || !model_kind %in% c("Jones", "ord_HSROC")) {
         stop("Prepare the explicitly selected native marginal-composite request first.")
     }
 
@@ -720,7 +720,7 @@ fn_derive_a_marginal_accuracy_prior_by_sampling <- function(request,
 }
 
 
-fn_derive_the_R_and_G_marginal_accuracy_prior_by_sampling <- function(request,
+fn_derive_the_ord_HSROC_marginal_accuracy_prior_by_sampling <- function(request,
                                                                      initial_values_per_chain,
                                                                      compiled_model,
                                                                      sampling_arguments,
@@ -731,7 +731,7 @@ fn_derive_the_R_and_G_marginal_accuracy_prior_by_sampling <- function(request,
                                                   compiled_model = compiled_model,
                                                   sampling_arguments = sampling_arguments,
                                                   probs = probs,
-                                                  model_kind = "R_and_G")
+                                                  model_kind = "ord_HSROC")
 
 }
 
