@@ -103,11 +103,30 @@ cat("\014") ## clear console
 # }
 # ##
 ##
+## ---- The settings of this run: ONE file, given as the one argument of this program. Every setting below is written out in
+##      that file; none has a value here, and the program stops if one is missing or one too many is given.
+##
+settings_file_of_this_run <- commandArgs(trailingOnly = TRUE)
+stopifnot(length(settings_file_of_this_run) == 1, file.exists(settings_file_of_this_run))
+sim_settings <- new.env()
+sys.source(settings_file_of_this_run, envir = sim_settings)
+sim_settings <- as.list(sim_settings)
+names_of_the_settings <- c("frozen_library", "package_dir", "results_root", "output_folder", "results_in_a_TEST_folder",
+                           "n_threads", "n_chains_per_worker", "port_start", "seed_offset", "n_seeds_per_cell",
+                           "MCSE_target", "sampling_algorithm", "DGMs", "models", "random_thresholds", "prior_sets",
+                           "tests", "n_studies", "pop_median_models", "Stan_math_only_model", "real_data_dir",
+                           "n_burnin", "n_iter_for_4_chains", "log_lik_indicator", "nuisance_params")
+if (!setequal(names(sim_settings), names_of_the_settings)) {
+      stop("settings missing from the settings file: ", paste(setdiff(names_of_the_settings, names(sim_settings)), collapse = ", "),
+           "; settings it should not have: ", paste(setdiff(names(sim_settings), names_of_the_settings), collapse = ", "))
+}
+print(sim_settings)
+##
 ## ---- The frozen NicoStan and NicoSIMD of this sim: installs by other work never reach its workers ----------------------------------
 ##
 ## (copies of the installs of 24 Oct, 21:37 and 21:42; R_LIBS puts them first in every worker and every
 ##  fresh-process fit)
-frozen_library_of_this_sim <- normalizePath(if (nzchar(Sys.getenv("SIM_FROZEN_LIBRARY"))) Sys.getenv("SIM_FROZEN_LIBRARY") else "/home/e/ec376/R_library_4.3.1")
+frozen_library_of_this_sim <- normalizePath(sim_settings$frozen_library)
 print(c(frozen_library_of_this_sim = frozen_library_of_this_sim))
 ##
 ## ---- Unload any MetaOrdDTA / NicoStan / NicoSIMD loaded from the main library (e.g. by the restored .RData) ------------------------
@@ -129,16 +148,8 @@ stopifnot(startsWith(find.package("NicoStan"), frozen_library_of_this_sim),
 # library(dplyr)
 ##
 {
-    os <- .Platform$OS.type
-
-    if (os == "unix") {
-      user_root_dir <- Sys.getenv("PWD")
-    } else if (os == "windows") {
-      user_root_dir <- Sys.getenv("USERPROFILE")
-    }
-    ## (SIM_PACKAGE_DIR: the package folder of this machine)
-    local_pkg_dir <- if (nzchar(Sys.getenv("SIM_PACKAGE_DIR"))) Sys.getenv("SIM_PACKAGE_DIR") else
-                     "/home/e/ec376/R_packages/MetaOrdDTA"
+    ## (the package folder of this machine)
+    local_pkg_dir <- sim_settings$package_dir
 }
 
 setwd(local_pkg_dir)
@@ -257,7 +268,7 @@ options(max.print = 1000)
     system("cat /proc/self/limits | grep stack")
 }
 ##
-n_threads_to_use_HPC <- if (nzchar(Sys.getenv("SIM_N_THREADS"))) as.integer(Sys.getenv("SIM_N_THREADS")) else 64
+n_threads_to_use_HPC <- sim_settings$n_threads
 # n_threads_to_use_HPC <- 100
 ##
 # # Check Jones files with FALSE
@@ -319,7 +330,7 @@ test_vals_vec <- c("GAD_2", "HADS", "BAI") ## ----
 ## ---- Select algorithm:
 ##
 sampling_algorithm <- "NicoStan"
-if (nzchar(Sys.getenv("SAMPLING_ALGORITHM"))) sampling_algorithm <- Sys.getenv("SAMPLING_ALGORITHM")
+sampling_algorithm <- sim_settings$sampling_algorithm
 # sampling_algorithm <- "Stan"
 ## 
 ## ---- Sim study type ----------------------------------------------------------------------------------------------------------------
@@ -383,16 +394,13 @@ sim_study_dir <- file.path(local_pkg_dir, "sim_study")
 ## ---- The folder of the sim study type ----------------------------------------------------------------------------------------------
 ##
 ## ("paper" keeps the folder above; every other sim study type gets its own folder: the same name + its type)
-if (nzchar(Sys.getenv("SIM_OUTPUT_FOLDER"))) inner_path <- Sys.getenv("SIM_OUTPUT_FOLDER")
+inner_path <- sim_settings$output_folder
 if (sim_study_type != "paper") {
       inner_path <- paste0(inner_path, "_", sim_study_type)
 }
 ##
-output_dir <- MetaOrdDTA::metaorddta_output_path(
-  "sim_study",
-  inner_path,
-  create = TRUE
-)
+output_dir <- file.path(sim_settings$results_root, "sim_study", inner_path)
+dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 ##
 # test_vals_vec <- "HADS"
 ## (all 6 cells: HADS, GAD-2 and BAI at 10 and 50 studies)o
@@ -408,7 +416,7 @@ DGM_vec <- c("ord_biv_fixed_C", "Jones", "ord_biv_random_C", "ord_HSROC_random_C
 # DGM_vec <- "ord_biv_random_C"
 # DGM_vec <- "ord_HSROC_random_C"
 ## (SIM_DGMS, e.g. "ord_biv_fixed_C,Jones", runs those DGMs only)
-if (nzchar(Sys.getenv("SIM_DGMS"))) DGM_vec <- strsplit(Sys.getenv("SIM_DGMS"), ",")[[1]]
+DGM_vec <- sim_settings$DGMs
 ##
 n_studies_vals_vec <- c(10, 50) ## ----
 ##
@@ -427,21 +435,19 @@ n_studies_vals_vec <- c(10, 50) ## ----
 # model_param_vec <- "ord_bivariate"
 model_param_vec <- c("ord_bivariate", "ord_HSROC", "Jones", "Bivariate")
 ## (SIM_MODELS, e.g. "ord_bivariate,Jones", runs those models only)
-if (nzchar(Sys.getenv("SIM_MODELS"))) model_param_vec <- strsplit(Sys.getenv("SIM_MODELS"), ",")[[1]]
+model_param_vec <- sim_settings$models
 ##
 ## ----
 ##
 prior_set_vec <- c("set_0", "set_1", "set_2")
 ## (SIM_PRIOR_SETS, e.g. "set_1,set_2", runs those prior sets only)
-if (nzchar(Sys.getenv("SIM_PRIOR_SETS"))) prior_set_vec <- strsplit(Sys.getenv("SIM_PRIOR_SETS"), ",")[[1]]
+prior_set_vec <- sim_settings$prior_sets
 ##
 ## ---- Settings of the RC ord_biv median vs pop-median sim study ---------------------------------------------------------------------
 ##
 random_thresholds_vec <- c(FALSE, TRUE)
 ## (SIM_RANDOM_THRESHOLDS, e.g. "TRUE", runs the random-cutpoint models only)
-if (nzchar(Sys.getenv("SIM_RANDOM_THRESHOLDS"))) {
-      random_thresholds_vec <- as.logical(strsplit(Sys.getenv("SIM_RANDOM_THRESHOLDS"), ",")[[1]])
-}
+random_thresholds_vec <- sim_settings$random_thresholds
 ##
 if (sim_study_type == "RC_ord_biv_median_vs_pop_median") {
       model_param_vec       <- "ord_bivariate"
@@ -473,7 +479,7 @@ min_ESS_of_50_studies <- 500
 # target_MCSE_RMSE <- 1.0
 # target_MCSE_RMSE <- 0.50
 # target_MCSE_RMSE <- 0.25
-target_MCSE_RMSE <- if (nzchar(Sys.getenv("MCSE_TARGET"))) as.numeric(Sys.getenv("MCSE_TARGET")) else 0.125 ## ----
+target_MCSE_RMSE <- sim_settings$MCSE_target
 print(c(target_MCSE_RMSE = target_MCSE_RMSE))
 ##
 ## ----
@@ -507,15 +513,15 @@ n_sims_total <- starting_sim_offset + 1000 ; n_sims_total
 ## (two jobs at once, one node of 64 CPUs each: job 1 fits seeds 1-9000, job 2 seeds 10001-19000; both below
 ##  max_seed_to_check, so each job's MCSE checks count the fits of both)
 machine_of_this_run <- "ALICE"
-starting_sim_offset <- as.integer(Sys.getenv("SIM_SEED_OFFSET", unset = "0"))
+starting_sim_offset <- sim_settings$seed_offset
 ## (SIM_N_SEEDS, e.g. "10", fits that many seeds of every cell)
-n_sims_total <- if (nzchar(Sys.getenv("SIM_N_SEEDS"))) as.integer(Sys.getenv("SIM_N_SEEDS")) else 9000
-if (Sys.getenv("SIM_TEST") == "1") {
-      test_vals_vec      <- if (nzchar(Sys.getenv("SIM_TEST_TEST"))) Sys.getenv("SIM_TEST_TEST") else "GAD_2"
-      n_studies_vals_vec <- if (nzchar(Sys.getenv("SIM_TEST_N_STUDIES"))) as.integer(Sys.getenv("SIM_TEST_N_STUDIES")) else 10
-      DGM_vec            <- if (nzchar(Sys.getenv("SIM_TEST_DGM"))) Sys.getenv("SIM_TEST_DGM") else "ord_biv_random_C"
-      n_sims_total       <- if (nzchar(Sys.getenv("SIM_N_SEEDS"))) as.integer(Sys.getenv("SIM_N_SEEDS")) else 16
-      output_dir <- MetaOrdDTA::metaorddta_output_path("sim_study", paste0("TEST_", inner_path), create = TRUE)
+n_sims_total <- sim_settings$n_seeds_per_cell
+## (the tests and numbers of studies of this run; a check run writes into TEST_<folder>)
+test_vals_vec <- sim_settings$tests
+n_studies_vals_vec <- sim_settings$n_studies
+if (sim_settings$results_in_a_TEST_folder) {
+      output_dir <- file.path(sim_settings$results_root, "sim_study", paste0("TEST_", inner_path))
+      dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 }
 print(c(starting_sim_offset = starting_sim_offset, n_sims_total = n_sims_total))
 print(output_dir)
@@ -664,7 +670,7 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                     ##
                     ## (the same fields as the two pop-median blocks above, for both ord_biv and ord_HSROC)
                     if (sim_study_type == "paper" && isTRUE(scenario_row$random_thresholds) &&
-                        Sys.getenv("POPMED") != "0" &&
+                        sim_settings$pop_median_models &&
                         scenario_row$model_parameterisation %in% c("ord_bivariate", 
                                                                    "ord_HSROC")) {
                           
@@ -756,8 +762,7 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                     n_sims_total <- n_sims_total  # or outs$min_sims_needed
                     # n_threads_to_use <- 180
                     n_threads_to_use <- if (machine_of_this_run == "laptop") 16 else n_threads_to_use_HPC
-                    n_chains_per_worker <- if (nzchar(Sys.getenv("SIM_N_CHAINS_PER_WORKER"))) {
-                                                 as.integer(Sys.getenv("SIM_N_CHAINS_PER_WORKER")) } else 4
+                    n_chains_per_worker <- sim_settings$n_chains_per_worker
                     n_workers <- floor(n_threads_to_use / n_chains_per_worker) ; n_workers
                     sims_per_batch <- n_sims_total ## 8 * n_threads_to_use / n_chains_per_worker
                     ##
@@ -782,6 +787,7 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                     minimal_env$min_ESS_of_10_studies <- min_ESS_of_10_studies
                     minimal_env$min_ESS_of_50_studies <- min_ESS_of_50_studies
                     minimal_env$ordinal_prior_type <- ordinal_prior_type
+                    minimal_env$sim_settings <- sim_settings
 
                     ## Batch execution
                     n_batches <- 1 ## ceiling(n_sims_total / sims_per_batch)
@@ -926,7 +932,7 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                                         scenario_row$custom_cpp_user_header_file_path[[1]]
                             }
                             if (sim_study_type == "paper" && isTRUE(scenario_row$random_thresholds) &&
-                                Sys.getenv("POPMED") != "0" &&
+                                sim_settings$pop_median_models &&
                                 scenario_row$model_parameterisation %in% c("ord_bivariate", "ord_HSROC")) {
                                   custom_file_name_of_this_scenario <- scenario_row$custom_file_name[[1]]
                                   custom_cpp_user_header_of_this_scenario <-
@@ -935,7 +941,7 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                             ##
                             ## ---- The Stan::math-only file of the model, with no user header ----------------------------------------
                             ##
-                            if (Sys.getenv("STAN_MATH_ONLY_MODEL") == "1" && use_custom_file_of_this_scenario) {
+                            if (sim_settings$Stan_math_only_model && use_custom_file_of_this_scenario) {
                                   ## (the model's own Stan file, as the runner names it)
                                   custom_file_name_of_this_scenario <- sub("_NicoStan_fused_AVX[.]stan$",
                                                                            ".stan",
@@ -1008,7 +1014,7 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
 
                                                       ## (a free port for the workers, never one another program holds, e.g. Ollama's 11434)
                             port_of_the_workers <-  NA
-                            for (port in (if (nzchar(Sys.getenv("SIM_PORT_START"))) as.integer(Sys.getenv("SIM_PORT_START")) else 11500):11999) {
+                            for (port in sim_settings$port_start:11999) {
                                   socket <-  tryCatch(serverSocket(port), error = function(e) NULL)
                                   if (!is.null(socket)) {
                                         close(socket)
@@ -1102,7 +1108,14 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                                                                                            sampling_algorithm = sampling_algorithm,
                                                                                            min_ESS_of_10_studies = min_ESS_of_10_studies,
                                                                                            min_ESS_of_50_studies = min_ESS_of_50_studies,
-                                                                                           ordinal_prior_type = ordinal_prior_type)
+                                                                                           ordinal_prior_type = ordinal_prior_type,
+                                                                                           ## (per-fit settings of this run, from its settings file)
+                                                                                           real_data_dir = sim_settings$real_data_dir,
+                                                                                           Stan_math_only_model = sim_settings$Stan_math_only_model,
+                                                                                           log_lik_indicator = sim_settings$log_lik_indicator,
+                                                                                           n_burnin = sim_settings$n_burnin,
+                                                                                           n_iter_for_4_chains_of_this_run = sim_settings$n_iter_for_4_chains,
+                                                                                           nuisance_params_of_this_run = sim_settings$nuisance_params)
                                                                                            ##
                                                                                            # vec_index_inner = vec_index_inner)
 

@@ -11,14 +11,23 @@ run_multiple_sims <- function(MCMC_seed,
                               local_pkg_dir,
                               file_name_string,
                               max_seed_to_check,
-                              min_runs_needed = 30,
+                              min_runs_needed,
                               target_MCSE_RMSE,
                               check_MCSE_interval,
-                              stop_early_if_target_met = TRUE,
+                              stop_early_if_target_met,
                               sampling_algorithm,
                               min_ESS_of_10_studies,
                               min_ESS_of_50_studies,
-                              ordinal_prior_type
+                              ordinal_prior_type,
+                              ## (real_data_dir: NULL, or the folder of the real data to fit in place of simulated data;
+                              ##  n_iter_for_4_chains_of_this_run: NULL = the table of this file, or one number for every cell of a pilot;
+                              ##  nuisance_params_of_this_run: NULL = the package's nuisance blocks of the model, or their names)
+                              real_data_dir,
+                              Stan_math_only_model,
+                              log_lik_indicator,
+                              n_burnin,
+                              n_iter_for_4_chains_of_this_run,
+                              nuisance_params_of_this_run
 ) {
 
         require(MetaOrdDTA)
@@ -43,28 +52,6 @@ run_multiple_sims <- function(MCMC_seed,
                 random_thresholds <- scenario_row$random_thresholds
                 Dirichlet_random_effects_type <- scenario_row$Dirichlet_random_effects_type
                 ##
-                ## ---- The sampler settings of this cell (SETTINGS_OF_EVERY_CELL = a csv file, one row per cell) ---------------------
-                ##
-                if (nzchar(Sys.getenv("SETTINGS_OF_EVERY_CELL"))) {
-
-                      settings_of_every_cell <- read.csv(Sys.getenv("SETTINGS_OF_EVERY_CELL"),
-                                                         stringsAsFactors = FALSE)
-                      row_of_this_cell <- which(settings_of_every_cell$test == test &
-                                                settings_of_every_cell$DGM == DGM &
-                                                settings_of_every_cell$n_studies == n_studies &
-                                                settings_of_every_cell$model == model_parameterisation &
-                                                settings_of_every_cell$random_thresholds == random_thresholds &
-                                                settings_of_every_cell$prior_set == prior_set)
-                      if (length(row_of_this_cell) != 1) {
-                            stop("the settings file needs one row for this cell")
-                      }
-                      ## (a setting of another cell never stays set)
-                      Sys.unsetenv(unique(sub("=.*", "", unlist(strsplit(settings_of_every_cell$settings, " ")))))
-                      settings_of_this_cell <- strsplit(settings_of_every_cell$settings[row_of_this_cell], " ")[[1]]
-                      do.call(Sys.setenv, stats::setNames(as.list(sub("^[^=]*=", "", settings_of_this_cell)),
-                                                          sub("=.*", "", settings_of_this_cell)))
-
-                }
 
                 # Set threshold ranges
                 if (test == "GAD_2") {
@@ -161,8 +148,8 @@ run_multiple_sims <- function(MCMC_seed,
             else x <- x_BAI
           }
 
-          if (nzchar(Sys.getenv("SIM_REAL_DATA_DIR"))) {
-                real_x <- readRDS(file.path(Sys.getenv("SIM_REAL_DATA_DIR"),
+          if (!is.null(real_data_dir)) {
+                real_x <- readRDS(file.path(real_data_dir,
                                            paste0("real_x_", c(GAD_2 = "GAD2", HADS = "HADS", BAI = "BAI")[[test]], ".RDS")))
                 x <- list(real_x$nondiseased, real_x$diseased) ## the model takes the non-diseased class first
           }
@@ -206,8 +193,8 @@ run_multiple_sims <- function(MCMC_seed,
               custom_file_name <- scenario_row$custom_file_name[[1]]
               use_custom_file <- TRUE
           }
-          ## (STAN_MATH_ONLY_MODEL = 1: the model's own Stan file, Stan::math only, no user header)
-          Stan_math_only_model <- Sys.getenv("STAN_MATH_ONLY_MODEL") == "1"
+          ## (Stan_math_only_model: the model's own Stan file, Stan::math only, no user header)
+          stopifnot(is.logical(Stan_math_only_model), length(Stan_math_only_model) == 1)
           custom_file_name_to_compile <- custom_file_name
           if (Stan_math_only_model && use_custom_file) {
               custom_file_name_to_compile <- sub("_NicoStan_fused_AVX[.]stan$", ".stan", custom_file_name)
@@ -269,14 +256,10 @@ run_multiple_sims <- function(MCMC_seed,
                                         FMA_FLAGS = "-mfma",
                                         AVX_FLAGS = AVX_FLAGS_of_this_machine)
 
-          ## (LOG_LIK_INDICATOR = 0: log_lik_study is not computed in generated quantities)
-          if (nzchar(Sys.getenv("LOG_LIK_INDICATOR"))) {
-
-                model_prep_obj$advanced_model_options$log_lik_indicator <- as.integer(Sys.getenv("LOG_LIK_INDICATOR"))
-                model_prep_obj$internal_obj$outs_data$stan_data_list$log_lik_indicator <-
-                      as.integer(Sys.getenv("LOG_LIK_INDICATOR"))
-
-          }
+          ## (log_lik_indicator = 0: log_lik_study is not computed in generated quantities)
+          stopifnot(log_lik_indicator %in% c(0, 1))
+          model_prep_obj$advanced_model_options$log_lik_indicator <- as.integer(log_lik_indicator)
+          model_prep_obj$internal_obj$outs_data$stan_data_list$log_lik_indicator <- as.integer(log_lik_indicator)
 
           ## (the cutpoint bounds go to the Stan model as data: the two values set once at the top of this function)
           ## (check: the Stan data of the model hold exactly the bounds set at the top of this file)
@@ -549,21 +532,20 @@ run_multiple_sims <- function(MCMC_seed,
 
                 n_iter_for_4_chains <- n_iter_of_each_cell$n_iter[[row_of_this_cell]]
 
-          } else if (!nzchar(Sys.getenv("N_ITER_FOR_4_CHAINS"))) {
+          } else if (is.null(n_iter_for_4_chains_of_this_run)) {
 
                 stop("no sampling iterations are written for this cell: ", prior_set, ", ", model_parameterisation,
                      ", random_thresholds = ", random_thresholds, ", ", n_studies, " studies, ", test, ", DGM ", DGM)
 
           }
-          ## (N_ITER_FOR_4_CHAINS: a pilot or a real-data fit gives its own number)
-          if (nzchar(Sys.getenv("N_ITER_FOR_4_CHAINS"))) {
-                n_iter_for_4_chains <- as.integer(Sys.getenv("N_ITER_FOR_4_CHAINS"))
+          ## (a pilot or a real-data fit gives its own number)
+          if (!is.null(n_iter_for_4_chains_of_this_run)) {
+                n_iter_for_4_chains <- as.integer(n_iter_for_4_chains_of_this_run)
           }
           n_iter <- ceiling(n_iter_for_4_chains / (n_chains/4))
           ##
-          ## (NicoStan's burn-in is 125-250 iterations; Stan's is never fewer than 200)
-          n_burnin <- if (nzchar(Sys.getenv("N_BURNIN"))) as.integer(Sys.getenv("N_BURNIN")) else
-                      if (sampling_algorithm == "NicoStan") 500 else 500
+          ## (the burn-in iterations: given to this function by the driver, from the settings file of the run)
+          stopifnot(is.numeric(n_burnin), length(n_burnin) == 1)
           # n_burnin <- 500
           # n_burnin <- 250
           # n_burnin <- 200
@@ -723,9 +705,9 @@ run_multiple_sims <- function(MCMC_seed,
                   name_of_the_model      = name_of_the_model_of_this_fit,
                   model_parameterisation = model_parameterisation,
                   random_thresholds      = random_thresholds)
-            ## (NUISANCE_PARAMS = "beta_z,raw_scale_z" holds only those blocks as nuisance; the rest go to the main block)
-            if (nzchar(Sys.getenv("NUISANCE_PARAMS"))) {
-                  nuisance_params <- strsplit(Sys.getenv("NUISANCE_PARAMS"), ",")[[1]]
+            ## (nuisance_params_of_this_run: only those blocks as nuisance; the rest go to the main block)
+            if (!is.null(nuisance_params_of_this_run)) {
+                  nuisance_params <- nuisance_params_of_this_run
             }
             ##
             ##
