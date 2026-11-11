@@ -166,7 +166,9 @@ transformed data {
         ////
         vector[2] C_anchor;
         for (c in 1:2) {
-             C_anchor[c] = prior_beta_mu_mean[c, 1];
+             //// (the baseline case at the prior means, under every prior set)
+             C_anchor[c] = (c == 1) ? dot_product(baseline_case_nd, to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd])) :
+                                      dot_product(baseline_case_d,  to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]));
         }
         ////
         //// ---- Sums of prior_dirichlet_alpha over the segments between chosen cutoffs:

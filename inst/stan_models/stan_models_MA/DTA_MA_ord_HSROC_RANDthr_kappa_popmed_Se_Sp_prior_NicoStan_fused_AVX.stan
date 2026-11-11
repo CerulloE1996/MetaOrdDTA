@@ -671,7 +671,7 @@ model {
                                                                                alpha_of_each_segment[(p_1 + s - 1):(p_2 + s)],
                                                                                use_probit_link,
                                                                                0.5 * (mult_nd + mult_d) *
-                                                                               prior_beta_mu_mean[1]);
+                                                                               dot_product(baseline_case, prior_beta_mu_mean));
                   }
              }
         }
@@ -751,7 +751,7 @@ generated quantities {
       // }
       {
          //// (the shapes of the Beta of each cutpoint from alpha itself: sum(alpha) = kappa + 0.01 * n_cat; the
-         ////  study cutpoints are anchored at 0.5 * (mult_nd + mult_d) * prior_beta_mu_mean[1] = 0)
+         ////  study cutpoints are anchored at 0.5 * (mult_nd + mult_d) * dot_product(baseline_case, prior_beta_mu_mean) = 0)
          real alpha_0 = sum(alpha);
          vector[n_thr] P = cumulative_sum(alpha[1:n_thr]) / alpha_0;
          vector[n_thr] P_upper = reverse(cumulative_sum(reverse(alpha[2:n_cat]))) / alpha_0;
