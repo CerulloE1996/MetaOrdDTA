@@ -32,6 +32,12 @@ functions {
                                                           vector alpha,
                                                           data int link,
                                                           data real location);
+        real nico_induced_dirichlet_with_Se_Sp_prior_lpdf(vector C, vector alpha, data int link,
+                                                          data real location, vector alpha_of_the_segments,
+                                                          data array[] int chosen_cutoffs,
+                                                          data int Se_Sp_prior_type,
+                                                          vector prior_Se_Sp_dirichlet_A, matrix prior_Se_Sp_beta,
+                                                          matrix prior_Se_Sp_link_mean_SD);
         real nico_expm1(real x);
         real nico_dirichlet_with_Se_Sp_prior_lpdf(vector phi,
                                                   vector log_J,
@@ -471,30 +477,33 @@ model {
                     real alpha_0 = sum(alpha[c]);
                     vector[n_thr] P_of_alpha = cumulative_sum(alpha[c][1:n_thr]) / alpha_0;
                     vector[n_thr] P_upper_of_alpha = reverse(cumulative_sum(reverse(alpha[c][2:n_cat]))) / alpha_0;
-                    vector[n_chosen_cutoffs[c]] C_mu;
-                    vector[n_chosen_cutoffs[c]] log_J;
+                    //// ---- The summary cutpoints of class c relative to the intercept, at EVERY threshold: the population
+                    ////      median of each cutpoint (anchored at the baseline case at the prior means) minus Xbeta_baseline.
+                    ////      Their prior is the fixed-cutpoint model's own prior of C - Xbeta_baseline (the Se / Sp prior at
+                    ////      the chosen cutoffs, the Dirichlet of each segment between them), with the Jacobian of every median:
+                    vector[n_thr] C_mu_minus_Xbeta_baseline;
+                    real log_J_of_every_median = 0.0;
                     ////
-                    for (j in 1:n_chosen_cutoffs[c]) {
-                         int k = chosen_cutoffs[c, j];
+                    for (k in 1:n_thr) {
                          vector[2] median_and_log_J = nico_dirichlet_cutpoint_median_and_log_J( P_of_alpha[k],
                                                                                                 P_upper_of_alpha[k],
                                                                                                 alpha_0,
                                                                                                 use_probit_link);
-                         C_mu[j]  = baseline_location[c] + median_and_log_J[1]; //// (anchored at the baseline case at the prior means)
-                         log_J[j] = median_and_log_J[2] + nico_log(kappa[c] / alpha_0);
+                         C_mu_minus_Xbeta_baseline[k] = baseline_location[c] + median_and_log_J[1] - Xbeta_baseline;
+                         log_J_of_every_median += median_and_log_J[2] + nico_log(kappa[c] / alpha_0);
                     }
                     ////
-                    target += nico_dirichlet_with_Se_Sp_prior_lupdf(
-                              dirichlet_phi[c] | log_J, 
-                              C_mu - Xbeta_baseline,
-                              prior_dirichlet_alpha[c],
+                    target += log_J_of_every_median;
+                    target += nico_induced_dirichlet_with_Se_Sp_prior_lupdf(
+                              C_mu_minus_Xbeta_baseline | prior_dirichlet_alpha[c],
+                              use_probit_link,
+                              0.0,
                               alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
                               chosen_cutoffs[c, 1:n_chosen_cutoffs[c]], 
                               Se_Sp_prior_type,
                               prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
                               prior_beta_of_this_class,
-                              prior_link_mean_SD_of_this_class,
-                              use_probit_link);
+                              prior_link_mean_SD_of_this_class);
                           
            } else {
              
