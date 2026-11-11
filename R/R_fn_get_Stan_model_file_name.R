@@ -123,7 +123,9 @@ R_fn_get_stan_model_file_name <- function( custom_file_name,
         ## One Stan file per model, its _Se_Sp_prior file: use_Se_Sp_prior = 0 is the model's own prior on the
         ## cutpoints, 1 the direct Se / Sp prior (priors$Se_Sp_prior).
         ##
-        if (!grepl("_Se_Sp_prior", stan_model_file_name, fixed = TRUE)) {
+        ## (the stratified bivariate has ONE prior, the Normal on probit Se and Sp, and so no _Se_Sp_prior file: its name is kept)
+        if (!grepl("_Se_Sp_prior", stan_model_file_name, fixed = TRUE) &&
+            !grepl("strat_bivariate", stan_model_file_name, fixed = TRUE)) {
           stan_model_file_name <- sub("(_NicoStan_fused_AVX)?[.]stan$",
                                       "_Se_Sp_prior\\1.stan",
                                       stan_model_file_name)
