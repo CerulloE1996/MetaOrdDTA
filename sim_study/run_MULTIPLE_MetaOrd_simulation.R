@@ -34,6 +34,12 @@ run_multiple_sims <- function(MCMC_seed,
                 prior_set <- if (is.null(scenario_row$prior_set)) "set_0" else scenario_row$prior_set
                 # box_cox <- scenario_row$box_cox
                 softplus <- FALSE ## scenario_row$softplus
+                ##
+                ## ---- THE CUTPOINT BOUNDS OF THE ORDINAL MODELS: set HERE, ONCE, and nowhere else in the sim. The step between two
+                ##      neighbouring cutpoints is kept between exp(C_raw_lower) and exp(C_raw_upper). They reach every Stan model as its
+                ##      data C_raw_lower and C_raw_upper: no model file holds a number.
+                C_raw_lower <- -10
+                C_raw_upper <- 2.5
                 random_thresholds <- scenario_row$random_thresholds
                 Dirichlet_random_effects_type <- scenario_row$Dirichlet_random_effects_type
                 ##
@@ -248,6 +254,10 @@ run_multiple_sims <- function(MCMC_seed,
                                         random_thresholds = random_thresholds,
                                         Dirichlet_random_effects_type = Dirichlet_random_effects_type,
                                         ##
+                                        ## (the cutpoint bounds, set once at the top of this file; the class puts them in the Stan data)
+                                        C_raw_lower = C_raw_lower,
+                                        C_raw_upper = C_raw_upper,
+                                        ##
                                         custom_file_name = custom_file_name_to_compile,
                                         ##
                                         advanced_compile = use_custom_file,
@@ -268,16 +278,14 @@ run_multiple_sims <- function(MCMC_seed,
 
           }
 
-          ## (a TEST of the cutpoint bounds: C_raw_lower / C_raw_upper, when named in the file of settings to test, replace the
-          ##  bounds the package gave the model (exp steps between exp(-15) and exp(2.5)); no such name, no change)
-          if (nzchar(Sys.getenv("SAMPLER_SETTINGS_TO_TEST"))) {
-                bounds_to_test <- readRDS(Sys.getenv("SAMPLER_SETTINGS_TO_TEST"))
-                for (name_of_the_bound in intersect(c("C_raw_lower", "C_raw_upper"), names(bounds_to_test))) {
-                      model_prep_obj$advanced_model_options[[name_of_the_bound]] <- bounds_to_test[[name_of_the_bound]]
-                      model_prep_obj$internal_obj$outs_data$stan_data_list[[name_of_the_bound]] <- bounds_to_test[[name_of_the_bound]]
-                      print(paste("TEST of the cutpoint bounds:", name_of_the_bound, "=", bounds_to_test[[name_of_the_bound]]))
-                }
+          ## (the cutpoint bounds go to the Stan model as data: the two values set once at the top of this function)
+          ## (check: the Stan data of the model hold exactly the bounds set at the top of this file)
+          if (!isTRUE(all.equal(as.numeric(model_prep_obj$internal_obj$outs_data$stan_data_list$C_raw_lower), as.numeric(C_raw_lower))) ||
+              !isTRUE(all.equal(as.numeric(model_prep_obj$internal_obj$outs_data$stan_data_list$C_raw_upper), as.numeric(C_raw_upper)))) {
+                stop("the cutpoint bounds in the Stan data are not the bounds set at the top of the sim runner")
           }
+          print(paste("cutpoint bounds in the Stan data of the model: C_raw_lower =", model_prep_obj$internal_obj$outs_data$stan_data_list$C_raw_lower,
+                      ", C_raw_upper =", model_prep_obj$internal_obj$outs_data$stan_data_list$C_raw_upper))
           
           # Set priors
           priors <- model_prep_obj$priors
@@ -862,7 +870,6 @@ run_multiple_sims <- function(MCMC_seed,
             ## (a test of sampler settings: the settings named in this file replace the values written below)
             sampler_settings_to_test <- if (nzchar(Sys.getenv("SAMPLER_SETTINGS_TO_TEST")))
                   readRDS(Sys.getenv("SAMPLER_SETTINGS_TO_TEST")) else list()
-            sampler_settings_to_test[c("C_raw_lower", "C_raw_upper")] <- NULL   ## (the bounds are not sampler settings: used above)
             model_samples_obj <- model_prep_obj$sample( seed = MCMC_seed, ## MCMC seed
                                             n_burnin = n_burnin,
                                             n_iter = n_iter,

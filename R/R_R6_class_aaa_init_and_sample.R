@@ -217,6 +217,8 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                         ##
                         box_cox = NULL,
                         softplus = NULL,
+                        C_raw_lower = NULL,
+                        C_raw_upper = NULL,
                         log_lik_indicator = NULL,
                         custom_file_name = NULL,
                         ##
@@ -311,6 +313,12 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                     ##
                     #'@param softplus See class documentation for details.
                     ##
+                    #'@param C_raw_lower Lower bound of the raw cutpoint steps of the ordinal models (the Stan data \code{C_raw_lower}): each step between
+                    #'neighbouring cutpoints is at least \code{exp(C_raw_lower)}. NULL = the package's value (-10).
+                    ##
+                    #'@param C_raw_upper Upper bound of the raw cutpoint steps of the ordinal models (the Stan data \code{C_raw_upper}): each step between
+                    #'neighbouring cutpoints is at most \code{exp(C_raw_upper)}. NULL = the package's value (2.5).
+                    ##
                     #'@param log_lik_indicator 1 = compute log_lik_study in generated quantities; 0 = skip it. See class documentation for details.
                     ##
                     #'@param n_chains Number of chains used for burnin. See class documentation for details.
@@ -346,6 +354,8 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                             ## "Advanced" options for ALL models:
                                             ##
                                             softplus = FALSE, ## exp() is default (for cutpoints and also scale parameters for "Jones" model)
+                                            C_raw_lower = NULL, ## bounds of the raw cutpoint steps of the ordinal models (Stan data C_raw_lower / C_raw_upper); NULL = the package's values (-10, 2.5)
+                                            C_raw_upper = NULL,
                                             log_lik_indicator = 1, ## 1 = compute log_lik_study; 0 = skip it
                                             ##
                                             priors = NULL,
@@ -441,6 +451,8 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                               self$advanced_model_options$HSROC_Dirichlet_prior <- HSROC_Dirichlet_prior
                               self$advanced_model_options$box_cox  <- box_cox
                               self$advanced_model_options$softplus <- softplus
+                              self$advanced_model_options$C_raw_lower <- C_raw_lower
+                              self$advanced_model_options$C_raw_upper <- C_raw_upper
                               self$advanced_model_options$log_lik_indicator <- log_lik_indicator
                               self$advanced_model_options$custom_file_name <- custom_file_name
                               ##
@@ -566,6 +578,8 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                         ##
                                         box_cox  = self$advanced_model_options$box_cox,
                                         softplus = self$advanced_model_options$softplus,
+                                        C_raw_lower = self$advanced_model_options$C_raw_lower,
+                                        C_raw_upper = self$advanced_model_options$C_raw_upper,
                                         log_lik_indicator = self$advanced_model_options$log_lik_indicator,
                                         ##
                                         custom_file_name = self$advanced_model_options$custom_file_name,
@@ -689,6 +703,8 @@ MetaOrd_model <- R6::R6Class("MetaOrd_model",
                                     if (!identical(self$advanced_model_options$HSROC_Dirichlet_prior, HSROC_Dirichlet_prior)) { self$advanced_model_options$HSROC_Dirichlet_prior <- HSROC_Dirichlet_prior ; params_same <- 0 }
                                     if (!identical(self$advanced_model_options$box_cox, box_cox))   { self$advanced_model_options$box_cox  <- box_cox  ; params_same <- 0 }
                                     if (!identical(self$advanced_model_options$softplus, softplus)) { self$advanced_model_options$softplus <- softplus ; params_same <- 0 }
+                                    if (!identical(self$advanced_model_options$C_raw_lower, C_raw_lower)) { self$advanced_model_options$C_raw_lower <- C_raw_lower ; params_same <- 0 }
+                                    if (!identical(self$advanced_model_options$C_raw_upper, C_raw_upper)) { self$advanced_model_options$C_raw_upper <- C_raw_upper ; params_same <- 0 }
                                     if (!identical(self$advanced_model_options$log_lik_indicator, log_lik_indicator)) { self$advanced_model_options$log_lik_indicator <- log_lik_indicator ; params_same <- 0 }
                                     if (!identical(self$advanced_model_options$custom_file_name, custom_file_name)) { self$advanced_model_options$custom_file_name <- custom_file_name ; params_same <- 0 }
                                     if (!identical(self$advanced_model_options$compound_symmetry, compound_symmetry)) { self$advanced_model_options$compound_symmetry <- compound_symmetry ; params_same <- 0 }
