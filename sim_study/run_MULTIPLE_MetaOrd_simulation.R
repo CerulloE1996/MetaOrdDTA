@@ -268,6 +268,17 @@ run_multiple_sims <- function(MCMC_seed,
 
           }
 
+          ## (a TEST of the cutpoint bounds: C_raw_lower / C_raw_upper, when named in the file of settings to test, replace the
+          ##  bounds the package gave the model (exp steps between exp(-15) and exp(2.5)); no such name, no change)
+          if (nzchar(Sys.getenv("SAMPLER_SETTINGS_TO_TEST"))) {
+                bounds_to_test <- readRDS(Sys.getenv("SAMPLER_SETTINGS_TO_TEST"))
+                for (name_of_the_bound in intersect(c("C_raw_lower", "C_raw_upper"), names(bounds_to_test))) {
+                      model_prep_obj$advanced_model_options[[name_of_the_bound]] <- bounds_to_test[[name_of_the_bound]]
+                      model_prep_obj$internal_obj$outs_data$stan_data_list[[name_of_the_bound]] <- bounds_to_test[[name_of_the_bound]]
+                      print(paste("TEST of the cutpoint bounds:", name_of_the_bound, "=", bounds_to_test[[name_of_the_bound]]))
+                }
+          }
+          
           # Set priors
           priors <- model_prep_obj$priors
 
@@ -851,6 +862,7 @@ run_multiple_sims <- function(MCMC_seed,
             ## (a test of sampler settings: the settings named in this file replace the values written below)
             sampler_settings_to_test <- if (nzchar(Sys.getenv("SAMPLER_SETTINGS_TO_TEST")))
                   readRDS(Sys.getenv("SAMPLER_SETTINGS_TO_TEST")) else list()
+            sampler_settings_to_test[c("C_raw_lower", "C_raw_upper")] <- NULL   ## (the bounds are not sampler settings: used above)
             model_samples_obj <- model_prep_obj$sample( seed = MCMC_seed, ## MCMC seed
                                             n_burnin = n_burnin,
                                             n_iter = n_iter,
