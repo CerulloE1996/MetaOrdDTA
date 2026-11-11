@@ -764,9 +764,6 @@ run_multiple_sims <- function(MCMC_seed,
                         tracer = bquote(saveRDS(data, paste0(.(file_of_the_Stan_data),
                                                          if (grepl("init", basename(file))) "_init" else ""))))
             }
-            ## (a test of sampler settings: the settings named in this file replace the values written below)
-            sampler_settings_to_test <- if (nzchar(Sys.getenv("SAMPLER_SETTINGS_TO_TEST")))
-                  readRDS(Sys.getenv("SAMPLER_SETTINGS_TO_TEST")) else list()
             model_samples_obj <- model_prep_obj$sample( seed = MCMC_seed, ## MCMC seed
                                             n_burnin = n_burnin,
                                             n_iter = n_iter,
@@ -783,7 +780,7 @@ run_multiple_sims <- function(MCMC_seed,
                                             # algorithm = "NicoStan",
                                             # algorithm = "Stan",
                                             ##
-                                                  NicoStan_args = utils::modifyList(c(list(
+                                                  NicoStan_args = list(
                                             ## (every $sample setting that changes sampling, written out)
                                             adapt_delta                          = 0.80,  ## the PS7 value
                                             ## (the paper's models, sampled with no auto-chunking library; every model,
@@ -897,49 +894,7 @@ run_multiple_sims <- function(MCMC_seed,
                                             ##
                                             pooled_metric_warm_up                = 16, ## says how many draws it waits for before its first estimate replaces the starting identity metric.
                                             metric_start_iter                    = round(n_burnin/10) ## says WHEN the metric starts collecting draws.
-                                            ),
-                                            ## (METRIC_POOLED_WINDOW_RESETS = none, or iterations split by commas)
-                                            if (nzchar(Sys.getenv("METRIC_POOLED_WINDOW_RESETS")))
-                                                  list(metric_pooled_window_resets =
-                                                             if (Sys.getenv("METRIC_POOLED_WINDOW_RESETS") == "none") "none" else
-                                                                   as.integer(strsplit(Sys.getenv("METRIC_POOLED_WINDOW_RESETS"), ",")[[1]])),
-                                            ## (METRIC_ADAPTATION_END_ITER = the last metric update)
-                                            if (nzchar(Sys.getenv("METRIC_ADAPTATION_END_ITER")))
-                                                  list(metric_adaptation_end_iter = as.integer(Sys.getenv("METRIC_ADAPTATION_END_ITER"))),
-                                            ## (TAU_SAMPLING_SCALE_WITH_A_JITTERED_BURNIN = 1: TAU_SAMPLING_SCALE also applies with a jittered burn-in tau)
-                                            if (Sys.getenv("TAU_SAMPLING_SCALE_WITH_A_JITTERED_BURNIN") == "1")
-                                                  list(tau_sampling_scale_with_a_jittered_burnin = TRUE),
-                                            ## (RESTART_STUCK_CHAINS = 1: a stuck chain restarts from a chain that moves)
-                                            if (Sys.getenv("RESTART_STUCK_CHAINS") == "1")
-                                                  list(restart_stuck_chains_in_burnin = TRUE,
-                                                       n_iter_of_a_stuck_chain = if (nzchar(Sys.getenv("N_ITER_OF_A_STUCK_CHAIN")))
-                                                             as.integer(Sys.getenv("N_ITER_OF_A_STUCK_CHAIN")) else 30L),
-                                            ## (TAU_WITHIN_THE_CAP_OF_STEPS = 1: tau is never longer than max_L * eps in burn-in)
-                                            if (Sys.getenv("TAU_WITHIN_THE_CAP_OF_STEPS") == "1")
-                                                  list(hold_tau_within_the_cap_of_steps_in_burnin = TRUE),
-                                            ## (EPS_SEARCH_AT_HANDOVER_FROM_EACH_CHAIN = 1: the median of the searches from each chain)
-                                            if (Sys.getenv("EPS_SEARCH_AT_HANDOVER_FROM_EACH_CHAIN") == "1")
-                                                  list(eps_search_at_handover_from_each_chain = TRUE),
-                                            ## (FREEZE_TAU_WHILE_THE_CAP_BINDS = 1: tau is held while it is longer than max_L * eps)
-                                            if (Sys.getenv("FREEZE_TAU_WHILE_THE_CAP_BINDS") == "1")
-                                                  list(freeze_tau_while_the_cap_of_steps_binds_in_burnin = TRUE),
-                                            ## (EPS_SEARCH_WHILE_THE_ACCEPTANCE_IS_HIGH = 1: eps goes up to the search from each chain,
-                                            ##  from FIRST_ITER_OF_THE_EPS_SEARCHES on, default 130)
-                                            if (Sys.getenv("EPS_SEARCH_WHILE_THE_ACCEPTANCE_IS_HIGH") == "1")
-                                                  list(eps_search_while_the_acceptance_is_high_in_burnin = TRUE,
-                                                       first_iter_of_the_eps_searches = if (nzchar(Sys.getenv("FIRST_ITER_OF_THE_EPS_SEARCHES")))
-                                                             as.integer(Sys.getenv("FIRST_ITER_OF_THE_EPS_SEARCHES")) else 130L,
-                                                       n_iter_between_the_eps_searches = if (nzchar(Sys.getenv("N_ITER_BETWEEN_THE_EPS_SEARCHES")))
-                                                             as.integer(Sys.getenv("N_ITER_BETWEEN_THE_EPS_SEARCHES")) else 10L),
-                                            ## (EPS_DOUBLING_WHILE_THE_ACCEPTANCE_IS_HIGH = 1: eps is doubled while the acceptance is 0.95 or more,
-                                            ##  from FIRST_ITER_OF_THE_EPS_DOUBLINGS on, default 60, every N_ITER_BETWEEN_THE_EPS_DOUBLINGS, default 5)
-                                            if (Sys.getenv("EPS_DOUBLING_WHILE_THE_ACCEPTANCE_IS_HIGH") == "1")
-                                                  list(eps_doubling_while_the_acceptance_is_high_in_burnin = TRUE,
-                                                       first_iter_of_the_eps_doublings = if (nzchar(Sys.getenv("FIRST_ITER_OF_THE_EPS_DOUBLINGS")))
-                                                             as.integer(Sys.getenv("FIRST_ITER_OF_THE_EPS_DOUBLINGS")) else 60L,
-                                                       n_iter_between_the_eps_doublings = if (nzchar(Sys.getenv("N_ITER_BETWEEN_THE_EPS_DOUBLINGS")))
-                                                             as.integer(Sys.getenv("N_ITER_BETWEEN_THE_EPS_DOUBLINGS")) else 5L)),
-                                                                                    sampler_settings_to_test))
+                                            ))
             ##SO
             ## ---- Get summaries:
             ##
