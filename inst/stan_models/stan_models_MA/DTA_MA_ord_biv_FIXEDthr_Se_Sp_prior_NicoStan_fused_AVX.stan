@@ -30,6 +30,14 @@ functions {
                                                           data int Se_Sp_prior_type,
                                                           vector prior_Se_Sp_dirichlet_A, matrix prior_Se_Sp_beta,
                                                           matrix prior_Se_Sp_link_mean_SD);
+        real nico_induced_dirichlet_with_Se_Sp_prior_lpdf(vector C, real Xbeta_baseline, data real v0,
+                                                          vector alpha, data int link,
+                                                          data real baseline_location_prior,
+                                                          vector alpha_of_the_segments,
+                                                          data array[] int chosen_cutoffs,
+                                                          data int Se_Sp_prior_type,
+                                                          vector prior_Se_Sp_dirichlet_A, matrix prior_Se_Sp_beta,
+                                                          matrix prior_Se_Sp_link_mean_SD);
         vector nico_exp(vector x);
         vector nico_log1p_exp(vector x);
         vector nico_log_inv_logit(vector x);
@@ -170,7 +178,7 @@ data {
         //// ---- prior_Se_Sp_link_mean_SD = (0, 1) at every cutoff, i.e. C_k ~ normal(baseline_location_prior, 1) for every k, kept
         //// ---- in rising order (baseline_location_prior = prior_beta_mu_mean[c, 1]; a single chosen cutoff is NOT alpha = 1):
         ////
-        int<lower=0, upper=1> use_Se_Sp_prior;     //// 0 = original cutpoint prior
+        int<lower=0, upper=2> use_Se_Sp_prior;     //// 0 = original cutpoint prior; 1 = Se/Sp prior; 2 = Set 0 via Se/Sp prior
         int<lower=1, upper=4> Se_Sp_prior_type;    //// 1 = Dirichlet, 2-3 = Betas, 4 = link-scale Normal
         int<lower=0, upper=n_thr> n_chosen_cutoffs_max;
         array[2] int<lower=0, upper=n_chosen_cutoffs_max> n_chosen_cutoffs;
@@ -269,6 +277,22 @@ transformed data {
               }
         }
 
+        if (use_Se_Sp_prior == 1) {
+              if (use_probit_link != 1) reject("use_Se_Sp_prior == 1 requires use_probit_link == 1");
+              for (c in 1:2) {
+                    for (j in 1:n_cat) {
+                          if (abs(prior_dirichlet_alpha[c][j] - 1.0) > 1e-12) {
+                                reject("use_Se_Sp_prior == 1 requires prior_dirichlet_alpha == 1");
+                          }
+                    }
+              }
+        }
+        vector[2] baseline_location_prior;  //// the baseline case at the prior means (the same under every prior set)
+        baseline_location_prior[1] = dot_product(baseline_case_nd, to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd]));
+        baseline_location_prior[2] = dot_product(baseline_case_d,  to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]));
+        vector[2] v0_baseline_prior;
+        v0_baseline_prior[1] = dot_self(baseline_case_nd .* to_vector(prior_beta_mu_SD[1, 1:n_covariates_nd]));
+        v0_baseline_prior[2] = dot_self(baseline_case_d  .* to_vector(prior_beta_mu_SD[2, 1:n_covariates_d]));
 }
 
 
@@ -301,14 +325,6 @@ transformed parameters {
                         C[c][k] = C[c][k - 1] + increments_of_the_cutpoints[k - 1];
                   }
             }
-        }
-        ////
-        //// ---- Under the Se / Sp prior: cutpoints relative to the intercept of the baseline case (the Se / Sp
-        ////      prior and the likelihood hold C - Xbeta only, so the raw cutpoints are then free of beta_mu):
-        ////
-        if (use_Se_Sp_prior == 1) {
-             C[1] += dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd]));
-             C[2] += dot_product(baseline_case_d,  to_vector(beta_mu[2, 1:n_covariates_d]));
         }
         ////
         //// ---- Construct simple 2x2 (bivariate) between-study corr matrices for between-study model:
@@ -344,10 +360,6 @@ model {
         ////
         to_vector(beta_SD) ~ nico_normal(prior_beta_SD_mean, prior_beta_SD_SD);
         beta_L_Omega ~ nico_lkj_corr_cholesky(prior_beta_corr_LKJ); 
-        ////
-        vector[2] baseline_location_prior;  //// the baseline case at the prior means (the same under every prior set)
-        baseline_location_prior[1] = dot_product(baseline_case_nd, to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd]));
-        baseline_location_prior[2] = dot_product(baseline_case_d,  to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]));
         //// 
         //// ---- Induced-dirichlet ** Prior ** model:
         //// 
@@ -360,7 +372,7 @@ model {
         //                         C[c], prior_dirichlet_alpha[c], use_probit_link); // more efficient than Betancourt et al. and seems to work fine.
         // }
         for (c in 1:2) {
-             if (use_Se_Sp_prior == 1 && n_chosen_cutoffs[c] > 0) {
+             if (use_Se_Sp_prior >= 1 && n_chosen_cutoffs[c] > 0) {
              
                     matrix[n_chosen_cutoffs[c], 2] prior_beta_of_this_class = prior_Se_Sp_beta[c][1:n_chosen_cutoffs[c], ];
                     matrix[n_chosen_cutoffs[c], 2] prior_link_mean_SD_of_this_class = prior_Se_Sp_link_mean_SD[c][1:n_chosen_cutoffs[c], ];
@@ -372,6 +384,19 @@ model {
                                                                      prior_beta_of_this_class[, 1]);
                          }
                     }
+                    if (use_Se_Sp_prior == 2) {
+                         vector[n_thr] C_mu_minus_baseline_location_prior = C[c] - baseline_location_prior[c];
+                         target += nico_induced_dirichlet_with_Se_Sp_prior_lupdf(
+                                   C_mu_minus_baseline_location_prior | prior_dirichlet_alpha[c],
+                                   use_probit_link, 
+                                   0.0,
+                                   alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
+                                   chosen_cutoffs[c, 1:n_chosen_cutoffs[c]], 
+                                   Se_Sp_prior_type,
+                                   prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
+                                   prior_beta_of_this_class,
+                                   prior_link_mean_SD_of_this_class);
+                    } else {
                     real Xbeta_baseline = (c == 1) ?
                                           dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd])) :
                                           dot_product(baseline_case_d, to_vector(beta_mu[2, 1:n_covariates_d]));
@@ -380,19 +405,17 @@ model {
                     ////      quantities: Phi(-(C - Xbeta_baseline))). The cutpoints are fixed, so C is itself the summary
                     ////      cutpoint C_mu. The random-cutpoint model (DTA_MA_ord_biv_RANDthr_kappa_popmed_Se_Sp_prior.stan)
                     ////      has this same prior on its own C_mu - Xbeta_baseline:
-                    vector[n_thr] C_mu_minus_Xbeta_baseline = C[c] - Xbeta_baseline;
-                    ////
-                    target += nico_induced_dirichlet_with_Se_Sp_prior_lupdf(
-                              C_mu_minus_Xbeta_baseline | prior_dirichlet_alpha[c],
-                              use_probit_link, 
-                              0.0,
-                              alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
-                              chosen_cutoffs[c, 1:n_chosen_cutoffs[c]], 
-                              Se_Sp_prior_type,
-                              prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
-                              prior_beta_of_this_class,
-                              prior_link_mean_SD_of_this_class);
-                            
+                         target += nico_induced_dirichlet_with_Se_Sp_prior_lupdf(
+                                   C[c] | Xbeta_baseline, v0_baseline_prior[c], prior_dirichlet_alpha[c],
+                                   use_probit_link, 
+                                   baseline_location_prior[c],
+                                   alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
+                                   chosen_cutoffs[c, 1:n_chosen_cutoffs[c]], 
+                                   Se_Sp_prior_type,
+                                   prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
+                                   prior_beta_of_this_class,
+                                   prior_link_mean_SD_of_this_class);
+                    }
              } else {
                     ////
                     //// (the cutpoints measured from baseline_location_prior, the baseline case at the prior means)
