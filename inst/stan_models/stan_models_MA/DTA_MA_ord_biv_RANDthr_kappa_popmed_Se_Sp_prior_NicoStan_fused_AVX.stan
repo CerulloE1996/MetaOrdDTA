@@ -145,6 +145,17 @@ functions {
         real nico_beta_lpdf(real y, data real alpha, data real beta);
         real nico_log_diff_exp(real x, real y);
         vector nico_log_diff_exp(vector x, vector y);
+        vector nico_pinkney_C_and_log_J_from_pairs(vector logit_centre_of_pair,
+                                                   vector spread_free_of_pair,
+                                                   vector C_raw_c,
+                                                   data vector Pinkney_w_c,
+                                                   data vector logit_start,
+                                                   data vector C_raw_lower_c,
+                                                   data vector C_raw_width,
+                                                   data real sum_log_width,
+                                                   data array[] int pair_of_each_C,
+                                                   data array[] int is_increment_of_each_C,
+                                                   data int softplus);
 }
 
 
@@ -192,7 +203,7 @@ data {
         //// ---- Priors directly on Sp (c = 1) and Se (c = 2) at chosen cutoffs:
         //// ---- Types 1 and 3 use P = Sp and 1 - Se; types 2 and 4 use Sp and Se:
         ////
-        int<lower=0, upper=1> use_Se_Sp_prior;     //// 0 = original dirichlet_phi prior
+        int<lower=0, upper=2> use_Se_Sp_prior;     //// 0 = original dirichlet_phi prior; 1 = Se / Sp prior; 2 = prior set 0 through the Se / Sp prior
         int<lower=1, upper=4> Se_Sp_prior_type;    //// 1 = Dirichlet, 2-3 = Betas, 4 = link-scale Normal
         int<lower=0, upper=n_thr> n_chosen_cutoffs_max;
         array[2] int<lower=0, upper=n_chosen_cutoffs_max> n_chosen_cutoffs;
@@ -215,8 +226,23 @@ data {
 }
 
 
-transformed data {  
+transformed data {
         int n_cat = n_thr + 1; //// Number of ordinal categories for index test
+        ////
+        //// ---- Under the Se / Sp prior the set 0 prior of (summary cutpoints, intercept) is kept and what it implies
+        ////      for C_mu - Xbeta_baseline is divided out (model block). Both are written for the probit link and for
+        ////      prior_dirichlet_alpha = (1, ..., 1) only:
+        ////
+        if (use_Se_Sp_prior == 1) {
+              if (use_probit_link != 1) reject("the Se / Sp prior of this model needs the probit link");
+              for (c in 1:2) {
+                    for (j in 1:n_cat) {
+                          if (prior_dirichlet_alpha[c][j] != 1.0) {
+                                reject("the Se / Sp prior of this model needs prior_dirichlet_alpha = (1, ..., 1): c = ", c);
+                          }
+                    }
+              }
+        }
         ////
         array[2, n_studies, n_thr] int x_2;
         array[2, n_studies] int N_total;
@@ -246,7 +272,7 @@ transformed data {
               for (j in 1:n_chosen_cutoffs[c]) {
                    int k = chosen_cutoffs[c, j];
                    if (k <= k_previous) reject("chosen_cutoffs must rise: c = ", c);
-                   if (use_Se_Sp_prior == 1 && Se_Sp_prior_type == 4 &&
+                   if (use_Se_Sp_prior >= 1 && Se_Sp_prior_type == 4 &&
                        prior_Se_Sp_link_mean_SD[c][j, 2] <= 0.0) {
                         reject("The link-scale prior SD must be positive: c = ", c, ", j = ", j);
                    }
@@ -279,6 +305,24 @@ transformed data {
         array[n_C - n_studies_with_a_cutpoint] int position_of_each_increment;
         array[2] vector[n_C] C_raw_lower_of_each_C;
         array[2] vector[n_C] C_raw_upper_of_each_C;
+        vector[n_C] C_raw_width_of_each_C;
+        real sum_log_width_of_each_C;
+        array[n_C] int study_of_each_C;
+        array[2] vector[n_C] N_of_each_C;
+        real start_of_C_raw = -2.0;
+        vector[n_C] logit_of_the_place_of_the_start;
+        if (softplus == 1) reject("this copy writes the centre and the spread of C_raw for the exp() steps only");
+        int n_unique_C_pairs = 0;
+        int n_first_C_pairs = 0;
+        int n_step_C_pairs = 0;
+        array[n_C] int pair_of_each_C;
+        array[n_C] int pos_first_pair;
+        array[n_C] int k_of_first_pair;
+        array[n_C] int pos_step_pair;
+        array[n_C] int k_of_step_pair;
+        array[n_C] int kprev_of_step_pair;
+        vector[n_C] lower_of_each_unique_pair;
+        vector[n_C] width_of_each_unique_pair;
         array[n_C + n_studies] int upper_index_of_each_segment;  //// a segment = the categories k_(j - 1) + 1 to k_j
         array[n_C + n_studies] int lower_index_of_each_segment;
         {
@@ -319,8 +363,165 @@ transformed data {
               }
               C_raw_lower_of_each_C[2] = C_raw_lower_of_each_C[1];
               C_raw_upper_of_each_C[2] = C_raw_upper_of_each_C[1];
+              C_raw_width_of_each_C = C_raw_upper_of_each_C[1] - C_raw_lower_of_each_C[1];
+              sum_log_width_of_each_C = sum(nico_log(C_raw_width_of_each_C));
+              {
+                    matrix[n_thr, n_thr + 1] pair_lookup = rep_matrix(0.0, n_thr, n_thr + 1);
+                    int p_idx = 0;
+                    for (s in 1:n_studies) {
+                          int k_prev = 0;
+                          for (cut_i in 1:n_obs_cutpoints[s]) {
+                                int k = cutpoint_index[1, s, cut_i + 1];
+                                if (k != -1) {
+                                      p_idx += 1;
+                                      study_of_each_C[p_idx] = s;
+                                      N_of_each_C[1][p_idx] = N_total[1, s];
+                                      N_of_each_C[2][p_idx] = N_total[2, s];
+                                      real start_this = (k_prev == 0) ?
+                                                        start_of_C_raw + (k - 1) * exp(start_of_C_raw) :
+                                                        start_of_C_raw + log(k - k_prev);
+                                      real place_start = (start_this - C_raw_lower_of_each_C[1][p_idx]) / C_raw_width_of_each_C[p_idx];
+                                      logit_of_the_place_of_the_start[p_idx] = logit(fmin(fmax(place_start, 0.001), 0.999));
+                                      int u = to_int(pair_lookup[k, k_prev + 1]);
+                                      if (u == 0) {
+                                            n_unique_C_pairs += 1;
+                                            u = n_unique_C_pairs;
+                                            pair_lookup[k, k_prev + 1] = u;
+                                            lower_of_each_unique_pair[u] = C_raw_lower_of_each_C[1][p_idx];
+                                            width_of_each_unique_pair[u] = C_raw_width_of_each_C[p_idx];
+                                            if (k_prev == 0) {
+                                                  n_first_C_pairs += 1;
+                                                  pos_first_pair[n_first_C_pairs] = u;
+                                                  k_of_first_pair[n_first_C_pairs] = k;
+                                            } else {
+                                                  n_step_C_pairs += 1;
+                                                  pos_step_pair[n_step_C_pairs] = u;
+                                                  k_of_step_pair[n_step_C_pairs] = k;
+                                                  kprev_of_step_pair[n_step_C_pairs] = k_prev;
+                                            }
+                                      }
+                                      pair_of_each_C[p_idx] = u;
+                                      k_prev = k;
+                                }
+                          }
+                    }
+              }
         }
         ////
+        array[n_C] int is_increment_of_each_C = rep_array(0, n_C);
+        for (i in 1:(n_C - n_studies_with_a_cutpoint)) {
+              is_increment_of_each_C[position_of_each_increment[i]] = 1;
+        }
+        //// ---- Data-only partial-centering weights Pinkney_w in [0, 1] and empirical origins Pinkney_eta0
+        ////      (Sean Pinkney, partially_centered_example_Sean_Pinkney.stan & spinkney/hierarchical_model_tutorial
+        ////       stan/hierarchical_pcp.stan, R/1_hier_code.R: w = 0 is centered, w = 1 is non-centered;
+        ////       dimensionless precision-variance ratio w = 1 / (1 + J_i * tau2_pos) computed once from x and
+        ////       K_fold_CV_indicator only, never from parameters, so dw / dkappa = 0 everywhere):
+        array[2] vector<lower=0.0, upper=1.0>[n_C] Pinkney_w;
+        array[2] vector[n_C] Pinkney_eta0;
+        {
+              int max_dl_pairs = n_thr * (n_thr + 1);
+              for (c in 1:2) {
+                    vector[n_C] J_of_each_C = rep_vector(0.0, n_C);
+                    array[n_C] int active_of_each_C;
+                    matrix[n_thr, n_thr + 1] dl_pair_lookup = rep_matrix(0.0, n_thr, n_thr + 1);
+                    int n_dl_pairs = 0;
+                    array[max_dl_pairs] int n_studies_of_pair = rep_array(0, max_dl_pairs);
+                    vector[max_dl_pairs] W1_of_pair  = rep_vector(0.0, max_dl_pairs);
+                    vector[max_dl_pairs] W2_of_pair  = rep_vector(0.0, max_dl_pairs);
+                    vector[max_dl_pairs] WY_of_pair  = rep_vector(0.0, max_dl_pairs);
+                    vector[max_dl_pairs] WY2_of_pair = rep_vector(0.0, max_dl_pairs);
+                    int p_idx = 0;
+                    for (s in 1:n_studies) {
+                          int N_cs = N_total[c, s];
+                          int k_prev = 0;
+                          real p_prev = 0.0;
+                          real z_prev = 0.0;
+                          real f_prev = 1.0;
+                          int x_ab_prev = N_cs;
+                          for (cut_i in 1:n_obs_cutpoints[s]) {
+                                int k = cutpoint_index[c, s, cut_i + 1];
+                                if (k != -1) {
+                                      p_idx += 1;
+                                      real lb_p = C_raw_lower_of_each_C[c][p_idx];
+                                      real wd_p = C_raw_upper_of_each_C[c][p_idx] - lb_p;
+                                      if (K_fold_CV_indicator[s] == 0 || N_cs <= 0) {
+                                            active_of_each_C[p_idx] = 0;
+                                            Pinkney_eta0[c][p_idx] = logit_of_the_place_of_the_start[p_idx];
+                                      } else {
+                                            active_of_each_C[p_idx] = 1;
+                                            int x_ab = x_2[c, s, cut_i];
+                                            real p_raw = (N_cs - x_ab + 0.5) / (N_cs + 1.0);
+                                            real p_below = (k_prev > 0 && p_raw <= p_prev) ?
+                                                           fmin(0.999999, p_prev + 0.5 / ((N_cs + 1.0) * (n_thr + 1.0))) :
+                                                           p_raw;
+                                            real z_hat = (use_probit_link == 1) ? inv_Phi(p_below) : logit(p_below);
+                                            real fz = (use_probit_link == 1) ?
+                                                      (exp(-0.5 * square(z_hat)) / sqrt(2.0 * pi())) :
+                                                      (p_below * (1.0 - p_below));
+                                            real vf_curr = p_below * (1.0 - p_below) / square(fz);
+                                            int u = to_int(dl_pair_lookup[k, k_prev + 1]);
+                                            if (u == 0) {
+                                                  n_dl_pairs += 1;
+                                                  u = n_dl_pairs;
+                                                  dl_pair_lookup[k, k_prev + 1] = u;
+                                            }
+                                            if (k_prev == 0) {
+                                                  real q_hat = fmin(fmax((z_hat - lb_p) / wd_p, 0.005), 0.995);
+                                                  Pinkney_eta0[c][p_idx] = logit(q_hat);
+                                                  J_of_each_C[p_idx] = N_cs / fmax(vf_curr, 1e-12);
+                                            } else {
+                                                  real vf_prev = p_prev * (1.0 - p_prev) / square(f_prev);
+                                                  real cov_term = p_prev * (1.0 - p_below) / (f_prev * fz);
+                                                  real var_gap = fmax((vf_curr + vf_prev - 2.0 * cov_term) / N_cs, 1e-10);
+                                                  real gap = fmax(z_hat - z_prev, 1e-3);
+                                                  real J_gap = 1.0 / var_gap;
+                                                  real r_hat = log(gap);
+                                                  real q_hat = fmin(fmax((r_hat - lb_p) / wd_p, 0.005), 0.995);
+                                                  Pinkney_eta0[c][p_idx] = logit(q_hat);
+                                                  J_of_each_C[p_idx] = J_gap;
+                                                  if ((x_ab_prev - x_ab) >= 1) {
+                                                        n_studies_of_pair[u] += 1;
+                                                        W1_of_pair[u]  += J_gap;
+                                                        W2_of_pair[u]  += square(J_gap);
+                                                        WY_of_pair[u]  += J_gap * gap;
+                                                        WY2_of_pair[u] += J_gap * square(gap);
+                                                  }
+                                            }
+                                            p_prev = p_below;
+                                            z_prev = z_hat;
+                                            f_prev = fz;
+                                            x_ab_prev = x_ab;
+                                      }
+                                      k_prev = k;
+                                }
+                          }
+                    }
+                    real Q_tot = 0.0;
+                    real df_tot = 0.0;
+                    real C_tot = 0.0;
+                    for (u in 1:n_dl_pairs) {
+                          if (n_studies_of_pair[u] >= 2 && W1_of_pair[u] > 0.0) {
+                                real Q_u = fmax(0.0, WY2_of_pair[u] - square(WY_of_pair[u]) / W1_of_pair[u]);
+                                real C_u = W1_of_pair[u] - W2_of_pair[u] / W1_of_pair[u];
+                                if (C_u > 0.0) {
+                                      Q_tot  += Q_u;
+                                      df_tot += n_studies_of_pair[u] - 1.0;
+                                      C_tot  += C_u;
+                                }
+                          }
+                    }
+                    real tau2_pos = 0.0;
+                    if (C_tot > 0.0 && df_tot > 0.0) {
+                          real tau2_raw = (Q_tot - df_tot) / C_tot;
+                          real se_tau2  = sqrt(2.0 * df_tot) / C_tot;
+                          tau2_pos = 0.5 * (tau2_raw + sqrt(square(tau2_raw) + square(se_tau2)));
+                    }
+                    for (p in 1:n_C) {
+                          Pinkney_w[c][p] = (active_of_each_C[p] == 0) ? 0.0 : (1.0 / (1.0 + J_of_each_C[p] * tau2_pos));
+                    }
+              }
+        }
         //// ---- The terms of the likelihood, one per reported cutpoint of each study and class (its counts and
         ////      its places in the locations and the cutpoints):
         ////
@@ -367,7 +568,7 @@ parameters {
         ////
         real<lower=beta_corr_lb, upper=beta_corr_ub> beta_corr;  //// between-study corr (possibly restricted)
         ////
-        array[2] vector<lower=C_raw_lower_of_each_C, upper=C_raw_upper_of_each_C>[n_C] C_raw; //// the reported cutpoints of each study only (nuisance block #2)
+        array[2] vector[n_C] C_raw; //// one free value per reported study cutpoint (nuisance block #2)
         vector<lower=1.0>[2] kappa;
         array[2] simplex[n_cat] dirichlet_phi;
         // array[2] simplex[n_thr] raw_dirichlet_phi;
@@ -395,26 +596,79 @@ transformed parameters {
         //        C[c][s, ] =  construct_C(C_raw[c][s, 1:n_thr], softplus);
         //   }
         // }
-        //// (the reported cutpoints of each study only, study after study, as construct_C on each study's own)
         array[2] vector[n_C] C;
-        for (c in 1:2) {
-              vector[n_C - n_studies_with_a_cutpoint] increments_of_the_cutpoints =
-                    (softplus == 1) ? nico_log1p_exp(C_raw[c][position_of_each_increment]) :
-                                      nico_exp(C_raw[c][position_of_each_increment]);
-              C[c] = C_raw[c];
-              for (i in 1:(n_C - n_studies_with_a_cutpoint)) {
-                    int p = position_of_each_increment[i];
-                    C[c][p] = C[c][p - 1] + increments_of_the_cutpoints[i];
+        vector[2] total_log_J_of_C = rep_vector(0.0, 2);
+        {
+              vector[2] baseline_location_prior_of_C_raw;
+              baseline_location_prior_of_C_raw[1] = dot_product(baseline_case_nd, to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd]));
+              baseline_location_prior_of_C_raw[2] = dot_product(baseline_case_d,  to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]));
+              vector[n_unique_C_pairs] lower_of_pair = lower_of_each_unique_pair[1:n_unique_C_pairs];
+              vector[n_unique_C_pairs] width_of_pair = width_of_each_unique_pair[1:n_unique_C_pairs];
+              for (c in 1:2) {
+                    real alpha_0 = sum(alpha[c]);
+                    vector[n_thr] P = cumulative_sum(alpha[c][1:n_thr]) / alpha_0;
+                    vector[n_thr] P_upper = reverse(cumulative_sum(reverse(alpha[c][2:n_cat]))) / alpha_0;
+                    vector[n_thr] centre_of_each_cutpoint;
+                    vector[n_thr] density_at_each_cutpoint;
+                    if (use_probit_link == 1) {
+                          vector[n_thr] inv_Phi_P = nico_inv_Phi(P);
+                          vector[n_thr] neg_inv_Phi_Pup = -nico_inv_Phi(P_upper);
+                          for (k in 1:n_thr) {
+                                centre_of_each_cutpoint[k] = (P[k] <= 0.5) ? inv_Phi_P[k] : neg_inv_Phi_Pup[k];
+                          }
+                          density_at_each_cutpoint = nico_exp(-0.5 * square(centre_of_each_cutpoint)) / sqrt(2.0 * pi());
+                    } else {
+                          centre_of_each_cutpoint = nico_log(P) - nico_log(P_upper);
+                          density_at_each_cutpoint = P .* P_upper;
+                    }
+                    vector[n_thr] var_factor_of_cut = (P .* P_upper) ./ square(density_at_each_cutpoint);
+                    vector[n_unique_C_pairs] centre_of_pair;
+                    vector[n_unique_C_pairs] spread_of_pair;
+                    if (n_first_C_pairs > 0) {
+                          array[n_first_C_pairs] int fp_pos = pos_first_pair[1:n_first_C_pairs];
+                          array[n_first_C_pairs] int fp_k   = k_of_first_pair[1:n_first_C_pairs];
+                          centre_of_pair[fp_pos] = centre_of_each_cutpoint[fp_k] + baseline_location_prior_of_C_raw[c];
+                          spread_of_pair[fp_pos] = sqrt(var_factor_of_cut[fp_k] / (alpha_0 + 1.0));
+                    }
+                    if (n_step_C_pairs > 0) {
+                          array[n_step_C_pairs] int sp_pos = pos_step_pair[1:n_step_C_pairs];
+                          array[n_step_C_pairs] int sp_k   = k_of_step_pair[1:n_step_C_pairs];
+                          array[n_step_C_pairs] int sp_kp  = kprev_of_step_pair[1:n_step_C_pairs];
+                          vector[n_step_C_pairs] step_vec = centre_of_each_cutpoint[sp_k] - centre_of_each_cutpoint[sp_kp];
+                          vector[n_step_C_pairs] var_step = (var_factor_of_cut[sp_k] + var_factor_of_cut[sp_kp] -
+                                                             2.0 * (P[sp_kp] .* P_upper[sp_k]) ./
+                                                                   (density_at_each_cutpoint[sp_k] .* density_at_each_cutpoint[sp_kp])) /
+                                                            (alpha_0 + 1.0);
+                          for (j in 1:n_step_C_pairs) {
+                                if (var_step[j] < 1e-14) var_step[j] = 1e-14;
+                          }
+                          centre_of_pair[sp_pos] = nico_log(step_vec);
+                          spread_of_pair[sp_pos] = sqrt(var_step) ./ step_vec;
+                    }
+                    vector[n_unique_C_pairs] place_as_it_is = (centre_of_pair - lower_of_pair) ./ width_of_pair;
+                    vector[n_unique_C_pairs] place_of_pair = 0.001 + (nico_log1p_exp(500.0 * (place_as_it_is - 0.001)) -
+                                                                      nico_log1p_exp(500.0 * (place_as_it_is - 0.999))) / 500.0;
+                    vector[n_unique_C_pairs] spread_free_of_pair = spread_of_pair ./
+                                                                   sqrt(square(width_of_pair .* place_of_pair .* (1.0 - place_of_pair)) +
+                                                                        square(spread_of_pair));
+                    vector[n_unique_C_pairs] logit_centre_of_pair = nico_logit(place_of_pair);
+                    vector[n_C + 1] C_and_log_J = nico_pinkney_C_and_log_J_from_pairs(
+                          logit_centre_of_pair,
+                          spread_free_of_pair,
+                          C_raw[c],
+                          Pinkney_w[c],
+                          Pinkney_eta0[c],
+                          C_raw_lower_of_each_C[c],
+                          C_raw_width_of_each_C,
+                          sum_log_width_of_each_C,
+                          pair_of_each_C,
+                          is_increment_of_each_C,
+                          softplus);
+                    C[c] = C_and_log_J[1:n_C];
+                    total_log_J_of_C[c] = C_and_log_J[n_C + 1];
               }
         }
-        ////
-        //// ---- Under the Se / Sp prior: cutpoints relative to the intercept of the baseline case (the Se / Sp
-        ////      prior and the likelihood hold C - Xbeta only, so the raw cutpoints are then free of beta_mu):
-        ////
-        if (use_Se_Sp_prior == 1) {
-             C[1] += dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd]));
-             C[2] += dot_product(baseline_case_d,  to_vector(beta_mu[2, 1:n_covariates_d]));
-        }
+        //// ---- (C holds the study cutpoints themselves under every prior set: they are never moved by beta_mu)
         ////
         //// ---- Construct simple 2x2 (bivariate) between-study corr matrices:
         ////
@@ -458,7 +712,7 @@ model {
            log_kappa[c] ~ nico_student_t(prior_kappa_dof[c], prior_kappa_mean[c], prior_kappa_SD[c]);
            target += -log_kappa[c];
            ////
-           if (use_Se_Sp_prior == 1 && n_chosen_cutoffs[c] > 0) {
+           if (use_Se_Sp_prior >= 1 && n_chosen_cutoffs[c] > 0) {
              
                     matrix[n_chosen_cutoffs[c], 2] prior_beta_of_this_class = prior_Se_Sp_beta[c][1:n_chosen_cutoffs[c], ];
                     matrix[n_chosen_cutoffs[c], 2] prior_link_mean_SD_of_this_class = prior_Se_Sp_link_mean_SD[c][1:n_chosen_cutoffs[c], ];
@@ -493,8 +747,13 @@ model {
                                                  n_thr * nico_log(kappa[c] / alpha_0);
                     ////
                     target += log_J_of_every_median;
+                    //// (use_Se_Sp_prior == 2, prior set 0 through the Se / Sp prior: the prior sits on the summary cutpoints
+                    ////  measured from baseline_location_prior, as the original dirichlet_phi prior of prior set 0 does, with
+                    ////  the Normal prior of beta_mu beside it and nothing divided out)
+                    vector[n_thr] argument_of_the_Se_Sp_prior = (use_Se_Sp_prior == 2) ? popmed_of_every_cutpoint_and_sum_of_log_J[1:n_thr] :
+                                                                                         C_mu_minus_Xbeta_baseline;
                     target += nico_induced_dirichlet_with_Se_Sp_prior_lupdf(
-                              C_mu_minus_Xbeta_baseline | prior_dirichlet_alpha[c],
+                              argument_of_the_Se_Sp_prior | prior_dirichlet_alpha[c],
                               use_probit_link,
                               0.0,
                               alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
@@ -503,7 +762,24 @@ model {
                               prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
                               prior_beta_of_this_class,
                               prior_link_mean_SD_of_this_class);
-                          
+                    ////
+                    //// ---- The set 0 prior of where the summary cutpoints and the intercept sit, GIVEN C_mu - Xbeta_baseline
+                    ////      (the fixed-cutpoint model's own): the Dirichlet(1, ..., 1) of the cutpoints measured from
+                    ////      baseline_location_prior (on the probit scale: std_normal of each) together with the Normal prior
+                    ////      of beta_mu above, divided by what the two imply for C_mu - Xbeta_baseline (a Normal integral over
+                    ////      the baseline case's Xbeta, whose prior variance is v0). The prior of C_mu - Xbeta_baseline, and
+                    ////      so of Se and Sp, stays the Se / Sp prior of the line above:
+                    ////
+                    if (use_Se_Sp_prior == 1) {
+                    real v0 = (c == 1) ?
+                              dot_self(baseline_case_nd .* to_vector(prior_beta_mu_SD[1, 1:n_covariates_nd])) :
+                              dot_self(baseline_case_d  .* to_vector(prior_beta_mu_SD[2, 1:n_covariates_d]));
+                    real log_Set0_marginal_of_C_mu_minus_Xbeta = -0.5 * dot_self(C_mu_minus_Xbeta_baseline)
+                              + 0.5 * (v0 / (1.0 + n_thr * v0)) * square(sum(C_mu_minus_Xbeta_baseline));
+                    target += std_normal_lupdf(popmed_of_every_cutpoint_and_sum_of_log_J[1:n_thr]);
+                    target += - log_Set0_marginal_of_C_mu_minus_Xbeta;
+                    }
+
            } else {
              
                      dirichlet_phi[c] ~ nico_dirichlet(prior_dirichlet_alpha[c]);
@@ -551,11 +827,7 @@ model {
         ////
         target += nico_normal_lupdf(to_vector(to_matrix(beta_z)) | 0.0, 1.0); // part of between-study model, NOT prior
         ////
-        for (c in 1:2) {
-           //// (a study's first reported cutpoint is C_raw itself; each later one adds an exp() or softplus step)
-           target += (softplus == 1) ? sum(nico_log_inv_logit(C_raw[c][position_of_each_increment])) :
-                                       sum(C_raw[c][position_of_each_increment]);
-        }
+        target += sum(total_log_J_of_C);
         ////
         //// ---- Log-likelihood:
         ////

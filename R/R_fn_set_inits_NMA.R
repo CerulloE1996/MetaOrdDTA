@@ -303,7 +303,7 @@ R_fn_set_inits_NMA <- function(    inits,
 
                               ## array[2] vector<lower=-15.0, upper=15.0>[n_total_C_per_class_if_fixed] C_raw_vec;
                               n_total_C_if_fixed <- sum(n_thr)
-                              vec <- rep(-3.0, n_total_C_if_fixed)
+                              vec <- rep(-2.0, n_total_C_if_fixed)
                               inits$C_raw_vec   <- if_null_then_set_to( inits$C_raw_vec, 
                                                                         list(vec, vec))
                               
@@ -322,7 +322,7 @@ R_fn_set_inits_NMA <- function(    inits,
                                     vec <- c(vec,
                                              inits_of_the_reported_C_raw( cutpoint_index_of_each_study = matrix(cutpoint_index[t, 1, , ], nrow = n_studies),
                                                                           n_obs_cutpoints = n_obs_cutpoints[t, ],
-                                                                          C_raw_init = -3.0,
+                                                                          C_raw_init = -2.0,
                                                                           softplus = softplus))
                               }
                               inits$C_raw_vec   <- if_null_then_set_to( inits$C_raw_vec, 
@@ -340,12 +340,12 @@ R_fn_set_inits_NMA <- function(    inits,
                               inits$raw_dirichlet_phi_vec   <- if_null_then_set_to( inits$raw_dirichlet_phi_vec, 
                                                                                     list(raw_dirichlet_phi_vec, raw_dirichlet_phi_vec))
                               ##
-                              kappa <- rep(100, n_index_tests)
+                              kappa <- rep(50, n_index_tests)
                               inits$kappa   <- if_null_then_set_to( inits$kappa, 
                                                                     list(kappa, kappa))
                               ##
                               ##
-                              log_kappa <- rep(log(100), n_index_tests)
+                              log_kappa <- rep(log(50), n_index_tests)
                               inits$log_kappa   <- if_null_then_set_to( inits$log_kappa, 
                                                                     list(log_kappa, log_kappa))
                               

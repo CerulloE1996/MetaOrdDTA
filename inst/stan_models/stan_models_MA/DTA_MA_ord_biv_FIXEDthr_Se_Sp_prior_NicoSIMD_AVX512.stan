@@ -1,5 +1,5 @@
-// NicoSIMD_AVX512 version of DTA_MA_ord_biv_FIXEDthr_Se_Sp_prior.stan written by NicoStan (source model md5 7490b157835658b959479dd006f4d159; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
-// NicoSIMD functions used: exp, log, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, log_diff_exp, std_normal_log_qf
+// NicoSIMD_AVX512 version of DTA_MA_ord_biv_FIXEDthr_Se_Sp_prior.stan written by NicoStan (source model md5 f0f02946b5c561f5950d010920aa4bc1; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
+// NicoSIMD functions used: exp, log, log1p, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, log_diff_exp, std_normal_log_qf
 
 
 
@@ -7,6 +7,7 @@ functions {
     real bmvp_simd_lanes();
     real nico_exp(real x);
     real nico_log(real x);
+    real nico_log1p(real x);
     real nico_log1m(real x);
     real nico_log1p_exp(real x);
     real nico_log1m_exp(real x);
@@ -19,6 +20,7 @@ functions {
     real nico_log1m_inv_logit(real x);
     vector nico_exp(vector x);
     vector nico_log(vector x);
+    vector nico_log1p(vector x);
     vector nico_log1m(vector x);
     vector nico_log1p_exp(vector x);
     vector nico_log1m_exp(vector x);
@@ -31,6 +33,7 @@ functions {
     vector nico_log1m_inv_logit(vector x);
     row_vector nico_exp(row_vector x);
     row_vector nico_log(row_vector x);
+    row_vector nico_log1p(row_vector x);
     row_vector nico_log1m(row_vector x);
     row_vector nico_log1p_exp(row_vector x);
     row_vector nico_log1m_exp(row_vector x);
@@ -43,6 +46,7 @@ functions {
     row_vector nico_log1m_inv_logit(row_vector x);
     matrix nico_exp(matrix x);
     matrix nico_log(matrix x);
+    matrix nico_log1p(matrix x);
     matrix nico_log1m(matrix x);
     matrix nico_log1p_exp(matrix x);
     matrix nico_log1m_exp(matrix x);
@@ -189,7 +193,7 @@ data {
         //// ---- prior_Se_Sp_link_mean_SD = (0, 1) at every cutoff, i.e. C_k ~ normal(baseline_location_prior, 1) for every k, kept
         //// ---- in rising order (baseline_location_prior = prior_beta_mu_mean[c, 1]; a single chosen cutoff is NOT alpha = 1):
         ////
-        int<lower=0, upper=1> use_Se_Sp_prior;     //// 0 = original cutpoint prior
+        int<lower=0, upper=2> use_Se_Sp_prior;     //// 0 = original cutpoint prior; 1 = Se/Sp prior; 2 = Set 0 via Se/Sp prior
         int<lower=1, upper=4> Se_Sp_prior_type;    //// 1 = Dirichlet, 2-3 = Betas, 4 = link-scale Normal
         int<lower=0, upper=n_thr> n_chosen_cutoffs_max;
         array[2] int<lower=0, upper=n_chosen_cutoffs_max> n_chosen_cutoffs;
@@ -252,6 +256,16 @@ transformed data {
               alpha_of_the_segments[c][n_chosen_cutoffs[c] + 1] =
                    sum(prior_dirichlet_alpha[c][(k_previous + 1):n_cat]);
         }
+        if (use_Se_Sp_prior == 1) {
+              if (use_probit_link != 1) reject("use_Se_Sp_prior == 1 requires use_probit_link == 1");
+              for (c in 1:2) {
+                    for (j in 1:n_cat) {
+                          if (abs(prior_dirichlet_alpha[c][j] - 1.0) > 1e-12) {
+                                reject("use_Se_Sp_prior == 1 requires prior_dirichlet_alpha == 1");
+                          }
+                    }
+              }
+        }
 }
 
 
@@ -274,15 +288,6 @@ transformed parameters {
         for (c in 1:2) { 
             C[c] = construct_C(C_raw_vec[c], softplus);
         }
-        ////
-        //// ---- Under the Se / Sp prior: cutpoints relative to the intercept of the baseline case (the Se / Sp
-        ////      prior and the likelihood hold C - Xbeta only, so the raw cutpoints are then free of beta_mu):
-        ////
-        if (use_Se_Sp_prior == 1) {
-             C[1] += dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd]));
-             C[2] += dot_product(baseline_case_d,  to_vector(beta_mu[2, 1:n_covariates_d]));
-        }
-        ////
         //// ---- Construct simple 2x2 (bivariate) between-study corr matrices for between-study model:
         ////  
         cholesky_factor_corr[2] beta_L_Omega = make_bivariate_L_Omega(beta_corr);
@@ -323,8 +328,7 @@ model {
         //// ---- Induced-dirichlet ** Prior ** model:
         ////
         for (c in 1:2) {
-             if (use_Se_Sp_prior == 1 && n_chosen_cutoffs[c] > 0) {
-                 
+             if (use_Se_Sp_prior == 2 && n_chosen_cutoffs[c] > 0) {
                     matrix[n_chosen_cutoffs[c], 2] prior_beta_of_this_class = prior_Se_Sp_beta[c][1:n_chosen_cutoffs[c], ];
                     matrix[n_chosen_cutoffs[c], 2] prior_link_mean_SD_of_this_class = prior_Se_Sp_link_mean_SD[c][1:n_chosen_cutoffs[c], ];
                     if (c == 2) {
@@ -334,41 +338,51 @@ model {
                                                                     prior_beta_of_this_class[, 1]);
                          }
                     }
-                    real Xbeta_baseline =  (c == 1) ?
-                                           dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd])) :
-                                           dot_product(baseline_case_d,  to_vector(beta_mu[2, 1:n_covariates_d]));
-                    ////
-                    //// ---- C_mu - Xbeta_baseline of class c: the quantity that Se and Sp are made of (generated
-                    ////      quantities: Phi(-(C - Xbeta_baseline))). The cutpoints are fixed, so C is itself the summary
-                    ////      cutpoint C_mu. The random-cutpoint model (DTA_MA_ord_biv_RANDthr_kappa_popmed_Se_Sp_prior.stan)
-                    ////      has this same prior on its own C_mu - Xbeta_baseline:
+                    vector[n_thr] C_mu_minus_baseline_location_prior = C[c] - baseline_location_prior[c];
+                    target += induced_dirichlet_with_Se_Sp_prior_lupdf(
+                              C_mu_minus_baseline_location_prior | prior_dirichlet_alpha[c],
+                              alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
+                              chosen_cutoffs[c, 1:n_chosen_cutoffs[c]], Se_Sp_prior_type,
+                              prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
+                              prior_beta_of_this_class, prior_link_mean_SD_of_this_class, use_probit_link);
+             } else if (use_Se_Sp_prior == 1 && n_chosen_cutoffs[c] > 0) {
+                    matrix[n_chosen_cutoffs[c], 2] prior_beta_of_this_class = prior_Se_Sp_beta[c][1:n_chosen_cutoffs[c], ];
+                    matrix[n_chosen_cutoffs[c], 2] prior_link_mean_SD_of_this_class = prior_Se_Sp_link_mean_SD[c][1:n_chosen_cutoffs[c], ];
+                    if (c == 2) {
+                         prior_link_mean_SD_of_this_class[, 1] = - prior_link_mean_SD_of_this_class[, 1];
+                         if (Se_Sp_prior_type == 2) {
+                              prior_beta_of_this_class = append_col(prior_beta_of_this_class[, 2],
+                                                                    prior_beta_of_this_class[, 1]);
+                         }
+                    }
+                    real Xbeta_baseline = (c == 1) ?
+                                          dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd])) :
+                                          dot_product(baseline_case_d,  to_vector(beta_mu[2, 1:n_covariates_d]));
+                    vector[n_thr] C_mu_minus_baseline_location_prior = C[c] - baseline_location_prior[c];
                     vector[n_thr] C_mu_minus_Xbeta_baseline = C[c] - Xbeta_baseline;
-                    ////
+                    real v0 = (c == 1) ?
+                              dot_self(baseline_case_nd .* to_vector(prior_beta_mu_SD[1, 1:n_covariates_nd])) :
+                              dot_self(baseline_case_d  .* to_vector(prior_beta_mu_SD[2, 1:n_covariates_d]));
+                    target += induced_dirichlet_given_C_on_the_log_scale_lupdf(
+                              C_mu_minus_baseline_location_prior | prior_dirichlet_alpha[c], use_probit_link);
+                    real log_Set0_marginal_of_C_minus_Xbeta = nico_lgamma(n_cat) - 0.91893853320467274178 * n_thr - 0.5 * nico_log1p(n_thr * v0) - 0.5 * dot_self(C_mu_minus_Xbeta_baseline)
+                              + 0.5 * (v0 / (1.0 + n_thr * v0)) * square(sum(C_mu_minus_Xbeta_baseline));
+                    target += - log_Set0_marginal_of_C_minus_Xbeta;
                     target += induced_dirichlet_with_Se_Sp_prior_lupdf(
                               C_mu_minus_Xbeta_baseline | prior_dirichlet_alpha[c],
                               alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
-                              chosen_cutoffs[c, 1:n_chosen_cutoffs[c]],
-                              Se_Sp_prior_type,
-                              prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)], 
-                              prior_beta_of_this_class,
-                              prior_link_mean_SD_of_this_class,
-                              use_probit_link);
-                            
+                              chosen_cutoffs[c, 1:n_chosen_cutoffs[c]], Se_Sp_prior_type,
+                              prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
+                              prior_beta_of_this_class, prior_link_mean_SD_of_this_class, use_probit_link);
              } else {
-
-                    //// (the cutpoints measured from baseline_location_prior, the baseline case at the prior means)
                     vector[n_thr] C_mu_minus_baseline_location_prior = C[c] - baseline_location_prior[c];
-                    ////
-                    vector[n_cat] Ind_Dir_ord_prob; //// = cumul_probs_to_ord_probs(Phi(C));
+                    vector[n_cat] Ind_Dir_ord_prob;
                     if (use_probit_link == 1) Ind_Dir_ord_prob = cumul_probs_to_ord_probs(nico_Phi(C_mu_minus_baseline_location_prior));
                     else                      Ind_Dir_ord_prob = cumul_probs_to_ord_probs(nico_inv_logit(C_mu_minus_baseline_location_prior));
-                    ////
                     Ind_Dir_ord_prob ~ induced_dirichlet_given_C(
-                                       C_mu_minus_baseline_location_prior, 
-                                       prior_dirichlet_alpha[c], 
+                                       C_mu_minus_baseline_location_prior,
+                                       prior_dirichlet_alpha[c],
                                        use_probit_link);
-                    // more efficient than Betancourt et al. and works fine.
-                  
              }
         }
         //// 
