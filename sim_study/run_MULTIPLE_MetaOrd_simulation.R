@@ -342,13 +342,13 @@ run_multiple_sims <- function(MCMC_seed,
                 "set_0", "ord_bivariate", FALSE, 50, "HADS",  "R&G_random_C",     1400,
                 "set_0", "ord_bivariate", TRUE,  10, "BAI",   "ord_biv_fixed_C",  5650,
                 "set_0", "ord_bivariate", TRUE,  10, "BAI",   "ord_biv_random_C", 5150,
-                "set_0", "ord_bivariate", TRUE,  10, "BAI",   "R&G_random_C",     7700,
+                "set_0", "ord_bivariate", TRUE,  10, "BAI",   "R&G_random_C",     4100,
                 "set_0", "ord_bivariate", TRUE,  10, "GAD_2", "ord_biv_fixed_C",  2050,
                 "set_0", "ord_bivariate", TRUE,  10, "GAD_2", "ord_biv_random_C", 2200,
                 "set_0", "ord_bivariate", TRUE,  10, "GAD_2", "R&G_random_C",     3550,
                 "set_0", "ord_bivariate", TRUE,  10, "HADS",  "ord_biv_fixed_C",  6850,
                 "set_0", "ord_bivariate", TRUE,  10, "HADS",  "ord_biv_random_C", 6750,
-                "set_0", "ord_bivariate", TRUE,  10, "HADS",  "R&G_random_C",     10950,
+                "set_0", "ord_bivariate", TRUE,  10, "HADS",  "R&G_random_C",     3400,
                 "set_0", "ord_bivariate", TRUE,  50, "BAI",   "ord_biv_fixed_C",  3550,
                 "set_0", "ord_bivariate", TRUE,  50, "BAI",   "ord_biv_random_C", 2000,
                 "set_0", "ord_bivariate", TRUE,  50, "BAI",   "R&G_random_C",     2500,
@@ -576,13 +576,13 @@ run_multiple_sims <- function(MCMC_seed,
                 ##      and diagmeta, from a pilot of 10 fits of 1000 iterations per chain of each cell, by the same rule as the rows
                 ##      of ord-HSROC above (at least 90% of the pilot fits reach the min ESS asked of the cell). The rows of O-biv-RC on
                 ##      the three ordinal DGMs higher up in this table are from the same pilot and the same rule.
-                "set_0", "ord_bivariate", TRUE,  10, "BAI",   "Hoyer_2018",       5350,
+                "set_0", "ord_bivariate", TRUE,  10, "BAI",   "Hoyer_2018",       4350,
                 "set_0", "ord_bivariate", TRUE,  10, "BAI",   "diagmeta",         5700,
                 "set_0", "ord_bivariate", TRUE,  10, "BAI",   "logit_GLMM",       6250,
                 "set_0", "ord_bivariate", TRUE,  10, "GAD_2", "Hoyer_2018",       2250,
                 "set_0", "ord_bivariate", TRUE,  10, "GAD_2", "diagmeta",         2150,
                 "set_0", "ord_bivariate", TRUE,  10, "GAD_2", "logit_GLMM",       2100,
-                "set_0", "ord_bivariate", TRUE,  10, "HADS",  "Hoyer_2018",       6400,
+                "set_0", "ord_bivariate", TRUE,  10, "HADS",  "Hoyer_2018",       4500,
                 "set_0", "ord_bivariate", TRUE,  10, "HADS",  "diagmeta",         5200,
                 "set_0", "ord_bivariate", TRUE,  10, "HADS",  "logit_GLMM",       6100,
                 "set_0", "ord_bivariate", TRUE,  50, "BAI",   "Hoyer_2018",       2250,
@@ -653,8 +653,16 @@ run_multiple_sims <- function(MCMC_seed,
           }
           n_iter <- ceiling(n_iter_for_4_chains / (n_chains/4))
           ##
+          ## (the 4 Set 0 O-biv-RC 10-study cells that use adapt_delta = 0.95 and n_burnin = 1000; every other cell uses 0.80 and 500)
+          is_O_biv_RC_set_0_adapt_delta_095_cell <- (prior_set == "set_0" &&
+                                                     model_parameterisation == "ord_bivariate" &&
+                                                     isTRUE(random_thresholds) &&
+                                                     n_studies == 10 &&
+                                                     test %in% c("BAI", "HADS") &&
+                                                     DGM %in% c("Hoyer_2018", "R&G_random_C"))
           ## (NicoStan's burn-in is 125-250 iterations; Stan's is never fewer than 200)
           n_burnin <- if (nzchar(Sys.getenv("N_BURNIN"))) as.integer(Sys.getenv("N_BURNIN")) else
+                      if (is_O_biv_RC_set_0_adapt_delta_095_cell) 1000L else
                       if (sampling_algorithm == "NicoStan") 500 else 500
           # n_burnin <- 500
           # n_burnin <- 250
@@ -859,10 +867,11 @@ run_multiple_sims <- function(MCMC_seed,
             ## (a test of sampler settings: the settings named in this file replace the values written below)
             sampler_settings_to_test <- if (nzchar(Sys.getenv("SAMPLER_SETTINGS_TO_TEST")))
                   readRDS(Sys.getenv("SAMPLER_SETTINGS_TO_TEST")) else list()
+            adapt_delta_of_this_cell <- if (is_O_biv_RC_set_0_adapt_delta_095_cell) 0.95 else 0.80
             model_samples_obj <- model_prep_obj$sample( seed = MCMC_seed, ## MCMC seed
                                             n_burnin = n_burnin,
                                             n_iter = n_iter,
-                                            adapt_delta = 0.80,
+                                            adapt_delta = adapt_delta_of_this_cell,
                                             # adapt_delta = 0.655,
                                             max_treedepth = 10,
                                             # max_treedepth = 9,
@@ -877,7 +886,7 @@ run_multiple_sims <- function(MCMC_seed,
                                             ##
                                                   NicoStan_args = utils::modifyList(c(list(
                                             ## (every $sample setting that changes sampling, written out)
-                                            adapt_delta                          = 0.80,  ## the PS7 value
+                                            adapt_delta                          = adapt_delta_of_this_cell,  ## 0.95 on the 4 Set 0 O-biv-RC 10s cells; 0.80 everywhere else
                                             ## (the paper's models, sampled with no auto-chunking library; every model,
                                             ##  the Jones model included, runs its fused AVX file)
                                             auto_chunking                        = FALSE,
