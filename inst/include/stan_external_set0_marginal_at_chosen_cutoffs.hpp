@@ -216,7 +216,20 @@ nico_log_Set0_marginal_at_chosen_cutoffs(const T_x& x_chosen,
     const auto& x_ref   = stan::math::to_ref(x_chosen);
     const auto& seg_ref = stan::math::to_ref(alpha_of_the_segments);
 
-    std::vector<double> x_val(m);
+    static constexpr int STACK_MAX_M = 16;
+    // Newton buffers: x_val(m), w_seg(m+1), z/lF/lS/lf/work/r_own/r_nxt/dg_dz (8m+4 + m)
+    // Batched GH24 buffers (overlapping reuse after Newton finishes!): 24 * (9*m + 1) doubles
+    const int newton_doubles = 10 * m + 5;
+    const int gh_doubles     = 24 * (9 * m + 1);
+    const int total_scratch  = std::max(newton_doubles, gh_doubles) + 2 * m + 1;
+    double stack_buf[std::max(10 * STACK_MAX_M + 5, 24 * (9 * STACK_MAX_M + 1)) + 2 * STACK_MAX_M + 1];
+    std::vector<double> heap_buf;
+    double* scratch = (m <= STACK_MAX_M) ? stack_buf : (heap_buf.resize(total_scratch), heap_buf.data());
+
+    double* x_val    = scratch;
+    double* w_seg    = x_val + m;
+    double* work_all = w_seg + (m + 1);
+
     for (int j = 0; j < m; ++j) {
         x_val[j] = stan::math::value_of(x_ref.coeff(j));
         if (!std::isfinite(x_val[j])) {
@@ -227,7 +240,6 @@ nico_log_Set0_marginal_at_chosen_cutoffs(const T_x& x_chosen,
         }
     }
 
-    std::vector<double> w_seg(m + 1);
     double sum_seg = 0.0;
     double sum_lgamma_seg = 0.0;
     for (int i = 0; i <= m; ++i) {
@@ -251,8 +263,7 @@ nico_log_Set0_marginal_at_chosen_cutoffs(const T_x& x_chosen,
     }
     b_star /= static_cast<double>(m);
 
-    std::vector<double> work_all(8 * m + 4);
-    double* z_buf     = work_all.data();
+    double* z_buf     = work_all;
     double* lF_buf    = z_buf + m;
     double* lS_buf    = lF_buf + m;
     double* lf_buf    = lS_buf + m;
@@ -260,34 +271,125 @@ nico_log_Set0_marginal_at_chosen_cutoffs(const T_x& x_chosen,
     double* work_buf  = log_q_buf + (m + 1);
     double* r_own_buf = work_buf + m;
     double* r_nxt_buf = r_own_buf + m;
-    std::vector<double> dg_dz_tmp(m);
+    double* dg_dz_tmp = r_nxt_buf + m;
 
     double val = 0.0, dg_db = 0.0, d2g_db2 = -inv_v0;
     for (int it = 0; it < 10; ++it) {
-        detail::eval_log_integrand(b_star, x_val.data(), w_seg.data(), m, inv_v0, lg_const, use_probit_link,
+        detail::eval_log_integrand(b_star, x_val, w_seg, m, inv_v0, lg_const, use_probit_link,
                                    z_buf, lF_buf, lS_buf, lf_buf, log_q_buf, work_buf, r_own_buf, r_nxt_buf,
-                                   dg_dz_tmp.data(), val, dg_db, d2g_db2);
+                                   dg_dz_tmp, val, dg_db, d2g_db2);
         double step = -dg_db / d2g_db2;
         if (step >  2.0) step =  2.0;
         if (step < -2.0) step = -2.0;
         b_star += step;
         if (std::abs(step) <= 1e-14 * (1.0 + std::abs(b_star))) break;
     }
-    detail::eval_log_integrand(b_star, x_val.data(), w_seg.data(), m, inv_v0, lg_const, use_probit_link,
+    detail::eval_log_integrand(b_star, x_val, w_seg, m, inv_v0, lg_const, use_probit_link,
                                z_buf, lF_buf, lS_buf, lf_buf, log_q_buf, work_buf, r_own_buf, r_nxt_buf,
-                               dg_dz_tmp.data(), val, dg_db, d2g_db2);
+                               dg_dz_tmp, val, dg_db, d2g_db2);
     const double sig_star = 1.0 / std::sqrt(-d2g_db2);
 
+    // Batched SIMD evaluation of ALL 24 Gauss-Hermite nodes at once (24*m elements per kernel call)
+    const int N24 = 24 * m;
+    double* z_24      = work_all;
+    double* lF_24     = z_24 + N24;
+    double* lS_24     = lF_24 + N24;
+    double* lf_24     = lS_24 + N24;
+    double* log_q_24  = lf_24 + N24;
+    double* work_24   = log_q_24 + 24 * (m + 1);
+    double* r_own_24  = work_24 + N24;
+    double* r_nxt_24  = r_own_24 + N24;
+    double* grad_nodes = r_nxt_24 + N24;
+
+    double b_24[24];
+    for (int i = 0; i < 24; ++i) {
+        const double b_i = b_star + sig_star * detail::GH24_T[i];
+        b_24[i] = b_i;
+        for (int j = 0; j < m; ++j) {
+            const double zij = x_val[j] + b_i;
+            const int idx = i * m + j;
+            z_24[idx]  = zij;
+            lF_24[idx] = zij;
+            lS_24[idx] = -zij;
+        }
+    }
+    if (use_probit_link == 1) {
+        nico::math::k_log_Phi(lF_24, N24);
+        nico::math::k_log_Phi(lS_24, N24);
+        for (int idx = 0; idx < N24; ++idx) {
+            lf_24[idx] = -0.5 * z_24[idx] * z_24[idx] - detail::HALF_LOG_TWO_PI;
+        }
+    } else {
+        nico::math::k_log_inv_logit(lF_24, N24);
+        nico::math::k_log_inv_logit(lS_24, N24);
+        for (int idx = 0; idx < N24; ++idx) {
+            lf_24[idx] = lF_24[idx] + lS_24[idx];
+        }
+    }
+    if (m > 1) {
+        int wi = 0;
+        for (int i = 0; i < 24; ++i) {
+            const int base = i * m;
+            for (int j = 1; j < m; ++j) {
+                work_24[wi++] = (z_24[base + j - 1] >= 0.0)
+                    ? (lS_24[base + j] - lS_24[base + j - 1])
+                    : (lF_24[base + j - 1] - lF_24[base + j]);
+            }
+        }
+        nico::math::k_log1m_exp(work_24, 24 * (m - 1));
+        wi = 0;
+        for (int i = 0; i < 24; ++i) {
+            const int base = i * m;
+            const int qbase = i * (m + 1);
+            log_q_24[qbase]     = lF_24[base];
+            log_q_24[qbase + m] = lS_24[base + m - 1];
+            for (int j = 1; j < m; ++j) {
+                log_q_24[qbase + j] = ((z_24[base + j - 1] >= 0.0) ? lS_24[base + j - 1] : lF_24[base + j])
+                                      + work_24[wi++];
+            }
+        }
+    } else {
+        for (int i = 0; i < 24; ++i) {
+            log_q_24[2 * i]     = lF_24[i];
+            log_q_24[2 * i + 1] = lS_24[i];
+        }
+    }
+    for (int i = 0; i < 24; ++i) {
+        const int base  = i * m;
+        const int qbase = i * (m + 1);
+        for (int j = 0; j < m; ++j) {
+            r_own_24[base + j] = lf_24[base + j] - log_q_24[qbase + j];
+            r_nxt_24[base + j] = lf_24[base + j] - log_q_24[qbase + j + 1];
+        }
+    }
+    nico::math::k_exp(r_own_24, N24);
+    nico::math::k_exp(r_nxt_24, N24);
+    if constexpr (stan::is_var<T>::value) {
+        if (use_probit_link != 1) {
+            nico::math::k_exp(lF_24, N24);
+            nico::math::k_exp(lS_24, N24);
+        }
+    }
+
     double lw_terms[24];
-    std::vector<double> grad_nodes(24 * m);
     double max_lw = -std::numeric_limits<double>::infinity();
     for (int i = 0; i < 24; ++i) {
         const double t_i = detail::GH24_T[i];
-        const double b_i = b_star + sig_star * t_i;
-        double val_i = 0.0, dg_i = 0.0, d2_i = 0.0;
-        detail::eval_log_integrand(b_i, x_val.data(), w_seg.data(), m, inv_v0, lg_const, use_probit_link,
-                                   z_buf, lF_buf, lS_buf, lf_buf, log_q_buf, work_buf, r_own_buf, r_nxt_buf,
-                                   grad_nodes.data() + i * m, val_i, dg_i, d2_i);
+        const double b_i = b_24[i];
+        const int base  = i * m;
+        const int qbase = i * (m + 1);
+        double val_i = -0.5 * b_i * b_i * inv_v0 + lg_const;
+        for (int s_i = 0; s_i <= m; ++s_i) {
+            if (w_seg[s_i] != 1.0) val_i += (w_seg[s_i] - 1.0) * log_q_24[qbase + s_i];
+        }
+        for (int j = 0; j < m; ++j) {
+            val_i += lf_24[base + j];
+            if constexpr (stan::is_var<T>::value) {
+                const double d_f = (use_probit_link == 1) ? (-z_24[base + j]) : (lS_24[base + j] - lF_24[base + j]);
+                grad_nodes[base + j] = (w_seg[j] - 1.0) * r_own_24[base + j]
+                                       - (w_seg[j + 1] - 1.0) * r_nxt_24[base + j] + d_f;
+            }
+        }
         const double lw_i = detail::GH24_LW[i] + val_i + 0.5 * t_i * t_i;
         lw_terms[i] = lw_i;
         if (lw_i > max_lw) max_lw = lw_i;
@@ -296,7 +398,10 @@ nico_log_Set0_marginal_at_chosen_cutoffs(const T_x& x_chosen,
     double sum_exp = 0.0;
     double w_norm[24];
     for (int i = 0; i < 24; ++i) {
-        w_norm[i] = std::exp(lw_terms[i] - max_lw);
+        w_norm[i] = lw_terms[i] - max_lw;
+    }
+    nico::math::k_exp(w_norm, 24);
+    for (int i = 0; i < 24; ++i) {
         sum_exp += w_norm[i];
     }
     const double inv_sum = 1.0 / sum_exp;
