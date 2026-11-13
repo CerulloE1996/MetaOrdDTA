@@ -40,6 +40,13 @@ functions {
                                                           matrix prior_Se_Sp_link_mean_SD);
         vector nico_dirichlet_cutpoint_medians_and_sum_of_log_J(vector P_lower, vector P_upper, real kappa,
                                                                 data int use_probit_link);
+        vector nico_dirichlet_cutpoint_medians_and_log_J_of_each(vector P_lower, vector P_upper, real kappa,
+                                                                 data int use_probit_link);
+        real nico_log_Set0_marginal_at_chosen_cutoffs(vector x_chosen, vector alpha_of_the_segments,
+                                                      real v0, int use_probit_link);
+        real nico_Se_Sp_prior_at_chosen_cutoffs_lpdf(vector x, data int Se_Sp_prior_type,
+                                                     vector prior_Se_Sp_dirichlet_A, matrix prior_Se_Sp_beta,
+                                                     matrix prior_Se_Sp_link_mean_SD, data int link);
         real nico_expm1(real x);
         real nico_dirichlet_with_Se_Sp_prior_lpdf(vector phi,
                                                   vector log_J,
@@ -739,45 +746,44 @@ model {
                     ////      Its prior is the fixed-cutpoint model's own prior of C - Xbeta_baseline (the Se / Sp prior at
                     ////      the chosen cutoffs, the Dirichlet of each segment between them), with the Jacobian of every median:
                     //// (the population median of every cutpoint and the sum of the logs of their Jacobians, in one call)
-                    vector[n_thr + 1] popmed_of_every_cutpoint_and_sum_of_log_J =
-                          nico_dirichlet_cutpoint_medians_and_sum_of_log_J(P_of_alpha, P_upper_of_alpha, alpha_0, use_probit_link);
-                    vector[n_thr] C_mu_of_class_c = baseline_location_prior[c] + popmed_of_every_cutpoint_and_sum_of_log_J[1:n_thr];
-                    vector[n_thr] C_mu_minus_Xbeta_baseline = C_mu_of_class_c - Xbeta_baseline;
-                    real log_J_of_every_median = popmed_of_every_cutpoint_and_sum_of_log_J[n_thr + 1] +
-                                                 n_thr * nico_log(kappa[c] / alpha_0);
-                    ////
-                    target += log_J_of_every_median;
-                    //// (use_Se_Sp_prior == 2, prior set 0 through the Se / Sp prior: the prior sits on the summary cutpoints
-                    ////  measured from baseline_location_prior, as the original dirichlet_phi prior of prior set 0 does, with
-                    ////  the Normal prior of beta_mu beside it and nothing divided out)
-                    vector[n_thr] argument_of_the_Se_Sp_prior = (use_Se_Sp_prior == 2) ? popmed_of_every_cutpoint_and_sum_of_log_J[1:n_thr] :
-                                                                                         C_mu_minus_Xbeta_baseline;
-                    target += nico_induced_dirichlet_with_Se_Sp_prior_lupdf(
-                              argument_of_the_Se_Sp_prior | prior_dirichlet_alpha[c],
-                              use_probit_link,
-                              0.0,
-                              alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
-                              chosen_cutoffs[c, 1:n_chosen_cutoffs[c]], 
-                              Se_Sp_prior_type,
-                              prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
-                              prior_beta_of_this_class,
-                              prior_link_mean_SD_of_this_class);
-                    ////
-                    //// ---- The set 0 prior of where the summary cutpoints and the intercept sit, GIVEN C_mu - Xbeta_baseline
-                    ////      (the fixed-cutpoint model's own): the Dirichlet(1, ..., 1) of the cutpoints measured from
-                    ////      baseline_location_prior (on the probit scale: std_normal of each) together with the Normal prior
-                    ////      of beta_mu above, divided by what the two imply for C_mu - Xbeta_baseline (a Normal integral over
-                    ////      the baseline case's Xbeta, whose prior variance is v0). The prior of C_mu - Xbeta_baseline, and
-                    ////      so of Se and Sp, stays the Se / Sp prior of the line above:
-                    ////
-                    if (use_Se_Sp_prior == 1) {
-                    real v0 = (c == 1) ?
-                              dot_self(baseline_case_nd .* to_vector(prior_beta_mu_SD[1, 1:n_covariates_nd])) :
-                              dot_self(baseline_case_d  .* to_vector(prior_beta_mu_SD[2, 1:n_covariates_d]));
-                    real log_Set0_marginal_of_C_mu_minus_Xbeta = -0.5 * dot_self(C_mu_minus_Xbeta_baseline)
-                              + 0.5 * (v0 / (1.0 + n_thr * v0)) * square(sum(C_mu_minus_Xbeta_baseline));
-                    target += std_normal_lupdf(popmed_of_every_cutpoint_and_sum_of_log_J[1:n_thr]);
-                    target += - log_Set0_marginal_of_C_mu_minus_Xbeta;
+                    if (use_Se_Sp_prior == 2) {
+                         vector[n_thr + 1] popmed_of_every_cutpoint_and_sum_of_log_J =
+                               nico_dirichlet_cutpoint_medians_and_sum_of_log_J(P_of_alpha, P_upper_of_alpha, alpha_0, use_probit_link);
+                         real log_J_of_every_median = popmed_of_every_cutpoint_and_sum_of_log_J[n_thr + 1] +
+                                                      n_thr * nico_log(kappa[c] / alpha_0);
+                         target += log_J_of_every_median;
+                         target += nico_induced_dirichlet_with_Se_Sp_prior_lupdf(
+                                   popmed_of_every_cutpoint_and_sum_of_log_J[1:n_thr] | prior_dirichlet_alpha[c],
+                                   use_probit_link,
+                                   0.0,
+                                   alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
+                                   chosen_cutoffs[c, 1:n_chosen_cutoffs[c]],
+                                   Se_Sp_prior_type,
+                                   prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
+                                   prior_beta_of_this_class,
+                                   prior_link_mean_SD_of_this_class);
+                    } else {
+                         int m_c = n_chosen_cutoffs[c];
+                         array[m_c] int cuts_c = chosen_cutoffs[c, 1:m_c];
+                         vector[m_c + 1] alpha_seg_c = alpha_of_the_segments[c][1:(m_c + 1)];
+                         vector[2 * m_c] popmed_and_J_chosen =
+                               nico_dirichlet_cutpoint_medians_and_log_J_of_each(P_of_alpha[cuts_c], P_upper_of_alpha[cuts_c],
+                                                                                 alpha_0, use_probit_link);
+                         vector[m_c] popmed_chosen = popmed_and_J_chosen[1:m_c];
+                         vector[m_c] log_J_chosen  = popmed_and_J_chosen[(m_c + 1):(2 * m_c)] + nico_log(kappa[c] / alpha_0);
+                         vector[m_c] x_chosen = (baseline_location_prior[c] + popmed_chosen) - Xbeta_baseline;
+                         real v0 = (c == 1) ?
+                                   dot_self(baseline_case_nd .* to_vector(prior_beta_mu_SD[1, 1:n_covariates_nd])) :
+                                   dot_self(baseline_case_d  .* to_vector(prior_beta_mu_SD[2, 1:n_covariates_d]));
+                         target += nico_dirichlet_with_Se_Sp_prior_lupdf(
+                                   dirichlet_phi[c] | log_J_chosen, popmed_chosen,
+                                   prior_dirichlet_alpha[c], alpha_seg_c, cuts_c, 1,
+                                   alpha_seg_c, prior_beta_of_this_class, prior_link_mean_SD_of_this_class, use_probit_link);
+                         target += - nico_log_Set0_marginal_at_chosen_cutoffs(x_chosen, alpha_seg_c, v0, use_probit_link);
+                         target += nico_Se_Sp_prior_at_chosen_cutoffs_lupdf(
+                                   x_chosen | Se_Sp_prior_type,
+                                   prior_Se_Sp_dirichlet_A[c][1:(m_c + 1)],
+                                   prior_beta_of_this_class, prior_link_mean_SD_of_this_class, use_probit_link);
                     }
 
            } else {
