@@ -1182,6 +1182,9 @@ run_multiple_sims <- function(MCMC_seed,
               if (nzchar(Sys.getenv("KEEP_THE_DIVERGENCE_TRACE_IN")) && sampling_algorithm == "NicoStan") {
                     outs_of_this_fit <- model_samples_obj$internal_obj$outs_stan_sampling
                     saveRDS(list(div_trace = outs_of_this_fit$NicoStan_model_obj$result$sampling_object[[2]],
+                                 ## (the draws of the nuisance blocks that nuisance_to_track keeps, as NicoStan holds them: one
+                                 ##  matrix a chain, one row a nuisance value, on the scale it is sampled on; empty when none is kept)
+                                 nuisance_trace = outs_of_this_fit$NicoStan_model_obj$result$sampling_object[[3]],
                                  draws_array = outs_of_this_fit$draws_array),
                             file.path(Sys.getenv("KEEP_THE_DIVERGENCE_TRACE_IN"),
                                       paste0("seed_", seed, "_", file_name_string, ".rds")))
