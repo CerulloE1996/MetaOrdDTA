@@ -712,6 +712,15 @@ run_multiple_sims <- function(MCMC_seed,
                                                      n_studies == 10 &&
                                                      test %in% c("BAI", "HADS") &&
                                                      DGM %in% c("Hoyer_2018", "R&G_random_C"))
+          ## (the same 4 kinds of cell at prior sets 1 and 2, 8 cells: adapt_delta = 0.95 and learning_rate = 0.025 with the usual
+          ##  500 burn-in. With 0.80 and 0.05 they lost 14% to 36% of their fits to divergences; on the same seeds this setting
+          ##  lost 1 of 64. Every other cell of sets 1 and 2 uses 0.80 and 0.05.)
+          is_O_biv_RC_sets_1_and_2_adapt_delta_095_cell <- (prior_set %in% c("set_1", "set_2") &&
+                                                            model_parameterisation == "ord_bivariate" &&
+                                                            isTRUE(random_thresholds) &&
+                                                            n_studies == 10 &&
+                                                            test %in% c("BAI", "HADS") &&
+                                                            DGM %in% c("Hoyer_2018", "R&G_random_C"))
           ## (NicoStan's burn-in is 125-250 iterations; Stan's is never fewer than 200)
           n_burnin <- if (nzchar(Sys.getenv("N_BURNIN"))) as.integer(Sys.getenv("N_BURNIN")) else
                       if (is_O_biv_RC_set_0_adapt_delta_095_cell) 1000L else
@@ -921,7 +930,8 @@ run_multiple_sims <- function(MCMC_seed,
             ## (a test of sampler settings: the settings named in this file replace the values written below)
             sampler_settings_to_test <- if (nzchar(Sys.getenv("SAMPLER_SETTINGS_TO_TEST")))
                   readRDS(Sys.getenv("SAMPLER_SETTINGS_TO_TEST")) else list()
-            adapt_delta_of_this_cell <- if (is_O_biv_RC_set_0_adapt_delta_095_cell) 0.95 else 0.80
+            adapt_delta_of_this_cell <- if (is_O_biv_RC_set_0_adapt_delta_095_cell || is_O_biv_RC_sets_1_and_2_adapt_delta_095_cell) 0.95 else 0.80
+            learning_rate_of_this_cell <- if (is_O_biv_RC_sets_1_and_2_adapt_delta_095_cell) 0.025 else 0.05
             model_samples_obj <- model_prep_obj$sample( seed = MCMC_seed, ## MCMC seed
                                             n_burnin = n_burnin,
                                             n_iter = n_iter,
@@ -969,7 +979,7 @@ run_multiple_sims <- function(MCMC_seed,
                                             ##
                                             n_superchains                        = 4,
                                             ##
-                                            learning_rate                        = 0.05,
+                                            learning_rate                        = learning_rate_of_this_cell,  ## 0.025 on the 8 O-biv-RC 10s cells of sets 1 and 2 at 0.95; 0.05 everywhere else
                                             # learning_rate                        = 0.025,
                                             ##
                                             eps_initial                          = NULL,
