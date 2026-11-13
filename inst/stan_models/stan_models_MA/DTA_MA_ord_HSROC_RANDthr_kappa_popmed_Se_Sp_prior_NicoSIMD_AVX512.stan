@@ -1,5 +1,5 @@
-// NicoSIMD_AVX512 version of DTA_MA_ord_HSROC_RANDthr_kappa_popmed_Se_Sp_prior.stan written by NicoStan (source md5 2a7720b0d5d69ef8916972d7d403dc0a)
-// NicoSIMD functions used: exp, log, log1p_exp, inv_logit, log_inv_logit, Phi, inv_Phi, logit, log1m_inv_logit, expm1, normal_rng, normal, dirichlet, student_t
+// NicoSIMD_AVX512 version of DTA_MA_ord_HSROC_RANDthr_kappa_popmed_Se_Sp_prior.stan written by NicoStan (source model md5 a3d39fe6175abb6e13a7949996900c4d; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
+// NicoSIMD functions used: exp, log, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, expm1, normal_rng, normal, lgamma, beta, dirichlet, log_diff_exp, std_normal_log_qf, student_t
 //// DTA_MA_ord_HSROC_RANDthr_kappa_popmed_Se_Sp_prior_Stan_math_only.stan
 //// The same data, parameters and target as the fused AVX file of this model with the Dirichlet prior of dirichlet_phi, on Stan::math only.
 ////
@@ -8,41 +8,53 @@ functions {
     real bmvp_simd_lanes();
     real nico_exp(real x);
     real nico_log(real x);
+    real nico_log1m(real x);
     real nico_log1p_exp(real x);
+    real nico_log1m_exp(real x);
     real nico_inv_logit(real x);
     real nico_log_inv_logit(real x);
     real nico_Phi(real x);
     real nico_inv_Phi(real x);
+    real nico_tanh(real x);
     real nico_logit(real x);
     real nico_log1m_inv_logit(real x);
     real nico_expm1(real x);
     vector nico_exp(vector x);
     vector nico_log(vector x);
+    vector nico_log1m(vector x);
     vector nico_log1p_exp(vector x);
+    vector nico_log1m_exp(vector x);
     vector nico_inv_logit(vector x);
     vector nico_log_inv_logit(vector x);
     vector nico_Phi(vector x);
     vector nico_inv_Phi(vector x);
+    vector nico_tanh(vector x);
     vector nico_logit(vector x);
     vector nico_log1m_inv_logit(vector x);
     vector nico_expm1(vector x);
     row_vector nico_exp(row_vector x);
     row_vector nico_log(row_vector x);
+    row_vector nico_log1m(row_vector x);
     row_vector nico_log1p_exp(row_vector x);
+    row_vector nico_log1m_exp(row_vector x);
     row_vector nico_inv_logit(row_vector x);
     row_vector nico_log_inv_logit(row_vector x);
     row_vector nico_Phi(row_vector x);
     row_vector nico_inv_Phi(row_vector x);
+    row_vector nico_tanh(row_vector x);
     row_vector nico_logit(row_vector x);
     row_vector nico_log1m_inv_logit(row_vector x);
     row_vector nico_expm1(row_vector x);
     matrix nico_exp(matrix x);
     matrix nico_log(matrix x);
+    matrix nico_log1m(matrix x);
     matrix nico_log1p_exp(matrix x);
+    matrix nico_log1m_exp(matrix x);
     matrix nico_inv_logit(matrix x);
     matrix nico_log_inv_logit(matrix x);
     matrix nico_Phi(matrix x);
     matrix nico_inv_Phi(matrix x);
+    matrix nico_tanh(matrix x);
     matrix nico_logit(matrix x);
     matrix nico_log1m_inv_logit(matrix x);
     matrix nico_expm1(matrix x);
@@ -62,7 +74,15 @@ functions {
     real nico_normal_lpdf(array[] real y, real mu, vector sigma);
     real nico_normal_lpdf(array[] real y, real mu, real sigma);
     real nico_normal_lpdf(real y, real mu, real sigma);
+    real nico_lgamma(data real x);
+    vector nico_lgamma(vector x);
+    real nico_beta_lpdf(real y, data real alpha, data real beta);
+    real nico_beta_lpdf(vector y, vector alpha, vector beta);
     real nico_dirichlet_lpdf(vector theta, vector alpha);
+    real nico_log_diff_exp(real x, real y);
+    vector nico_log_diff_exp(vector x, vector y);
+    real nico_std_normal_log_qf(real x);
+    vector nico_std_normal_log_qf(vector x);
     real nico_student_t_lpdf(vector y, real nu, vector mu, vector sigma);
     real nico_student_t_lpdf(vector y, real nu, vector mu, real sigma);
     real nico_student_t_lpdf(vector y, real nu, real mu, vector sigma);
@@ -75,13 +95,13 @@ functions {
         ////
         //// ---- Include files to compile the necessary custom (user-defined) Stan functions:
         ////
-        #include "Stan_fns_basic.stan"
-        #include "Stan_fns_corr.stan"
-        #include "Stan_fns_ordinal.stan"
-        #include "Stan_fns_log_lik.stan"
-        #include "Stan_fns_simplex.stan"
-        #include "Stan_fns_Jacobian.stan"
-        #include "Stan_fns_model_fit.stan"
+        #include "Stan_fns_basic_NicoSIMD_AVX.stan"
+        #include "Stan_fns_corr_NicoSIMD_AVX.stan"
+        #include "Stan_fns_ordinal_NicoSIMD_AVX.stan"
+        #include "Stan_fns_log_lik_NicoSIMD_AVX.stan"
+        #include "Stan_fns_simplex_NicoSIMD_AVX.stan"
+        #include "Stan_fns_Jacobian_NicoSIMD_AVX.stan"
+        #include "Stan_fns_model_fit_NicoSIMD_AVX.stan"
 }
 
 
@@ -474,6 +494,20 @@ transformed data {
               }
               if (baseline_case[1] == 0.0) joint_link_prior = 0;
         }
+        real c_shift_segment_ref = 0.5 * (mult_nd + mult_d) * dot_product(baseline_case, prior_beta_mu_mean);
+        if (joint_link_prior == 1) {
+              real sum_shift = 0.0;
+              real total_alpha_seg = sum(alpha_of_the_segments[1][1:(n_chosen_cutoffs[1] + 1)]);
+              real cum_alpha_seg = 0.0;
+              for (j in 1:n_chosen_cutoffs[1]) {
+                    cum_alpha_seg += alpha_of_the_segments[1][j];
+                    real p_seg = cum_alpha_seg / total_alpha_seg;
+                    real q_seg = (use_probit_link == 1) ? nico_inv_Phi(p_seg) : nico_logit(p_seg);
+                    real mid_prior_j = 0.5 * (prior_Se_Sp_link_mean_SD[1][j, 1] - prior_Se_Sp_link_mean_SD[2][j, 1]);
+                    sum_shift += (mid_prior_j - q_seg);
+              }
+              c_shift_segment_ref += sum_shift / n_chosen_cutoffs[1];
+        }
 
 }
 
@@ -639,8 +673,7 @@ model {
                        log_J[j] = median_and_log_J[2] + nico_log(kappa / alpha_0);
                   }
                   ////
-                  //// ---- Baseline lines: probit(Sp) (c = 1) and probit(1 - Se) (c = 2) = (C_mu + Xbeta) * scale,
-                  //// ---- at the prior means of beta_mu and raw_scale_mu (the constant anchor):
+                  //// ---- Baseline lines: probit(Sp) (c = 1) and probit(1 - Se) (c = 2) = (C_mu + Xbeta) * scale:
                   ////
                   real Xbeta_baseline_c      = dot_product(baseline_case, beta_mu);
                   real Xraw_scale_baseline_c = dot_product(baseline_case, raw_scale_mu);
@@ -672,26 +705,40 @@ model {
                                                                                                         P_upper_of_alpha[k],
                                                                                                         alpha_0,
                                                                                                         use_probit_link);
-                            real link_Sp = (median_and_log_J_of_k[1] + Xbeta_of_line[1]) * scale_of_line[1];
-                            real link_1m_Se = (median_and_log_J_of_k[1] + Xbeta_of_line[2]) * scale_of_line[2];
-                            real log_f_Sp;
-                            real log_f_1m_Se;
-                            if (use_probit_link == 1) {
-                                 P_of_C_mu[k] = 0.5 * (nico_Phi(link_Sp) + nico_Phi(link_1m_Se));
-                                 P_upper_of_C_mu[k] = 0.5 * (nico_Phi(-link_Sp) + nico_Phi(-link_1m_Se));
-                                 log_f_Sp = -0.5 * square(link_Sp) - 0.9189385332046728;
-                                 log_f_1m_Se = -0.5 * square(link_1m_Se) - 0.9189385332046728;
+                            if (joint_link_prior == 1) {
+                                 real link_ref = median_and_log_J_of_k[1] - c_shift_segment_ref;
+                                 if (use_probit_link == 1) {
+                                      P_of_C_mu[k] = nico_Phi(link_ref);
+                                      P_upper_of_C_mu[k] = nico_Phi(-link_ref);
+                                      log_J_of_P_of_C_mu[k] = -0.5 * square(link_ref) - 0.9189385332046728 +
+                                                              median_and_log_J_of_k[2] + log_kappa_over_alpha_0;
+                                 } else {
+                                      P_of_C_mu[k] = nico_inv_logit(link_ref);
+                                      P_upper_of_C_mu[k] = nico_inv_logit(-link_ref);
+                                      log_J_of_P_of_C_mu[k] = nico_log_inv_logit(link_ref) + nico_log1m_inv_logit(link_ref) +
+                                                              median_and_log_J_of_k[2] + log_kappa_over_alpha_0;
+                                 }
                             } else {
-                                 P_of_C_mu[k] = 0.5 * (nico_inv_logit(link_Sp) + nico_inv_logit(link_1m_Se));
-                                 P_upper_of_C_mu[k] = 0.5 * (nico_inv_logit(-link_Sp) + nico_inv_logit(-link_1m_Se));
-                                 log_f_Sp = nico_log_inv_logit(link_Sp) + nico_log1m_inv_logit(link_Sp);
-                                 log_f_1m_Se = nico_log_inv_logit(link_1m_Se) + nico_log1m_inv_logit(link_1m_Se);
+                                 real link_Sp = (median_and_log_J_of_k[1] + Xbeta_of_line[1]) * scale_of_line[1];
+                                 real link_1m_Se = (median_and_log_J_of_k[1] + Xbeta_of_line[2]) * scale_of_line[2];
+                                 real log_f_Sp;
+                                 real log_f_1m_Se;
+                                 if (use_probit_link == 1) {
+                                      P_of_C_mu[k] = 0.5 * (nico_Phi(link_Sp) + nico_Phi(link_1m_Se));
+                                      P_upper_of_C_mu[k] = 0.5 * (nico_Phi(-link_Sp) + nico_Phi(-link_1m_Se));
+                                      log_f_Sp = -0.5 * square(link_Sp) - 0.9189385332046728;
+                                      log_f_1m_Se = -0.5 * square(link_1m_Se) - 0.9189385332046728;
+                                 } else {
+                                      P_of_C_mu[k] = 0.5 * (nico_inv_logit(link_Sp) + nico_inv_logit(link_1m_Se));
+                                      P_upper_of_C_mu[k] = 0.5 * (nico_inv_logit(-link_Sp) + nico_inv_logit(-link_1m_Se));
+                                      log_f_Sp = nico_log_inv_logit(link_Sp) + nico_log1m_inv_logit(link_Sp);
+                                      log_f_1m_Se = nico_log_inv_logit(link_1m_Se) + nico_log1m_inv_logit(link_1m_Se);
+                                 }
+                                 real log_term_Sp = log_f_Sp + log_scale_nd;
+                                 real log_term_1m_Se = log_f_1m_Se + log_scale_d;
+                                 log_J_of_P_of_C_mu[k] = fmax(log_term_Sp, log_term_1m_Se) + nico_log1p_exp(-abs(log_term_Sp - log_term_1m_Se)) -
+                                                  0.6931471805599453 + median_and_log_J_of_k[2] + log_kappa_over_alpha_0;
                             }
-                            //// (log d P_of_C_mu / d cumulative phi = log((f(link_Sp) * scale_nd + f(link_1m_Se) * scale_d) / 2) + log dC_mu / d P)
-                            real log_term_Sp = log_f_Sp + log_scale_nd;
-                            real log_term_1m_Se = log_f_1m_Se + log_scale_d;
-                            log_J_of_P_of_C_mu[k] = fmax(log_term_Sp, log_term_1m_Se) + nico_log1p_exp(-abs(log_term_Sp - log_term_1m_Se)) -
-                                             0.6931471805599453 + median_and_log_J_of_k[2] + log_kappa_over_alpha_0;
                        }
                        ////
                        //// ---- Each segment with cutoffs inside it: log(new conditional) - log(Dirichlet of dirichlet_phi given the segment sum):
@@ -1088,4 +1135,3 @@ generated quantities {
       //     biv_equiv_C[2][, x_i] = to_vector(C_mu ./ scale_d_mu[x_i]);
       // }
 }
-

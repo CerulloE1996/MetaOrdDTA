@@ -552,6 +552,20 @@ transformed data {
               }
               if (baseline_case[1] == 0.0) joint_link_prior = 0;
         }
+        real c_shift_segment_ref = 0.5 * (mult_nd + mult_d) * dot_product(baseline_case, prior_beta_mu_mean);
+        if (joint_link_prior == 1) {
+              real sum_shift = 0.0;
+              real total_alpha_seg = sum(alpha_of_the_segments[1][1:(n_chosen_cutoffs[1] + 1)]);
+              real cum_alpha_seg = 0.0;
+              for (j in 1:n_chosen_cutoffs[1]) {
+                    cum_alpha_seg += alpha_of_the_segments[1][j];
+                    real p_seg = cum_alpha_seg / total_alpha_seg;
+                    real q_seg = (use_probit_link == 1) ? inv_Phi(p_seg) : logit(p_seg);
+                    real mid_prior_j = 0.5 * (prior_Se_Sp_link_mean_SD[1][j, 1] - prior_Se_Sp_link_mean_SD[2][j, 1]);
+                    sum_shift += (mid_prior_j - q_seg);
+              }
+              c_shift_segment_ref += sum_shift / n_chosen_cutoffs[1];
+        }
 
 }
 
@@ -721,8 +735,7 @@ model {
                        log_J[j] = median_and_log_J[2] + nico_log(kappa / alpha_0);
                   }
                   ////
-                  //// ---- Baseline lines: probit(Sp) (c = 1) and probit(1 - Se) (c = 2) = (C_mu + Xbeta) * scale,
-                  //// ---- at the prior means of beta_mu and raw_scale_mu (the constant anchor):
+                  //// ---- Baseline lines: probit(Sp) (c = 1) and probit(1 - Se) (c = 2) = (C_mu + Xbeta) * scale:
                   ////
                   real Xbeta_baseline_c      = dot_product(baseline_case, beta_mu);
                   real Xraw_scale_baseline_c = dot_product(baseline_case, raw_scale_mu);
@@ -752,26 +765,40 @@ model {
                        for (k in 1:n_thr) {
                             vector[2] median_and_log_J_of_k = [popmed_and_log_J_of_every_cutpoint[k],
                                                                popmed_and_log_J_of_every_cutpoint[n_thr + k]]';
-                            real link_Sp = (median_and_log_J_of_k[1] + Xbeta_of_line[1]) * scale_of_line[1];
-                            real link_1m_Se = (median_and_log_J_of_k[1] + Xbeta_of_line[2]) * scale_of_line[2];
-                            real log_f_Sp;
-                            real log_f_1m_Se;
-                            if (use_probit_link == 1) {
-                                 P_of_C_mu[k] = 0.5 * (nico_Phi(link_Sp) + nico_Phi(link_1m_Se));
-                                 P_upper_of_C_mu[k] = 0.5 * (nico_Phi(-link_Sp) + nico_Phi(-link_1m_Se));
-                                 log_f_Sp = -0.5 * square(link_Sp) - 0.9189385332046728;
-                                 log_f_1m_Se = -0.5 * square(link_1m_Se) - 0.9189385332046728;
+                            if (joint_link_prior == 1) {
+                                 real link_ref = median_and_log_J_of_k[1] - c_shift_segment_ref;
+                                 if (use_probit_link == 1) {
+                                      P_of_C_mu[k] = nico_Phi(link_ref);
+                                      P_upper_of_C_mu[k] = nico_Phi(-link_ref);
+                                      log_J_of_P_of_C_mu[k] = -0.5 * square(link_ref) - 0.9189385332046728 +
+                                                              median_and_log_J_of_k[2] + log_kappa_over_alpha_0;
+                                 } else {
+                                      P_of_C_mu[k] = nico_inv_logit(link_ref);
+                                      P_upper_of_C_mu[k] = nico_inv_logit(-link_ref);
+                                      log_J_of_P_of_C_mu[k] = nico_log_inv_logit(link_ref) + nico_log1m_inv_logit(link_ref) +
+                                                              median_and_log_J_of_k[2] + log_kappa_over_alpha_0;
+                                 }
                             } else {
-                                 P_of_C_mu[k] = 0.5 * (nico_inv_logit(link_Sp) + nico_inv_logit(link_1m_Se));
-                                 P_upper_of_C_mu[k] = 0.5 * (nico_inv_logit(-link_Sp) + nico_inv_logit(-link_1m_Se));
-                                 log_f_Sp = nico_log_inv_logit(link_Sp) + nico_log1m_inv_logit(link_Sp);
-                                 log_f_1m_Se = nico_log_inv_logit(link_1m_Se) + nico_log1m_inv_logit(link_1m_Se);
+                                 real link_Sp = (median_and_log_J_of_k[1] + Xbeta_of_line[1]) * scale_of_line[1];
+                                 real link_1m_Se = (median_and_log_J_of_k[1] + Xbeta_of_line[2]) * scale_of_line[2];
+                                 real log_f_Sp;
+                                 real log_f_1m_Se;
+                                 if (use_probit_link == 1) {
+                                      P_of_C_mu[k] = 0.5 * (nico_Phi(link_Sp) + nico_Phi(link_1m_Se));
+                                      P_upper_of_C_mu[k] = 0.5 * (nico_Phi(-link_Sp) + nico_Phi(-link_1m_Se));
+                                      log_f_Sp = -0.5 * square(link_Sp) - 0.9189385332046728;
+                                      log_f_1m_Se = -0.5 * square(link_1m_Se) - 0.9189385332046728;
+                                 } else {
+                                      P_of_C_mu[k] = 0.5 * (nico_inv_logit(link_Sp) + nico_inv_logit(link_1m_Se));
+                                      P_upper_of_C_mu[k] = 0.5 * (nico_inv_logit(-link_Sp) + nico_inv_logit(-link_1m_Se));
+                                      log_f_Sp = nico_log_inv_logit(link_Sp) + nico_log1m_inv_logit(link_Sp);
+                                      log_f_1m_Se = nico_log_inv_logit(link_1m_Se) + nico_log1m_inv_logit(link_1m_Se);
+                                 }
+                                 real log_term_Sp = log_f_Sp + log_scale_nd;
+                                 real log_term_1m_Se = log_f_1m_Se + log_scale_d;
+                                 log_J_of_P_of_C_mu[k] = fmax(log_term_Sp, log_term_1m_Se) + nico_log1p_exp(-abs(log_term_Sp - log_term_1m_Se)) -
+                                                  0.6931471805599453 + median_and_log_J_of_k[2] + log_kappa_over_alpha_0;
                             }
-                            //// (log d P_of_C_mu / d cumulative phi = log((f(link_Sp) * scale_nd + f(link_1m_Se) * scale_d) / 2) + log dC_mu / d P)
-                            real log_term_Sp = log_f_Sp + log_scale_nd;
-                            real log_term_1m_Se = log_f_1m_Se + log_scale_d;
-                            log_J_of_P_of_C_mu[k] = fmax(log_term_Sp, log_term_1m_Se) + nico_log1p_exp(-abs(log_term_Sp - log_term_1m_Se)) -
-                                             0.6931471805599453 + median_and_log_J_of_k[2] + log_kappa_over_alpha_0;
                        }
                        ////
                        //// ---- Each segment with cutoffs inside it: log(new conditional) - log(Dirichlet of dirichlet_phi given the segment sum):

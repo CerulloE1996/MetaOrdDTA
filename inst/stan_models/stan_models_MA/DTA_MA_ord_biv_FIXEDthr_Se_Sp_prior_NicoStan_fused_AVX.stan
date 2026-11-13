@@ -30,14 +30,11 @@ functions {
                                                           data int Se_Sp_prior_type,
                                                           vector prior_Se_Sp_dirichlet_A, matrix prior_Se_Sp_beta,
                                                           matrix prior_Se_Sp_link_mean_SD);
-        real nico_induced_dirichlet_with_Se_Sp_prior_lpdf(vector C, real Xbeta_baseline, data real v0,
-                                                          vector alpha, data int link,
-                                                          data real baseline_location_prior,
-                                                          vector alpha_of_the_segments,
-                                                          data array[] int chosen_cutoffs,
-                                                          data int Se_Sp_prior_type,
-                                                          vector prior_Se_Sp_dirichlet_A, matrix prior_Se_Sp_beta,
-                                                          matrix prior_Se_Sp_link_mean_SD);
+        real nico_log_Set0_marginal_at_chosen_cutoffs(vector x_chosen, vector alpha_of_the_segments,
+                                                      real v0, data int use_probit_link);
+        real nico_Se_Sp_prior_at_chosen_cutoffs_lpdf(vector x, data int Se_Sp_prior_type,
+                                                     vector prior_Se_Sp_dirichlet_A, matrix prior_Se_Sp_beta,
+                                                     matrix prior_Se_Sp_link_mean_SD, data int link);
         vector nico_exp(vector x);
         vector nico_log1p_exp(vector x);
         vector nico_log_inv_logit(vector x);
@@ -405,16 +402,19 @@ model {
                     ////      quantities: Phi(-(C - Xbeta_baseline))). The cutpoints are fixed, so C is itself the summary
                     ////      cutpoint C_mu. The random-cutpoint model (DTA_MA_ord_biv_RANDthr_kappa_popmed_Se_Sp_prior.stan)
                     ////      has this same prior on its own C_mu - Xbeta_baseline:
-                         target += nico_induced_dirichlet_with_Se_Sp_prior_lupdf(
-                                   C[c] | Xbeta_baseline, v0_baseline_prior[c], prior_dirichlet_alpha[c],
-                                   use_probit_link, 
-                                   baseline_location_prior[c],
-                                   alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
-                                   chosen_cutoffs[c, 1:n_chosen_cutoffs[c]], 
-                                   Se_Sp_prior_type,
+                         vector[n_thr] C_mu_minus_baseline_location_prior = C[c] - baseline_location_prior[c];
+                         vector[n_chosen_cutoffs[c]] x_chosen = C[c][chosen_cutoffs[c, 1:n_chosen_cutoffs[c]]] - Xbeta_baseline;
+                         target += nico_induced_dirichlet_prior_of_ordered_cutpoints_lupdf(
+                                   C_mu_minus_baseline_location_prior | prior_dirichlet_alpha[c], use_probit_link, 0.0);
+                         target += - nico_log_Set0_marginal_at_chosen_cutoffs(
+                                   x_chosen, alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
+                                   v0_baseline_prior[c], use_probit_link);
+                         target += nico_Se_Sp_prior_at_chosen_cutoffs_lupdf(
+                                   x_chosen | Se_Sp_prior_type,
                                    prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
                                    prior_beta_of_this_class,
-                                   prior_link_mean_SD_of_this_class);
+                                   prior_link_mean_SD_of_this_class,
+                                   use_probit_link);
                     }
              } else {
                     ////

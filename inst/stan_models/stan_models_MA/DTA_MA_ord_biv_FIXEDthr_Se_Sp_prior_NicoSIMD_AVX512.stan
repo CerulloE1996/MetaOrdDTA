@@ -1,5 +1,5 @@
-// NicoSIMD_AVX512 version of DTA_MA_ord_biv_FIXEDthr_Se_Sp_prior.stan written by NicoStan (source model md5 f0f02946b5c561f5950d010920aa4bc1; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
-// NicoSIMD functions used: exp, log, log1p, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, log_diff_exp, std_normal_log_qf
+// NicoSIMD_AVX512 version of DTA_MA_ord_biv_FIXEDthr_Se_Sp_prior.stan written by NicoStan (source model md5 6a5d49f6f481fc729d0e56c0a2c31d34; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
+// NicoSIMD functions used: exp, log, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, log_diff_exp, std_normal_log_qf, log_sum_exp
 
 
 
@@ -7,7 +7,6 @@ functions {
     real bmvp_simd_lanes();
     real nico_exp(real x);
     real nico_log(real x);
-    real nico_log1p(real x);
     real nico_log1m(real x);
     real nico_log1p_exp(real x);
     real nico_log1m_exp(real x);
@@ -20,7 +19,6 @@ functions {
     real nico_log1m_inv_logit(real x);
     vector nico_exp(vector x);
     vector nico_log(vector x);
-    vector nico_log1p(vector x);
     vector nico_log1m(vector x);
     vector nico_log1p_exp(vector x);
     vector nico_log1m_exp(vector x);
@@ -33,7 +31,6 @@ functions {
     vector nico_log1m_inv_logit(vector x);
     row_vector nico_exp(row_vector x);
     row_vector nico_log(row_vector x);
-    row_vector nico_log1p(row_vector x);
     row_vector nico_log1m(row_vector x);
     row_vector nico_log1p_exp(row_vector x);
     row_vector nico_log1m_exp(row_vector x);
@@ -46,7 +43,6 @@ functions {
     row_vector nico_log1m_inv_logit(row_vector x);
     matrix nico_exp(matrix x);
     matrix nico_log(matrix x);
-    matrix nico_log1p(matrix x);
     matrix nico_log1m(matrix x);
     matrix nico_log1p_exp(matrix x);
     matrix nico_log1m_exp(matrix x);
@@ -77,6 +73,14 @@ functions {
     vector nico_log_diff_exp(vector x, vector y);
     real nico_std_normal_log_qf(real x);
     vector nico_std_normal_log_qf(vector x);
+    real nico_log_sum_exp(vector x);
+    real nico_log_sum_exp(row_vector x);
+    real nico_log_sum_exp(matrix x);
+    real nico_log_sum_exp(array[] real x);
+    real nico_log_sum_exp(real a, real b);
+    vector nico_log_sum_exp(vector a, vector b);
+    vector nico_log_sum_exp(real a, vector b);
+    vector nico_log_sum_exp(vector a, real b);
         ////
         //// ---- Include files to compile the necessary custom (user-defined) Stan functions:
         ////
@@ -142,8 +146,136 @@ functions {
         //           
         // }
 
-}
 
+        //// ---- Exact normalized Set-0 marginal log-density at chosen cutoffs via 24-node Laplace-centered Gauss-Hermite:
+        real log_Set0_marginal_at_chosen_cutoffs(vector x_chosen,
+                                                 vector alpha_of_the_segments,
+                                                 real v0,
+                                                 int use_probit_link) {
+              int m = num_elements(x_chosen);
+              if (m == 0) return 0.0;
+              vector[24] gh_t = [
+                  -8.50780351919527433e+00, -7.43789066602167104e+00, -6.54167500509862876e+00, -5.73274717525120181e+00,
+                  -4.97804137463911367e+00, -4.26038360501990354e+00, -3.56930676407355918e+00, -2.89772864322331181e+00,
+                  -2.24046785169175244e+00, -1.59348042981641846e+00, -9.53421922932108146e-01, -3.17370096629455034e-01,
+                   3.17370096629453258e-01,  9.53421922932111698e-01,  1.59348042981641846e+00,  2.24046785169175156e+00,
+                   2.89772864322331269e+00,  3.56930676407356007e+00,  4.26038360501990709e+00,  4.97804137463911989e+00,
+                   5.73274717525120003e+00,  6.54167500509863320e+00,  7.43789066602166216e+00,  8.50780351919525657e+00 ]';
+              vector[24] gh_lw = [
+                  -3.69042806607304854e+01, -2.86212344883108756e+01, -2.24843031451895179e+01, -1.76020197436324572e+01,
+                  -1.36185797828409356e+01, -1.03468101270751411e+01, -7.67407824125704963e+00, -5.52732585071174043e+00,
+                  -3.85723446710271611e+00, -2.63012623460007200e+00, -1.82350086207048112e+00, -1.42349743041213506e+00,
+                  -1.42349743041215793e+00, -1.82350086207048467e+00, -2.63012623460007866e+00, -3.85723446710268059e+00,
+                  -5.52732585071170757e+00, -7.67407824125703453e+00, -1.03468101270751269e+01, -1.36185797828409267e+01,
+                  -1.76020197436324182e+01, -2.24843031451895001e+01, -2.86212344883107441e+01, -3.69042806607303291e+01 ]';
+              real sum_seg = sum(alpha_of_the_segments);
+              real lg_const = lgamma(sum_seg) - sum(nico_lgamma(alpha_of_the_segments));
+              real inv_v0 = 1.0 / v0;
+              real b_star = 0.0;
+              {
+                    real cum_w = 0.0;
+                    for (j in 1:m) {
+                          cum_w += alpha_of_the_segments[j];
+                          real p_m = cum_w / sum_seg;
+                          real q_m = (use_probit_link == 1) ? nico_inv_Phi(p_m) : nico_logit(p_m);
+                          b_star += (q_m - x_chosen[j]);
+                    }
+                    b_star /= m;
+              }
+              real sig_star = 1.0;
+              for (it in 1:11) {
+                    vector[m] z = x_chosen + b_star;
+                    vector[m] lF;
+                    vector[m] lS;
+                    vector[m] lf;
+                    if (use_probit_link == 1) {
+                          for (j in 1:m) {
+                                lF[j] = std_normal_lcdf(z[j] |);
+                                lS[j] = std_normal_lccdf(z[j] |);
+                                lf[j] = -0.5 * square(z[j]) - 0.91893853320467274178;
+                          }
+                    } else {
+                          lF = nico_log_inv_logit(z);
+                          lS = nico_log1m_inv_logit(z);
+                          lf = lF + lS;
+                    }
+                    vector[m + 1] log_q;
+                    log_q[1] = lF[1];
+                    log_q[m + 1] = lS[m];
+                    for (j in 2:m) {
+                          log_q[j] = (z[j - 1] >= 0.0) ? nico_log_diff_exp(lS[j - 1], lS[j]) : nico_log_diff_exp(lF[j], lF[j - 1]);
+                    }
+                    vector[m] r_own = nico_exp(lf - log_q[1:m]);
+                    vector[m] r_nxt = nico_exp(lf - log_q[2:(m + 1)]);
+                    real sum_dg = 0.0;
+                    real sum_d2 = -inv_v0;
+                    for (j in 1:m) {
+                          real df_j = (use_probit_link == 1) ? (-z[j]) : (nico_exp(lS[j]) - nico_exp(lF[j]));
+                          sum_dg += (alpha_of_the_segments[j] - 1.0) * r_own[j] - (alpha_of_the_segments[j + 1] - 1.0) * r_nxt[j] + df_j;
+                          sum_d2 -= (use_probit_link == 1) ? 1.0 : (2.0 * nico_exp(lf[j]));
+                    }
+                    if (alpha_of_the_segments[1] != 1.0) {
+                          real df1 = (use_probit_link == 1) ? (-z[1]) : (nico_exp(lS[1]) - nico_exp(lF[1]));
+                          sum_d2 += (alpha_of_the_segments[1] - 1.0) * (df1 * r_own[1] - square(r_own[1]));
+                    }
+                    if (alpha_of_the_segments[m + 1] != 1.0) {
+                          real dfm = (use_probit_link == 1) ? (-z[m]) : (nico_exp(lS[m]) - nico_exp(lF[m]));
+                          sum_d2 += (alpha_of_the_segments[m + 1] - 1.0) * (-dfm * r_nxt[m] - square(r_nxt[m]));
+                    }
+                    for (i in 2:m) {
+                          if (alpha_of_the_segments[i] != 1.0) {
+                                real df_hi = (use_probit_link == 1) ? (-z[i]) : (nico_exp(lS[i]) - nico_exp(lF[i]));
+                                real df_lo = (use_probit_link == 1) ? (-z[i - 1]) : (nico_exp(lS[i - 1]) - nico_exp(lF[i - 1]));
+                                real ui = r_own[i] - r_nxt[i - 1];
+                                sum_d2 += (alpha_of_the_segments[i] - 1.0) * (df_hi * r_own[i] - df_lo * r_nxt[i - 1] - square(ui));
+                          }
+                    }
+                    if (it == 11) {
+                          sig_star = inv_sqrt(-sum_d2);
+                    } else {
+                          real dg_db = -b_star * inv_v0 + sum_dg;
+                          real step = -dg_db / sum_d2;
+                          if (step >  2.0) step =  2.0;
+                          if (step < -2.0) step = -2.0;
+                          b_star += step;
+                    }
+              }
+              vector[24] lw_terms;
+              for (i in 1:24) {
+                    real b_i = b_star + sig_star * gh_t[i];
+                    vector[m] z = x_chosen + b_i;
+                    vector[m] lF;
+                    vector[m] lS;
+                    vector[m] lf;
+                    if (use_probit_link == 1) {
+                          for (j in 1:m) {
+                                lF[j] = std_normal_lcdf(z[j] |);
+                                lS[j] = std_normal_lccdf(z[j] |);
+                                lf[j] = -0.5 * square(z[j]) - 0.91893853320467274178;
+                          }
+                    } else {
+                          lF = nico_log_inv_logit(z);
+                          lS = nico_log1m_inv_logit(z);
+                          lf = lF + lS;
+                    }
+                    vector[m + 1] log_q;
+                    log_q[1] = lF[1];
+                    log_q[m + 1] = lS[m];
+                    for (j in 2:m) {
+                          log_q[j] = (z[j - 1] >= 0.0) ? nico_log_diff_exp(lS[j - 1], lS[j]) : nico_log_diff_exp(lF[j], lF[j - 1]);
+                    }
+                    real val_i = -0.5 * square(b_i) * inv_v0 + lg_const + sum(lf);
+                    for (s_i in 1:(m + 1)) {
+                          if (alpha_of_the_segments[s_i] != 1.0) {
+                                val_i += (alpha_of_the_segments[s_i] - 1.0) * log_q[s_i];
+                          }
+                    }
+                    lw_terms[i] = gh_lw[i] + val_i + 0.5 * square(gh_t[i]);
+              }
+              return -0.5 * nico_log(v0) + nico_log(sig_star) + nico_log_sum_exp(lw_terms);
+        }
+
+}
 
 data {
         ////
@@ -363,15 +495,14 @@ model {
                     real v0 = (c == 1) ?
                               dot_self(baseline_case_nd .* to_vector(prior_beta_mu_SD[1, 1:n_covariates_nd])) :
                               dot_self(baseline_case_d  .* to_vector(prior_beta_mu_SD[2, 1:n_covariates_d]));
+                    vector[n_chosen_cutoffs[c]] x_chosen = C_mu_minus_Xbeta_baseline[chosen_cutoffs[c, 1:n_chosen_cutoffs[c]]];
                     target += induced_dirichlet_given_C_on_the_log_scale_lupdf(
-                              C_mu_minus_baseline_location_prior | prior_dirichlet_alpha[c], use_probit_link);
-                    real log_Set0_marginal_of_C_minus_Xbeta = nico_lgamma(n_cat) - 0.91893853320467274178 * n_thr - 0.5 * nico_log1p(n_thr * v0) - 0.5 * dot_self(C_mu_minus_Xbeta_baseline)
-                              + 0.5 * (v0 / (1.0 + n_thr * v0)) * square(sum(C_mu_minus_Xbeta_baseline));
-                    target += - log_Set0_marginal_of_C_minus_Xbeta;
-                    target += induced_dirichlet_with_Se_Sp_prior_lupdf(
-                              C_mu_minus_Xbeta_baseline | prior_dirichlet_alpha[c],
-                              alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)],
-                              chosen_cutoffs[c, 1:n_chosen_cutoffs[c]], Se_Sp_prior_type,
+                              C_mu_minus_baseline_location_prior | prior_dirichlet_alpha[c], use_probit_link)
+                              - (nico_lgamma(sum(prior_dirichlet_alpha[c])) - sum(nico_lgamma(prior_dirichlet_alpha[c])));
+                    target += - log_Set0_marginal_at_chosen_cutoffs(
+                              x_chosen, alpha_of_the_segments[c][1:(n_chosen_cutoffs[c] + 1)], v0, use_probit_link);
+                    target += Se_Sp_prior_at_chosen_cutoffs_lupdf(
+                              x_chosen | Se_Sp_prior_type,
                               prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
                               prior_beta_of_this_class, prior_link_mean_SD_of_this_class, use_probit_link);
              } else {
@@ -518,7 +649,6 @@ generated quantities {
       }
 
 }
-
 
 
 
