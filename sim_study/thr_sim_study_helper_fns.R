@@ -115,6 +115,8 @@ create_RMSE_plot <- function(  data,
                              x == "ord_biv_fixed_C"   ~ "DGM: Ord-Biv-FC",
                              x == "ord_biv_random_C"  ~ "DGM: Ord-Biv-RC", 
                              x == "R&G_random_C" ~ "DGM: Ord-HSROC-RC",
+                             x == "Hoyer_2018"   ~ "DGM: Hoyer et al. 2018",
+                             x == "logit_GLMM"   ~ "DGM: Logit GLMM", x == "diagmeta" ~ "DGM: Steinhauser et al. 2016",
                              TRUE ~ x
                            )
                          }
@@ -243,6 +245,8 @@ create_bias_plot <- function(  data,
                            x == "ord_biv_fixed_C"   ~ "DGM: Ord-Biv-FC",
                            x == "ord_biv_random_C"  ~ "DGM: Ord-Biv-RC", 
                            x == "R&G_random_C" ~ "DGM: Ord-HSROC-RC",
+                           x == "Hoyer_2018"   ~ "DGM: Hoyer et al. 2018",
+                           x == "logit_GLMM"   ~ "DGM: Logit GLMM", x == "diagmeta" ~ "DGM: Steinhauser et al. 2016",
                            TRUE ~ x
                          )
                        }
@@ -328,6 +332,8 @@ create_coverage_plot <- function(data,
                            x == "ord_biv_fixed_C"   ~ "DGM: Ord-Biv-FC",
                            x == "ord_biv_random_C"  ~ "DGM: Ord-Biv-RC",
                            x == "R&G_random_C" ~ "DGM: Ord-HSROC-RC",
+                           x == "Hoyer_2018"   ~ "DGM: Hoyer et al. 2018",
+                           x == "logit_GLMM"   ~ "DGM: Logit GLMM", x == "diagmeta" ~ "DGM: Steinhauser et al. 2016",
                            TRUE ~ x
                          )
                        }
@@ -414,6 +420,8 @@ create_width_plot <- function(data,
                            x == "ord_biv_fixed_C"   ~ "DGM: Ord-Biv-FC",
                            x == "ord_biv_random_C"  ~ "DGM: Ord-Biv-RC",
                            x == "R&G_random_C" ~ "DGM: Ord-HSROC-RC",
+                           x == "Hoyer_2018"   ~ "DGM: Hoyer et al. 2018",
+                           x == "logit_GLMM"   ~ "DGM: Logit GLMM", x == "diagmeta" ~ "DGM: Steinhauser et al. 2016",
                            TRUE ~ x
                          )
                        }
@@ -450,7 +458,10 @@ R_fn_edit_sim_data_tibble <- function(data_0) {
       data$DGM <- factor(data$DGM, levels = c(  "Jones", 
                                                 "ord_biv_fixed_C", 
                                                 "ord_biv_random_C", 
-                                                "R&G_random_C"))
+                                                "R&G_random_C",
+                                                "Hoyer_2018",
+                                                "logit_GLMM",
+                                                "diagmeta"))
       
       return(data)
       
@@ -1592,12 +1603,13 @@ fn_induced_accuracy_priors <- function(priors,
                     mean_of_Se <-  rep(0, n_thr)
                     SD_of_Se <-  rep(1, n_thr)
               } else if (model_parameterisation == "Jones") {
-                    Se_Sp_prior_type <-  1
-                    cutoffs <-  range(band)
-                    mean_of_Sp <-  rep(0, 2)
-                    SD_of_Sp <-  rep(1, 2)
-                    mean_of_Se <-  rep(0, 2)
-                    SD_of_Se <-  rep(1, 2)
+                    mid <-  ceiling(n_thr / 2)
+                    Se_Sp_prior_type <-  4
+                    cutoffs <-  mid
+                    mean_of_Sp <-  stats::qnorm(mid / (n_thr + 1))
+                    SD_of_Sp <-  1.0
+                    mean_of_Se <-  stats::qnorm(1 - mid / (n_thr + 1))
+                    SD_of_Se <-  1.0
               }
         } else {
               cutoffs <-  literature_priors$cutoffs
@@ -1625,10 +1637,10 @@ fn_induced_accuracy_priors <- function(priors,
         priors$prior_Se_Sp_beta <-  list(beta_of_Sp, beta_of_Se)
         priors$prior_Se_Sp_link_mean_SD <-  list(link_mean_SD_of_Sp, link_mean_SD_of_Se)
         ##
-        ## ---- Sets 1 and 2: the same prior as priors$Se_Sp_prior, the list the package builds the Stan fields from (without
+        ## ---- Sets 0, 1 and 2: the same prior as priors$Se_Sp_prior, the list the package builds the Stan fields from (without
         ##      it the package passes the fields with the prior off): the link-scale Normal as its median and 95% limits
         ##
-        if (prior_set > 0) {
+        if (prior_set > 0 || model_parameterisation == "Jones") {
 
               stopifnot(priors$use_probit_link %in% c(0, 1))
               fn_inverse_link <-  if (priors$use_probit_link == 1) stats::pnorm else stats::plogis
@@ -1675,16 +1687,10 @@ fn_induced_accuracy_priors <- function(priors,
               priors$prior_one_hill_skew <-  lapply(1:2, fn_values_of_one_name, name = "skew", n_values = 3)
               priors$prior_one_hill_log_tail <-  lapply(1:2, fn_values_of_one_name, name = "log_tail", n_values = 3)
               priors$prior_one_hill_bend <-  lapply(1:2, fn_values_of_one_name, name = "bend", n_values = 2)
-              ## (set 0: the list the package builds the Se / Sp prior fields above from, as sets 1 and 2 have;
-              ##  without it the package passes them with use_Se_Sp_prior = 0, which the model refuses under the
-              ##  one-hill prior)
-              if (prior_set == 0) {
-                    priors$Se_Sp_prior <-  list(type = 1,
-                                                Sp = list(cutoffs = cutoffs,
-                                                          A = priors$prior_Se_Sp_dirichlet_A[[1]]),
-                                                Se = list(cutoffs = cutoffs,
-                                                          A = priors$prior_Se_Sp_dirichlet_A[[2]]))
-              }
+              ## (set 0: the list the package builds the Se / Sp prior fields from is the type 4 list made above (the Normal(0, 1)
+              ##  on the probit scale at the one middle cutoff), as at sets 1 and 2. A list of type 1 was put here before: with
+              ##  it a run with data got Se_Sp_prior_type = 1, under which the model does not use the location given the shape,
+              ##  while the prior-only fits, which take the fields above as they stand, ran type 4: two different priors.)
         }
         return(priors)
 
