@@ -800,6 +800,57 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
           # } else {
           # 
           # }
+          ##
+          ## ---- The time-to-event DGM of Hoyer, Hirt and Kuss (2018), Weibull test values (tests 2, 3 and 4): ----------------------------
+          ##
+          ## (from fitting that model, Weibull, to the REAL data of each test with dtametaTMB::fitHoyer(), threshold k = "positive when the
+          ##  score is k or more", smallest = 0.5, largest = n_thr + 1. In a study, the log test value of a person of group g is
+          ##  beta_g + u_g + lambda_g * log(E), E ~ Exponential(1); (u_nd, u_d) is bivariate normal with SDs su_nd, su_d and correlation rho;
+          ##  the score is the number of thresholds 1, ..., n_thr that the test value lies above.)
+          ##
+          true_Hoyer_2018_params_list <- list()
+          if (DGM == "Hoyer_2018") {
+                true_Hoyer_2018_params_list[[2]] <- list(beta_nd = 0.578235892, lambda_nd = 0.8035988613, su_nd = 0.2479880048, beta_d = 1.503273511, lambda_d = 0.4463884907, su_d = 0.2051119287, rho = 0.4639579537)  ## GAD-2
+                true_Hoyer_2018_params_list[[3]] <- list(beta_nd = 2.247313372, lambda_nd = 1.013167455, su_nd = 0.2788456147, beta_d = 3.288483765, lambda_d = 0.4576064201, su_d = 0.1663606491, rho = 0.4130489496)  ## BAI
+                true_Hoyer_2018_params_list[[4]] <- list(beta_nd = 1.917441837, lambda_nd = 0.574362408, su_nd = 0.1529238667, beta_d = 2.558541788, lambda_d = 0.3261829719, su_d = 0.1588348715, rho = 0.5665910211)  ## HADS
+          }
+          ##
+          ##
+          ## ---- The logit GLMM DGM (Stoye et al. 2026, equation 6; Hoyer and Kuss 2018) (tests 2, 3 and 4): -------------------------------
+          ##
+          ## (from fitting that model to the REAL data of each test with lme4::glmer(). In study i, at threshold k,
+          ##  logit(Sp) = b01 + b02 * k + u1_i and logit(Se) = b11 + b12 * k + u2_i; (u1_i, u2_i) is bivariate normal with SDs s1, s2 and
+          ##  correlation rho. A person's latent value is logistic with scale 1, located at -(b01 + u1_i) if non-diseased and at b11 + u2_i if
+          ##  diseased; the score is the number of thresholds b02 * k (non-diseased) or -b12 * k (diseased), k = 1, ..., n_thr, it lies above.)
+          ##
+          true_logit_GLMM_params_list <- list()
+          if (DGM == "logit_GLMM") {
+                true_logit_GLMM_params_list[[2]] <- list(b01 = -1.304555081, b02 = 0.9939413545, b11 = 3.981535831, b12 = -1.011194802, s1 = 0.6345920099, s2 = 0.8112791655, rho = -0.4951828301)  ## GAD-2
+                true_logit_GLMM_params_list[[3]] <- list(b01 = -0.8526484076, b02 = 0.1323346305, b11 = 3.544697691, b12 = -0.1450912042, s1 = 0.5162218925, s2 = 0.6009575151, rho = -0.3822577916)  ## BAI
+                true_logit_GLMM_params_list[[4]] <- list(b01 = -2.465434374, b02 = 0.4298249227, b11 = 5.009870199, b12 = -0.4324148899, s1 = 0.4975577628, s2 = 0.7260257937, rho = -0.4565357128)  ## HADS
+          }
+          ##
+          ##
+          ## ---- The DGM of Steinhauser, Schumacher and Rücker (2016), R package diagmeta, variant DIDS, logistic (tests 2, 3 and 4): -----
+          ##
+          ## (from fitting that model to the REAL data of each test with diagmeta::diagmeta(model = "DIDS", distr = "logistic",
+          ##  equalvar = FALSE, log.cutoff = FALSE). In study i, at threshold k, logit(Sp) = (alpha_nd + a_nd_i) + (beta_nd + b_nd_i) * k
+          ##  and logit(1 - Se) = (alpha_d + a_d_i) + (beta_d + b_d_i) * k. The four study effects in lmer's order, (a_nd_i,
+          ##  a_d_i - a_nd_i, b_nd_i, b_d_i - b_nd_i), are jointly normal with the covariance matrix below. A person's latent value is
+          ##  logistic, located at -(alpha_g + a_g_i) / (beta_g + b_g_i) with scale 1 / (beta_g + b_g_i) in group g; the score is the number
+          ##  of thresholds k = 1, ..., n_thr it lies at or above. The residual error of the fitted linear mixed model is not part of the
+          ##  DGM: the counts of a study vary around its own shares by the sampling of its people only.)
+          ##
+          true_diagmeta_params_list <- list()
+          if (DGM == "diagmeta") {
+                true_diagmeta_params_list[[2]] <- list(alpha_nd = -1.196713904, beta_nd = 0.9371118387, alpha_d = -3.425026746, beta_d = 0.8677368511,
+                                                       covariance_of_the_study_effects = matrix(c(0.2896384134, -0.1351657163, 0.0006121601216, -0.00919938167, -0.1351657163, 0.4062709461, 0.05068537062, -0.03403608617, 0.0006121601216, 0.05068537062, 0.01239965967, -0.01482963201, -0.00919938167, -0.03403608617, -0.01482963201, 0.02179063972), nrow = 4, ncol = 4))  ## GAD-2
+                true_diagmeta_params_list[[3]] <- list(alpha_nd = -1.003558602, beta_nd = 0.1495246243, alpha_d = -3.242138865, beta_d = 0.1400078537,
+                                                       covariance_of_the_study_effects = matrix(c(0.3255700299, -0.2187390221, -0.008154840997, 0.0007049961424, -0.2187390221, 0.1524696009, 0.004651117022, -0.001556221346, -0.008154840997, 0.004651117022, 0.001616186185, -0.0007465921205, 0.0007049961424, -0.001556221346, -0.0007465921205, 0.0008319143216), nrow = 4, ncol = 4))  ## BAI
+                true_diagmeta_params_list[[4]] <- list(alpha_nd = -2.363827965, beta_nd = 0.4188058623, alpha_d = -4.069045325, beta_d = 0.3544414606,
+                                                       covariance_of_the_study_effects = matrix(c(0.2050840319, -0.02161801376, -0.02084620401, -0.001821869066, -0.02161801376, 0.7018052792, 0.02608158142, -0.05544827024, -0.02084620401, 0.02608158142, 0.006813859689, -0.004294474617, -0.001821869066, -0.05544827024, -0.004294474617, 0.007414699186), nrow = 4, ncol = 4))  ## HADS
+          }
+          ##
           if (DGM %in% c("ord_biv_fixed_C",
                          "ord_biv_random_C")) {
                   
@@ -1139,6 +1190,27 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                     #   
                     # }
                     # ##
+                    ## (the Hoyer DGM: the thresholds of tests 2 to 4 on the scale of the log test value, the same in both groups)
+                    if (DGM == "Hoyer_2018") {
+                          for (t in 2:4) {
+                                thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- log(1:n_thr_per_test[t])
+                                thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]]  <- log(1:n_thr_per_test[t])
+                          }
+                    }
+                    ## (the logit GLMM DGM: the thresholds of tests 2 to 4 on the scale of the latent logistic value of each group)
+                    if (DGM == "logit_GLMM") {
+                          for (t in 2:4) {
+                                thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- true_logit_GLMM_params_list[[t]]$b02 * (1:n_thr_per_test[t])
+                                thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]]  <- -true_logit_GLMM_params_list[[t]]$b12 * (1:n_thr_per_test[t])
+                          }
+                    }
+                    ## (the diagmeta DGM: the thresholds of tests 2 to 4 are 1, ..., n_thr on the scale of the latent logistic value, in both groups)
+                    if (DGM == "diagmeta") {
+                          for (t in 2:4) {
+                                thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- 1:n_thr_per_test[t]
+                                thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]]  <- 1:n_thr_per_test[t]
+                          }
+                    }
                     for (t in 2:n_tests) {
                       
                             Mean_of_thr_for_all_tests_array_per_study_nd[s, t, 1:n_thr_per_test[t]] <- thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]]
@@ -1266,6 +1338,70 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                               scale_d_study_s[t]  <- exp(raw_scales[2])
                             }
                       
+                    } else if (DGM == "Hoyer_2018") {
+                      
+                            ## (tests 1 and 5 are not Hoyer tests: the locations and scales the other DGMs start from)
+                            location_nd_study_s <- c(-100, NA, NA, NA, -1)
+                            location_d_study_s  <- c(+100, NA, NA, NA, +1)
+                            scale_nd_study_s <- rep(1, n_tests)
+                            scale_d_study_s  <- rep(1, n_tests)
+                            ##
+                            for (t in 2:4) {
+                                  Hoyer_su_nd <- true_Hoyer_2018_params_list[[t]]$su_nd
+                                  Hoyer_su_d  <- true_Hoyer_2018_params_list[[t]]$su_d
+                                  Hoyer_rho   <- true_Hoyer_2018_params_list[[t]]$rho
+                                  Hoyer_Sigma_u <- matrix(c(Hoyer_su_nd^2, Hoyer_rho * Hoyer_su_nd * Hoyer_su_d,
+                                                            Hoyer_rho * Hoyer_su_nd * Hoyer_su_d, Hoyer_su_d^2), nrow = 2, ncol = 2)
+                                  Hoyer_u <- LaplacesDemon::rmvn(n = 1, mu = c(0, 0), Sigma = Hoyer_Sigma_u)
+                                  location_nd_study_s[t] <- true_Hoyer_2018_params_list[[t]]$beta_nd + Hoyer_u[1]
+                                  location_d_study_s[t]  <- true_Hoyer_2018_params_list[[t]]$beta_d  + Hoyer_u[2]
+                                  scale_nd_study_s[t] <- true_Hoyer_2018_params_list[[t]]$lambda_nd
+                                  scale_d_study_s[t]  <- true_Hoyer_2018_params_list[[t]]$lambda_d
+                            }
+                      
+                    } else if (DGM == "logit_GLMM") {
+                      
+                            ## (tests 1 and 5 are not logit GLMM tests: the locations and scales the other DGMs start from)
+                            location_nd_study_s <- c(-100, NA, NA, NA, -1)
+                            location_d_study_s  <- c(+100, NA, NA, NA, +1)
+                            scale_nd_study_s <- rep(1, n_tests)
+                            scale_d_study_s  <- rep(1, n_tests)
+                            ##
+                            for (t in 2:4) {
+                                  GLMM_s1  <- true_logit_GLMM_params_list[[t]]$s1
+                                  GLMM_s2  <- true_logit_GLMM_params_list[[t]]$s2
+                                  GLMM_rho <- true_logit_GLMM_params_list[[t]]$rho
+                                  GLMM_Sigma_u <- matrix(c(GLMM_s1^2, GLMM_rho * GLMM_s1 * GLMM_s2,
+                                                           GLMM_rho * GLMM_s1 * GLMM_s2, GLMM_s2^2), nrow = 2, ncol = 2)
+                                  GLMM_u <- LaplacesDemon::rmvn(n = 1, mu = c(0, 0), Sigma = GLMM_Sigma_u)
+                                  location_nd_study_s[t] <- -(true_logit_GLMM_params_list[[t]]$b01 + GLMM_u[1])
+                                  location_d_study_s[t]  <- true_logit_GLMM_params_list[[t]]$b11 + GLMM_u[2]
+                            }
+
+                    } else if (DGM == "diagmeta") {
+
+                            ## (tests 1 and 5 are not diagmeta tests: the locations and scales the other DGMs start from)
+                            location_nd_study_s <- c(-100, NA, NA, NA, -1)
+                            location_d_study_s  <- c(+100, NA, NA, NA, +1)
+                            scale_nd_study_s <- rep(1, n_tests)
+                            scale_d_study_s  <- rep(1, n_tests)
+                            ##
+                            for (t in 2:4) {
+                                  ## (the four study effects; drawn again in the rare case that a study's slope of a group is not positive)
+                                  diagmeta_slope_nd <- diagmeta_slope_d <- -1
+                                  while (diagmeta_slope_nd <= 0 || diagmeta_slope_d <= 0) {
+                                        diagmeta_u <- LaplacesDemon::rmvn(n = 1, mu = rep(0, 4), Sigma = true_diagmeta_params_list[[t]]$covariance_of_the_study_effects)
+                                        diagmeta_intercept_nd <- true_diagmeta_params_list[[t]]$alpha_nd + diagmeta_u[1]
+                                        diagmeta_intercept_d  <- true_diagmeta_params_list[[t]]$alpha_d  + diagmeta_u[1] + diagmeta_u[2]
+                                        diagmeta_slope_nd     <- true_diagmeta_params_list[[t]]$beta_nd  + diagmeta_u[3]
+                                        diagmeta_slope_d      <- true_diagmeta_params_list[[t]]$beta_d   + diagmeta_u[3] + diagmeta_u[4]
+                                  }
+                                  location_nd_study_s[t] <- -diagmeta_intercept_nd / diagmeta_slope_nd
+                                  location_d_study_s[t]  <- -diagmeta_intercept_d  / diagmeta_slope_d
+                                  scale_nd_study_s[t] <- 1 / diagmeta_slope_nd
+                                  scale_d_study_s[t]  <- 1 / diagmeta_slope_d
+                            }
+
                     }
                     
                     
@@ -1322,6 +1458,27 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                     latent_cts_results_neg <- LaplacesDemon::rmvn(n = n_neg, mu = location_nd_study_s, Sigma = Sigma_nd)
                     latent_cts_results_pos <- LaplacesDemon::rmvn(n = n_pos, mu = location_d_study_s, Sigma = Sigma_d)
                     latent_results <- rbind(latent_cts_results_neg, latent_cts_results_pos)
+                    ## (the Hoyer DGM: the latent value of tests 2 to 4 is the log test value, Weibull: location + scale * log(E), E ~ Exponential(1))
+                    if (DGM == "Hoyer_2018") {
+                          for (t in 2:4) {
+                                latent_results[seq_len(n_neg), t] <- location_nd_study_s[t] + scale_nd_study_s[t] * log(stats::rexp(n = n_neg, rate = 1))
+                                latent_results[n_neg + seq_len(n_pos), t] <- location_d_study_s[t] + scale_d_study_s[t] * log(stats::rexp(n = n_pos, rate = 1))
+                          }
+                    }
+                    ## (the logit GLMM DGM: the latent value of tests 2 to 4 is logistic with scale 1 around the study's location of the group)
+                    if (DGM == "logit_GLMM") {
+                          for (t in 2:4) {
+                                latent_results[seq_len(n_neg), t] <- stats::rlogis(n = n_neg, location = location_nd_study_s[t], scale = 1)
+                                latent_results[n_neg + seq_len(n_pos), t] <- stats::rlogis(n = n_pos, location = location_d_study_s[t], scale = 1)
+                          }
+                    }
+                    ## (the diagmeta DGM: the latent value of tests 2 to 4 is logistic with the study's location and scale of the group)
+                    if (DGM == "diagmeta") {
+                          for (t in 2:4) {
+                                latent_results[seq_len(n_neg), t] <- stats::rlogis(n = n_neg, location = location_nd_study_s[t], scale = scale_nd_study_s[t])
+                                latent_results[n_neg + seq_len(n_pos), t] <- stats::rlogis(n = n_pos, location = location_d_study_s[t], scale = scale_d_study_s[t])
+                          }
+                    }
                     
                     # Initialize result arrays
                     results_pos <- array(NA, dim = c(n_pos, n_tests))

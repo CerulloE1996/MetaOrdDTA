@@ -107,6 +107,83 @@ get_true_values <- function(DGM,
   true_DGM_Sp <- list()
   true_DGM_Fp <- list()
 
+  ## ---- The time-to-event DGM of Hoyer, Hirt and Kuss (2018), Weibull test values: Se and Fp at threshold k (a study whose random
+  ##      effects are 0) are the Weibull survival functions of the two groups at k, exp(-(k * exp(-beta))^(1 / lambda)); beta and lambda
+  ##      are the values of R/R_fn_sim_data_ord_MA_v2.R (the fit of that model to the real data of each test).
+  if (DGM == "Hoyer_2018") {
+
+    if (test == "GAD_2" || test == "GAD-2") {
+      Hoyer_values <- c(beta_nd = 0.578235892, lambda_nd = 0.8035988613, beta_d = 1.503273511, lambda_d = 0.4463884907)
+      n_thr <- 6
+    } else if (test == "HADS") {
+      Hoyer_values <- c(beta_nd = 1.917441837, lambda_nd = 0.574362408, beta_d = 2.558541788, lambda_d = 0.3261829719)
+      n_thr <- 21
+    } else if (test == "BAI") {
+      Hoyer_values <- c(beta_nd = 2.247313372, lambda_nd = 1.013167455, beta_d = 3.288483765, lambda_d = 0.4576064201)
+      n_thr <- 63
+    } else {
+      stop(paste("Unknown test type:", test))
+    }
+    true_DGM_Se <- exp(-((1:n_thr) * exp(-Hoyer_values[["beta_d"]]))^(1 / Hoyer_values[["lambda_d"]]))
+    true_DGM_Fp <- exp(-((1:n_thr) * exp(-Hoyer_values[["beta_nd"]]))^(1 / Hoyer_values[["lambda_nd"]]))
+    true_DGM_Sp <- 1 - true_DGM_Fp
+    return(list(Se = true_DGM_Se * 100,
+                Sp = true_DGM_Sp * 100,
+                Fp = true_DGM_Fp * 100))
+
+  }
+
+  ## ---- The logit GLMM DGM: Se and Sp at threshold k (a study whose random effects are 0) are plogis(b11 + b12 * k) and
+  ##      plogis(b01 + b02 * k); the values are those of R/R_fn_sim_data_ord_MA_v2.R (the fit of that model to the real data of each test).
+  if (DGM == "logit_GLMM") {
+
+    if (test == "GAD_2" || test == "GAD-2") {
+      GLMM_values <- c(b01 = -1.304555081, b02 = 0.9939413545, b11 = 3.981535831, b12 = -1.011194802)
+      n_thr <- 6
+    } else if (test == "HADS") {
+      GLMM_values <- c(b01 = -2.465434374, b02 = 0.4298249227, b11 = 5.009870199, b12 = -0.4324148899)
+      n_thr <- 21
+    } else if (test == "BAI") {
+      GLMM_values <- c(b01 = -0.8526484076, b02 = 0.1323346305, b11 = 3.544697691, b12 = -0.1450912042)
+      n_thr <- 63
+    } else {
+      stop(paste("Unknown test type:", test))
+    }
+    true_DGM_Se <- stats::plogis(GLMM_values[["b11"]] + GLMM_values[["b12"]] * (1:n_thr))
+    true_DGM_Sp <- stats::plogis(GLMM_values[["b01"]] + GLMM_values[["b02"]] * (1:n_thr))
+    true_DGM_Fp <- 1 - true_DGM_Sp
+    return(list(Se = true_DGM_Se * 100,
+                Sp = true_DGM_Sp * 100,
+                Fp = true_DGM_Fp * 100))
+
+  }
+
+  ## ---- The diagmeta DGM (Steinhauser, Schumacher and Rücker 2016, variant DIDS, logistic): Sp and Se at threshold k (a study whose
+  ##      study effects are 0) are plogis(alpha_nd + beta_nd * k) and 1 - plogis(alpha_d + beta_d * k); the values are those of
+  ##      R/R_fn_sim_data_ord_MA_v2.R (the fit of that model to the real data of each test).
+  if (DGM == "diagmeta") {
+
+    if (test == "GAD_2" || test == "GAD-2") {
+      diagmeta_values <- c(alpha_nd = -1.196713904, beta_nd = 0.9371118387, alpha_d = -3.425026746, beta_d = 0.8677368511)
+      n_thr <- 6
+    } else if (test == "HADS") {
+      diagmeta_values <- c(alpha_nd = -2.363827965, beta_nd = 0.4188058623, alpha_d = -4.069045325, beta_d = 0.3544414606)
+      n_thr <- 21
+    } else if (test == "BAI") {
+      diagmeta_values <- c(alpha_nd = -1.003558602, beta_nd = 0.1495246243, alpha_d = -3.242138865, beta_d = 0.1400078537)
+      n_thr <- 63
+    } else {
+      stop(paste("Unknown test type:", test))
+    }
+    true_DGM_Se <- 1 - stats::plogis(diagmeta_values[["alpha_d"]] + diagmeta_values[["beta_d"]] * (1:n_thr))
+    true_DGM_Sp <- stats::plogis(diagmeta_values[["alpha_nd"]] + diagmeta_values[["beta_nd"]] * (1:n_thr))
+    true_DGM_Fp <- 1 - true_DGM_Sp
+    return(list(Se = true_DGM_Se * 100,
+                Sp = true_DGM_Sp * 100,
+                Fp = true_DGM_Fp * 100))
+
+  }
+
   if (test == "GAD_2" || test == "GAD-2") {
 
     if (DGM == "ord_biv_random_C") {
@@ -488,7 +565,7 @@ create_MetaOrd_scenarios <- function() {
       # Define all parameter combinations
       scenario_df <- expand.grid(
         index_test_MA = c("GAD_2", "HADS", "BAI"),
-        DGM = c("ord_biv_fixed_C", "Jones", "ord_biv_random_C", "R&G_random_C"),
+        DGM = c("ord_biv_fixed_C", "Jones", "ord_biv_random_C", "R&G_random_C", "Hoyer_2018", "logit_GLMM", "diagmeta"),
         n_studies = c(10, 50),
         model_parameterisation = c("Jones", "ord_bivariate", "Bivariate", "R&G"),
         prior_set = c("set_0", "set_1", "set_2"),
@@ -634,16 +711,24 @@ check_MCSE_status <- function(output_dir,
       ##
       complete_results_list <- list()
       ##
-      for (seed in 1:max_seed_to_check) {
+      ## (every results file of this cell is read, whatever its seed, in the order of the seeds: the fits of every lane and
+      ##  of both machines are counted. max_seed_to_check is no longer a limit on the seeds that are read)
+      end_of_the_file_names_of_this_cell <- paste0("_", file_name_string, "_results_list.RDS")
+      files_in_the_folder <- list.files(output_dir, pattern = "^seed_[0-9]+_")
+      files_in_the_folder <- files_in_the_folder[endsWith(files_in_the_folder, end_of_the_file_names_of_this_cell)]
+      seeds_in_the_folder <- suppressWarnings(as.numeric(sub("^seed_([0-9]+)_.*$", "\\1", files_in_the_folder)))
+      is_of_this_cell <- !is.na(seeds_in_the_folder) &
+                         (files_in_the_folder == paste0("seed_", seeds_in_the_folder, end_of_the_file_names_of_this_cell))
+      seeds_of_this_cell <- sort(seeds_in_the_folder[is_of_this_cell])
+      ##
+      for (seed in seeds_of_this_cell) {
 
             seed_file <- file.path(output_dir,
                                    paste0("seed_", seed, "_",
                                           file_name_string, "_results_list.RDS"))
-            if (file.exists(seed_file)) {
-              try({
-                complete_results_list[[seed]] <- readRDS(seed_file)
-              }, silent = TRUE)
-            }
+            try({
+              complete_results_list[[length(complete_results_list) + 1]] <- readRDS(seed_file)
+            }, silent = TRUE)
 
       }
       ##
