@@ -28,6 +28,15 @@ functions {
     real nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
           array[] int n, array[] int n_previous, vector latent, data vector is_first, data int link,
           data real bound);
+    real nico_strat_bivariate_priors_lpdf(
+          array[] vector mu, array[] vector sigma, array[] matrix L_Omega,
+          data vector prior_mu_mean_0, data vector prior_mu_mean_1,
+          data vector prior_mu_SD_0, data vector prior_mu_SD_1,
+          data vector prior_sigma_SD, data vector prior_lkj_eta);
+    real nico_strat_bivariate_binomial_lpmf(
+          array[] int n, array[] int N, data array[] int term_k, data array[] int term_pair,
+          data array[] int term_c, array[] vector mu, array[] vector sigma, array[] matrix L_Omega,
+          vector z, data int link, data real bound);
         ////
         //// ---- Include files to compile the necessary custom (user-defined) Stan functions:
         ////
@@ -82,6 +91,7 @@ transformed data {
     array[n_thr * n_studies * 2] int term_counts;
     array[n_thr * n_studies * 2] int term_totals;
     array[n_thr * n_studies * 2] int term_k;
+    array[n_thr * n_studies * 2] int term_pair;
     array[n_thr * n_studies * 2] int term_s;
     array[n_thr * n_studies * 2] int term_c;
     vector[n_thr * n_studies * 2] term_is_first;
@@ -177,6 +187,7 @@ transformed data {
                     term_counts[n_terms] = TP[k, s];
                     term_totals[n_terms] = TP[k, s] + FN[k, s];
                     term_k[n_terms] = k;
+                    term_pair[n_terms] = n_pairs;
                     term_s[n_terms] = s;
                     term_c[n_terms] = 1;
                     term_is_first[n_terms] = 1.0;
@@ -186,11 +197,29 @@ transformed data {
                     term_counts[n_terms] = TN[k, s];
                     term_totals[n_terms] = TN[k, s] + FP[k, s];
                     term_k[n_terms] = k;
+                    term_pair[n_terms] = n_pairs;
                     term_s[n_terms] = s;
                     term_c[n_terms] = 2;
                     term_is_first[n_terms] = 1.0;
                 }
             }
+        }
+    }
+    vector[n_thr] prior_sigma_SD_vec;
+    vector[n_thr] prior_lkj_eta_vec;
+    for (k in 1:n_thr) {
+        if (n_studies_per_thr[k] > 2) {
+            prior_sigma_SD_vec[k] = 0.5;
+            prior_lkj_eta_vec[k]  = 2.0;
+        } else if (n_studies_per_thr[k] == 2) {
+            prior_sigma_SD_vec[k] = 0.25;
+            prior_lkj_eta_vec[k]  = 12.0;
+        } else if (n_studies_per_thr[k] == 1) {
+            prior_sigma_SD_vec[k] = 0.01;
+            prior_lkj_eta_vec[k]  = 25.0;
+        } else {
+            prior_sigma_SD_vec[k] = 1.0;
+            prior_lkj_eta_vec[k]  = 0.0;
         }
     }
 }
@@ -207,31 +236,12 @@ parameters {
 }
 
 model {
-    //// ---- Priors for each threshold:
-    for (k in 1:n_thr) {
-      
-          mu[k, 1:2] ~ nico_normal([prior_mu_mean[1][k], prior_mu_mean[2][k]]',
-                                   [prior_mu_SD[1][k], prior_mu_SD[2][k]]');
-          if (n_studies_per_thr[k] > 2) {
-            
-                sigma[k, 1:2] ~ nico_normal(0, 0.5); 
-                L_Omega[k] ~ nico_lkj_corr_cholesky(2);
-              
-          } else if (n_studies_per_thr[k] == 2) {
-               
-                sigma[k, 1:2] ~ nico_normal(0, 0.25); 
-                L_Omega[k] ~ nico_lkj_corr_cholesky(12);
-                
-          } else if (n_studies_per_thr[k] == 1) {
-            
-                sigma[k, 1:2] ~ nico_normal(0, 0.01); 
-                L_Omega[k] ~ nico_lkj_corr_cholesky(25);
-                
-          } else { 
-                sigma[k, 1:2] ~ nico_normal(0.0, 1.0);
-          }
-            
-    }
+    //// ---- Priors for all thresholds in ONE fused AVX node:
+    target += nico_strat_bivariate_priors_lupdf(
+                    mu | sigma, L_Omega,
+                    prior_mu_mean[1], prior_mu_mean[2],
+                    prior_mu_SD[1], prior_mu_SD[2],
+                    prior_sigma_SD_vec, prior_lkj_eta_vec);
     // Random effects of the studies that report each threshold
     z ~ nico_normal(0, 1);
     //// ---- Likelihood: every TP ~ binomial(n_diseased, Phi(probit_pi[k, s, 1])) and
@@ -239,18 +249,13 @@ model {
     ////      probit_pi[k, s] = mu[k] + diag_pre_multiply(sigma[k], L_Omega[k]) * z[k, s], element by element
     ////      (L_Omega[k, 1] = [1, 0]):
     {
-          vector[n_terms] latent_of_the_terms;
-          for (i in 1:n_terms) {
-                int k = term_k[i];
-                int p = pair_of_thr_and_study[k, term_s[i]];
-                latent_of_the_terms[i] = (term_c[i] == 1) ?
-                                         mu[k, 1] + sigma[k, 1] * z[2 * p - 1] :
-                                         mu[k, 2] + sigma[k, 2] * (L_Omega[k, 2, 1] * z[2 * p - 1] +
-                                                                   L_Omega[k, 2, 2] * z[2 * p]);
-          }
-          target += nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lupmf(
-                          term_counts[1:n_terms] | term_totals[1:n_terms], latent_of_the_terms,
-                          term_is_first[1:n_terms], 1, 0.0);
+          target += nico_strat_bivariate_binomial_lupmf(
+                          term_counts[1:n_terms] |
+                          term_totals[1:n_terms],
+                          term_k[1:n_terms],
+                          term_pair[1:n_terms],
+                          term_c[1:n_terms],
+                          mu, sigma, L_Omega, z, 1, 0.0);
     }
 }
 
