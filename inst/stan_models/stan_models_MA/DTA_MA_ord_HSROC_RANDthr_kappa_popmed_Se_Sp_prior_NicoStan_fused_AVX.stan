@@ -125,6 +125,57 @@ functions {
                                                    data array[] int pair_of_each_C,
                                                    data array[] int is_increment_of_each_C,
                                                    data int softplus);
+        vector nico_pinkney_C_and_log_J_from_alpha_precomputed(
+                vector alpha,
+                vector C_raw_c,
+                real baseline_location_prior,
+                data vector Pinkney_w_c,
+                data vector logit_start,
+                data vector C_raw_lower_c,
+                data vector C_raw_width_c,
+                data real sum_log_width_c,
+                data array[] int pair_of_each_C,
+                data array[] int is_increment_of_each_C,
+                data array[] int u_k,
+                data array[] int u_kp,
+                data vector u_lb,
+                data vector u_wd,
+                data int use_probit_link,
+                data int softplus);
+        vector nico_dirichlet_cutpoint_medians_and_log_J_at_cuts(
+                vector alpha_c,
+                real kappa_c,
+                data array[] int cuts_c,
+                data int use_probit_link);
+        real nico_hsroc_between_cutoffs_prior_lpdf(
+                vector popmed_and_log_J,
+                vector dirichlet_phi,
+                vector Xbeta_of_line,
+                vector scale_of_line,
+                data vector prior_dirichlet_alpha,
+                data array[] int chosen_cutoffs_p,
+                data int joint_link_prior,
+                data real c_shift_segment_ref,
+                data int use_probit_link);
+        real nico_ord_hsroc_randthr_ind_dir_and_binomial_lpmf(
+                array[,,] int n,
+                array[,,] int n_previous,
+                matrix Xlocations,
+                matrix Xscale,
+                vector C,
+                vector alpha,
+                data array[,] int position_of_each_C,
+                data array[] int n_obs_cutpoints,
+                data array[] int n_reported_cutpoints,
+                data array[] int id_u_seg_lo,
+                data array[] int id_u_seg_hi,
+                data array[] int id_seg_uid,
+                data array[] int id_seg_own_of_C,
+                data array[] int id_seg_next_of_C,
+                data array[] int K_fold_CV_indicator,
+                data int link,
+                data real baseline_location_prior,
+                data real bound);
 }
 
 
@@ -296,6 +347,8 @@ transformed data {
         array[max_C_pairs] int pos_step_pair = rep_array(0, max_C_pairs);
         array[max_C_pairs] int k_of_step_pair = rep_array(0, max_C_pairs);
         array[max_C_pairs] int kprev_of_step_pair = rep_array(0, max_C_pairs);
+        array[max_C_pairs] int raw_u_k_of_each_pair = rep_array(0, max_C_pairs);
+        array[max_C_pairs] int raw_u_kp_of_each_pair = rep_array(0, max_C_pairs);
         array[n_C] int pair_of_each_C;
         real start_of_C_raw = -2.0;
         vector[n_C] logit_of_the_place_of_the_start;
@@ -323,6 +376,8 @@ transformed data {
                                       pair_lookup[k, k_prev + 1] = u;
                                       lower_of_each_unique_pair[u] = C_raw_lower_of_each_C[p_idx];
                                       width_of_each_unique_pair[u] = C_raw_width_of_each_C[p_idx];
+                                      raw_u_k_of_each_pair[u] = k;
+                                      raw_u_kp_of_each_pair[u] = k_prev;
                                       if (k_prev == 0) {
                                             n_first_C_pairs += 1;
                                             pos_first_pair[n_first_C_pairs] = u;
@@ -566,6 +621,67 @@ transformed data {
               }
               c_shift_segment_ref += sum_shift / n_chosen_cutoffs[1];
         }
+        int n_unique_C_pairs_kept = (n_unique_C_pairs > 0) ? n_unique_C_pairs : 1;
+        array[n_unique_C_pairs_kept] int u_k_of_each_pair = raw_u_k_of_each_pair[1:n_unique_C_pairs_kept];
+        array[n_unique_C_pairs_kept] int u_kp_of_each_pair = raw_u_kp_of_each_pair[1:n_unique_C_pairs_kept];
+        vector[n_unique_C_pairs_kept] u_lb_of_each_pair = lower_of_each_unique_pair[1:n_unique_C_pairs_kept];
+        vector[n_unique_C_pairs_kept] u_wd_of_each_pair = width_of_each_unique_pair[1:n_unique_C_pairs_kept];
+
+        int n_id_total_segs = n_C + n_studies_with_a_cutpoint;
+        int n_id_total_segs_kept = (n_id_total_segs > 0) ? n_id_total_segs : 1;
+        int n_id_u_segs = 0;
+        array[n_id_total_segs_kept] int raw_id_u_lo = rep_array(0, n_id_total_segs_kept);
+        array[n_id_total_segs_kept] int raw_id_u_hi = rep_array(1, n_id_total_segs_kept);
+        array[n_id_total_segs_kept] int id_seg_uid = rep_array(0, n_id_total_segs_kept);
+        array[n_C] int id_seg_own_of_C;
+        array[n_C] int id_seg_next_of_C;
+        {
+              matrix[n_cat + 1, n_cat + 1] seg_lookup = rep_matrix(0.0, n_cat + 1, n_cat + 1);
+              int off = 0;
+              int s_idx = 0;
+              for (r in 1:n_studies) {
+                    int Kr = n_reported_cutpoints[r];
+                    if (Kr > 0) {
+                          for (s in 0:Kr) {
+                                int lo = (s == 0) ? 0 : k_of_each_C[off + s];
+                                int hi = (s == Kr) ? n_cat : k_of_each_C[off + s + 1];
+                                if (s < Kr) {
+                                      id_seg_own_of_C[off + s + 1] = s_idx;
+                                      id_seg_next_of_C[off + s + 1] = s_idx + 1;
+                                }
+                                int uid = to_int(seg_lookup[lo + 1, hi + 1]);
+                                if (uid == 0) {
+                                      n_id_u_segs += 1;
+                                      uid = n_id_u_segs;
+                                      seg_lookup[lo + 1, hi + 1] = uid;
+                                      raw_id_u_lo[uid] = lo;
+                                      raw_id_u_hi[uid] = hi;
+                                }
+                                s_idx += 1;
+                                id_seg_uid[s_idx] = uid - 1;
+                          }
+                          off += Kr;
+                    }
+              }
+        }
+        int n_id_u_segs_kept = (n_id_u_segs > 0) ? n_id_u_segs : 1;
+        array[n_id_u_segs_kept] int id_u_seg_lo = raw_id_u_lo[1:n_id_u_segs_kept];
+        array[n_id_u_segs_kept] int id_u_seg_hi = raw_id_u_hi[1:n_id_u_segs_kept];
+
+        array[n_thr] int all_cutoffs_1_to_n_thr;
+        for (k in 1:n_thr) all_cutoffs_1_to_n_thr[k] = k;
+        real mid_loc_prior_td = 0.5 * (mult_nd + mult_d) * dot_product(baseline_case, prior_beta_mu_mean);
+        array[2] matrix[n_chosen_cutoffs_max, 2] prior_beta_td = prior_Se_Sp_beta;
+        array[2] matrix[n_chosen_cutoffs_max, 2] prior_link_mean_SD_td = prior_Se_Sp_link_mean_SD;
+        if (n_chosen_cutoffs[2] > 0) {
+              prior_link_mean_SD_td[2][1:n_chosen_cutoffs[2], 1] =
+                    -prior_link_mean_SD_td[2][1:n_chosen_cutoffs[2], 1];
+              if (Se_Sp_prior_type == 2) {
+                    prior_beta_td[2][1:n_chosen_cutoffs[2], ] =
+                          append_col(prior_Se_Sp_beta[2][1:n_chosen_cutoffs[2], 2],
+                                     prior_Se_Sp_beta[2][1:n_chosen_cutoffs[2], 1]);
+              }
+        }
 
 }
 
@@ -600,67 +716,10 @@ transformed parameters {
         vector[n_C] C;
         real total_log_J_of_C = 0.0;
         {
-              real baseline_location_prior_of_C_raw = 0.5 * (mult_nd + mult_d) * dot_product(baseline_case, prior_beta_mu_mean);
-              vector[n_unique_C_pairs] lower_of_pair = lower_of_each_unique_pair[1:n_unique_C_pairs];
-              vector[n_unique_C_pairs] width_of_pair = width_of_each_unique_pair[1:n_unique_C_pairs];
-              real alpha_0 = sum(alpha);
-              vector[n_thr] P = cumulative_sum(alpha[1:n_thr]) / alpha_0;
-              vector[n_thr] P_upper = reverse(cumulative_sum(reverse(alpha[2:n_cat]))) / alpha_0;
-              vector[n_thr] centre_of_each_cutpoint;
-              vector[n_thr] density_at_each_cutpoint;
-              if (use_probit_link == 1) {
-                    vector[n_thr] inv_Phi_P = nico_inv_Phi(P);
-                    vector[n_thr] neg_inv_Phi_Pup = -nico_inv_Phi(P_upper);
-                    for (k in 1:n_thr) {
-                          centre_of_each_cutpoint[k] = (P[k] <= 0.5) ? inv_Phi_P[k] : neg_inv_Phi_Pup[k];
-                    }
-                    density_at_each_cutpoint = nico_exp(-0.5 * square(centre_of_each_cutpoint)) / sqrt(2.0 * pi());
-              } else {
-                    centre_of_each_cutpoint = nico_log(P) - nico_log(P_upper);
-                    density_at_each_cutpoint = P .* P_upper;
-              }
-              vector[n_thr] var_factor_of_cut = (P .* P_upper) ./ square(density_at_each_cutpoint);
-              vector[n_unique_C_pairs] centre_of_pair;
-              vector[n_unique_C_pairs] spread_of_pair;
-              if (n_first_C_pairs > 0) {
-                    array[n_first_C_pairs] int fp_pos = pos_first_pair[1:n_first_C_pairs];
-                    array[n_first_C_pairs] int fp_k   = k_of_first_pair[1:n_first_C_pairs];
-                    centre_of_pair[fp_pos] = centre_of_each_cutpoint[fp_k] + baseline_location_prior_of_C_raw;
-                    spread_of_pair[fp_pos] = sqrt(var_factor_of_cut[fp_k] / (alpha_0 + 1.0));
-              }
-              if (n_step_C_pairs > 0) {
-                    array[n_step_C_pairs] int sp_pos = pos_step_pair[1:n_step_C_pairs];
-                    array[n_step_C_pairs] int sp_k   = k_of_step_pair[1:n_step_C_pairs];
-                    array[n_step_C_pairs] int sp_kp  = kprev_of_step_pair[1:n_step_C_pairs];
-                    vector[n_step_C_pairs] step_vec = centre_of_each_cutpoint[sp_k] - centre_of_each_cutpoint[sp_kp];
-                    vector[n_step_C_pairs] var_step = (var_factor_of_cut[sp_k] + var_factor_of_cut[sp_kp] -
-                                                       2.0 * (P[sp_kp] .* P_upper[sp_k]) ./
-                                                             (density_at_each_cutpoint[sp_k] .* density_at_each_cutpoint[sp_kp])) /
-                                                      (alpha_0 + 1.0);
-                    for (j in 1:n_step_C_pairs) {
-                          if (var_step[j] < 1e-14) var_step[j] = 1e-14;
-                    }
-                    if (softplus == 1) {
-                          vector[n_step_C_pairs] expm1_vec = (nico_exp(step_vec) - 1.0);
-                          for (j in 1:n_step_C_pairs) if (expm1_vec[j] < 1e-12) expm1_vec[j] = 1e-12;
-                          centre_of_pair[sp_pos] = nico_log(expm1_vec);
-                          spread_of_pair[sp_pos] = (sqrt(var_step) .* nico_exp(step_vec)) ./ expm1_vec;
-                    } else {
-                          centre_of_pair[sp_pos] = nico_log(step_vec);
-                          spread_of_pair[sp_pos] = sqrt(var_step) ./ step_vec;
-                    }
-              }
-              vector[n_unique_C_pairs] place_as_it_is = (centre_of_pair - lower_of_pair) ./ width_of_pair;
-              vector[n_unique_C_pairs] place_of_pair = 0.001 + (nico_log1p_exp(500.0 * (place_as_it_is - 0.001)) -
-                                                                nico_log1p_exp(500.0 * (place_as_it_is - 0.999))) / 500.0;
-              vector[n_unique_C_pairs] spread_free_of_pair = spread_of_pair ./
-                                                             sqrt(square(width_of_pair .* place_of_pair .* (1.0 - place_of_pair)) +
-                                                                  square(spread_of_pair));
-              vector[n_unique_C_pairs] logit_centre_of_pair = nico_logit(place_of_pair);
-              vector[n_C + 1] C_and_log_J = nico_pinkney_C_and_log_J_from_pairs(
-                    logit_centre_of_pair,
-                    spread_free_of_pair,
+              vector[n_C + 1] C_and_log_J = nico_pinkney_C_and_log_J_from_alpha_precomputed(
+                    alpha,
                     C_raw,
+                    mid_loc_prior_td,
                     Pinkney_w,
                     Pinkney_eta0,
                     C_raw_lower_of_each_C,
@@ -668,6 +727,11 @@ transformed parameters {
                     sum_log_width_of_each_C,
                     pair_of_each_C,
                     is_increment_of_each_C,
+                    u_k_of_each_pair,
+                    u_kp_of_each_pair,
+                    u_lb_of_each_pair,
+                    u_wd_of_each_pair,
+                    use_probit_link,
                     softplus);
               C = C_and_log_J[1:n_C];
               total_log_J_of_C = C_and_log_J[n_C + 1];
@@ -715,25 +779,13 @@ model {
                   //// ---- the alpha of the study cutpoints (0.01 + phi * kappa), at the chosen cutoffs of p_class
                   //// ---- (C_mu is read nowhere else):
                   ////
-                  real alpha_0 = sum(alpha);
-                  vector[n_thr] P_of_alpha = cumulative_sum(alpha[1:n_thr]) / alpha_0;
-                  vector[n_thr] P_upper_of_alpha = reverse(cumulative_sum(reverse(alpha[2:n_cat]))) / alpha_0;
-                  vector[n_chosen_cutoffs[p_class]] C_mu;
-                  vector[n_chosen_cutoffs[p_class]] log_J;
-                  ////
-                  //// (the population median and the log Jacobian of EVERY cutpoint, in one NicoSIMD call:
-                  ////  the n_thr medians first, then the n_thr log Jacobians)
+                  int m_p = n_chosen_cutoffs[p_class];
                   vector[2 * n_thr] popmed_and_log_J_of_every_cutpoint =
-                        nico_dirichlet_cutpoint_medians_and_log_J_of_each(P_of_alpha, P_upper_of_alpha, alpha_0, use_probit_link);
-                  for (j in 1:n_chosen_cutoffs[p_class]) {
-                       int k = chosen_cutoffs[p_class, j];
-                       //// (from the one call for every cutpoint, made just below the declarations of this block)
-                       vector[2] median_and_log_J = [popmed_and_log_J_of_every_cutpoint[k],
-                                                     popmed_and_log_J_of_every_cutpoint[n_thr + k]]';
-                       C_mu[j] = median_and_log_J[1];
-                       //// (chain rule: d C_mu / d P = d C_mu / d P_of_alpha * d P_of_alpha / d P = d C_mu / d P_of_alpha * kappa / alpha_0)
-                       log_J[j] = median_and_log_J[2] + nico_log(kappa / alpha_0);
-                  }
+                        nico_dirichlet_cutpoint_medians_and_log_J_at_cuts(
+                              alpha, kappa, all_cutoffs_1_to_n_thr, use_probit_link);
+                  vector[m_p] C_mu  = popmed_and_log_J_of_every_cutpoint[chosen_cutoffs[p_class, 1:m_p]];
+                  vector[n_thr] log_J_all = popmed_and_log_J_of_every_cutpoint[(n_thr + 1):(2 * n_thr)];
+                  vector[m_p] log_J = log_J_all[chosen_cutoffs[p_class, 1:m_p]];
                   ////
                   //// ---- Baseline lines: probit(Sp) (c = 1) and probit(1 - Se) (c = 2) = (C_mu + Xbeta) * scale:
                   ////
@@ -746,137 +798,47 @@ model {
                   scale_of_line[2] = ((softplus == 1) ? 1.4426950408889634 * nico_log1p_exp(-mult_d  * Xraw_scale_baseline_c) :
                                                         nico_exp(-mult_d  * Xraw_scale_baseline_c));
                   ////
-                  array[2] vector[n_chosen_cutoffs[p_class]] C_baseline;
+                  array[2] vector[m_p] C_baseline;
                   for (c in 1:2) {
                        C_baseline[c] = (C_mu + Xbeta_of_line[c]) * scale_of_line[c];
                   }
-                  ////
-                  //// ---- Between the chosen cutoffs: the Dirichlet(prior_dirichlet_alpha) of each segment on the increments of
-                  //// ---- P_of_C_mu = (Sp + 1 - Se) / 2 at C_mu, both classes' own probabilities at the population medians, in place of the
-                  //// ---- increments of the cumulative dirichlet_phi (the prior at the chosen cutoffs is unchanged):
-                  ////
-                  if (n_chosen_cutoffs[p_class] < n_thr) {
-                       vector[n_thr] P_of_C_mu;
-                       vector[n_thr] P_upper_of_C_mu;
-                       vector[n_thr] log_J_of_P_of_C_mu;
-                       real log_scale_nd = nico_log(scale_of_line[1]);
-                       real log_scale_d = nico_log(scale_of_line[2]);
-                       real log_kappa_over_alpha_0 = nico_log(kappa / alpha_0);
-                       for (k in 1:n_thr) {
-                            vector[2] median_and_log_J_of_k = [popmed_and_log_J_of_every_cutpoint[k],
-                                                               popmed_and_log_J_of_every_cutpoint[n_thr + k]]';
-                            if (joint_link_prior == 1) {
-                                 real link_ref = median_and_log_J_of_k[1] - c_shift_segment_ref;
-                                 if (use_probit_link == 1) {
-                                      P_of_C_mu[k] = nico_Phi(link_ref);
-                                      P_upper_of_C_mu[k] = nico_Phi(-link_ref);
-                                      log_J_of_P_of_C_mu[k] = -0.5 * square(link_ref) - 0.9189385332046728 +
-                                                              median_and_log_J_of_k[2] + log_kappa_over_alpha_0;
-                                 } else {
-                                      P_of_C_mu[k] = nico_inv_logit(link_ref);
-                                      P_upper_of_C_mu[k] = nico_inv_logit(-link_ref);
-                                      log_J_of_P_of_C_mu[k] = nico_log_inv_logit(link_ref) + nico_log1m_inv_logit(link_ref) +
-                                                              median_and_log_J_of_k[2] + log_kappa_over_alpha_0;
-                                 }
-                            } else {
-                                 real link_Sp = (median_and_log_J_of_k[1] + Xbeta_of_line[1]) * scale_of_line[1];
-                                 real link_1m_Se = (median_and_log_J_of_k[1] + Xbeta_of_line[2]) * scale_of_line[2];
-                                 real log_f_Sp;
-                                 real log_f_1m_Se;
-                                 if (use_probit_link == 1) {
-                                      P_of_C_mu[k] = 0.5 * (nico_Phi(link_Sp) + nico_Phi(link_1m_Se));
-                                      P_upper_of_C_mu[k] = 0.5 * (nico_Phi(-link_Sp) + nico_Phi(-link_1m_Se));
-                                      log_f_Sp = -0.5 * square(link_Sp) - 0.9189385332046728;
-                                      log_f_1m_Se = -0.5 * square(link_1m_Se) - 0.9189385332046728;
-                                 } else {
-                                      P_of_C_mu[k] = 0.5 * (nico_inv_logit(link_Sp) + nico_inv_logit(link_1m_Se));
-                                      P_upper_of_C_mu[k] = 0.5 * (nico_inv_logit(-link_Sp) + nico_inv_logit(-link_1m_Se));
-                                      log_f_Sp = nico_log_inv_logit(link_Sp) + nico_log1m_inv_logit(link_Sp);
-                                      log_f_1m_Se = nico_log_inv_logit(link_1m_Se) + nico_log1m_inv_logit(link_1m_Se);
-                                 }
-                                 real log_term_Sp = log_f_Sp + log_scale_nd;
-                                 real log_term_1m_Se = log_f_1m_Se + log_scale_d;
-                                 log_J_of_P_of_C_mu[k] = fmax(log_term_Sp, log_term_1m_Se) + nico_log1p_exp(-abs(log_term_Sp - log_term_1m_Se)) -
-                                                  0.6931471805599453 + median_and_log_J_of_k[2] + log_kappa_over_alpha_0;
-                            }
-                       }
-                       ////
-                       //// ---- Each segment with cutoffs inside it: log(new conditional) - log(Dirichlet of dirichlet_phi given the segment sum):
-                       ////
-                       int k_lower_end = 0;
-                       for (j in 1:(n_chosen_cutoffs[p_class] + 1)) {
-                            int k_upper_end = (j <= n_chosen_cutoffs[p_class]) ? chosen_cutoffs[p_class, j] : n_cat;
-                            if (k_upper_end - k_lower_end > 1) {
-                                 real P_of_C_mu_of_the_segment = (k_lower_end == 0) ? P_of_C_mu[k_upper_end] :
-                                                         (k_upper_end == n_cat) ? P_upper_of_C_mu[k_lower_end] :
-                                                         (P_of_C_mu[k_lower_end] > 0.5) ? (P_upper_of_C_mu[k_lower_end] - P_upper_of_C_mu[k_upper_end]) :
-                                                                                        (P_of_C_mu[k_upper_end] - P_of_C_mu[k_lower_end]);
-                                 real phi_of_the_segment = sum(dirichlet_phi[(k_lower_end + 1):k_upper_end]);
-                                 target += sum(log_J_of_P_of_C_mu[(k_lower_end + 1):(k_upper_end - 1)]) -
-                                           (sum(prior_dirichlet_alpha[(k_lower_end + 1):k_upper_end]) - 1.0) *
-                                           (nico_log(P_of_C_mu_of_the_segment) - nico_log(phi_of_the_segment));
-                                 for (i in (k_lower_end + 1):k_upper_end) {
-                                      if (prior_dirichlet_alpha[i] != 1.0) {
-                                           real P_of_C_mu_of_the_category = (i == n_cat) ? P_upper_of_C_mu[n_thr] :
-                                                                    (i == 1) ? P_of_C_mu[1] :
-                                                                    (P_of_C_mu[i - 1] > 0.5) ? (P_upper_of_C_mu[i - 1] - P_upper_of_C_mu[i]) :
-                                                                                             (P_of_C_mu[i] - P_of_C_mu[i - 1]);
-                                           target += (prior_dirichlet_alpha[i] - 1.0) *
-                                                     (nico_log(P_of_C_mu_of_the_category) - nico_log(dirichlet_phi[i]));
-                                      }
-                                 }
-                            }
-                            k_lower_end = k_upper_end;
-                       }
+                  if (m_p < n_thr) {
+                       target += nico_hsroc_between_cutoffs_prior_lupdf(
+                                 popmed_and_log_J_of_every_cutpoint | dirichlet_phi,
+                                 Xbeta_of_line, scale_of_line,
+                                 prior_dirichlet_alpha,
+                                 chosen_cutoffs[p_class, 1:m_p],
+                                 joint_link_prior, c_shift_segment_ref,
+                                 use_probit_link);
                   }
                   ////
                   //// ---- Class p_class: the Dirichlet of dirichlet_phi with its prior at the chosen cutoffs:
                   ////
                   {
-                     matrix[n_chosen_cutoffs[p_class], 2] prior_beta_of_this_class = prior_Se_Sp_beta[p_class][1:n_chosen_cutoffs[p_class], ];
-                     matrix[n_chosen_cutoffs[p_class], 2] prior_link_mean_SD_of_this_class = prior_Se_Sp_link_mean_SD[p_class][1:n_chosen_cutoffs[p_class], ];
-                     if (p_class == 2) {
-                          prior_link_mean_SD_of_this_class[, 1] = - prior_link_mean_SD_of_this_class[, 1];
-                          if (Se_Sp_prior_type == 2) {
-                               prior_beta_of_this_class = append_col(prior_beta_of_this_class[, 2],
-                                                                     prior_beta_of_this_class[, 1]);
-                          }
-                     }
                      target += nico_dirichlet_with_Se_Sp_prior_lupdf(
-                               dirichlet_phi | log_J, C_baseline[p_class], 
+                               dirichlet_phi | log_J, C_baseline[p_class],
                                prior_dirichlet_alpha,
-                               alpha_of_the_segments[p_class][1:(n_chosen_cutoffs[p_class] + 1)],
-                               chosen_cutoffs[p_class, 1:n_chosen_cutoffs[p_class]], Se_Sp_prior_type,
-                               prior_Se_Sp_dirichlet_A[p_class][1:(n_chosen_cutoffs[p_class] + 1)], prior_beta_of_this_class,
-                               prior_link_mean_SD_of_this_class,
+                               alpha_of_the_segments[p_class][1:(m_p + 1)],
+                               chosen_cutoffs[p_class, 1:m_p], Se_Sp_prior_type,
+                               prior_Se_Sp_dirichlet_A[p_class][1:(m_p + 1)],
+                               prior_beta_td[p_class][1:m_p, ],
+                               prior_link_mean_SD_td[p_class][1:m_p, ],
                                use_probit_link);
-                     ////
-                     //// ---- Jacobian from C_mu to the scaled line at the chosen cutpoints:
-                     ////
                      if (joint_unit_probability_prior == 0 && joint_link_prior == 0) {
-                          target += n_chosen_cutoffs[p_class] * nico_log(scale_of_line[p_class]);
+                          target += m_p * nico_log(scale_of_line[p_class]);
                      }
                   }
                   ////
-                  //// ---- The other class: its Se/Sp prior at the same cutoff, through Xbeta_baseline_c (beta_mu[1]);
-                  //// ---- the Jacobian of (P, b) -> (C_baseline[1], C_baseline[2]) is 2 * scale_nd * scale_d * |dm/dP|,
-                  //// ---- of which the terms of p_class above hold scale_of_line[p_class] * |dm/dP|:
+                  //// ---- The other class: its Se/Sp prior at the same cutoff, through Xbeta_baseline_c:
                   ////
                   {
                      int q_class = 3 - p_class;
-                     matrix[n_chosen_cutoffs[q_class], 2] prior_beta_of_this_class = prior_Se_Sp_beta[q_class][1:n_chosen_cutoffs[q_class], ];
-                     matrix[n_chosen_cutoffs[q_class], 2] prior_link_mean_SD_of_this_class = prior_Se_Sp_link_mean_SD[q_class][1:n_chosen_cutoffs[q_class], ];
-                     if (q_class == 2) {
-                          prior_link_mean_SD_of_this_class[, 1] = - prior_link_mean_SD_of_this_class[, 1];
-                          if (Se_Sp_prior_type == 2) {
-                               prior_beta_of_this_class = append_col(prior_beta_of_this_class[, 2],
-                                                                     prior_beta_of_this_class[, 1]);
-                          }
-                     }
+                     int m_q = n_chosen_cutoffs[q_class];
                      target += nico_Se_Sp_prior_at_chosen_cutoffs_lupdf(
                                C_baseline[q_class] | Se_Sp_prior_type,
-                               prior_Se_Sp_dirichlet_A[q_class][1:(n_chosen_cutoffs[q_class] + 1)], prior_beta_of_this_class,
-                               prior_link_mean_SD_of_this_class,
+                               prior_Se_Sp_dirichlet_A[q_class][1:(m_q + 1)],
+                               prior_beta_td[q_class][1:m_q, ],
+                               prior_link_mean_SD_td[q_class][1:m_q, ],
                                use_probit_link);
                      if (joint_unit_probability_prior == 1) {
                           //// Both ordered Normal lines share their centred direction, not their means or radii.
@@ -929,71 +891,20 @@ model {
            }
         }
         ////
-        //// ---- Induced-dirichlet between study ** model ** (NOT a prior model here but part of the actual likelihood since random-effect cutpoints!):
-        ////
-        // for (s in 1:n_studies) {
-        //      vector[n_cat] Ind_Dir_ord_prob;
-        //      if (use_probit_link == 1) Ind_Dir_ord_prob = to_vector(cumul_probs_to_ord_probs(Phi(C[s, ])));
-        //      else                      Ind_Dir_ord_prob = to_vector(cumul_probs_to_ord_probs(inv_logit(C[s, ])));
-        //      ////
-        //      Ind_Dir_ord_prob ~ induced_dirichlet_given_C(
-        //                         to_vector(C[s, ]), alpha, use_probit_link);
-        // }
-
-        //// ---- Induced-dirichlet between study ** model ** (NOT a prior: part of the likelihood since
-        ////      random-effect cutpoints), every study's cutpoints in one node, as
-        ////      induced_dirichlet_given_C on each row (NicoSIMD's induced Dirichlet density, used as
-        ////      this model, not as a prior):
-        //// (anchored at the prior mean of the mid-location)
-        {
-             //// (the reported cutpoints of each study only: the alpha of each segment between them is the sum of
-             ////  alpha over its categories, the same distribution with the other cutpoints integrated out)
-             vector[n_cat + 1] cumulative_alpha = append_row(0.0, cumulative_sum(alpha));
-             vector[n_C + n_studies] alpha_of_each_segment = cumulative_alpha[upper_index_of_each_segment] -
-                                                             cumulative_alpha[lower_index_of_each_segment];
-             for (s in 1:n_studies) {
-                  if (n_reported_cutpoints[s] > 0) {
-                       int p_1 = first_C_of_each_study[s];
-                       int p_2 = p_1 + n_reported_cutpoints[s] - 1;
-                       target += nico_induced_dirichlet_with_Se_Sp_prior_lupdf(C[p_1:p_2] |
-                                                                               alpha_of_each_segment[(p_1 + s - 1):(p_2 + s)],
-                                                                               use_probit_link,
-                                                                               0.5 * (mult_nd + mult_d) *
-                                                                               dot_product(baseline_case, prior_beta_mu_mean));
-                  }
-             }
-        }
-        ////
         //// ---- Likelihood / Model:
         ////
-        // target += std_normal_lpdf(to_vector(beta_z)); // part of between-study model, NOT prior
-
         target += nico_normal_lupdf(to_vector(beta_z) | 0, 1); // part of between-study model, NOT prior
         target += nico_normal_lupdf(to_vector(raw_scale_z) | 0, 1); // part of between-study model, NOT prior
-        ////
-        // target += raw_C_to_C_log_det_J_lp(C_raw, softplus);
-        //// (a study's first reported cutpoint is C_raw itself; each later one adds an exp() or softplus step)
         target += total_log_J_of_C;
         ////
-        //// ---- Log-likelihood:
+        //// ---- Fused Induced-Dirichlet between-study model + HSROC Binomial cumulative-link likelihood (ONE node):
         ////
-        {
-            ////
-            //// ---- every term in one autodiff node:
-            ////      nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf
-            ////
-            vector[2 * n_studies] locations_of_both_classes = to_vector(Xlocations);
-            vector[2 * n_studies] scales_of_both_classes    = to_vector(Xscale);
-            //// (as map_latent_surv_prob_to_random_C_HSROC: -(C + location) * scale)
-            vector[n_terms] latent_of_each_term = -(C[index_of_the_cutpoint_of_each_term] +
-                                                  locations_of_both_classes[index_of_the_location_of_each_term]) .*
-                                                  scales_of_both_classes[index_of_the_location_of_each_term];
-            ////
-            target += nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lupmf(
-                            count_above_the_cutpoint_of_each_term |
-                            count_above_the_previous_cutpoint_of_each_term, latent_of_each_term,
-                            is_the_first_reported_cutpoint_of_each_term, use_probit_link, 1e-10);
-        }
+        target += nico_ord_hsroc_randthr_ind_dir_and_binomial_lupmf(
+                        x_2 | n, Xlocations, Xscale, C, alpha, position_of_each_C,
+                        n_obs_cutpoints, n_reported_cutpoints,
+                        id_u_seg_lo, id_u_seg_hi, id_seg_uid,
+                        id_seg_own_of_C, id_seg_next_of_C, K_fold_CV_indicator,
+                        use_probit_link, mid_loc_prior_td, 1e-10);
 }
 
 
