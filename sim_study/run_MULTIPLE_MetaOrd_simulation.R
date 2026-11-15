@@ -731,8 +731,9 @@ run_multiple_sims <- function(MCMC_seed,
           ##  <name>_nuisance_first_auto_chunking_on_model.so and gives the same log density and gradient as the library without it.
           ##  They are the cells where a gradient was faster with chunks than without: the stratified bivariate with 50 studies at
           ##  BAI (1.43 times) and HADS (1.05 times), cut by its (threshold, study) pairs; O-biv-FC at BAI with 10 studies (1.04 to
-          ##  1.17 times) and 50 studies (1.78 times) and at HADS with 50 studies (1.21 times), cut by its studies. Every other cell
-          ##  is sampled without auto-chunking.)
+          ##  1.17 times) and 50 studies (1.78 times) and at HADS with 50 studies (1.21 times), O-biv-RC at BAI with 50 studies
+          ##  (1.41 times, with 8 chunks) and Jones at BAI with 50 studies (1.13 times, with 4 chunks), cut by their studies. Every
+          ##  other cell is sampled without auto-chunking.)
           is_stratified_bivariate_auto_chunking_cell <- (model_parameterisation == "Bivariate" &&
                                                          !isTRUE(random_thresholds) &&
                                                          n_studies == 50 &&
@@ -740,7 +741,15 @@ run_multiple_sims <- function(MCMC_seed,
           is_O_biv_FC_auto_chunking_cell <- (model_parameterisation == "ord_bivariate" &&
                                              !isTRUE(random_thresholds) &&
                                              ((test == "BAI" && n_studies %in% c(10, 50)) || (test == "HADS" && n_studies == 50)))
-          is_auto_chunking_cell <- is_stratified_bivariate_auto_chunking_cell || is_O_biv_FC_auto_chunking_cell
+          is_O_biv_RC_auto_chunking_cell <- (model_parameterisation == "ord_bivariate" &&
+                                             isTRUE(random_thresholds) &&
+                                             test == "BAI" && n_studies == 50)
+          is_Jones_auto_chunking_cell <- (model_parameterisation == "Jones" &&
+                                          test == "BAI" && n_studies == 50)
+          is_auto_chunking_cell <- is_stratified_bivariate_auto_chunking_cell || is_O_biv_FC_auto_chunking_cell ||
+                                   is_O_biv_RC_auto_chunking_cell || is_Jones_auto_chunking_cell
+          ## (the number of chunks of a cell sampled with auto-chunking, at the burn-in and at the sampling)
+          N_chunks_of_this_cell <- if (is_O_biv_RC_auto_chunking_cell) 8 else if (is_Jones_auto_chunking_cell) 4 else 2
           ## (the burn-in iterations: given to this function by the driver, from the settings file of the run: one number for
           ##  every cell, or "the_rule_of_each_cell" = 1000 on the 4 Set 0 O-biv-RC 10-study cells that use adapt_delta = 0.95
           ##  and 500 on every other cell)
@@ -955,15 +964,15 @@ run_multiple_sims <- function(MCMC_seed,
             ## (a cell sampled with auto-chunking: its settings, which a test file can still replace; and N, the number of rows the
             ##  chunks cut, given to NicoStan's initialise_model in this worker: Nico_model$new does not hand N on, and without N
             ##  NicoStan chunks nothing. N = the number of (threshold, study) pairs with a reported count, sum(n_obs_cutpoints), for
-            ##  the stratified bivariate; the number of studies for O-biv-FC.)
+            ##  the stratified bivariate; the number of studies for O-biv-FC, O-biv-RC and Jones.)
             if (is_auto_chunking_cell) {
                   options(MetaOrdDTA.rows_of_auto_chunking = if (is_stratified_bivariate_auto_chunking_cell) "pairs" else "studies")
                   sampler_settings_to_test <- utils::modifyList(list(auto_chunking            = TRUE,
                                                                      run_in_fresh_R_process   = FALSE,
                                                                      n_threads_WCP_burnin     = 1,
-                                                                     num_chunks_burnin        = 2,
+                                                                     num_chunks_burnin        = N_chunks_of_this_cell,
                                                                      n_threads_WCP_sampling   = 1,
-                                                                     num_chunks_sampling      = 2),
+                                                                     num_chunks_sampling      = N_chunks_of_this_cell),
                                                                 sampler_settings_to_test)
                   namespace_of_NicoStan <- asNamespace("NicoStan")
                   if (!isTRUE(attr(get("initialise_model", envir = namespace_of_NicoStan), "gives_N_of_auto_chunking"))) {
