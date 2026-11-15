@@ -342,21 +342,34 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   true_mean_GAD_2_params_list$Ord_bivariate$C_d  <- c(-1.66466, -0.931804, -0.149102, 0.280469, 0.839631, 1.36727)
                 
             } else if (DGM == "Jones") {
+
+                  ## (the values of last year's Jones model, replaced by the ones below:)
               
-                  true_mean_GAD_2_params_list$Jones$beta_mu <- c(0.279, 2.02)
-                  true_mean_GAD_2_params_list$Jones$beta_SD <- c(0.415, 1.06)*reduction_factor
-                  true_mean_GAD_2_params_list$Jones$beta_corr <- 0.00403
+#                 true_mean_GAD_2_params_list$Jones$beta_mu <- c(0.279, 2.02)
+#                 true_mean_GAD_2_params_list$Jones$beta_SD <- c(0.415, 1.06)*reduction_factor
+#                 true_mean_GAD_2_params_list$Jones$beta_corr <- 0.00403
                   ##
                   # true_mean_GAD_2_params_list$Jones$cts_thr_values <- seq(from = 1, to = 21, by = 1)
                   # true_mean_GAD_2_params_list$Jones$lambda <- c(0.673, 0.936)
                   ##
-                  true_mean_GAD_2_params_list$Jones$C_nd <- c(0, 0.800205,  1.38365, 1.85971, 2.26912, 2.632215)
-                  true_mean_GAD_2_params_list$Jones$C_d  <- c(0, 0.8786875, 1.61281, 2.26642, 2.86603, 3.42584)
+#                 true_mean_GAD_2_params_list$Jones$C_nd <- c(0, 0.800205,  1.38365, 1.85971, 2.26912, 2.632215)
+#                 true_mean_GAD_2_params_list$Jones$C_d  <- c(0, 0.8786875, 1.61281, 2.26642, 2.86603, 3.42584)
                   ##
-                  true_mean_GAD_2_params_list$Jones$raw_scale_mu <- c(0.0609, 0.183)
-                  true_mean_GAD_2_params_list$Jones$raw_scale_SD <- c(0.0853, 0.283)*reduction_factor
-                  true_mean_GAD_2_params_list$Jones$raw_scale_corr <- -0.247
+#                 true_mean_GAD_2_params_list$Jones$raw_scale_mu <- c(0.0609, 0.183)
+#                 true_mean_GAD_2_params_list$Jones$raw_scale_SD <- c(0.0853, 0.283)*reduction_factor
+#                 true_mean_GAD_2_params_list$Jones$raw_scale_corr <- -0.247
               
+                  ## (real-data fit of the Jones model, prior set 0, csv fd18d19a; 64000 draws;
+                  ##  the cutpoints are on the model's own scale: the Box-Cox of the thresholds at the median of lambda, scaled to [-2, 2])
+                  true_mean_GAD_2_params_list$Jones$beta_mu <- c(-1.58475, 0.562563)
+                  true_mean_GAD_2_params_list$Jones$beta_SD <- c(0.532217, 0.652652)*reduction_factor
+                  true_mean_GAD_2_params_list$Jones$beta_corr <- 0.3578
+                  true_mean_GAD_2_params_list$Jones$C_nd <- c(-2, -0.809516, 0.0740127, 0.803146, 1.43547, 2)
+                  true_mean_GAD_2_params_list$Jones$C_d  <- c(-2, -0.925218, -0.0590156, 0.694565, 1.37413, 2)
+                  true_mean_GAD_2_params_list$Jones$raw_scale_mu <- c(0.473384, 0.261623)
+                  true_mean_GAD_2_params_list$Jones$raw_scale_SD <- c(0.0642955, 0.158617)*reduction_factor
+                  true_mean_GAD_2_params_list$Jones$raw_scale_corr <- -0.4635
+
             } else if (DGM == "ord_HSROC_random_C") {
               
                   # true_mean_GAD_2_params_list$Ord_HSROC$beta_mu <- -0.710
@@ -508,25 +521,38 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   #                                                    2.2059966, 2.5734272, 2.8180254)
               
             } else if (DGM == "Jones") {
+
+                  ## (the values of last year's Jones model, replaced by the ones below:)
               
-                  true_mean_HADS_params_list$Jones$beta_mu <- c(3.20, 9.38)
-                  true_mean_HADS_params_list$Jones$beta_SD <- c(0.516, 1.38)*reduction_factor
-                  true_mean_HADS_params_list$Jones$beta_corr <- 0.211
+#                 true_mean_HADS_params_list$Jones$beta_mu <- c(3.20, 9.38)
+#                 true_mean_HADS_params_list$Jones$beta_SD <- c(0.516, 1.38)*reduction_factor
+#                 true_mean_HADS_params_list$Jones$beta_corr <- 0.211
                   ##
                   # true_mean_HADS_params_list$Jones$cts_thr_values <- seq(from = 1, to = 21, by = 1)
                   # true_mean_HADS_params_list$Jones$lambda <- c(0.673, 0.936)
                   ##
-                  true_mean_HADS_params_list$Jones$C_nd <-  c(0, 0.8830485, 1.626035, 2.290555, 2.90222, 3.474825, 4.01685, 
-                                                              4.53401, 5.03037, 5.508955, 5.9721, 6.421635, 6.859055, 7.285585, 
-                                                              7.702245, 8.1099, 8.50929, 8.90106, 9.285765, 9.663885, 10.03585)
-                  true_mean_HADS_params_list$Jones$C_d  <- c(0, 0.975819, 1.919665, 2.843325, 3.75226, 4.64964, 5.53751, 
-                                                             6.417325, 7.29016, 8.156835, 9.018015, 9.87422, 10.72585, 11.5734, 
-                                                             12.4171, 13.2572, 14.09395, 14.9276, 15.7583, 16.58625, 17.4115)
+#                 true_mean_HADS_params_list$Jones$C_nd <-  c(0, 0.8830485, 1.626035, 2.290555, 2.90222, 3.474825, 4.01685, 
+#                                                             4.53401, 5.03037, 5.508955, 5.9721, 6.421635, 6.859055, 7.285585, 
+#                                                             7.702245, 8.1099, 8.50929, 8.90106, 9.285765, 9.663885, 10.03585)
+#                 true_mean_HADS_params_list$Jones$C_d  <- c(0, 0.975819, 1.919665, 2.843325, 3.75226, 4.64964, 5.53751, 
+#                                                            6.417325, 7.29016, 8.156835, 9.018015, 9.87422, 10.72585, 11.5734, 
+#                                                            12.4171, 13.2572, 14.09395, 14.9276, 15.7583, 16.58625, 17.4115)
                   ##
-                  true_mean_HADS_params_list$Jones$raw_scale_mu <- c(0.776, 1.23)
-                  true_mean_HADS_params_list$Jones$raw_scale_SD <- c(0.116, 0.116)*reduction_factor
-                  true_mean_HADS_params_list$Jones$raw_scale_corr <- 0.269
+#                 true_mean_HADS_params_list$Jones$raw_scale_mu <- c(0.776, 1.23)
+#                 true_mean_HADS_params_list$Jones$raw_scale_SD <- c(0.116, 0.116)*reduction_factor
+#                 true_mean_HADS_params_list$Jones$raw_scale_corr <- 0.269
               
+                  ## (real-data fit of the Jones model, prior set 0, csv fd18d19a; 64000 draws;
+                  ##  the cutpoints are on the model's own scale: the Box-Cox of the thresholds at the median of lambda, scaled to [-2, 2])
+                  true_mean_HADS_params_list$Jones$beta_mu <- c(-0.720809, 0.139121)
+                  true_mean_HADS_params_list$Jones$beta_SD <- c(0.207157, 0.344449)*reduction_factor
+                  true_mean_HADS_params_list$Jones$beta_corr <- 0.3243
+                  true_mean_HADS_params_list$Jones$C_nd <- c(-2, -1.64858, -1.35275, -1.08807, -0.844398, -0.616241, -0.400233, -0.194107, 0.00375199, 0.194545, 0.379197, 0.558441, 0.732867, 0.902962, 1.06913, 1.23172, 1.39103, 1.5473, 1.70076, 1.8516, 2)
+                  true_mean_HADS_params_list$Jones$C_d  <- c(-2, -1.78526, -1.57491, -1.36736, -1.16188, -0.958029, -0.755519, -0.554152, -0.35378, -0.154288, 0.0444173, 0.242409, 0.439749, 0.636491, 0.832677, 1.02835, 1.22353, 1.41827, 1.61258, 1.80648, 2)
+                  true_mean_HADS_params_list$Jones$raw_scale_mu <- c(-0.13629, -0.214826)
+                  true_mean_HADS_params_list$Jones$raw_scale_SD <- c(0.113091, 0.0893036)*reduction_factor
+                  true_mean_HADS_params_list$Jones$raw_scale_corr <- 0.3081
+
             } else if (DGM == "ord_HSROC_random_C") {
                   
                   # true_mean_HADS_params_list$Ord_HSROC$beta_mu <- -0.745
@@ -708,34 +734,47 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                   true_mean_BAI_params_list$Ord_bivariate$C_d  <- c(-2.81698, -2.6966, -2.5205, -2.40158, -2.17505, -2.07913, -1.99829, -1.89034, -1.82168, -1.71181, -1.67049, -1.54556, -1.4733, -1.40695, -1.2869, -1.16206, -1.07813, -0.916032, -0.832624, -0.769677, -0.71198, -0.654599, -0.558235, -0.501689, -0.427549, -0.397517, -0.326333, -0.258095, -0.213152, -0.192268, -0.105217, -0.0367901, -0.00357474, 0.0299767, 0.0639237, 0.134349, 0.148283, 0.200055, 0.272857, 0.307704, 0.374688, 0.47087, 0.502042, 0.534133, 0.569311, 0.628429, 0.691696, 0.745998, 0.804827, 0.839506, 0.875558, 0.904418, 0.934207, 0.986308, 1.04471, 1.12499, 1.16906, 1.21687, 1.27163, 1.33413, 1.41091, 1.5067, 1.96407)
               
             } else if (DGM == "Jones") {
+
+                  ## (the values of last year's Jones model, replaced by the ones below:)
               
-                  true_mean_BAI_params_list$Jones$beta_mu <- c(2.88, 8.42)
-                  true_mean_BAI_params_list$Jones$beta_SD <- c(0.904, 0.898)*reduction_factor
-                  true_mean_BAI_params_list$Jones$beta_corr <- -0.120
+#                 true_mean_BAI_params_list$Jones$beta_mu <- c(2.88, 8.42)
+#                 true_mean_BAI_params_list$Jones$beta_SD <- c(0.904, 0.898)*reduction_factor
+#                 true_mean_BAI_params_list$Jones$beta_corr <- -0.120
                   ##
-                  true_mean_BAI_params_list$Jones$C_nd <-  c(0, 0.7964125, 1.373, 1.84136, 2.2428, 2.59789, 2.918545, 3.212405, 
-                                                             3.484685, 3.739125, 3.978525, 4.205025, 4.420305, 4.625745, 4.82244, 
-                                                             5.011315, 5.193135, 5.36856, 5.538155, 5.702405, 5.861735, 6.01651, 
-                                                             6.16707, 6.31369, 6.45665, 6.59617, 6.73246, 6.86571, 6.9961, 
-                                                             7.12379, 7.24891, 7.3716, 7.49198, 7.610165, 7.72625, 7.840335, 
-                                                             7.95251, 8.062855, 8.171455, 8.278365, 8.383665, 8.487415, 8.589675, 
-                                                             8.690495, 8.78993, 8.888035, 8.984845, 9.080415, 9.17478, 9.267985, 
-                                                             9.360055, 9.45104, 9.540965, 9.629865, 9.71777, 9.804705, 9.8907, 
-                                                             9.97579, 10.06, 10.1433, 10.2258, 10.3075, 10.38835)
-                  true_mean_BAI_params_list$Jones$C_d  <- c(0, 0.8439165, 1.509195, 2.079825, 2.58904, 3.054115, 3.48543, 
-                                                             3.889805, 4.27201, 4.63554, 4.983065, 5.316645, 5.63794, 5.9483, 
-                                                             6.24884, 6.5405, 6.824075, 7.10024, 7.369585, 7.63263, 7.88983, 
-                                                             8.141575, 8.38822, 8.6301, 8.867485, 9.10063, 9.329785, 9.555155, 
-                                                             9.77693, 9.995295, 10.2104, 10.4224, 10.6315, 10.8377, 11.04125, 
-                                                             11.24215, 11.4406, 11.6366, 11.83035, 12.02185, 12.2112, 12.3985, 
-                                                             12.58385, 12.76715, 12.94865, 13.1284, 13.30635, 13.48265, 13.65725, 
-                                                             13.83025, 14.00175, 14.1717, 14.3402, 14.5073, 14.673, 14.83735, 
-                                                             15.0004, 15.16215, 15.3227, 15.4819, 15.64, 15.797, 15.9528)
+#                 true_mean_BAI_params_list$Jones$C_nd <-  c(0, 0.7964125, 1.373, 1.84136, 2.2428, 2.59789, 2.918545, 3.212405, 
+#                                                            3.484685, 3.739125, 3.978525, 4.205025, 4.420305, 4.625745, 4.82244, 
+#                                                            5.011315, 5.193135, 5.36856, 5.538155, 5.702405, 5.861735, 6.01651, 
+#                                                            6.16707, 6.31369, 6.45665, 6.59617, 6.73246, 6.86571, 6.9961, 
+#                                                            7.12379, 7.24891, 7.3716, 7.49198, 7.610165, 7.72625, 7.840335, 
+#                                                            7.95251, 8.062855, 8.171455, 8.278365, 8.383665, 8.487415, 8.589675, 
+#                                                            8.690495, 8.78993, 8.888035, 8.984845, 9.080415, 9.17478, 9.267985, 
+#                                                            9.360055, 9.45104, 9.540965, 9.629865, 9.71777, 9.804705, 9.8907, 
+#                                                            9.97579, 10.06, 10.1433, 10.2258, 10.3075, 10.38835)
+#                 true_mean_BAI_params_list$Jones$C_d  <- c(0, 0.8439165, 1.509195, 2.079825, 2.58904, 3.054115, 3.48543, 
+#                                                            3.889805, 4.27201, 4.63554, 4.983065, 5.316645, 5.63794, 5.9483, 
+#                                                            6.24884, 6.5405, 6.824075, 7.10024, 7.369585, 7.63263, 7.88983, 
+#                                                            8.141575, 8.38822, 8.6301, 8.867485, 9.10063, 9.329785, 9.555155, 
+#                                                            9.77693, 9.995295, 10.2104, 10.4224, 10.6315, 10.8377, 11.04125, 
+#                                                            11.24215, 11.4406, 11.6366, 11.83035, 12.02185, 12.2112, 12.3985, 
+#                                                            12.58385, 12.76715, 12.94865, 13.1284, 13.30635, 13.48265, 13.65725, 
+#                                                            13.83025, 14.00175, 14.1717, 14.3402, 14.5073, 14.673, 14.83735, 
+#                                                            15.0004, 15.16215, 15.3227, 15.4819, 15.64, 15.797, 15.9528)
                   ##
-                  true_mean_BAI_params_list$Jones$raw_scale_mu <- c(0.881, 1.14)
-                  true_mean_BAI_params_list$Jones$raw_scale_SD <- c(0.166, 0.358)*reduction_factor
-                  true_mean_BAI_params_list$Jones$raw_scale_corr <- 0.299
+#                 true_mean_BAI_params_list$Jones$raw_scale_mu <- c(0.881, 1.14)
+#                 true_mean_BAI_params_list$Jones$raw_scale_SD <- c(0.166, 0.358)*reduction_factor
+#                 true_mean_BAI_params_list$Jones$raw_scale_corr <- 0.299
                   
+                  ## (real-data fit of the Jones model, prior set 0, csv fd18d19a; 64000 draws;
+                  ##  the cutpoints are on the model's own scale: the Box-Cox of the thresholds at the median of lambda, scaled to [-2, 2])
+                  true_mean_BAI_params_list$Jones$beta_mu <- c(-1.13326, -0.013686)
+                  true_mean_BAI_params_list$Jones$beta_SD <- c(0.355788, 0.250714)*reduction_factor
+                  true_mean_BAI_params_list$Jones$beta_corr <- 0.06001
+                  true_mean_BAI_params_list$Jones$C_nd <- c(-2, -1.8016, -1.64298, -1.50569, -1.38235, -1.2691, -1.16361, -1.06433, -0.970186, -0.880375, -0.794293, -0.711466, -0.631513, -0.554124, -0.479042, -0.406051, -0.334966, -0.265631, -0.197908, -0.131677, -0.0668346, -0.00328606, 0.0590511, 0.120251, 0.180381, 0.239501, 0.297667, 0.354927, 0.411329, 0.466912, 0.521717, 0.575779, 0.629131, 0.681802, 0.733821, 0.785216, 0.836009, 0.886225, 0.935884, 0.985008, 1.03361, 1.08172, 1.12935, 1.1765, 1.22321, 1.26948, 1.31533, 1.36076, 1.4058, 1.45044, 1.49472, 1.53862, 1.58217, 1.62538, 1.66824, 1.71078, 1.753, 1.7949, 1.8365, 1.87781, 1.91882, 1.95955, 2)
+                  true_mean_BAI_params_list$Jones$C_d  <- c(-2, -1.83002, -1.68955, -1.56535, -1.452, -1.34662, -1.24742, -1.15323, -1.06321, -0.976739, -0.893342, -0.812642, -0.734338, -0.658182, -0.583968, -0.51152, -0.44069, -0.371351, -0.303389, -0.236708, -0.171221, -0.10685, -0.0435286, 0.0188063, 0.0802099, 0.140733, 0.20042, 0.259315, 0.317454, 0.374874, 0.431606, 0.487682, 0.543127, 0.59797, 0.652232, 0.705938, 0.759108, 0.81176, 0.863915, 0.915589, 0.966799, 1.01756, 1.06789, 1.11779, 1.16729, 1.21639, 1.26511, 1.31345, 1.36143, 1.40906, 1.45635, 1.5033, 1.54993, 1.59624, 1.64224, 1.68794, 1.73335, 1.77847, 1.82331, 1.86788, 1.91218, 1.95622, 2)
+                  true_mean_BAI_params_list$Jones$raw_scale_mu <- c(-0.177064, -0.224417)
+                  true_mean_BAI_params_list$Jones$raw_scale_SD <- c(0.187245, 0.180966)*reduction_factor
+                  true_mean_BAI_params_list$Jones$raw_scale_corr <- 0.4048
+
             } else if (DGM == "ord_HSROC_random_C") {
                   
                   # true_mean_BAI_params_list$Ord_HSROC$beta_mu <- -0.764
@@ -800,6 +839,57 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
           # } else {
           # 
           # }
+          ##
+          ## ---- The time-to-event DGM of Hoyer, Hirt and Kuss (2018), Weibull test values (tests 2, 3 and 4): ----------------------------
+          ##
+          ## (from fitting that model, Weibull, to the REAL data of each test with dtametaTMB::fitHoyer(), threshold k = "positive when the
+          ##  score is k or more", smallest = 0.5, largest = n_thr + 1. In a study, the log test value of a person of group g is
+          ##  beta_g + u_g + lambda_g * log(E), E ~ Exponential(1); (u_nd, u_d) is bivariate normal with SDs su_nd, su_d and correlation rho;
+          ##  the score is the number of thresholds 1, ..., n_thr that the test value lies above.)
+          ##
+          true_Hoyer_2018_params_list <- list()
+          if (DGM == "Hoyer_2018") {
+                true_Hoyer_2018_params_list[[2]] <- list(beta_nd = 0.578235892, lambda_nd = 0.8035988613, su_nd = 0.2479880048, beta_d = 1.503273511, lambda_d = 0.4463884907, su_d = 0.2051119287, rho = 0.4639579537)  ## GAD-2
+                true_Hoyer_2018_params_list[[3]] <- list(beta_nd = 2.247313372, lambda_nd = 1.013167455, su_nd = 0.2788456147, beta_d = 3.288483765, lambda_d = 0.4576064201, su_d = 0.1663606491, rho = 0.4130489496)  ## BAI
+                true_Hoyer_2018_params_list[[4]] <- list(beta_nd = 1.917441837, lambda_nd = 0.574362408, su_nd = 0.1529238667, beta_d = 2.558541788, lambda_d = 0.3261829719, su_d = 0.1588348715, rho = 0.5665910211)  ## HADS
+          }
+          ##
+          ##
+          ## ---- The logit GLMM DGM (Stoye et al. 2026, equation 6; Hoyer and Kuss 2018) (tests 2, 3 and 4): -------------------------------
+          ##
+          ## (from fitting that model to the REAL data of each test with lme4::glmer(). In study i, at threshold k,
+          ##  logit(Sp) = b01 + b02 * k + u1_i and logit(Se) = b11 + b12 * k + u2_i; (u1_i, u2_i) is bivariate normal with SDs s1, s2 and
+          ##  correlation rho. A person's latent value is logistic with scale 1, located at -(b01 + u1_i) if non-diseased and at b11 + u2_i if
+          ##  diseased; the score is the number of thresholds b02 * k (non-diseased) or -b12 * k (diseased), k = 1, ..., n_thr, it lies above.)
+          ##
+          true_logit_GLMM_params_list <- list()
+          if (DGM == "logit_GLMM") {
+                true_logit_GLMM_params_list[[2]] <- list(b01 = -1.304555081, b02 = 0.9939413545, b11 = 3.981535831, b12 = -1.011194802, s1 = 0.6345920099, s2 = 0.8112791655, rho = -0.4951828301)  ## GAD-2
+                true_logit_GLMM_params_list[[3]] <- list(b01 = -0.8526484076, b02 = 0.1323346305, b11 = 3.544697691, b12 = -0.1450912042, s1 = 0.5162218925, s2 = 0.6009575151, rho = -0.3822577916)  ## BAI
+                true_logit_GLMM_params_list[[4]] <- list(b01 = -2.465434374, b02 = 0.4298249227, b11 = 5.009870199, b12 = -0.4324148899, s1 = 0.4975577628, s2 = 0.7260257937, rho = -0.4565357128)  ## HADS
+          }
+          ##
+          ##
+          ## ---- The DGM of Steinhauser, Schumacher and Rücker (2016), R package diagmeta, variant DIDS, logistic (tests 2, 3 and 4): -----
+          ##
+          ## (from fitting that model to the REAL data of each test with diagmeta::diagmeta(model = "DIDS", distr = "logistic",
+          ##  equalvar = FALSE, log.cutoff = FALSE). In study i, at threshold k, logit(Sp) = (alpha_nd + a_nd_i) + (beta_nd + b_nd_i) * k
+          ##  and logit(1 - Se) = (alpha_d + a_d_i) + (beta_d + b_d_i) * k. The four study effects in lmer's order, (a_nd_i,
+          ##  a_d_i - a_nd_i, b_nd_i, b_d_i - b_nd_i), are jointly normal with the covariance matrix below. A person's latent value is
+          ##  logistic, located at -(alpha_g + a_g_i) / (beta_g + b_g_i) with scale 1 / (beta_g + b_g_i) in group g; the score is the number
+          ##  of thresholds k = 1, ..., n_thr it lies at or above. The residual error of the fitted linear mixed model is not part of the
+          ##  DGM: the counts of a study vary around its own shares by the sampling of its people only.)
+          ##
+          true_diagmeta_params_list <- list()
+          if (DGM == "diagmeta") {
+                true_diagmeta_params_list[[2]] <- list(alpha_nd = -1.196713904, beta_nd = 0.9371118387, alpha_d = -3.425026746, beta_d = 0.8677368511,
+                                                       covariance_of_the_study_effects = matrix(c(0.2896384134, -0.1351657163, 0.0006121601216, -0.00919938167, -0.1351657163, 0.4062709461, 0.05068537062, -0.03403608617, 0.0006121601216, 0.05068537062, 0.01239965967, -0.01482963201, -0.00919938167, -0.03403608617, -0.01482963201, 0.02179063972), nrow = 4, ncol = 4))  ## GAD-2
+                true_diagmeta_params_list[[3]] <- list(alpha_nd = -1.003558602, beta_nd = 0.1495246243, alpha_d = -3.242138865, beta_d = 0.1400078537,
+                                                       covariance_of_the_study_effects = matrix(c(0.3255700299, -0.2187390221, -0.008154840997, 0.0007049961424, -0.2187390221, 0.1524696009, 0.004651117022, -0.001556221346, -0.008154840997, 0.004651117022, 0.001616186185, -0.0007465921205, 0.0007049961424, -0.001556221346, -0.0007465921205, 0.0008319143216), nrow = 4, ncol = 4))  ## BAI
+                true_diagmeta_params_list[[4]] <- list(alpha_nd = -2.363827965, beta_nd = 0.4188058623, alpha_d = -4.069045325, beta_d = 0.3544414606,
+                                                       covariance_of_the_study_effects = matrix(c(0.2050840319, -0.02161801376, -0.02084620401, -0.001821869066, -0.02161801376, 0.7018052792, 0.02608158142, -0.05544827024, -0.02084620401, 0.02608158142, 0.006813859689, -0.004294474617, -0.001821869066, -0.05544827024, -0.004294474617, 0.007414699186), nrow = 4, ncol = 4))  ## HADS
+          }
+          ##
           if (DGM %in% c("ord_biv_fixed_C",
                          "ord_biv_random_C")) {
                   
@@ -1139,6 +1229,27 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                     #   
                     # }
                     # ##
+                    ## (the Hoyer DGM: the thresholds of tests 2 to 4 on the scale of the log test value, the same in both groups)
+                    if (DGM == "Hoyer_2018") {
+                          for (t in 2:4) {
+                                thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- log(1:n_thr_per_test[t])
+                                thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]]  <- log(1:n_thr_per_test[t])
+                          }
+                    }
+                    ## (the logit GLMM DGM: the thresholds of tests 2 to 4 on the scale of the latent logistic value of each group)
+                    if (DGM == "logit_GLMM") {
+                          for (t in 2:4) {
+                                thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- true_logit_GLMM_params_list[[t]]$b02 * (1:n_thr_per_test[t])
+                                thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]]  <- -true_logit_GLMM_params_list[[t]]$b12 * (1:n_thr_per_test[t])
+                          }
+                    }
+                    ## (the diagmeta DGM: the thresholds of tests 2 to 4 are 1, ..., n_thr on the scale of the latent logistic value, in both groups)
+                    if (DGM == "diagmeta") {
+                          for (t in 2:4) {
+                                thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]] <- 1:n_thr_per_test[t]
+                                thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]]  <- 1:n_thr_per_test[t]
+                          }
+                    }
                     for (t in 2:n_tests) {
                       
                             Mean_of_thr_for_all_tests_array_per_study_nd[s, t, 1:n_thr_per_test[t]] <- thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]]
@@ -1266,6 +1377,70 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                               scale_d_study_s[t]  <- exp(raw_scales[2])
                             }
                       
+                    } else if (DGM == "Hoyer_2018") {
+                      
+                            ## (tests 1 and 5 are not Hoyer tests: the locations and scales the other DGMs start from)
+                            location_nd_study_s <- c(-100, NA, NA, NA, -1)
+                            location_d_study_s  <- c(+100, NA, NA, NA, +1)
+                            scale_nd_study_s <- rep(1, n_tests)
+                            scale_d_study_s  <- rep(1, n_tests)
+                            ##
+                            for (t in 2:4) {
+                                  Hoyer_su_nd <- true_Hoyer_2018_params_list[[t]]$su_nd
+                                  Hoyer_su_d  <- true_Hoyer_2018_params_list[[t]]$su_d
+                                  Hoyer_rho   <- true_Hoyer_2018_params_list[[t]]$rho
+                                  Hoyer_Sigma_u <- matrix(c(Hoyer_su_nd^2, Hoyer_rho * Hoyer_su_nd * Hoyer_su_d,
+                                                            Hoyer_rho * Hoyer_su_nd * Hoyer_su_d, Hoyer_su_d^2), nrow = 2, ncol = 2)
+                                  Hoyer_u <- LaplacesDemon::rmvn(n = 1, mu = c(0, 0), Sigma = Hoyer_Sigma_u)
+                                  location_nd_study_s[t] <- true_Hoyer_2018_params_list[[t]]$beta_nd + Hoyer_u[1]
+                                  location_d_study_s[t]  <- true_Hoyer_2018_params_list[[t]]$beta_d  + Hoyer_u[2]
+                                  scale_nd_study_s[t] <- true_Hoyer_2018_params_list[[t]]$lambda_nd
+                                  scale_d_study_s[t]  <- true_Hoyer_2018_params_list[[t]]$lambda_d
+                            }
+                      
+                    } else if (DGM == "logit_GLMM") {
+                      
+                            ## (tests 1 and 5 are not logit GLMM tests: the locations and scales the other DGMs start from)
+                            location_nd_study_s <- c(-100, NA, NA, NA, -1)
+                            location_d_study_s  <- c(+100, NA, NA, NA, +1)
+                            scale_nd_study_s <- rep(1, n_tests)
+                            scale_d_study_s  <- rep(1, n_tests)
+                            ##
+                            for (t in 2:4) {
+                                  GLMM_s1  <- true_logit_GLMM_params_list[[t]]$s1
+                                  GLMM_s2  <- true_logit_GLMM_params_list[[t]]$s2
+                                  GLMM_rho <- true_logit_GLMM_params_list[[t]]$rho
+                                  GLMM_Sigma_u <- matrix(c(GLMM_s1^2, GLMM_rho * GLMM_s1 * GLMM_s2,
+                                                           GLMM_rho * GLMM_s1 * GLMM_s2, GLMM_s2^2), nrow = 2, ncol = 2)
+                                  GLMM_u <- LaplacesDemon::rmvn(n = 1, mu = c(0, 0), Sigma = GLMM_Sigma_u)
+                                  location_nd_study_s[t] <- -(true_logit_GLMM_params_list[[t]]$b01 + GLMM_u[1])
+                                  location_d_study_s[t]  <- true_logit_GLMM_params_list[[t]]$b11 + GLMM_u[2]
+                            }
+
+                    } else if (DGM == "diagmeta") {
+
+                            ## (tests 1 and 5 are not diagmeta tests: the locations and scales the other DGMs start from)
+                            location_nd_study_s <- c(-100, NA, NA, NA, -1)
+                            location_d_study_s  <- c(+100, NA, NA, NA, +1)
+                            scale_nd_study_s <- rep(1, n_tests)
+                            scale_d_study_s  <- rep(1, n_tests)
+                            ##
+                            for (t in 2:4) {
+                                  ## (the four study effects; drawn again in the rare case that a study's slope of a group is not positive)
+                                  diagmeta_slope_nd <- diagmeta_slope_d <- -1
+                                  while (diagmeta_slope_nd <= 0 || diagmeta_slope_d <= 0) {
+                                        diagmeta_u <- LaplacesDemon::rmvn(n = 1, mu = rep(0, 4), Sigma = true_diagmeta_params_list[[t]]$covariance_of_the_study_effects)
+                                        diagmeta_intercept_nd <- true_diagmeta_params_list[[t]]$alpha_nd + diagmeta_u[1]
+                                        diagmeta_intercept_d  <- true_diagmeta_params_list[[t]]$alpha_d  + diagmeta_u[1] + diagmeta_u[2]
+                                        diagmeta_slope_nd     <- true_diagmeta_params_list[[t]]$beta_nd  + diagmeta_u[3]
+                                        diagmeta_slope_d      <- true_diagmeta_params_list[[t]]$beta_d   + diagmeta_u[3] + diagmeta_u[4]
+                                  }
+                                  location_nd_study_s[t] <- -diagmeta_intercept_nd / diagmeta_slope_nd
+                                  location_d_study_s[t]  <- -diagmeta_intercept_d  / diagmeta_slope_d
+                                  scale_nd_study_s[t] <- 1 / diagmeta_slope_nd
+                                  scale_d_study_s[t]  <- 1 / diagmeta_slope_d
+                            }
+
                     }
                     
                     
@@ -1322,6 +1497,27 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                     latent_cts_results_neg <- LaplacesDemon::rmvn(n = n_neg, mu = location_nd_study_s, Sigma = Sigma_nd)
                     latent_cts_results_pos <- LaplacesDemon::rmvn(n = n_pos, mu = location_d_study_s, Sigma = Sigma_d)
                     latent_results <- rbind(latent_cts_results_neg, latent_cts_results_pos)
+                    ## (the Hoyer DGM: the latent value of tests 2 to 4 is the log test value, Weibull: location + scale * log(E), E ~ Exponential(1))
+                    if (DGM == "Hoyer_2018") {
+                          for (t in 2:4) {
+                                latent_results[seq_len(n_neg), t] <- location_nd_study_s[t] + scale_nd_study_s[t] * log(stats::rexp(n = n_neg, rate = 1))
+                                latent_results[n_neg + seq_len(n_pos), t] <- location_d_study_s[t] + scale_d_study_s[t] * log(stats::rexp(n = n_pos, rate = 1))
+                          }
+                    }
+                    ## (the logit GLMM DGM: the latent value of tests 2 to 4 is logistic with scale 1 around the study's location of the group)
+                    if (DGM == "logit_GLMM") {
+                          for (t in 2:4) {
+                                latent_results[seq_len(n_neg), t] <- stats::rlogis(n = n_neg, location = location_nd_study_s[t], scale = 1)
+                                latent_results[n_neg + seq_len(n_pos), t] <- stats::rlogis(n = n_pos, location = location_d_study_s[t], scale = 1)
+                          }
+                    }
+                    ## (the diagmeta DGM: the latent value of tests 2 to 4 is logistic with the study's location and scale of the group)
+                    if (DGM == "diagmeta") {
+                          for (t in 2:4) {
+                                latent_results[seq_len(n_neg), t] <- stats::rlogis(n = n_neg, location = location_nd_study_s[t], scale = scale_nd_study_s[t])
+                                latent_results[n_neg + seq_len(n_pos), t] <- stats::rlogis(n = n_pos, location = location_d_study_s[t], scale = scale_d_study_s[t])
+                          }
+                    }
                     
                     # Initialize result arrays
                     results_pos <- array(NA, dim = c(n_pos, n_tests))

@@ -115,7 +115,9 @@ names_of_the_settings <- c("frozen_library", "package_dir", "results_root", "out
                            "n_threads", "n_chains_per_worker", "port_start", "seed_offset", "n_seeds_per_cell",
                            "MCSE_target", "sampling_algorithm", "DGMs", "models", "random_thresholds", "prior_sets",
                            "tests", "n_studies", "pop_median_models", "Stan_math_only_model", "real_data_dir",
-                           "n_burnin", "n_iter_for_4_chains", "log_lik_indicator", "nuisance_params")
+                           "n_burnin", "n_iter_for_4_chains", "log_lik_indicator", "nuisance_params",
+                           "keep_the_data_file_in", "keep_the_divergence_trace_in", "sampler_settings_to_test_file",
+                           "target_proportion_missing")
 if (!setequal(names(sim_settings), names_of_the_settings)) {
       stop("settings missing from the settings file: ", paste(setdiff(names_of_the_settings, names(sim_settings)), collapse = ", "),
            "; settings it should not have: ", paste(setdiff(names(sim_settings), names_of_the_settings), collapse = ", "))
@@ -532,7 +534,7 @@ reduction_factor <- 1.0
 ##
 ## ----
 ##
-min_studies_per_threshold <- 1
+min_studies_per_threshold <- 1  ## (every threshold that at least one study reports counts) ## (the value the results tables are made with, MetaOrdDTA_print_results.R; the workers' check in run_MULTIPLE_MetaOrd_simulation.R uses the same value)
 ##
 ## ----
 ##
@@ -1115,7 +1117,11 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                                                                                            log_lik_indicator = sim_settings$log_lik_indicator,
                                                                                            n_burnin = sim_settings$n_burnin,
                                                                                            n_iter_for_4_chains_of_this_run = sim_settings$n_iter_for_4_chains,
-                                                                                           nuisance_params_of_this_run = sim_settings$nuisance_params)
+                                                                                           nuisance_params_of_this_run = sim_settings$nuisance_params,
+                                                                                           keep_the_data_file_in = sim_settings$keep_the_data_file_in,
+                                                                                           keep_the_divergence_trace_in = sim_settings$keep_the_divergence_trace_in,
+                                                                                           sampler_settings_to_test_file = sim_settings$sampler_settings_to_test_file,
+                                                                                           target_proportion_missing_of_this_run = sim_settings$target_proportion_missing)
                                                                                            ##
                                                                                            # vec_index_inner = vec_index_inner)
 

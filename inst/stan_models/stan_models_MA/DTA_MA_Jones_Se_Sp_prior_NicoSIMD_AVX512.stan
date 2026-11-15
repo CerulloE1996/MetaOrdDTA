@@ -1,4 +1,4 @@
-// NicoSIMD_AVX512 version of DTA_MA_Jones_Se_Sp_prior.stan written by NicoStan (source model md5 51345a38126aa84acecd7a9f157e811d; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
+// NicoSIMD_AVX512 version of DTA_MA_Jones_Se_Sp_prior_fact_priv.stan written by NicoStan (source model md5 9ecf546f961872a3902902fcf9c29002; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
 // NicoSIMD functions used: exp, log, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, sinh, asinh, atanh, log_diff_exp, std_normal_log_qf
 
 
@@ -288,14 +288,6 @@ transformed parameters {
              for (c in 1:2) {
                   int n_covariates_c = (c == 1) ? n_covariates_nd : n_covariates_d;
                   vector[n_covariates_c] baseline = (c == 1) ? baseline_case_nd : baseline_case_d;
-                  vector[3] x_raw = [beta_mu[c, 1], raw_scale_mu[c, 1], 5.0 * nico_atanh(lambda[c] / 5.0)]';
-                  vector[3] x_correlated = prior_one_hill_L_Omega[c] * x_raw;
-                  vector[3] v = prior_one_hill_mean[c] +
-                                prior_one_hill_SD[c] .* nico_sinh(nico_exp(prior_one_hill_log_tail[c]) .* nico_asinh(x_correlated) +
-                                                             prior_one_hill_skew[c]);
-                  v[2] += prior_one_hill_bend[c][1] * (square(x_correlated[1]) - 1.0);
-                  v[3] += prior_one_hill_bend[c][2] * (square(x_correlated[1]) - 1.0);
-                  //// (v[1] and v[2] are the baseline location and log(scale): the two intercepts follow)
                   real location_of_the_other_covariates = 0.0;
                   real raw_scale_of_the_other_covariates = 0.0;
                   if (n_covariates_c > 1) {
@@ -304,9 +296,27 @@ transformed parameters {
                        raw_scale_of_the_other_covariates = dot_product(baseline[2:n_covariates_c],
                                                                        to_vector(raw_scale_mu[c, 2:n_covariates_c]));
                   }
-                  beta_mu_transformed[c, 1] = (v[1] - location_of_the_other_covariates) / baseline[1];
-                  raw_scale_mu_transformed[c, 1] = (v[2] - raw_scale_of_the_other_covariates) / baseline[1];
-                  lambda_transformed[c] = 5.0 * nico_tanh(v[3] / 5.0);
+                  if (Se_Sp_prior_type == 4 && n_chosen_cutoffs[c] > 0) {
+                       real rho_23 = dot_product(to_vector(prior_one_hill_L_Omega[c][2, 1:3]),
+                                                 to_vector(prior_one_hill_L_Omega[c][3, 1:3]));
+                       real s_23 = sqrt(fmax(1e-12, 1.0 - square(rho_23)));
+                       real x2_corr = raw_scale_mu[c, 1];
+                       real x3_raw  = 5.0 * nico_atanh(lambda[c] / 5.0);
+                       real x3_corr = rho_23 * x2_corr + s_23 * x3_raw;
+                       real v_2 = prior_one_hill_mean[c][2] + prior_one_hill_SD[c][2] * nico_sinh(nico_exp(prior_one_hill_log_tail[c][2]) * nico_asinh(x2_corr) + prior_one_hill_skew[c][2]);
+                       real v_3 = prior_one_hill_mean[c][3] + prior_one_hill_SD[c][3] * nico_sinh(nico_exp(prior_one_hill_log_tail[c][3]) * nico_asinh(x3_corr) + prior_one_hill_skew[c][3]);
+                       raw_scale_mu_transformed[c, 1] = (v_2 - raw_scale_of_the_other_covariates) / baseline[1];
+                       lambda_transformed[c] = 5.0 * nico_tanh(v_3 / 5.0);
+                  } else {
+                       vector[3] x_raw = [beta_mu[c, 1], raw_scale_mu[c, 1], 5.0 * nico_atanh(lambda[c] / 5.0)]';
+                       vector[3] x_correlated = prior_one_hill_L_Omega[c] * x_raw;
+                       vector[3] v = prior_one_hill_mean[c] + prior_one_hill_SD[c] .* nico_sinh(nico_exp(prior_one_hill_log_tail[c]) .* nico_asinh(x_correlated) + prior_one_hill_skew[c]);
+                       v[2] += prior_one_hill_bend[c][1] * (square(x_correlated[1]) - 1.0);
+                       v[3] += prior_one_hill_bend[c][2] * (square(x_correlated[1]) - 1.0);
+                       beta_mu_transformed[c, 1] = (v[1] - location_of_the_other_covariates) / baseline[1];
+                       raw_scale_mu_transformed[c, 1] = (v[2] - raw_scale_of_the_other_covariates) / baseline[1];
+                       lambda_transformed[c] = 5.0 * nico_tanh(v[3] / 5.0);
+                  }
              }
         }
         ////
@@ -345,6 +355,35 @@ transformed parameters {
             } else {
                 C[c] = rep_vector(0.0, n_thr);  // All same value → center at 0
             }
+        }
+        ////
+        //// ---- Factorized direct location conditional p_direct(location | shape) for Sets 1 & 2 (Se_Sp_prior_type == 4):
+        ////
+        if (use_one_hill_Se_Sp_prior == 1 && Se_Sp_prior_type == 4) {
+             for (c in 1:2) {
+                  if (n_chosen_cutoffs[c] > 0) {
+                       int n_covariates_c = (c == 1) ? n_covariates_nd : n_covariates_d;
+                       vector[n_covariates_c] baseline = (c == 1) ? baseline_case_nd : baseline_case_d;
+                       real v_2 = dot_product(baseline, to_vector(raw_scale_mu_transformed[c, 1:n_covariates_c]));
+                       real scale = nico_exp(v_2);
+                       real W = 0.0;
+                       real num = 0.0;
+                       for (j in 1:n_chosen_cutoffs[c]) {
+                            real m_j = (c == 1) ? prior_Se_Sp_link_mean_SD[c][j, 1] : -prior_Se_Sp_link_mean_SD[c][j, 1];
+                            real s_j = prior_Se_Sp_link_mean_SD[c][j, 2];
+                            real w_j = 1.0 / square(s_j);
+                            real loc_j = C[c][chosen_cutoffs[c, j]] - scale * m_j;
+                            W += w_j;
+                            num += w_j * loc_j;
+                       }
+                       real loc_mean = num / W;
+                       real loc_SD = scale / sqrt(W);
+                       real baseline_location = loc_mean + loc_SD * beta_mu[c, 1];
+                       real location_of_the_other_covariates = (n_covariates_c > 1) ?
+                            dot_product(baseline[2:n_covariates_c], to_vector(beta_mu[c, 2:n_covariates_c])) : 0.0;
+                       beta_mu_transformed[c, 1] = (baseline_location - location_of_the_other_covariates) / baseline[1];
+                  }
+             }
         }
         ////
         //// ---- Study-level random effects (after Cholesky decomposition):

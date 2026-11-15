@@ -492,7 +492,7 @@ reduction_factor <- 1.0
 ##
 ## ----
 ##
-min_studies_per_threshold <- 1
+min_studies_per_threshold <- 3  ## (the value the results tables are made with, MetaOrdDTA_print_results.R; the workers' check in run_MULTIPLE_MetaOrd_simulation.R uses the same value)
 ##
 ## ----
 ##

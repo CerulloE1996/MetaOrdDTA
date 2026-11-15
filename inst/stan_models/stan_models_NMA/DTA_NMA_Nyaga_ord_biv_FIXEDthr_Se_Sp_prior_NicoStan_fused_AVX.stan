@@ -534,8 +534,11 @@ model {
         ////
         array[n_index_tests, 2] real C_anchor;
         for (t in 1:n_index_tests) {
-            C_anchor[t, 1] = prior_beta_mu_mean[t][1, 1];
-            C_anchor[t, 2] = prior_beta_mu_mean[t][2, 1];
+            //// (the baseline case of test t at the prior means, under every prior set)
+            C_anchor[t, 1] = dot_product(baseline_case_nd[t][1:n_covariates_nd[t]],
+                                         to_vector(prior_beta_mu_mean[t][1, 1:n_covariates_nd[t]]));
+            C_anchor[t, 2] = dot_product(baseline_case_d[t][1:n_covariates_d[t]],
+                                         to_vector(prior_beta_mu_mean[t][2, 1:n_covariates_d[t]]));
         }
         for (c in 1:2) {
             for (t in 1:n_index_tests) {

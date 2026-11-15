@@ -128,11 +128,13 @@ R_fn_set_inits_MA <- function(    inits,
                                                 ##
                                                 ## Default inits for the cutpoints:
                                                 ##
-                                                ## (C_raw holds the reported cutpoints of each study only)
-                                                vec <- inits_of_the_reported_C_raw( cutpoint_index_of_each_study = matrix(cutpoint_index[1, , ], nrow = n_studies),
-                                                                                    n_obs_cutpoints = n_obs_cutpoints,
-                                                                                    C_raw_init = -2.0,
-                                                                                    softplus = softplus)
+                                                ## (C_raw holds one free value for each reported cutpoint of each study: the model builds the
+                                                ##  study cutpoints from them (partially centred parameterisation), so each starts at 0)
+                                                n_reported_cutpoints <- length(inits_of_the_reported_C_raw( cutpoint_index_of_each_study = matrix(cutpoint_index[1, , ], nrow = n_studies),
+                                                                                                            n_obs_cutpoints = n_obs_cutpoints,
+                                                                                                            C_raw_init = -2.0,
+                                                                                                            softplus = softplus))
+                                                vec <- rep(0.0, n_reported_cutpoints)
                                                 inits$C_raw <-  if_null_then_set_to(inits$C_raw, vec)
                                                 ##
                                                 inits$dirichlet_phi <- if_null_then_set_to( inits$dirichlet_phi, 
@@ -176,11 +178,13 @@ R_fn_set_inits_MA <- function(    inits,
                                                 ##
                                                 ## Default inits for the cutpoints:
                                                 ##
-                                                ## (C_raw holds the reported cutpoints of each study only)
-                                                vec <- inits_of_the_reported_C_raw( cutpoint_index_of_each_study = matrix(cutpoint_index[1, , ], nrow = n_studies),
-                                                                                    n_obs_cutpoints = n_obs_cutpoints,
-                                                                                    C_raw_init = -2.0,
-                                                                                    softplus = softplus)
+                                                ## (C_raw holds one free value for each reported cutpoint of each study: the model builds the
+                                                ##  study cutpoints from them (partially centred parameterisation), so each starts at 0)
+                                                n_reported_cutpoints <- length(inits_of_the_reported_C_raw( cutpoint_index_of_each_study = matrix(cutpoint_index[1, , ], nrow = n_studies),
+                                                                                                            n_obs_cutpoints = n_obs_cutpoints,
+                                                                                                            C_raw_init = -2.0,
+                                                                                                            softplus = softplus))
+                                                vec <- rep(0.0, n_reported_cutpoints)
                                                 inits$C_raw <-  if_null_then_set_to(inits$C_raw, 
                                                                                     list(vec, vec))
                                                 ##

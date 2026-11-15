@@ -420,7 +420,11 @@ model {
                  //// ---- likelihood since random-effect cutpoints!):
                  ////
                  vector[n_cat[t]] alpha_vec = to_vector(alpha[c][t, 1:n_cat[t]]);
-                 real anchor_ct = prior_beta_mu_mean[t][c, 1]; //// the prior mean of the intercept as anchor point
+                 //// (the anchor point: the baseline case of test t at the prior means)
+                 real anchor_ct = (c == 1) ? dot_product(baseline_case_nd[t][1:n_covariates_nd[t]],
+                                                         to_vector(prior_beta_mu_mean[t][1, 1:n_covariates_nd[t]])) :
+                                             dot_product(baseline_case_d[t][1:n_covariates_d[t]],
+                                                         to_vector(prior_beta_mu_mean[t][2, 1:n_covariates_d[t]]));
                  vector[n_cat[t] + 1] cumulative_alpha = append_row(0.0, cumulative_sum(alpha_vec));
                  ////
                  for (s in 1:n_studies) {
@@ -523,7 +527,11 @@ generated quantities {
                   vector[n_thr[t]] P_upper = reverse(cumulative_sum(reverse(to_vector(alpha[c][t, 2:n_cat[t]]))))
                                              / alpha_0;
                   for (k in 1:n_thr[t]) {
-                      C_mu[c][t, k] = prior_beta_mu_mean[t][c, 1] + //// (anchored at the prior mean of the intercept)
+                      //// (anchored at the baseline case of test t at the prior means)
+                      C_mu[c][t, k] = ((c == 1) ? dot_product(baseline_case_nd[t][1:n_covariates_nd[t]],
+                                                              to_vector(prior_beta_mu_mean[t][1, 1:n_covariates_nd[t]])) :
+                                                  dot_product(baseline_case_d[t][1:n_covariates_d[t]],
+                                                              to_vector(prior_beta_mu_mean[t][2, 1:n_covariates_d[t]]))) +
                                       dirichlet_cutpoint_median(P[k], P_upper[k], alpha_0, use_probit_link);
                   }
               }

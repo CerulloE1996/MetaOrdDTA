@@ -171,8 +171,10 @@ R_fn_set_priors_MA <- function(   priors,
                                       
                           } else {    ## if using log-normal / exp() for scales (priors will need to be of smaller magnitude as exp() amplifies much more 
                                       ## that softplus(x)).
-                                      priors$prior_raw_scale_mu_SD   <- if_null_then_set_to(priors$prior_raw_scale_mu_SD, 
-                                                                                            1.0*mult)
+                                      ## (the ratio of the two groups' latent SDs is exp(2 * log-scale), so an SD of 0.125 puts that ratio
+                                      ##  between 0.61 and 1.63 with 95% prior probability)
+                                      priors$prior_raw_scale_mu_SD   <- if_null_then_set_to(priors$prior_raw_scale_mu_SD,
+                                                                                            0.125*mult)
                                       ## allows a lot of heterogeneity on the "probit-exp" scale: exp(0.0 - 2*0.5) ~0.37, exp(0.0 + 2*0.5) ~ 7.39:
                                       priors$prior_raw_scale_SD_SD   <- if_null_then_set_to(priors$prior_raw_scale_SD_SD, 
                                                                                             0.5*mult) 
@@ -236,13 +238,13 @@ R_fn_set_priors_MA <- function(   priors,
                                                                                      rep(1.0, n_thr + 1))
                                 ##
                                 priors$prior_kappa_mean   <-  if_null_then_set_to( priors$prior_kappa_mean,
-                                                                                           log(300))
+                                                                                           log(125))
                                 ##
                                 priors$prior_kappa_dof   <- if_null_then_set_to( priors$prior_kappa_dof, 1000)
                                 priors$prior_kappa_df <- priors$prior_kappa_dof
                                 ##
                                 priors$prior_kappa_SD   <-  if_null_then_set_to( priors$prior_kappa_SD,
-                                                                                 0.5)
+                                                                                  1.0)
                                 ##
                                 priors$kappa_lb <- if_null_then_set_to( priors$kappa_lb, 
                                                                         0.001)
@@ -254,10 +256,10 @@ R_fn_set_priors_MA <- function(   priors,
                                                                                    list(prior_dirichlet_alpha, prior_dirichlet_alpha))
                                 ##
                                 priors$prior_kappa_mean   <- if_null_then_set_to(  priors$prior_kappa_mean, 
-                                                                                           c(log(300), log(300)))
+                                                                                           c(log(125), log(125)))
                                 ##
                                 priors$prior_kappa_SD   <- if_null_then_set_to(  priors$prior_kappa_SD,
-                                                                                   c(0.5, 0.5))
+                                                                                   c(1.0, 1.0))
                                 ##
                                 priors$prior_kappa_dof   <- if_null_then_set_to(  priors$prior_kappa_dof,
                                                                                  c(1000, 1000))
