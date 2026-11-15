@@ -135,7 +135,11 @@ run_multiple_sims <- function(MCMC_seed,
           time_of_the_start_of_this_fit <- Sys.time()
 
           # Source files - these create true_DGM_Se and true_DGM_Sp
-          source(file.path(local_pkg_dir, "R", "R_fn_sim_data_ord_MA_v2.R"), local = TRUE)
+          ## (the data function of the package is read once in each worker process and kept in its global environment, so that R
+          ##  compiles it once and not again for every fit; the data sets are the same, seed for seed)
+          if (!exists("R_fn_sim_data_ord_MA_v2", envir = globalenv(), inherits = FALSE)) {
+                sys.source(file.path(local_pkg_dir, "R", "R_fn_sim_data_ord_MA_v2.R"), envir = globalenv())
+          }
           source(file.path(local_pkg_dir, "inst", "examples", "MA_missing_thr_prep_data.R"), local = TRUE)
           source(file.path(local_pkg_dir, "sim_study", "thr_sim_study_helper_fns.R"), local = TRUE)
 
