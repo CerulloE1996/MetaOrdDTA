@@ -717,6 +717,15 @@ run_multiple_sims <- function(MCMC_seed,
                                                             n_studies == 10 &&
                                                             test %in% c("BAI", "HADS") &&
                                                             DGM %in% c("Hoyer_2018", "ord_HSROC_random_C"))
+          ## (the 2 Set 0 Jones cells of the factorial design that use adapt_delta = 0.95: GAD-2 with 85% of its thresholds missing,
+          ##  50 studies, DGM Hoyer_2018 and DGM ord_biv_fixed_C. With 0.80 they lost 11.8% and 10.3% of their fits to divergences;
+          ##  with 0.95, 1 of 878 and 1 of 815 fits. Every other Jones cell uses 0.80.)
+          is_Jones_set_0_adapt_delta_095_cell <- (prior_set == "set_0" &&
+                                                  model_parameterisation == "Jones" &&
+                                                  n_studies == 50 &&
+                                                  test == "GAD_2" &&
+                                                  isTRUE(all.equal(target_proportion_missing_of_this_run, 0.85)) &&
+                                                  DGM %in% c("Hoyer_2018", "ord_biv_fixed_C"))
           ## (the burn-in iterations: given to this function by the driver, from the settings file of the run: one number for
           ##  every cell, or "the_rule_of_each_cell" = 1000 on the 4 Set 0 O-biv-RC 10-study cells that use adapt_delta = 0.95
           ##  and 500 on every other cell)
@@ -928,7 +937,8 @@ run_multiple_sims <- function(MCMC_seed,
             ## (sampler_settings_to_test_file = the .rds file of a list of settings; NULL = no test, the values written below)
             sampler_settings_to_test <- if (!is.null(sampler_settings_to_test_file))
                   readRDS(sampler_settings_to_test_file) else list()
-            adapt_delta_of_this_cell <- if (is_O_biv_RC_set_0_adapt_delta_095_cell || is_O_biv_RC_sets_1_and_2_adapt_delta_095_cell) 0.95 else 0.80
+            adapt_delta_of_this_cell <- if (is_O_biv_RC_set_0_adapt_delta_095_cell || is_O_biv_RC_sets_1_and_2_adapt_delta_095_cell ||
+                                            is_Jones_set_0_adapt_delta_095_cell) 0.95 else 0.80
             learning_rate_of_this_cell <- if (is_O_biv_RC_sets_1_and_2_adapt_delta_095_cell) 0.025 else 0.05
             model_samples_obj <- model_prep_obj$sample( seed = MCMC_seed, ## MCMC seed
                                             n_burnin = n_burnin,
@@ -949,7 +959,7 @@ run_multiple_sims <- function(MCMC_seed,
                                                   ## (the settings of a sampler test, when a file of them is given, replace the values written here)
                                                   NicoStan_args = utils::modifyList(list(
                                             ## (every $sample setting that changes sampling, written out)
-                                            adapt_delta                          = adapt_delta_of_this_cell,  ## 0.95 on the 4 Set 0 O-biv-RC 10s cells; 0.80 everywhere else
+                                            adapt_delta                          = adapt_delta_of_this_cell,  ## 0.95 on the 4 Set 0 O-biv-RC 10s cells and the 2 Set 0 Jones cells of GAD-2 with 85% missing; 0.80 everywhere else
                                             ## (the paper's models, sampled with no auto-chunking library; every model,
                                             ##  the Jones model included, runs its fused AVX file)
                                             auto_chunking                        = FALSE,
