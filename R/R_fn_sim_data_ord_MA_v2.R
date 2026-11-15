@@ -343,7 +343,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                 
             } else if (DGM == "Jones") {
 
-                  ## (the values of last year's Jones model, replaced on 14 Nov 2026:)
+                  ## (the values of last year's Jones model, replaced by the ones below:)
               
 #                 true_mean_GAD_2_params_list$Jones$beta_mu <- c(0.279, 2.02)
 #                 true_mean_GAD_2_params_list$Jones$beta_SD <- c(0.415, 1.06)*reduction_factor
@@ -359,7 +359,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
 #                 true_mean_GAD_2_params_list$Jones$raw_scale_SD <- c(0.0853, 0.283)*reduction_factor
 #                 true_mean_GAD_2_params_list$Jones$raw_scale_corr <- -0.247
               
-                  ## (real-data fit of the Jones model of 14 Nov 2026, prior set 0, csv fd18d19a; 64000 draws;
+                  ## (real-data fit of the Jones model, prior set 0, csv fd18d19a; 64000 draws;
                   ##  the cutpoints are on the model's own scale: the Box-Cox of the thresholds at the median of lambda, scaled to [-2, 2])
                   true_mean_GAD_2_params_list$Jones$beta_mu <- c(-1.58475, 0.562563)
                   true_mean_GAD_2_params_list$Jones$beta_SD <- c(0.532217, 0.652652)*reduction_factor
@@ -522,7 +522,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
               
             } else if (DGM == "Jones") {
 
-                  ## (the values of last year's Jones model, replaced on 14 Nov 2026:)
+                  ## (the values of last year's Jones model, replaced by the ones below:)
               
 #                 true_mean_HADS_params_list$Jones$beta_mu <- c(3.20, 9.38)
 #                 true_mean_HADS_params_list$Jones$beta_SD <- c(0.516, 1.38)*reduction_factor
@@ -542,7 +542,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
 #                 true_mean_HADS_params_list$Jones$raw_scale_SD <- c(0.116, 0.116)*reduction_factor
 #                 true_mean_HADS_params_list$Jones$raw_scale_corr <- 0.269
               
-                  ## (real-data fit of the Jones model of 14 Nov 2026, prior set 0, csv fd18d19a; 64000 draws;
+                  ## (real-data fit of the Jones model, prior set 0, csv fd18d19a; 64000 draws;
                   ##  the cutpoints are on the model's own scale: the Box-Cox of the thresholds at the median of lambda, scaled to [-2, 2])
                   true_mean_HADS_params_list$Jones$beta_mu <- c(-0.720809, 0.139121)
                   true_mean_HADS_params_list$Jones$beta_SD <- c(0.207157, 0.344449)*reduction_factor
@@ -735,7 +735,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
               
             } else if (DGM == "Jones") {
 
-                  ## (the values of last year's Jones model, replaced on 14 Nov 2026:)
+                  ## (the values of last year's Jones model, replaced by the ones below:)
               
 #                 true_mean_BAI_params_list$Jones$beta_mu <- c(2.88, 8.42)
 #                 true_mean_BAI_params_list$Jones$beta_SD <- c(0.904, 0.898)*reduction_factor
@@ -764,7 +764,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
 #                 true_mean_BAI_params_list$Jones$raw_scale_SD <- c(0.166, 0.358)*reduction_factor
 #                 true_mean_BAI_params_list$Jones$raw_scale_corr <- 0.299
                   
-                  ## (real-data fit of the Jones model of 14 Nov 2026, prior set 0, csv fd18d19a; 64000 draws;
+                  ## (real-data fit of the Jones model, prior set 0, csv fd18d19a; 64000 draws;
                   ##  the cutpoints are on the model's own scale: the Box-Cox of the thresholds at the median of lambda, scaled to [-2, 2])
                   true_mean_BAI_params_list$Jones$beta_mu <- c(-1.13326, -0.013686)
                   true_mean_BAI_params_list$Jones$beta_SD <- c(0.355788, 0.250714)*reduction_factor
