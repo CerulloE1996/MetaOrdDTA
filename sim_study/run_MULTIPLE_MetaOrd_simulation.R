@@ -726,16 +726,21 @@ run_multiple_sims <- function(MCMC_seed,
                                                   test == "GAD_2" &&
                                                   isTRUE(all.equal(target_proportion_missing_of_this_run, 0.85)) &&
                                                   DGM %in% c("Hoyer_2018", "ord_biv_fixed_C"))
-          ## (the BAI cells of the stratified bivariate with 50 studies are sampled with NicoStan's auto-chunking: the model's library
-          ##  built with the auto-chunking engine, which cuts the model's binomial term by its (threshold, study) pairs, 2 chunks at
-          ##  the burn-in and at the sampling, 1 thread a chain. On the same data sets (BAI, 50 studies, 15% missing, 2,682 pairs) the
-          ##  library gives the same log density and gradient as the library without it, and a gradient is 1.43 times faster with 2
-          ##  chunks. The library must lie beside the Stan file in the cache as <name>_nuisance_first_auto_chunking_on_model.so.
-          ##  Every other cell is sampled without auto-chunking.)
+          ## (the cells sampled with NicoStan's auto-chunking, 2 chunks at the burn-in and at the sampling, 1 thread a chain: the
+          ##  model's library built with the auto-chunking engine lies beside its Stan file in the cache as
+          ##  <name>_nuisance_first_auto_chunking_on_model.so and gives the same log density and gradient as the library without it.
+          ##  They are the cells where a gradient was faster with chunks than without: the stratified bivariate with 50 studies at
+          ##  BAI (1.43 times) and HADS (1.05 times), cut by its (threshold, study) pairs; O-biv-FC at BAI with 10 studies (1.04 to
+          ##  1.17 times) and 50 studies (1.78 times) and at HADS with 50 studies (1.21 times), cut by its studies. Every other cell
+          ##  is sampled without auto-chunking.)
           is_stratified_bivariate_auto_chunking_cell <- (model_parameterisation == "Bivariate" &&
                                                          !isTRUE(random_thresholds) &&
                                                          n_studies == 50 &&
-                                                         test == "BAI")
+                                                         test %in% c("BAI", "HADS"))
+          is_O_biv_FC_auto_chunking_cell <- (model_parameterisation == "ord_bivariate" &&
+                                             !isTRUE(random_thresholds) &&
+                                             ((test == "BAI" && n_studies %in% c(10, 50)) || (test == "HADS" && n_studies == 50)))
+          is_auto_chunking_cell <- is_stratified_bivariate_auto_chunking_cell || is_O_biv_FC_auto_chunking_cell
           ## (the burn-in iterations: given to this function by the driver, from the settings file of the run: one number for
           ##  every cell, or "the_rule_of_each_cell" = 1000 on the 4 Set 0 O-biv-RC 10-study cells that use adapt_delta = 0.95
           ##  and 500 on every other cell)
@@ -949,8 +954,10 @@ run_multiple_sims <- function(MCMC_seed,
                   readRDS(sampler_settings_to_test_file) else list()
             ## (a cell sampled with auto-chunking: its settings, which a test file can still replace; and N, the number of rows the
             ##  chunks cut, given to NicoStan's initialise_model in this worker: Nico_model$new does not hand N on, and without N
-            ##  NicoStan chunks nothing. N = the number of (threshold, study) pairs with a reported count, sum(n_obs_cutpoints).)
-            if (is_stratified_bivariate_auto_chunking_cell) {
+            ##  NicoStan chunks nothing. N = the number of (threshold, study) pairs with a reported count, sum(n_obs_cutpoints), for
+            ##  the stratified bivariate; the number of studies for O-biv-FC.)
+            if (is_auto_chunking_cell) {
+                  options(MetaOrdDTA.rows_of_auto_chunking = if (is_stratified_bivariate_auto_chunking_cell) "pairs" else "studies")
                   sampler_settings_to_test <- utils::modifyList(list(auto_chunking            = TRUE,
                                                                      run_in_fresh_R_process   = FALSE,
                                                                      n_threads_WCP_burnin     = 1,
@@ -963,8 +970,10 @@ run_multiple_sims <- function(MCMC_seed,
                         initialise_model_of_NicoStan <- get("initialise_model", envir = namespace_of_NicoStan)
                         initialise_model_giving_N <- function(...) {
                               arguments <- list(...)
-                              if (is.null(arguments$N) && !is.null(arguments$Stan_data_list$n_obs_cutpoints)) {
-                                    arguments$N <- as.integer(sum(arguments$Stan_data_list$n_obs_cutpoints))
+                              if (is.null(arguments$N)) {
+                                    arguments$N <- if (identical(getOption("MetaOrdDTA.rows_of_auto_chunking"), "pairs"))
+                                          as.integer(sum(arguments$Stan_data_list$n_obs_cutpoints)) else
+                                          as.integer(arguments$Stan_data_list$n_studies)
                               }
                               do.call(initialise_model_of_NicoStan, arguments)
                         }
@@ -998,7 +1007,7 @@ run_multiple_sims <- function(MCMC_seed,
                                             ## (every $sample setting that changes sampling, written out)
                                             adapt_delta                          = adapt_delta_of_this_cell,  ## 0.95 on the 4 Set 0 O-biv-RC 10s cells and the 2 Set 0 Jones cells of GAD-2 with 85% missing; 0.80 everywhere else
                                             ## (the paper's models, sampled with no auto-chunking library but in the cells of
-                                            ##  is_stratified_bivariate_auto_chunking_cell, whose settings replace this one; every model,
+                                            ##  is_auto_chunking_cell, whose settings replace this one; every model,
                                             ##  the Jones model included, runs its fused AVX file)
                                             auto_chunking                        = FALSE,
                                             debug                                = FALSE,
