@@ -1409,8 +1409,32 @@ run_multiple_sims <- function(MCMC_seed,
 
             # Check MCSE periodically (like the LC-MVP)
             # Check MCSE periodically
-            if (iii %% check_MCSE_interval == 0 || iii == length(sim_ids_chunk)) {
+            ## (the MCSE of the cell is worked out by one lane at a time: the check reads every results file of the cell and
+            ##  works out the metrics of all of them, 16 s for 1,900 fits on one thread, and it ran after every fit in
+            ##  every lane. A lane runs it only when no lane has run it for this cell in the last 30 seconds: the time of
+            ##  the last check is the time of a file in the cell's folder. The lane whose check finds the target met
+            ##  leaves a second file there; a lane that sees that file, written in the last 10 minutes, stops as if its
+            ##  own check had found the target met. The check itself, and so the stopping rule, is unchanged.
+            ##  The time now is read as the time of a file written now in the same folder, so that the three times are
+            ##  those of one clock, the folder's, on every machine.)
+            file_of_the_last_MCSE_check_of_this_cell <- file.path(output_dir, paste0("time_of_the_last_MCSE_check_", file_name_string, ".txt"))
+            file_of_the_MCSE_target_met_for_every_lane <- file.path(output_dir, paste0("MCSE_target_met_", file_name_string, ".txt"))
+            file_written_now <- file.path(output_dir, paste0("time_now_of_", Sys.info()[["nodename"]], "_process_", Sys.getpid(), ".txt"))
+            writeLines("", file_written_now)
+            time_now_in_seconds <- as.numeric(file.mtime(file_written_now))
+            unlink(file_written_now)
+            seconds_since_the_target_was_found_met <- if (file.exists(file_of_the_MCSE_target_met_for_every_lane))
+                  time_now_in_seconds - as.numeric(file.mtime(file_of_the_MCSE_target_met_for_every_lane)) else Inf
+            seconds_since_the_last_MCSE_check <- if (file.exists(file_of_the_last_MCSE_check_of_this_cell))
+                  time_now_in_seconds - as.numeric(file.mtime(file_of_the_last_MCSE_check_of_this_cell)) else Inf
+            if (stop_early_if_target_met && isTRUE(seconds_since_the_target_was_found_met < 600)) {
+                  cat("TARGET MCSE ACHIEVED (the check of another lane found it)! Stopping early.\n")
+                  return(list(stopped_early = TRUE,
+                              final_n_sims = NA_integer_))
+            }
+            if ((iii %% check_MCSE_interval == 0 || iii == length(sim_ids_chunk)) && !isTRUE(seconds_since_the_last_MCSE_check < 30)) {
 
+                    writeLines("", file_of_the_last_MCSE_check_of_this_cell)
                     cat("\n=== Checking MCSE status ===\n")
 
                     # Use the check function
@@ -1448,6 +1472,7 @@ run_multiple_sims <- function(MCMC_seed,
                         current_mcse_status$mcse_met) {
                       cat("✓ TARGET MCSE ACHIEVED! Stopping early.\n")
                       if (stop_early_if_target_met) {
+                        writeLines("", file_of_the_MCSE_target_met_for_every_lane)
                         return(list(stopped_early = TRUE,
                                     final_n_sims = current_mcse_status$n_sims))
                       }
