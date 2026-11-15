@@ -942,7 +942,8 @@ run_multiple_sims <- function(MCMC_seed,
                                             # algorithm = "NicoStan",
                                             # algorithm = "Stan",
                                             ##
-                                                  NicoStan_args = list(
+                                                  ## (the settings of a sampler test, when a file of them is given, replace the values written here)
+                                                  NicoStan_args = utils::modifyList(list(
                                             ## (every $sample setting that changes sampling, written out)
                                             adapt_delta                          = adapt_delta_of_this_cell,  ## 0.95 on the 4 Set 0 O-biv-RC 10s cells; 0.80 everywhere else
                                             ## (the paper's models, sampled with no auto-chunking library; every model,
@@ -1056,7 +1057,7 @@ run_multiple_sims <- function(MCMC_seed,
                                             ##
                                             pooled_metric_warm_up                = 16, ## says how many draws it waits for before its first estimate replaces the starting identity metric.
                                             metric_start_iter                    = round(n_burnin/10) ## says WHEN the metric starts collecting draws.
-                                            ))
+                                            ), sampler_settings_to_test))
             ##SO
             ## ---- Get summaries:
             ##
