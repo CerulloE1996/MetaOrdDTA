@@ -661,6 +661,29 @@ x_GAD7[[1]]
 
 
 ##
+## ------------------- The factorial design of the sim: when the run gives a proportion of missing thresholds
+## ------------------- (target_proportion_missing_of_this_run, e.g. 0.85; a setting of the sim's settings file), the GAD-2, the HADS
+## ------------------- and the BAI get that proportion (the shape of the real reporting pattern of each test is kept; every study
+## ------------------- reports at least one threshold and every threshold is reported by at least one study; a test with K
+## ------------------- thresholds cannot go above 1 - 1/K); when it gives none (NULL, or this file is run outside the sim), each
+## ------------------- test gets its real reporting pattern.
+##
+target_proportion_missing_of_the_sim <- if (exists("target_proportion_missing_of_this_run")) target_proportion_missing_of_this_run else NULL
+if (!is.null(target_proportion_missing_of_the_sim)) {
+      stopifnot(is.numeric(target_proportion_missing_of_the_sim), length(target_proportion_missing_of_the_sim) == 1)
+      source(file.path(local_pkg_dir, "R", "R_fn_apply_missingness_pattern_at_a_target_proportion.R"), local = TRUE)
+      apply_missingness_at_the_target_of_the_sim <- function(x_complete,
+                                                             x_pattern) {
+            n_thr_of_the_test <- min(ncol(x_complete[[1]]), ncol(x_pattern[[1]])) - 1
+            apply_missingness_pattern_at_a_target_proportion( x_complete = x_complete,
+                                                              x_pattern = x_pattern,
+                                                              target_proportion_missing = min(target_proportion_missing_of_the_sim, 1 - 1 / n_thr_of_the_test),
+                                                              min_thresholds_per_study = 1,
+                                                              min_studies_per_threshold = 1,
+                                                              missing_indicator = -1)
+      }
+}
+##
 ## ------------------- Apply ** MISSING THRESHOLDS ** to GAD-2 data/test: -----------------------------------------------------------------------------
 ##
 source(file.path(local_pkg_dir, "Klaus_et_al_collab_R_fns.R"))
@@ -668,9 +691,14 @@ source(file.path(local_pkg_dir, "Klaus_et_al_collab_R_fns.R"))
 ##
 x_GAD2_REAL <- readRDS(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "real_x_GAD2.RDS"))
 ##
-x_GAD2_w_missing_thr <- apply_missingness_pattern( x_complete = x_GAD2,
-                                                   x_pattern = x_GAD2_REAL,
-                                                   enforce_consecutive_missingness = FALSE)
+x_GAD2_w_missing_thr <- if (!is.null(target_proportion_missing_of_the_sim)) {
+      apply_missingness_at_the_target_of_the_sim( x_complete = x_GAD2,
+                                                  x_pattern = x_GAD2_REAL)
+} else {
+      apply_missingness_pattern( x_complete = x_GAD2,
+                                 x_pattern = x_GAD2_REAL,
+                                 enforce_consecutive_missingness = FALSE)
+}
 ##
 x_GAD2_w_missing_thr
 x_GAD2
@@ -696,9 +724,14 @@ source(file.path(local_pkg_dir, "Klaus_et_al_collab_R_fns.R"))
 ##
 x_HADS_REAL <- readRDS(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "real_x_HADS.RDS"))
 ##
-x_HADS_w_missing_thr <- apply_missingness_pattern( x_complete = x_HADS,
-                                                   x_pattern = x_HADS_REAL,
-                                                   enforce_consecutive_missingness = FALSE)
+x_HADS_w_missing_thr <- if (!is.null(target_proportion_missing_of_the_sim)) {
+      apply_missingness_at_the_target_of_the_sim( x_complete = x_HADS,
+                                                  x_pattern = x_HADS_REAL)
+} else {
+      apply_missingness_pattern( x_complete = x_HADS,
+                                 x_pattern = x_HADS_REAL,
+                                 enforce_consecutive_missingness = FALSE)
+}
 ##
 x_HADS_w_missing_thr
 x_HADS
@@ -730,9 +763,14 @@ source(file.path(local_pkg_dir, "Klaus_et_al_collab_R_fns.R"))
 ##
 x_BAI_REAL <- readRDS(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "real_x_BAI.RDS"))
 ##
-x_BAI_w_missing_thr <- apply_missingness_pattern(  x_complete = x_BAI,
-                                                   x_pattern = x_BAI_REAL,
-                                                   enforce_consecutive_missingness = FALSE)
+x_BAI_w_missing_thr <- if (!is.null(target_proportion_missing_of_the_sim)) {
+      apply_missingness_at_the_target_of_the_sim( x_complete = x_BAI,
+                                                  x_pattern = x_BAI_REAL)
+} else {
+      apply_missingness_pattern( x_complete = x_BAI,
+                                 x_pattern = x_BAI_REAL,
+                                 enforce_consecutive_missingness = FALSE)
+}
 ##
 x_BAI_w_missing_thr
 x_BAI

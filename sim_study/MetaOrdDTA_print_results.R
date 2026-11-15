@@ -384,7 +384,7 @@ output_dir <- MetaOrdDTA::metaorddta_output_path(
 }
 ##
 # min_studies_per_threshold <- 0
-min_studies_per_threshold <- 3
+min_studies_per_threshold <- 1
 ##
 results_GAD_2_n_studies_10 <- process_all_scenarios_MetaOrd(
                               reduction_factor = reduction_factor,
