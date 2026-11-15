@@ -1259,12 +1259,11 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                             diseased_indices    <- which(d_ind == 1)
                             nondiseased_indices <- which(d_ind == 0)
                             ##
-                            for (n in diseased_indices) {
-                              thr_for_all_tests_for_current_study_per_n[n, t, 1:n_thr_per_test[t]] <- thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]]
-                            }
-                            for (n in nondiseased_indices) {
-                              thr_for_all_tests_for_current_study_per_n[n, t, 1:n_thr_per_test[t]] <- thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]]
-                            }
+                            ## (one assignment per group of people, the same values as one per person)
+                            thr_for_all_tests_for_current_study_per_n[diseased_indices, t, 1:n_thr_per_test[t]] <- rep(thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]],
+                                                                                                                     each = length(diseased_indices))
+                            thr_for_all_tests_for_current_study_per_n[nondiseased_indices, t, 1:n_thr_per_test[t]] <- rep(thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]],
+                                                                                                                        each = length(nondiseased_indices))
                     }
                     ##
                     # Generate study-specific parameters
@@ -1478,8 +1477,15 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                     }
                     ##
                     # Ensure correlation matrices are proper
-                    Omega_nd <- as.matrix(Matrix::nearPD(Omega_nd, keepDiag = TRUE)$mat)
-                    Omega_d  <- as.matrix(Matrix::nearPD(Omega_d, keepDiag = TRUE)$mat)
+                    ## (the same matrix every study of a DGM: its nearPD is kept and used again while the matrix is the same)
+                    if (!(exists("Omega_nd_before_nearPD", inherits = FALSE) && identical(Omega_nd_before_nearPD, Omega_nd) && identical(Omega_d_before_nearPD, Omega_d))) {
+                          Omega_nd_before_nearPD <- Omega_nd
+                          Omega_d_before_nearPD  <- Omega_d
+                          Omega_nd_after_nearPD  <- as.matrix(Matrix::nearPD(Omega_nd, keepDiag = TRUE)$mat)
+                          Omega_d_after_nearPD   <- as.matrix(Matrix::nearPD(Omega_d, keepDiag = TRUE)$mat)
+                    }
+                    Omega_nd <- Omega_nd_after_nearPD
+                    Omega_d  <- Omega_d_after_nearPD
                     L_Omega_nd <- t(chol(Omega_nd))
                     L_Omega_d  <- t(chol(Omega_d))
                     
@@ -1535,31 +1541,27 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                             n_thr <- n_thr_per_test[t]
                             n_cat <- n_thr + 1
                             
-                            # First category (below first threshold)
-                            threshold_lower <- rep(-9999, N)
-                            threshold_upper <- thr_for_all_tests_for_current_study_per_n[1:N, t, 1]
-                            first_category <- (latent_results[1:N, t] > threshold_lower) & (latent_results[1:N, t] <= threshold_upper)
-                            y[first_category, t] <- 0
-                            
-                            # Middle categories
-                            for (k in 2:(n_thr)) {
-                              threshold_lower <- thr_for_all_tests_for_current_study_per_n[1:N, t, k - 1]
-                              threshold_upper <- thr_for_all_tests_for_current_study_per_n[1:N, t, k]
-                              category_k <- (latent_results[1:N, t] > threshold_lower) & (latent_results[1:N, t] <= threshold_upper)
-                              y[category_k, t] <- k - 1
-                            }
-                            
-                            # Last category (above last threshold)
-                            threshold_lower <- thr_for_all_tests_for_current_study_per_n[1:N, t, n_thr]
-                            threshold_upper <- rep(9999, N)
-                            last_category <- (latent_results[1:N, t] > threshold_lower) & (latent_results[1:N, t] <= threshold_upper)
-                            y[last_category, t] <- n_cat - 1
+                            ## (all categories at once: the bounds in the order of the old loop (first, 2:(n_thr), last); a person
+                            ##  takes the value of the LAST category whose bounds hold its latent value, as the old loop's
+                            ##  later assignments did; a person in none keeps its value)
+                            ks_of_the_middle <- 2:(n_thr)
+                            thr_of_each_person <- function(k) thr_for_all_tests_for_current_study_per_n[1:N, t, k]
+                            lower_of_each_category <- c(list(rep(-9999, N)), lapply(ks_of_the_middle, function(k) thr_of_each_person(k - 1)), list(thr_of_each_person(n_thr)))
+                            upper_of_each_category <- c(list(thr_of_each_person(1)), lapply(ks_of_the_middle, thr_of_each_person), list(rep(9999, N)))
+                            value_of_each_category <- c(0, ks_of_the_middle - 1, n_cat - 1)
+                            latent_of_test_t <- latent_results[1:N, t]
+                            in_category <- matrix(unlist(Map(function(lower, upper) (latent_of_test_t > lower) & (latent_of_test_t <= upper),
+                                                              lower_of_each_category, upper_of_each_category)), nrow = N)
+                            in_category[is.na(in_category)] <- FALSE
+                            last_category_of_each_person <- max.col(in_category * rep(seq_along(value_of_each_category), each = N), ties.method = "first")
+                            in_some_category <- rowSums(in_category) > 0
+                            y[in_some_category, t] <- value_of_each_category[last_category_of_each_person[in_some_category]]
                     }
                     
                     # Create data frames
-                    df <- dplyr::tibble(y, latent_results, d_ind)
-                    df_pos <- dplyr::filter(df, d_ind == 1)
-                    df_neg <- dplyr::filter(df, d_ind == 0)
+                    ## (only nrow() and the column "results", which these tables do not have, are read from them below)
+                    df_pos <- data.frame(d_ind = d_ind[d_ind == 1])
+                    df_neg <- data.frame(d_ind = d_ind[d_ind == 0])
                     
                     # Calculate prevalence
                     prev_true_observed <- print(round(sum(d_ind)/N, 3))
@@ -1575,17 +1577,15 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                           n_FP_at_each_threshold[s, t, 1] <- n_neg
                           
                           # Calculate counts for each threshold
+                          df_pos_y <- y[, t][disease_status == 1]
+                          df_neg_y <- y[, t][disease_status == 0]
                           for (k in 2:n_cat) {
-                            df_pos_y <- y[, t][disease_status == 1]
-                            df_neg_y <- y[, t][disease_status == 0]
                             
                             # if (t == 2 && s == 1) {
                             #   print(paste("k =", k, "| Unique values in df_pos_y:", paste(sort(unique(df_pos_y)), collapse = ", ")))
                             #   print(paste("Count of df_pos_y >= (k-1):", sum(df_pos_y >= (k - 1)), "| Total positive cases:", n_pos))
                             # }
                             
-                            positive_count <- sum(df_pos_y >= (k - 1))
-                            negative_count <- sum(df_neg_y >= (k - 1))
                             n_TP_at_each_threshold[s, t, k] <- sum(df_pos_y >= (k - 1))
                             n_FP_at_each_threshold[s, t, k] <- sum(df_neg_y >= (k - 1))
                           }

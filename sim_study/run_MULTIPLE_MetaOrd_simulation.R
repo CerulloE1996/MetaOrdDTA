@@ -231,6 +231,32 @@ run_multiple_sims <- function(MCMC_seed,
           }
 
           time_after_the_simulated_data <- Sys.time()
+          ## (questions every fit of a cell asks again with the same answer, asked once per worker: NicoStan runs stanc --info
+          ##  three times a fit to see whether the model calls reduce_sum or map_rect, and nm once a fit on the model library to
+          ##  see its nuisance-block form; the answer is kept by the arguments and the file's size and time, so a changed file
+          ##  is asked about again)
+          for (name_of_the_question in c("R_fn_Stan_model_calls_reduce_sum_or_map_rect", "R_fn_model_library_is_in_NicoStan_nuisance_block_form")) {
+                namespace_of_NicoStan <- asNamespace("NicoStan")
+                if (exists(name_of_the_question, envir = namespace_of_NicoStan, inherits = FALSE) &&
+                    !isTRUE(attr(get(name_of_the_question, envir = namespace_of_NicoStan), "answer_kept_once_per_worker"))) {
+                      local({
+                            question <- get(name_of_the_question, envir = namespace_of_NicoStan)
+                            answers <- new.env(parent = emptyenv())
+                            asked_once <- function(...) {
+                                  arguments <- list(...)
+                                  files <- unlist(Filter(function(x) is.character(x) && length(x) == 1 && file.exists(x), arguments))
+                                  key <- paste(c(deparse(arguments), files, file.info(files)$size, format(as.numeric(file.info(files)$mtime), digits = 22)),
+                                               collapse = "|")
+                                  if (!exists(key, envir = answers, inherits = FALSE)) assign(key, question(...), envir = answers)
+                                  get(key, envir = answers, inherits = FALSE)
+                            }
+                            attr(asked_once, "answer_kept_once_per_worker") <- TRUE
+                            unlockBinding(name_of_the_question, namespace_of_NicoStan)
+                            assign(name_of_the_question, asked_once, envir = namespace_of_NicoStan)
+                            lockBinding(name_of_the_question, namespace_of_NicoStan)
+                      })
+                }
+          }
           # Initialize model
           model_prep_obj <- MetaOrdDTA::MetaOrd_model$new(
                                         debugging = FALSE,
