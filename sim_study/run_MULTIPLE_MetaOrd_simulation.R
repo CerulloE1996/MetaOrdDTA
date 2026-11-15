@@ -1503,7 +1503,10 @@ run_multiple_sims <- function(MCMC_seed,
                         current_mcse_status$mcse_met) {
                       cat("✓ TARGET MCSE ACHIEVED! Stopping early.\n")
                       if (stop_early_if_target_met) {
-                        writeLines("", file_of_the_MCSE_target_met_for_every_lane)
+                        ## (the file holds the number of sims and the MCSE of this check: the driver prints them at the
+                        ##  end of the cell, so that not every lane runs the full check again)
+                        writeLines(paste(current_mcse_status$n_sims, format(MCSE_value_of_this_check, digits = 15)),
+                                   file_of_the_MCSE_target_met_for_every_lane)
                         return(list(stopped_early = TRUE,
                                     final_n_sims = current_mcse_status$n_sims))
                       }

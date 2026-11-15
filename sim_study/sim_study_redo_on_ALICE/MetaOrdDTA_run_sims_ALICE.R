@@ -553,6 +553,8 @@ min_studies_per_threshold <- 1  ## (every threshold that at least one study repo
 # min_studies_per_threshold = min_studies_per_threshold
 ##
 ##
+## (final_mcse_status exists also when every cell of this run is left with next)
+final_mcse_status <- list(n_sims = NA_integer_, MCSE_val = NA_real_)
 ## ---- the fixed-cutpoint cells first, then the random-cutpoint cells:
 for (random_thresholds_of_this_pass in random_thresholds_vec) {
   for (DGM_val in DGM_vec) {
@@ -810,7 +812,9 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                             # if (batch_id > 1) {
 
                                   current_mcse_status <- list()
-                                  try({
+                                  ## (the first batch uses the check made seconds ago at the start of this cell)
+                                  if (batch_id == 1 && is.list(outs) && !is.null(outs$n_sims)) current_mcse_status <- outs
+                                  if (is.null(current_mcse_status$n_sims)) try({
                                   current_mcse_status <- check_MCSE_status( output_dir = output_dir,
                                                                             file_name_string = file_name_string,
                                                                             max_seed_to_check = max_seed_to_check,
@@ -1164,7 +1168,30 @@ for (random_thresholds_of_this_pass in random_thresholds_vec) {
                     }
                     ## ---- Final MCSE check for this scenario:
                     final_mcse_status <- list()
+                    ## (when the check of a lane found this cell's MCSE target met in the last 10 minutes, the file it left
+                    ##  holds the number of sims and the MCSE of that check: they are printed below, and the full check is
+                    ##  not run again by every lane at once. The time now is the time of a file written now in the same
+                    ##  folder: one clock, the folder's.)
                     try({
+                    file_of_the_MCSE_target_met_for_every_lane <- file.path(output_dir, paste0("MCSE_target_met_", file_name_string, ".txt"))
+                    if (file.exists(file_of_the_MCSE_target_met_for_every_lane)) {
+                          file_written_now <- file.path(output_dir, paste0("time_now_of_", Sys.info()[["nodename"]], "_process_", Sys.getpid(), ".txt"))
+                          writeLines("", file_written_now)
+                          seconds_since_the_target_was_found_met <- as.numeric(file.mtime(file_written_now)) -
+                                as.numeric(file.mtime(file_of_the_MCSE_target_met_for_every_lane))
+                          unlink(file_written_now)
+                          numbers_of_the_check_that_found_the_target_met <- suppressWarnings(as.numeric(strsplit(trimws(
+                                c(readLines(file_of_the_MCSE_target_met_for_every_lane, warn = FALSE), "")[1]), " +")[[1]]))
+                          if (isTRUE(seconds_since_the_target_was_found_met < 600) &&
+                              length(numbers_of_the_check_that_found_the_target_met) == 2 &&
+                              all(is.finite(numbers_of_the_check_that_found_the_target_met))) {
+                                final_mcse_status <- list(n_sims = as.integer(numbers_of_the_check_that_found_the_target_met[1]),
+                                                          MCSE_val = numbers_of_the_check_that_found_the_target_met[2],
+                                                          mcse_met = TRUE)
+                          }
+                    }
+                    }, silent = TRUE)
+                    if (is.null(final_mcse_status$n_sims)) try({
                     final_mcse_status <- check_MCSE_status( output_dir = output_dir,
                                                             file_name_string = file_name_string,
                                                             max_seed_to_check = max_seed_to_check,
