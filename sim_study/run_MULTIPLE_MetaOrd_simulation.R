@@ -768,9 +768,9 @@ run_multiple_sims <- function(MCMC_seed,
                                              !isTRUE(random_thresholds) &&
                                              n_studies == 50 &&
                                              test %in% c("BAI", "HADS"))
-          is_O_biv_RC_auto_chunking_cell <- (model_parameterisation == "ord_bivariate" &&
-                                             isTRUE(random_thresholds) &&
-                                             test == "BAI" && n_studies == 50)
+          ## (O-biv-RC is sampled without auto-chunking in every cell: its fused file of 15 Nov without auto-chunking is 1.39
+          ##  times faster an iteration at BAI with 50 studies than the fused file before it with 8 chunks)
+          is_O_biv_RC_auto_chunking_cell <- FALSE
           is_Jones_auto_chunking_cell <- (model_parameterisation == "Jones" &&
                                           test == "BAI" && n_studies == 50)
           is_ord_HSROC_auto_chunking_cell <- (model_parameterisation == "ord_HSROC" &&
