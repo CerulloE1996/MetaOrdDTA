@@ -130,6 +130,21 @@ run_multiple_sims <- function(MCMC_seed,
             next
           }
 
+          ## (a seed is not started when the check of a lane found this cell's MCSE target met in the last 10 minutes; the
+          ##  time now is read as the time of a file written now in the same folder: one clock, the folder's)
+          if (stop_early_if_target_met && file.exists(file.path(output_dir, paste0("MCSE_target_met_", file_name_string, ".txt")))) {
+                file_written_now <- file.path(output_dir, paste0("time_now_of_", Sys.info()[["nodename"]], "_process_", Sys.getpid(), ".txt"))
+                writeLines("", file_written_now)
+                seconds_since_the_target_was_found_met <- as.numeric(file.mtime(file_written_now)) -
+                      as.numeric(file.mtime(file.path(output_dir, paste0("MCSE_target_met_", file_name_string, ".txt"))))
+                unlink(file_written_now)
+                if (isTRUE(seconds_since_the_target_was_found_met < 600)) {
+                      cat("TARGET MCSE ACHIEVED (the check of another lane found it)! This seed is not started.\n")
+                      return(list(stopped_early = TRUE,
+                                  final_n_sims = NA_integer_))
+                }
+          }
+
           cat(sprintf("\n--- Running simulation %d with seed = %d ---\n", sim_index, seed))
           set.seed(seed)
           time_of_the_start_of_this_fit <- Sys.time()
@@ -1432,8 +1447,20 @@ run_multiple_sims <- function(MCMC_seed,
                   return(list(stopped_early = TRUE,
                               final_n_sims = NA_integer_))
             }
-            if ((iii %% check_MCSE_interval == 0 || iii == length(sim_ids_chunk)) && !isTRUE(seconds_since_the_last_MCSE_check < 30)) {
+            ## (never two lanes in the check of one cell at once: the lane that runs the check makes this folder, which only
+            ##  one lane can make, and removes it when its check ends or when this function ends; a folder left by a lane
+            ##  that died is removed once it is 5 minutes old)
+            folder_of_the_lane_that_checks_the_MCSE <- file.path(output_dir, paste0("a_lane_is_working_out_the_MCSE_of_", file_name_string))
+            if (dir.exists(folder_of_the_lane_that_checks_the_MCSE) &&
+                isTRUE(time_now_in_seconds - as.numeric(file.mtime(folder_of_the_lane_that_checks_the_MCSE)) > 300)) {
+                  unlink(folder_of_the_lane_that_checks_the_MCSE, recursive = TRUE)
+            }
+            if ((iii %% check_MCSE_interval == 0 || iii == length(sim_ids_chunk)) && !isTRUE(seconds_since_the_last_MCSE_check < 30) &&
+                isTRUE(dir.create(folder_of_the_lane_that_checks_the_MCSE, showWarnings = FALSE))) {
 
+                    ## (this lane removes the folder only while it is the lane that made it)
+                    this_lane_made_the_folder_of_the_MCSE_check <- TRUE
+                    on.exit(if (isTRUE(this_lane_made_the_folder_of_the_MCSE_check)) unlink(folder_of_the_lane_that_checks_the_MCSE, recursive = TRUE), add = TRUE)
                     writeLines("", file_of_the_last_MCSE_check_of_this_cell)
                     cat("\n=== Checking MCSE status ===\n")
 
@@ -1462,6 +1489,10 @@ run_multiple_sims <- function(MCMC_seed,
                     ## (check_MCSE_status returns MCSE_val once it has min_runs_needed results, and
                     ##  mcse_value = NA before then; reading mcse_value alone stopped every worker at its first
                     ##  full check)
+                    ## (the 30 seconds before the next check count from the end of this one)
+                    writeLines("", file_of_the_last_MCSE_check_of_this_cell)
+                    unlink(folder_of_the_lane_that_checks_the_MCSE, recursive = TRUE)
+                    this_lane_made_the_folder_of_the_MCSE_check <- FALSE
                     MCSE_value_of_this_check <- c(current_mcse_status$MCSE_val, current_mcse_status$mcse_value)[1]
                     cat(sprintf("Completed sims: %d, Current MCSE: %.4f%%\n",
                                 current_mcse_status$n_sims,
