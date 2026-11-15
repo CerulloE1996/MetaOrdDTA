@@ -143,6 +143,9 @@ for (package_to_reload in c("MetaOrdDTA", "NicoStan", "NicoSIMD")) {
 }
 .libPaths(c(frozen_library_of_this_sim, .libPaths()))
 Sys.setenv(R_LIBS = frozen_library_of_this_sim)
+## (room in the static block of thread-local storage for a model library built with the auto-chunking engine, which keeps its
+##  thread-local values there; the workers started below inherit it; a library built without the engine does not use it)
+if (!nzchar(Sys.getenv("GLIBC_TUNABLES"))) Sys.setenv(GLIBC_TUNABLES = "glibc.rtld.optional_static_tls=8192")
 library(MetaOrdDTA)
 library(doParallel)
 stopifnot(startsWith(find.package("NicoStan"), frozen_library_of_this_sim),

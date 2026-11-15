@@ -726,6 +726,16 @@ run_multiple_sims <- function(MCMC_seed,
                                                   test == "GAD_2" &&
                                                   isTRUE(all.equal(target_proportion_missing_of_this_run, 0.85)) &&
                                                   DGM %in% c("Hoyer_2018", "ord_biv_fixed_C"))
+          ## (the BAI cells of the stratified bivariate with 50 studies are sampled with NicoStan's auto-chunking: the model's library
+          ##  built with the auto-chunking engine, which cuts the model's binomial term by its (threshold, study) pairs, 2 chunks at
+          ##  the burn-in and at the sampling, 1 thread a chain. On the same data sets (BAI, 50 studies, 15% missing, 2,682 pairs) the
+          ##  library gives the same log density and gradient as the library without it, and a gradient is 1.43 times faster with 2
+          ##  chunks. The library must lie beside the Stan file in the cache as <name>_nuisance_first_auto_chunking_on_model.so.
+          ##  Every other cell is sampled without auto-chunking.)
+          is_stratified_bivariate_auto_chunking_cell <- (model_parameterisation == "Bivariate" &&
+                                                         !isTRUE(random_thresholds) &&
+                                                         n_studies == 50 &&
+                                                         test == "BAI")
           ## (the burn-in iterations: given to this function by the driver, from the settings file of the run: one number for
           ##  every cell, or "the_rule_of_each_cell" = 1000 on the 4 Set 0 O-biv-RC 10-study cells that use adapt_delta = 0.95
           ##  and 500 on every other cell)
@@ -937,6 +947,33 @@ run_multiple_sims <- function(MCMC_seed,
             ## (sampler_settings_to_test_file = the .rds file of a list of settings; NULL = no test, the values written below)
             sampler_settings_to_test <- if (!is.null(sampler_settings_to_test_file))
                   readRDS(sampler_settings_to_test_file) else list()
+            ## (a cell sampled with auto-chunking: its settings, which a test file can still replace; and N, the number of rows the
+            ##  chunks cut, given to NicoStan's initialise_model in this worker: Nico_model$new does not hand N on, and without N
+            ##  NicoStan chunks nothing. N = the number of (threshold, study) pairs with a reported count, sum(n_obs_cutpoints).)
+            if (is_stratified_bivariate_auto_chunking_cell) {
+                  sampler_settings_to_test <- utils::modifyList(list(auto_chunking            = TRUE,
+                                                                     run_in_fresh_R_process   = FALSE,
+                                                                     n_threads_WCP_burnin     = 1,
+                                                                     num_chunks_burnin        = 2,
+                                                                     n_threads_WCP_sampling   = 1,
+                                                                     num_chunks_sampling      = 2),
+                                                                sampler_settings_to_test)
+                  namespace_of_NicoStan <- asNamespace("NicoStan")
+                  if (!isTRUE(attr(get("initialise_model", envir = namespace_of_NicoStan), "gives_N_of_auto_chunking"))) {
+                        initialise_model_of_NicoStan <- get("initialise_model", envir = namespace_of_NicoStan)
+                        initialise_model_giving_N <- function(...) {
+                              arguments <- list(...)
+                              if (is.null(arguments$N) && !is.null(arguments$Stan_data_list$n_obs_cutpoints)) {
+                                    arguments$N <- as.integer(sum(arguments$Stan_data_list$n_obs_cutpoints))
+                              }
+                              do.call(initialise_model_of_NicoStan, arguments)
+                        }
+                        attr(initialise_model_giving_N, "gives_N_of_auto_chunking") <- TRUE
+                        unlockBinding("initialise_model", namespace_of_NicoStan)
+                        assign("initialise_model", initialise_model_giving_N, envir = namespace_of_NicoStan)
+                        lockBinding("initialise_model", namespace_of_NicoStan)
+                  }
+            }
             adapt_delta_of_this_cell <- if (is_O_biv_RC_set_0_adapt_delta_095_cell || is_O_biv_RC_sets_1_and_2_adapt_delta_095_cell ||
                                             is_Jones_set_0_adapt_delta_095_cell) 0.95 else 0.80
             learning_rate_of_this_cell <- if (is_O_biv_RC_sets_1_and_2_adapt_delta_095_cell) 0.025 else 0.05
@@ -960,7 +997,8 @@ run_multiple_sims <- function(MCMC_seed,
                                                   NicoStan_args = utils::modifyList(list(
                                             ## (every $sample setting that changes sampling, written out)
                                             adapt_delta                          = adapt_delta_of_this_cell,  ## 0.95 on the 4 Set 0 O-biv-RC 10s cells and the 2 Set 0 Jones cells of GAD-2 with 85% missing; 0.80 everywhere else
-                                            ## (the paper's models, sampled with no auto-chunking library; every model,
+                                            ## (the paper's models, sampled with no auto-chunking library but in the cells of
+                                            ##  is_stratified_bivariate_auto_chunking_cell, whose settings replace this one; every model,
                                             ##  the Jones model included, runs its fused AVX file)
                                             auto_chunking                        = FALSE,
                                             debug                                = FALSE,
