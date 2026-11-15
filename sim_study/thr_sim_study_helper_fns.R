@@ -969,21 +969,27 @@ compute_simulation_metrics <- function(test,
         })]
 
         # *** NEW: Filter by ESS BEFORE main processing ***
-        complete_results_high_ESS <- Filter(function(result) {
-          
+        ## (compute min_ESS once using base grep on parameter, and keep it so the second loop below is not needed)
+        min_ESS_all <- vapply(complete_results, function(result) {
+
           tryCatch({
             ## (min ESS as when the fit was kept: Se and Sp at vec_index_inner only)
-            tibble_Se <- dplyr::filter(result$tibble_all, stringr::str_detect(parameter, "Se_baseline\\["))
-            tibble_Sp <- dplyr::filter(result$tibble_all, stringr::str_detect(parameter, "Sp_baseline\\["))
-            ESS_vec_Se <- pmin(tibble_Se$n_eff, tibble_Se$n_eff_tail, tibble_Se$n_eff_sd)
-            ESS_vec_Sp <- pmin(tibble_Sp$n_eff, tibble_Sp$n_eff_tail, tibble_Sp$n_eff_sd)
+            tbl <- result$tibble_all
+            if (!is.data.frame(tbl)) return(NA_real_)
+            param <- tbl$parameter
+            idx_Se <- grep("Se_baseline[", param, fixed = TRUE)
+            idx_Sp <- grep("Sp_baseline[", param, fixed = TRUE)
+            ESS_vec_Se <- pmin(tbl$n_eff[idx_Se], tbl$n_eff_tail[idx_Se], tbl$n_eff_sd[idx_Se])
+            ESS_vec_Sp <- pmin(tbl$n_eff[idx_Sp], tbl$n_eff_tail[idx_Sp], tbl$n_eff_sd[idx_Sp])
             min_ESS <- min(c(ESS_vec_Se[vec_index_inner], ESS_vec_Sp[vec_index_inner]), na.rm = TRUE)
-            return(min_ESS >= min_ESS_thr)
+            if (is.na(min_ESS)) NA_real_ else as.numeric(min_ESS)
           }, error = function(e) {
-            return(FALSE)
+            NA_real_
           })
-          
-        }, complete_results)
+
+        }, FUN.VALUE = numeric(1L))
+        keep_high_ESS <- !is.na(min_ESS_all) & (min_ESS_all >= min_ESS_thr)
+        complete_results_high_ESS <- complete_results[keep_high_ESS]
         
         n_studies <- valid_results[[1]]$n_studies ; n_studies
         
@@ -1091,25 +1097,7 @@ compute_simulation_metrics <- function(test,
         # Store point estimates for SD calculation
         point_est_Se <- point_est_Sp <- matrix(NA, n_sims, max_k)
         ##
-        min_ESS_vec <- c()
-        
-        for (i in 1:n_sims) {
-          
-          try({ 
-            
-            result <- complete_results_all_ESS[[i]]
-            ##
-            ## (min ESS as when the fit was kept: Se and Sp at vec_index_inner only)
-            tibble_Se <- dplyr::filter(result$tibble_all, stringr::str_detect(parameter, "Se_baseline\\["))
-            tibble_Sp <- dplyr::filter(result$tibble_all, stringr::str_detect(parameter, "Sp_baseline\\["))
-            ESS_vec_Se <- pmin(tibble_Se$n_eff, tibble_Se$n_eff_tail, tibble_Se$n_eff_sd)
-            ESS_vec_Sp <- pmin(tibble_Sp$n_eff, tibble_Sp$n_eff_tail, tibble_Sp$n_eff_sd)
-            min_ESS <- min(c(ESS_vec_Se[vec_index_inner], ESS_vec_Sp[vec_index_inner]), na.rm = TRUE)
-            min_ESS_vec[i] <- min_ESS
-            
-          })
-          
-        }
+        min_ESS_vec <- min_ESS_all[keep_high_ESS]
         ##
         mean_min_ESS <- round(mean(min_ESS_vec))
         

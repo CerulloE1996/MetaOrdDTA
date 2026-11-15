@@ -721,8 +721,6 @@ check_MCSE_status <- function(output_dir,
       true_DGM_Sp <- true_vals$Sp
       true_DGM_Fp <- true_vals$Fp
       ##
-      complete_results_list <- list()
-      ##
       ## (every results file of this cell is read, whatever its seed, in the order of the seeds: the fits of every lane and
       ##  of both machines are counted. max_seed_to_check is no longer a limit on the seeds that are read)
       end_of_the_file_names_of_this_cell <- paste0("_", file_name_string, "_results_list.RDS")
@@ -733,18 +731,21 @@ check_MCSE_status <- function(output_dir,
                          (files_in_the_folder == paste0("seed_", seeds_in_the_folder, end_of_the_file_names_of_this_cell))
       seeds_of_this_cell <- sort(seeds_in_the_folder[is_of_this_cell])
       ##
-      for (seed in seeds_of_this_cell) {
+      complete_results_list <- vector("list", length(seeds_of_this_cell))
+      for (i_seed in seq_along(seeds_of_this_cell)) {
 
+            seed <- seeds_of_this_cell[i_seed]
             seed_file <- file.path(output_dir,
                                    paste0("seed_", seed, "_",
                                           file_name_string, "_results_list.RDS"))
-            try({
-              complete_results_list[[length(complete_results_list) + 1]] <- readRDS(seed_file)
-            }, silent = TRUE)
+            res_this_seed <- try(readRDS(seed_file), silent = TRUE)
+            if (!inherits(res_this_seed, "try-error") && !is.null(res_this_seed)) {
+                  complete_results_list[[i_seed]] <- res_this_seed
+            }
 
       }
       ##
-      complete_results_list <- complete_results_list[!sapply(complete_results_list, is.null)]
+      complete_results_list <- complete_results_list[!vapply(complete_results_list, is.null, logical(1L))]
       n_sims <- length(complete_results_list)
       ##
       if (n_sims < min_runs_needed) {
