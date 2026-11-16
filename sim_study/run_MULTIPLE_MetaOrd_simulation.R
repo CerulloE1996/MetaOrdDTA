@@ -728,11 +728,12 @@ run_multiple_sims <- function(MCMC_seed,
                                                             n_studies == 10 &&
                                                             test %in% c("BAI", "HADS") &&
                                                             DGM %in% c("Hoyer_2018", "ord_HSROC_random_C"))
-          ## (2 more O-biv-RC cells of set 2 that use adapt_delta = 0.95 and learning_rate = 0.025, and no other cell: BAI with 85% of
-          ##  its thresholds missing, 10 studies, DGM Jones and DGM ord_biv_random_C. With 0.80 and 0.05 they lost 22.2% (173 of 780)
-          ##  and 19.2% (136 of 710) of their fits to divergences; on the first seeds of each, fitted again with this setting, 0 of
-          ##  13 were lost. Their fits at 0.80 were taken out of the sim on 16 Nov and the two cells are fitted again.)
-          is_O_biv_RC_set_2_BAI_85_pct_adapt_delta_095_cell <- (prior_set == "set_2" &&
+          ## (4 more O-biv-RC cells that use adapt_delta = 0.95 and learning_rate = 0.025, and no other cell: BAI with 85% of its
+          ##  thresholds missing, 10 studies, DGM Jones and DGM ord_biv_random_C, at prior sets 1 and 2. At set 2, with 0.80 and
+          ##  0.05, they lost 22.2% (173 of 780) and 19.2% (136 of 710) of their fits to divergences; on 51 of those seeds fitted
+          ##  again with this setting 0 were lost; their fits at 0.80 were taken out of the sim on 16 Nov and the two cells are
+          ##  fitted again. The two cells of set 1 lost 2 of 10 and 4 of 10 fits in the pilot and get the setting before they run.)
+          is_O_biv_RC_sets_1_and_2_BAI_85_pct_adapt_delta_095_cell <- (prior_set %in% c("set_1", "set_2") &&
                                                                 model_parameterisation == "ord_bivariate" &&
                                                                 isTRUE(random_thresholds) &&
                                                                 n_studies == 10 &&
@@ -1019,8 +1020,8 @@ run_multiple_sims <- function(MCMC_seed,
                   }
             }
             adapt_delta_of_this_cell <- if (is_O_biv_RC_set_0_adapt_delta_095_cell || is_O_biv_RC_sets_1_and_2_adapt_delta_095_cell ||
-                                            is_Jones_set_0_adapt_delta_095_cell || is_O_biv_RC_set_2_BAI_85_pct_adapt_delta_095_cell) 0.95 else 0.80
-            learning_rate_of_this_cell <- if (is_O_biv_RC_sets_1_and_2_adapt_delta_095_cell || is_O_biv_RC_set_2_BAI_85_pct_adapt_delta_095_cell) 0.025 else 0.05
+                                            is_Jones_set_0_adapt_delta_095_cell || is_O_biv_RC_sets_1_and_2_BAI_85_pct_adapt_delta_095_cell) 0.95 else 0.80
+            learning_rate_of_this_cell <- if (is_O_biv_RC_sets_1_and_2_adapt_delta_095_cell || is_O_biv_RC_sets_1_and_2_BAI_85_pct_adapt_delta_095_cell) 0.025 else 0.05
             model_samples_obj <- model_prep_obj$sample( seed = MCMC_seed, ## MCMC seed
                                             n_burnin = n_burnin,
                                             n_iter = n_iter,
