@@ -1158,28 +1158,42 @@ run_multiple_sims <- function(MCMC_seed,
             ## ---- Get summaries:
             ##
             time_after_the_sample_call <- Sys.time()
-            model_summary_obj <- model_samples_obj$summary( compute_main_params = TRUE,
-                                                            compute_transformed_parameters = FALSE,
-                                                            compute_generated_quantities = TRUE,
-                                                            save_log_lik_trace = FALSE)
+            ns_sum <- if (identical(sampling_algorithm, "NicoStan")) {
+                  model_samples_obj$internal_obj$outs_stan_sampling$NicoStan_summary_obj
+            } else {
+                  NULL
+            }
+            if (!is.null(ns_sum)) {
+                  model_summary_obj <- NULL
+                  summary_obj_for_getters <- ns_sum
+                  tibble_main <- ns_sum$get_summary_main()
+                  tibble_gq   <- ns_sum$get_summary_generated_quantities()
+                  tibble_all  <- rbind(tibble_main, tibble_gq)
+            } else {
+                  model_summary_obj <- model_samples_obj$summary( compute_main_params = TRUE,
+                                                                  compute_transformed_parameters = FALSE,
+                                                                  compute_generated_quantities = TRUE,
+                                                                  save_log_lik_trace = FALSE)
+                  summary_obj_for_getters <- model_summary_obj
+                  tibble_main <- model_summary_obj$get_summary_main()
+                  tibble_gq   <- model_summary_obj$get_summary_generated_quantities()
+                  tibble_all  <- rbind(tibble_main, tibble_gq)
+            }
             time_after_the_summary <- Sys.time()
-            ##
-            tibble_main <- model_summary_obj$get_summary_main()
-            tibble_gq   <- model_summary_obj$get_summary_generated_quantities()
-            tibble_all  <- rbind(tibble_main, tibble_gq)
             ##
             # tibbles_list_testing[[MCMC_seed]] <- tibble_gq
 
-
+            if (!is.null(model_summary_obj)) {
               try({
                  model_summary_obj$extract_params(params = "kappa")
                  model_summary_obj$extract_params(params = "C_raw_vec")
                  model_summary_obj$extract_params(params = "beta_mu")
                  model_summary_obj$extract_params(params = "beta_SD")
               })
+            }
 
-            model_summary_obj$get_efficiency_metrics()$time_burnin
-            model_summary_obj$get_efficiency_metrics()$time_sampling
+            summary_obj_for_getters$get_efficiency_metrics()$time_burnin
+            summary_obj_for_getters$get_efficiency_metrics()$time_sampling
 
 
               # Extract Se/Sp
@@ -1227,11 +1241,15 @@ run_multiple_sims <- function(MCMC_seed,
               ##
               max_percent_divergent <- 1
               ##
-              n_divergent_per_chain <- model_summary_obj$get_divergences()$n_divs_per_chain
-              if (is.null(n_divergent_per_chain)) {
+              div_of_this_fit <- summary_obj_for_getters$get_divergences()
+              n_divergent_per_chain <- div_of_this_fit$n_divs_per_chain
+              if (!is.null(n_divergent_per_chain)) {
+                n_divergent <- sum(n_divergent_per_chain)
+              } else if (!is.null(div_of_this_fit$n_divs) && length(div_of_this_fit$n_divs) == 1L && !is.na(div_of_this_fit$n_divs)) {
+                n_divergent <- div_of_this_fit$n_divs
+              } else {
                 stop("the number of divergent transitions of this fit was not found")
               }
-              n_divergent <- sum(n_divergent_per_chain)
               percent_divergent <- 100 * n_divergent / (n_chains * n_iter)
               ## (keep_the_divergence_trace_in = a folder: the divergence trace and the draws of this NicoStan fit are saved there; NULL = not saved)
               if (!is.null(keep_the_divergence_trace_in) && sampling_algorithm == "NicoStan") {
@@ -1257,12 +1275,23 @@ run_multiple_sims <- function(MCMC_seed,
               ##
               file_of_the_gate_log <- file.path(output_dir,
                                                 paste0("gate_of_every_fit_", file_name_string, ".csv"))
-              efficiency_of_this_fit <- tryCatch(model_summary_obj$get_efficiency_metrics(),
+              efficiency_of_this_fit <- tryCatch(summary_obj_for_getters$get_efficiency_metrics(),
                                                  error = function(e) list())
               seconds_burnin         <- c(efficiency_of_this_fit$time_burnin, NA)[1]
               seconds_sampling       <- c(efficiency_of_this_fit$time_sampling, NA)[1]
-              n_grad_evals_sampling  <- c(efficiency_of_this_fit$Min_ESS_main /
-                                          efficiency_of_this_fit$Min_ess_per_grad_main_samp, NA)[1]
+              HMC_info_of_this_fit   <- tryCatch(summary_obj_for_getters$get_HMC_info(),
+                                                 error = function(e) list())
+              HMC_info_of_the_sampling <- HMC_info_of_this_fit$stan_HMC_info_list$out_list_sampling
+              L_max_per_chain        <- HMC_info_of_the_sampling$L_max_per_chain_sampling
+              eps_sampling_val       <- if (!is.null(ns_sum)) c(HMC_info_of_this_fit$eps_main, NA)[1] else c(HMC_info_of_this_fit$eps, NA)[1]
+              tau_sampling_val       <- if (!is.null(ns_sum)) c(HMC_info_of_this_fit$tau_main, NA)[1] else c(HMC_info_of_this_fit$tau, NA)[1]
+              L_mean_of_this_fit     <- if (!is.null(ns_sum)) tau_sampling_val / eps_sampling_val else c(HMC_info_of_this_fit$L_main_during_sampling, NA)[1]
+              n_grad_evals_sampling  <- if (!is.null(ns_sum)) {
+                L_mean_of_this_fit * n_iter * n_chains
+              } else {
+                c(efficiency_of_this_fit$Min_ESS_main /
+                  efficiency_of_this_fit$Min_ess_per_grad_main_samp, NA)[1]
+              }
               min_ESS_per_1000_grads <- 1000 * min_ESS / n_grad_evals_sampling
               seconds_of_each_step   <- tryCatch(diff(as.numeric(c(time_of_the_start_of_this_fit,
                                                      time_after_the_simulated_data,
@@ -1297,18 +1326,13 @@ run_multiple_sims <- function(MCMC_seed,
               ##
               ## ---- the step size and trajectory length of this fit, in the HMC log of this cell:
               ##
-              HMC_info_of_this_fit <- tryCatch(model_summary_obj$get_HMC_info(),
-                                               error = function(e) list())
-              HMC_info_of_the_sampling <- HMC_info_of_this_fit$stan_HMC_info_list$out_list_sampling
-              L_max_per_chain <- HMC_info_of_the_sampling$L_max_per_chain_sampling
-              L_mean_of_this_fit <- c(HMC_info_of_this_fit$L_main_during_sampling, NA)[1]
               file_of_the_HMC_log <- file.path(output_dir,
                                                paste0("HMC_of_every_fit_", file_name_string, ".csv"))
               suppressWarnings(utils::write.table(data.frame(seed = seed,
                                                              sampling_algorithm = sampling_algorithm,
                                                              n_burnin = n_burnin,
-                                                             eps_sampling = c(HMC_info_of_this_fit$eps, NA)[1],
-                                                             tau_sampling = c(HMC_info_of_this_fit$tau, NA)[1],
+                                                             eps_sampling = eps_sampling_val,
+                                                             tau_sampling = tau_sampling_val,
                                                              L_mean_sampling = L_mean_of_this_fit,
                                                              L_max_sampling = if (length(L_max_per_chain) > 0)
                                                                                 max(L_max_per_chain) else NA),
