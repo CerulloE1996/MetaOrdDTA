@@ -820,12 +820,14 @@ run_multiple_sims <- function(MCMC_seed,
           ## (the 2 Set 0 Jones cells of the factorial design that use adapt_delta = 0.95: GAD-2 with 85% of its thresholds missing,
           ##  50 studies, DGM Hoyer_2018 and DGM ord_biv_fixed_C. With 0.80 they lost 11.8% and 10.3% of their fits to divergences;
           ##  with 0.95, 1 of 878 and 1 of 815 fits. Every other Jones cell uses 0.80.)
-          is_Jones_set_0_adapt_delta_095_cell <- (prior_set == "set_0" &&
-                                                  model_parameterisation == "Jones" &&
+          ## (and, since 16 Nov, the same cell of DGM ord_biv_fixed_C at prior set 1, before it ran: at 0.80 it lost 4 of 24 fits
+          ##  to divergences in a test at the sim's settings, at 0.95 none of the same 24, in less time a fit. No other cell.)
+          is_Jones_set_0_adapt_delta_095_cell <- (model_parameterisation == "Jones" &&
                                                   n_studies == 50 &&
                                                   test == "GAD_2" &&
                                                   isTRUE(all.equal(target_proportion_missing_of_this_run, 0.85)) &&
-                                                  DGM %in% c("Hoyer_2018", "ord_biv_fixed_C"))
+                                                  ((prior_set == "set_0" && DGM %in% c("Hoyer_2018", "ord_biv_fixed_C")) ||
+                                                   (prior_set == "set_1" && DGM == "ord_biv_fixed_C")))
           ## (the cells sampled with NicoStan's auto-chunking, 2 chunks at the burn-in and at the sampling, 1 thread a chain: the
           ##  model's library built with the auto-chunking engine lies beside its Stan file in the cache as
           ##  <name>_nuisance_first_auto_chunking_on_model.so and gives the same log density and gradient as the library without it.
