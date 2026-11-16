@@ -761,9 +761,14 @@ run_multiple_sims <- function(MCMC_seed,
                                                          !isTRUE(random_thresholds) &&
                                                          n_studies == 50 &&
                                                          test %in% c("BAI", "HADS"))
+          ## (O-biv-FC is sampled with auto-chunking at prior set 0 only. At prior set 1, HADS, 50 studies, the workers of 776 of
+          ##  844 lane runs died of memory corruption inside the chunked library on 16 Nov, 01:36 to 01:59 (munmap_chunk(): invalid
+          ##  pointer; corrupted double-linked list; malloc(): smallbin double linked list corrupted); at set 0 no run ever did.
+          ##  Sets 1 and 2 use the library without auto-chunking until the chunked one is proven on their priors.)
           is_O_biv_FC_auto_chunking_cell <- (model_parameterisation == "ord_bivariate" &&
                                              !isTRUE(random_thresholds) &&
                                              n_studies == 50 &&
+                                             prior_set == "set_0" &&
                                              test %in% c("BAI", "HADS"))
           ## (O-biv-RC is sampled without auto-chunking in every cell: its fused file of 15 Nov without auto-chunking is 1.39
           ##  times faster an iteration at BAI with 50 studies than the fused file before it with 8 chunks)
