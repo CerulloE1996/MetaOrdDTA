@@ -1,4 +1,4 @@
-// NicoSIMD_AVX512 version of DTA_NMA_Nyaga_ord_biv_RANDthr_kappa_popmed_Se_Sp_prior.stan written by NicoStan (source model md5 ce7905ecf4e96cf0d7e2933b1fdc42be; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
+// NicoSIMD_AVX512 version of DTA_NMA_Nyaga_ord_biv_RANDthr_kappa_popmed_Se_Sp_prior.stan written by NicoStan (source model md5 410514e83f4ed35187c3458f6d009b5c; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
 // NicoSIMD functions used: exp, log, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, expm1, normal_rng, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, log_diff_exp, std_normal_log_qf, student_t
 
 
@@ -510,7 +510,11 @@ model {
                  //// ---- likelihood since random-effect cutpoints!):
                  ////
                  vector[n_cat[t]] alpha_vec = to_vector(alpha[c][t, 1:n_cat[t]]);
-                 real anchor_ct = prior_beta_mu_mean[t][c, 1]; //// the prior mean of the intercept as anchor point
+                 //// (the anchor point: the baseline case of test t at the prior means)
+                 real anchor_ct = (c == 1) ? dot_product(baseline_case_nd[t][1:n_covariates_nd[t]],
+                                                         to_vector(prior_beta_mu_mean[t][1, 1:n_covariates_nd[t]])) :
+                                             dot_product(baseline_case_d[t][1:n_covariates_d[t]],
+                                                         to_vector(prior_beta_mu_mean[t][2, 1:n_covariates_d[t]]));
                  vector[n_cat[t] + 1] cumulative_alpha = append_row(0.0, cumulative_sum(alpha_vec));
                  ////
                  for (s in 1:n_studies) {
@@ -614,7 +618,11 @@ generated quantities {
                   vector[n_thr[t]] P_upper = reverse(cumulative_sum(reverse(to_vector(alpha[c][t, 2:n_cat[t]]))))
                                              / alpha_0;
                   for (k in 1:n_thr[t]) {
-                      C_mu[c][t, k] = prior_beta_mu_mean[t][c, 1] + //// (anchored at the prior mean of the intercept)
+                      //// (anchored at the baseline case of test t at the prior means)
+                      C_mu[c][t, k] = ((c == 1) ? dot_product(baseline_case_nd[t][1:n_covariates_nd[t]],
+                                                              to_vector(prior_beta_mu_mean[t][1, 1:n_covariates_nd[t]])) :
+                                                  dot_product(baseline_case_d[t][1:n_covariates_d[t]],
+                                                              to_vector(prior_beta_mu_mean[t][2, 1:n_covariates_d[t]]))) +
                                       dirichlet_cutpoint_median(P[k], P_upper[k], alpha_0, use_probit_link);
                   }
               }

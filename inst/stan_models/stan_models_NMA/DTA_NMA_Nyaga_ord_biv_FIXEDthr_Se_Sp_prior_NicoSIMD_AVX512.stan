@@ -1,4 +1,4 @@
-// NicoSIMD_AVX512 version of DTA_NMA_Nyaga_ord_biv_FIXEDthr_Se_Sp_prior.stan written by NicoStan (source model md5 ef853235425e0352bf85917beb9bf3f5; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
+// NicoSIMD_AVX512 version of DTA_NMA_Nyaga_ord_biv_FIXEDthr_Se_Sp_prior.stan written by NicoStan (source model md5 df2965c84517c74167457427683dd305; NicoSIMD declarations md5 7f272e2ac00d6303123b13fb8f59653e; writer implementation md5 f6843a34264d79c6ed96effa2d04b0c4)
 // NicoSIMD functions used: exp, log, log1m, log1p_exp, log1m_exp, inv_logit, log_inv_logit, Phi, inv_Phi, tanh, logit, log1m_inv_logit, normal_rng, normal, lgamma, beta, dirichlet, lkj_corr_cholesky, log_diff_exp, std_normal_log_qf
 
 
@@ -420,8 +420,11 @@ model {
         ////
         array[n_index_tests, 2] real C_anchor;
         for (t in 1:n_index_tests) {
-            C_anchor[t, 1] = prior_beta_mu_mean[t][1, 1];
-            C_anchor[t, 2] = prior_beta_mu_mean[t][2, 1];
+            //// (the baseline case of test t at the prior means, under every prior set)
+            C_anchor[t, 1] = dot_product(baseline_case_nd[t][1:n_covariates_nd[t]],
+                                         to_vector(prior_beta_mu_mean[t][1, 1:n_covariates_nd[t]]));
+            C_anchor[t, 2] = dot_product(baseline_case_d[t][1:n_covariates_d[t]],
+                                         to_vector(prior_beta_mu_mean[t][2, 1:n_covariates_d[t]]));
         }
         for (c in 1:2) {
             for (t in 1:n_index_tests) {
