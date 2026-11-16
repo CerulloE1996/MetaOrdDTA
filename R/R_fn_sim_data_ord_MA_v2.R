@@ -1104,7 +1104,6 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                     # Initialize threshold arrays for current study
                     thr_for_all_tests_for_current_study_nd <- array(NA, dim = c(n_tests, max_threshold_across_all_tests))
                     thr_for_all_tests_for_current_study_d <- array(NA, dim = c(n_tests, max_threshold_across_all_tests))
-                    thr_for_all_tests_for_current_study_per_n <- array(NA, dim = c(N, n_tests, max_threshold_across_all_tests))
                     ##
                     ##
                     ## ---- GAD-2 (test #2):
@@ -1255,35 +1254,18 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                             Mean_of_thr_for_all_tests_array_per_study_nd[s, t, 1:n_thr_per_test[t]] <- thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]]
                             Mean_of_thr_for_all_tests_array_per_study_d[s, t, 1:n_thr_per_test[t]]  <- thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]]
                             ##
-                            # Assign thresholds to diseased and non-diseased subjects
-                            diseased_indices    <- which(d_ind == 1)
-                            nondiseased_indices <- which(d_ind == 0)
-                            ##
-                            ## (one assignment per group of people, the same values as one per person)
-                            thr_for_all_tests_for_current_study_per_n[diseased_indices, t, 1:n_thr_per_test[t]] <- rep(thr_for_all_tests_for_current_study_d[t, 1:n_thr_per_test[t]],
-                                                                                                                     each = length(diseased_indices))
-                            thr_for_all_tests_for_current_study_per_n[nondiseased_indices, t, 1:n_thr_per_test[t]] <- rep(thr_for_all_tests_for_current_study_nd[t, 1:n_thr_per_test[t]],
-                                                                                                                        each = length(nondiseased_indices))
                     }
                     ##
                     # Generate study-specific parameters
                     if (DGM %in% c("ord_biv_random_C", "ord_biv_fixed_C")) {
                       
-                            Sigma_bs_list <- list()
-                            ##
-                            for (t in 1:n_tests) {
-                                  Omega_bs <- matrix(1.0, nrow = 2, ncol = 2)
-                                  Sigma_bs <- matrix(NA, nrow = 2, ncol = 2)
-                                  ##
-                                  Omega_bs[1, 2] <- beta_corr[t]
-                                  Omega_bs[2, 1] <- beta_corr[t]
-                                  ##
-                                  Sigma_bs[1, 1] <- beta_SD_nd[t]^2
-                                  Sigma_bs[2, 2] <- beta_SD_d[t]^2
-                                  Sigma_bs[1, 2] <- beta_corr[t] * beta_SD_nd[t] * beta_SD_d[t]
-                                  Sigma_bs[2, 1] <- Sigma_bs[1, 2]
-                                  Sigma_bs_list[[t]] <- Sigma_bs
+                            if (!exists("cached_Sigma_bs_list", inherits = FALSE)) {
+                                  cached_Sigma_bs_list <- lapply(seq_len(n_tests), function(t) {
+                                        cov12 <- beta_corr[t] * beta_SD_nd[t] * beta_SD_d[t]
+                                        matrix(c(beta_SD_nd[t]^2, cov12, cov12, beta_SD_d[t]^2), 2L, 2L)
+                                  })
                             }
+                            Sigma_bs_list <- cached_Sigma_bs_list
                             ##
                             location_nd_study_s <- c()
                             location_d_study_s <- c()
@@ -1481,8 +1463,8 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                     if (!(exists("Omega_nd_before_nearPD", inherits = FALSE) && identical(Omega_nd_before_nearPD, Omega_nd) && identical(Omega_d_before_nearPD, Omega_d))) {
                           Omega_nd_before_nearPD <- Omega_nd
                           Omega_d_before_nearPD  <- Omega_d
-                          Omega_nd_after_nearPD  <- as.matrix(Matrix::nearPD(Omega_nd, keepDiag = TRUE)$mat)
-                          Omega_d_after_nearPD   <- as.matrix(Matrix::nearPD(Omega_d, keepDiag = TRUE)$mat)
+                          Omega_nd_after_nearPD  <- if (isTRUE(all(Omega_nd == diag(n_tests)))) Omega_nd else as.matrix(Matrix::nearPD(Omega_nd, keepDiag = TRUE)$mat)
+                          Omega_d_after_nearPD   <- if (isTRUE(all(Omega_d  == diag(n_tests)))) Omega_d  else as.matrix(Matrix::nearPD(Omega_d,  keepDiag = TRUE)$mat)
                     }
                     Omega_nd <- Omega_nd_after_nearPD
                     Omega_d  <- Omega_d_after_nearPD
@@ -1490,14 +1472,28 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                     L_Omega_d  <- t(chol(Omega_d))
                     
                     # Calculate covariance matrices
-                    Sigma_nd <- diag(scale_nd_study_s) %*% Omega_nd %*% diag(scale_nd_study_s)
-                    Sigma_d <- diag(scale_d_study_s) %*% Omega_d %*% diag(scale_d_study_s)
-                    Sigma_nd <- as.matrix(Matrix::nearPD(Sigma_nd)$mat)
-                    Sigma_d <- as.matrix(Matrix::nearPD(Sigma_d)$mat)
-                    Sigma_nd <- as.matrix(Matrix::forceSymmetric(Sigma_nd))
-                    Sigma_d <- as.matrix(Matrix::forceSymmetric(Sigma_d))
-                    L_Sigma_nd <- t(chol(Sigma_nd))
-                    L_Sigma_d <- t(chol(Sigma_d))
+                    if (!(exists("cache_scale_nd", inherits = FALSE) && identical(cache_scale_nd, scale_nd_study_s) &&
+                          identical(cache_Omega_nd, Omega_nd) && identical(cache_scale_d, scale_d_study_s) &&
+                          identical(cache_Omega_d, Omega_d))) {
+                          cache_scale_nd <- scale_nd_study_s; cache_Omega_nd <- Omega_nd
+                          cache_scale_d  <- scale_d_study_s;  cache_Omega_d  <- Omega_d
+                          fast_pd <- function(Om, sc) {
+                            d_vec <- sc * sc
+                            if (isTRUE(all(Om == diag(length(sc)))) && all(d_vec > 0) && (min(d_vec) / max(d_vec) > 1e-5)) {
+                              list(S = diag(d_vec), L = diag(sc))
+                            } else {
+                              S0 <- Om * tcrossprod(sc)
+                              sig <- as.matrix(Matrix::forceSymmetric(as.matrix(Matrix::nearPD(S0)$mat)))
+                              list(S = sig, L = t(chol(sig)))
+                            }
+                          }
+                          r_nd <- fast_pd(Omega_nd, scale_nd_study_s)
+                          r_d  <- fast_pd(Omega_d,  scale_d_study_s)
+                          cache_Sigma_nd   <- r_nd$S; cache_Sigma_d   <- r_d$S
+                          cache_L_Sigma_nd <- r_nd$L; cache_L_Sigma_d <- r_d$L
+                    }
+                    Sigma_nd <- cache_Sigma_nd; Sigma_d <- cache_Sigma_d
+                    L_Sigma_nd <- cache_L_Sigma_nd; L_Sigma_d <- cache_L_Sigma_d
                     
                     # Generate latent continuous results
                     latent_cts_results_neg <- LaplacesDemon::rmvn(n = n_neg, mu = location_nd_study_s, Sigma = Sigma_nd)
@@ -1533,8 +1529,6 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                     # Set binary test results (test 1)
                     y[, 1] <- ifelse(latent_results[, 1] > 0, 1, 0)
                     disease_status <- d_ind
-                    print(sum(disease_status == 1))
-                    print(sum(d_ind == 1))
                     
                     # Generate ordinal test results (tests 2-5)
                     for (t in 2:n_tests) {
@@ -1544,18 +1538,25 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                             ## (all categories at once: the bounds in the order of the old loop (first, 2:(n_thr), last); a person
                             ##  takes the value of the LAST category whose bounds hold its latent value, as the old loop's
                             ##  later assignments did; a person in none keeps its value)
-                            ks_of_the_middle <- 2:(n_thr)
-                            thr_of_each_person <- function(k) thr_for_all_tests_for_current_study_per_n[1:N, t, k]
-                            lower_of_each_category <- c(list(rep(-9999, N)), lapply(ks_of_the_middle, function(k) thr_of_each_person(k - 1)), list(thr_of_each_person(n_thr)))
-                            upper_of_each_category <- c(list(thr_of_each_person(1)), lapply(ks_of_the_middle, thr_of_each_person), list(rep(9999, N)))
-                            value_of_each_category <- c(0, ks_of_the_middle - 1, n_cat - 1)
-                            latent_of_test_t <- latent_results[1:N, t]
-                            in_category <- matrix(unlist(Map(function(lower, upper) (latent_of_test_t > lower) & (latent_of_test_t <= upper),
-                                                              lower_of_each_category, upper_of_each_category)), nrow = N)
-                            in_category[is.na(in_category)] <- FALSE
-                            last_category_of_each_person <- max.col(in_category * rep(seq_along(value_of_each_category), each = N), ties.method = "first")
-                            in_some_category <- rowSums(in_category) > 0
-                            y[in_some_category, t] <- value_of_each_category[last_category_of_each_person[in_some_category]]
+                            assign_cats_grp <- function(vals, thr) {
+                              out <- rep(NA_real_, length(vals))
+                              if (!anyNA(thr) && !is.unsorted(thr, strictly = FALSE) && thr[1] > -9999 && thr[n_thr] <= 9999) {
+                                idx <- findInterval(vals, c(-9999, thr, 9999), left.open = TRUE)
+                                keep <- (idx >= 1L) & (idx <= n_cat)
+                                out[keep] <- idx[keep] - 1L
+                              } else {
+                                lo <- c(-9999, thr); hi <- c(thr, 9999)
+                                for (kk in seq_len(n_cat)) {
+                                  hit <- !is.na(lo[kk]) & !is.na(hi[kk]) & (vals > lo[kk]) & (vals <= hi[kk])
+                                  out[hit] <- kk - 1L
+                                }
+                              }
+                              out
+                            }
+                            idx_nd_grp <- which(d_ind == 0)
+                            idx_d_grp  <- which(d_ind == 1)
+                            if (length(idx_nd_grp) > 0L) y[idx_nd_grp, t] <- assign_cats_grp(latent_results[idx_nd_grp, t], thr_for_all_tests_for_current_study_nd[t, 1:n_thr])
+                            if (length(idx_d_grp) > 0L)  y[idx_d_grp, t]  <- assign_cats_grp(latent_results[idx_d_grp, t],  thr_for_all_tests_for_current_study_d[t, 1:n_thr])
                     }
                     
                     # Create data frames
@@ -1564,7 +1565,7 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                     df_neg <- data.frame(d_ind = d_ind[d_ind == 0])
                     
                     # Calculate prevalence
-                    prev_true_observed <- print(round(sum(d_ind)/N, 3))
+                    prev_true_observed <- round(sum(d_ind)/N, 3)
                     prev_true_observed_list[[s]] <- prev_true_observed
                     
                     # Calculate test performance for each threshold
@@ -1577,17 +1578,19 @@ R_fn_sim_data_ord_MA_v2 <- function(   seed = 123,
                           n_FP_at_each_threshold[s, t, 1] <- n_neg
                           
                           # Calculate counts for each threshold
-                          df_pos_y <- y[, t][disease_status == 1]
-                          df_neg_y <- y[, t][disease_status == 0]
-                          for (k in 2:n_cat) {
-                            
-                            # if (t == 2 && s == 1) {
-                            #   print(paste("k =", k, "| Unique values in df_pos_y:", paste(sort(unique(df_pos_y)), collapse = ", ")))
-                            #   print(paste("Count of df_pos_y >= (k-1):", sum(df_pos_y >= (k - 1)), "| Total positive cases:", n_pos))
-                            # }
-                            
-                            n_TP_at_each_threshold[s, t, k] <- sum(df_pos_y >= (k - 1))
-                            n_FP_at_each_threshold[s, t, k] <- sum(df_neg_y >= (k - 1))
+                          df_pos_y <- y[disease_status == 1, t]
+                          df_neg_y <- y[disease_status == 0, t]
+                          if (!anyNA(df_pos_y)) {
+                            cnt_d <- tabulate(df_pos_y + 1L, nbins = n_cat)
+                            n_TP_at_each_threshold[s, t, 2:n_cat] <- rev(cumsum(rev(cnt_d)))[-1L]
+                          } else {
+                            n_TP_at_each_threshold[s, t, 2:n_cat] <- NA_real_
+                          }
+                          if (!anyNA(df_neg_y)) {
+                            cnt_nd <- tabulate(df_neg_y + 1L, nbins = n_cat)
+                            n_FP_at_each_threshold[s, t, 2:n_cat] <- rev(cumsum(rev(cnt_nd)))[-1L]
+                          } else {
+                            n_FP_at_each_threshold[s, t, 2:n_cat] <- NA_real_
                           }
                           
                           # Calculate sensitivity and specificity

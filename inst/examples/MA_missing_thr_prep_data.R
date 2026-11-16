@@ -448,8 +448,8 @@ n_index_tests_per_study       <- outs_NMA$n_index_tests_per_study ; n_index_test
 x_nd <- x_d <- list()
 for (t in 2:n_tests) {
     n_thr_chosen_index <- n_thr_vec[t - 1]
-    x_nd[[t - 1]] <- apply(sim_results$n_FP_at_each_threshold[, t, 1:(n_thr_chosen_index + 1)], c(1, 2), mean)
-    x_d[[t - 1]]  <- apply(sim_results$n_TP_at_each_threshold[, t, 1:(n_thr_chosen_index + 1)], c(1, 2), mean)
+    x_nd[[t - 1]] <- if (n_studies == 1L) matrix(sim_results$n_FP_at_each_threshold[, t, 1:(n_thr_chosen_index + 1)], nrow = 1L) else sim_results$n_FP_at_each_threshold[, t, 1:(n_thr_chosen_index + 1)]
+    x_d[[t - 1]]  <- if (n_studies == 1L) matrix(sim_results$n_TP_at_each_threshold[, t, 1:(n_thr_chosen_index + 1)], nrow = 1L) else sim_results$n_TP_at_each_threshold[, t, 1:(n_thr_chosen_index + 1)]
 }
 
 
@@ -458,11 +458,11 @@ for (t in 2:n_tests) {
 ####
 #### Non-diseased group:
 ####
-print(paste("x_non_diseased_cumulative = ")) ; print(x_nd[[1]])
+
 ####
 #### Diseased group:
 ####
-print(paste("x_diseased_cumulative = ")) ; print(x_d[[1]])
+
 
 ###
 ### Prep / save final NMA simulated data outputs:
@@ -719,7 +719,6 @@ x_GAD2_REAL
 ##
 ## ------------------- Apply ** MISSING THRESHOLDS ** to HADS data/test: -----------------------------------------------------------------------------
 ##
-source(file.path(local_pkg_dir, "Klaus_et_al_collab_R_fns.R"))
 # source(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "make_Klaus_et_al_data.R")) ## to get "x_gad2" dataset
 ##
 x_HADS_REAL <- readRDS(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "real_x_HADS.RDS"))
@@ -758,7 +757,6 @@ sum(x_HADS_REAL$nondiseased[, 1], na.rm =TRUE)
 ##
 ## ------------------- Apply ** MISSING THRESHOLDS ** to BAI data/test: -----------------------------------------------------------------------------
 ##
-source(file.path(local_pkg_dir, "Klaus_et_al_collab_R_fns.R"))
 # source(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "make_Klaus_et_al_data.R")) ## to get "x_gad2" dataset
 ##
 x_BAI_REAL <- readRDS(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "real_x_BAI.RDS"))
@@ -793,7 +791,6 @@ x_BAI_REAL
 ##
 ## ------------------- Apply ** MISSING THRESHOLDS ** to GAD-7 data/test: -----------------------------------------------------------------------------
 ##
-source(file.path(local_pkg_dir, "Klaus_et_al_collab_R_fns.R"))
 # source(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "make_Klaus_et_al_data.R")) ## to get "x_gad2" dataset
 ##
 x_GAD7_REAL <- readRDS(file.path(local_pkg_dir, "temp_old", "Klaus_et_al_data", "real_x_GAD7.RDS"))
