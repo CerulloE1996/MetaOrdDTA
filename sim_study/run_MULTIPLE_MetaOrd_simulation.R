@@ -868,9 +868,12 @@ run_multiple_sims <- function(MCMC_seed,
           ## (ord-HSROC is sampled without auto-chunking in every cell from 16 Nov 10:1x: its auto-chunking library was built
           ##  from the cutpoint-median header of 14 Nov, whose log density is wrong from kappa 7,100 up (against the
           ##  Stan-math-only file: off by 62 to 268, or NaN); the library without auto-chunking was rebuilt on 16 Nov with
-          ##  the fast median, which matches the Stan-math-only file from kappa 900 to 25,000. It was BAI with 50 studies,
-          ##  4 chunks, until then.)
-          is_ord_HSROC_auto_chunking_cell <- FALSE
+          ##  the fast median, which matches the Stan-math-only file from kappa 900 to 25,000. From 10:4x the same day its
+          ##  auto-chunking library is rebuilt from that header too (within 5e-10 of the library without auto-chunking and
+          ##  7e-07 of the Stan-math-only file, at 1 and 4 chunks, kappa 900 to 25,000), so BAI with 50 studies is sampled
+          ##  with 4 chunks again.)
+          is_ord_HSROC_auto_chunking_cell <- (model_parameterisation == "ord_HSROC" &&
+                                              test == "BAI" && n_studies == 50)
           is_auto_chunking_cell <- is_stratified_bivariate_auto_chunking_cell || is_O_biv_FC_auto_chunking_cell ||
                                    is_O_biv_RC_auto_chunking_cell || is_Jones_auto_chunking_cell ||
                                    is_ord_HSROC_auto_chunking_cell
