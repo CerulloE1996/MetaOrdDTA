@@ -1,3 +1,45 @@
+## (worker-lifetime static caches at file top level: zero reference to run_multiple_sims frame or fit objects)
+.metaord_worker_cache <- new.env(parent = emptyenv())
+.metaord_make_cached_file_fn <- function(orig_fn, max_entries = 64L) {
+  cache_env <- new.env(parent = emptyenv())
+  fn_env <- new.env(parent = environment(orig_fn))
+  fn_env$orig_fn <- orig_fn
+  fn_env$cache_env <- cache_env
+  fn_env$max_entries <- as.integer(max_entries)
+  file_sig_fn <- function(p) {
+    info <- file.info(p)
+    if (nrow(info) == 0L || is.na(info$size[1L])) return("missing")
+    paste0(normalizePath(p, mustWork = FALSE), "|", info$size[1L], "|", as.numeric(info$mtime[1L]))
+  }
+  environment(file_sig_fn) <- baseenv()
+  fn_env$file_sig <- file_sig_fn
+  fn_env$fn <- function(...) {
+    args <- list(...)
+    first_char <- NULL
+    for (a in args) {
+      if (is.character(a) && length(a) == 1L && nzchar(a)) { first_char <- a; break }
+    }
+    key <- if (!is.null(first_char)) {
+      paste(c(file_sig(first_char),
+              vapply(args, function(x) paste(as.character(unlist(x, use.names = FALSE)), collapse = "\x1f"), character(1L))),
+            collapse = "\x1e")
+    } else {
+      ""
+    }
+    if (nzchar(key) && exists(key, envir = cache_env, inherits = FALSE)) {
+      return(get(key, envir = cache_env, inherits = FALSE))
+    }
+    res <- do.call(orig_fn, args)
+    if (nzchar(key) && length(ls(cache_env, all.names = TRUE)) < max_entries) {
+      assign(key, res, envir = cache_env)
+    }
+    res
+  }
+  environment(fn_env$fn) <- fn_env
+  attr(fn_env$fn, "metaord_static_cached") <- TRUE
+  fn_env$fn
+}
+environment(.metaord_make_cached_file_fn) <- baseenv()
 
 # ============================================================================================================
 # Run Multiple MetaOrdDTA Simulations
@@ -117,6 +159,96 @@ run_multiple_sims <- function(MCMC_seed,
             }
         }
 
+        ## (worker-level caches: survive across single-seed run_multiple_sims calls without touching package frames)
+        if (is.null(.metaord_worker_cache$CPU_has_AVX512)) {
+            .metaord_worker_cache$CPU_has_AVX512 <- any(grepl("\\bavx512f\\b", readLines("/proc/cpuinfo", warn = FALSE)))
+            .metaord_worker_cache$AVX_FLAGS <- if (.metaord_worker_cache$CPU_has_AVX512) {
+                "-march=native -mtune=native -mavx2 -mavx512f -mavx512vl -mavx512dq"
+            } else {
+                "-march=native -mtune=native -mavx2"
+            }
+            .metaord_worker_cache$NicoSIMD_hdr <- file.path(find.package("NicoSIMD"), "include", "NicoSIMD",
+                                                            "stan_external_functions_of_NicoSIMD.hpp")
+        }
+        CPU_has_AVX512 <- .metaord_worker_cache$CPU_has_AVX512
+        AVX_FLAGS_of_this_machine <- .metaord_worker_cache$AVX_FLAGS
+        NicoSIMD_user_header <- if (any(candidate_route)) scenario_row$custom_cpp_user_header_file_path[[1]] else .metaord_worker_cache$NicoSIMD_hdr
+
+        if (is.null(.metaord_worker_cache$thr_env) || !identical(.metaord_worker_cache$thr_pkg_dir, local_pkg_dir)) {
+            te <- new.env(parent = globalenv())
+            te$local_pkg_dir <- local_pkg_dir
+            source(file.path(local_pkg_dir, "sim_study", "thr_sim_study_helper_fns.R"), local = te)
+            .metaord_worker_cache$thr_pkg_dir <- local_pkg_dir
+            .metaord_worker_cache$thr_env <- te
+        }
+        fn_induced_accuracy_priors <- .metaord_worker_cache$thr_env$fn_induced_accuracy_priors
+        tv_key <- paste0(test, "|", DGM)
+        if (is.null(.metaord_worker_cache$true_vals) || !identical(.metaord_worker_cache$tv_key, tv_key)) {
+            .metaord_worker_cache$tv_key <- tv_key
+            .metaord_worker_cache$true_vals <- get_true_values(test = test, DGM = DGM)
+        }
+        true_vals <- .metaord_worker_cache$true_vals
+        true_DGM_Se <- true_vals$Se
+        true_DGM_Sp <- true_vals$Sp
+        true_DGM_Fp <- true_vals$Fp
+
+        use_custom_file <- FALSE
+        custom_file_name <- NULL
+        if (model_parameterisation == "Bivariate") {
+            use_custom_file  <- TRUE
+            custom_file_name <- "DTA_MA_strat_bivariate_NicoStan_fused_AVX.stan"
+        }
+        Stan_file_of_the_fused_version <- NULL
+        if (model_parameterisation == "Bivariate") {
+            if (is.null(.metaord_worker_cache$strat_biv_stan_file)) {
+                .metaord_worker_cache$strat_biv_stan_file <- system.file("stan_models", "stan_models_MA",
+                                                                         "DTA_MA_strat_bivariate_NicoStan_fused_AVX.stan",
+                                                                         package = "MetaOrdDTA")
+                stopifnot(nzchar(.metaord_worker_cache$strat_biv_stan_file))
+            }
+            Stan_file_of_the_fused_version <- .metaord_worker_cache$strat_biv_stan_file
+        }
+        if (model_parameterisation == "ord_bivariate") {
+            use_custom_file  <- TRUE
+            custom_file_name <- paste0("DTA_MA_ord_biv_",
+                                       if (random_thresholds) "RANDthr_kappa_popmed" else "FIXEDthr",
+                                       "_Se_Sp_prior_NicoStan_fused_AVX.stan")
+        }
+        if (model_parameterisation == "ord_HSROC") {
+            stopifnot(random_thresholds)
+            use_custom_file  <- TRUE
+            custom_file_name <- "DTA_MA_ord_HSROC_RANDthr_kappa_popmed_Se_Sp_prior_NicoStan_fused_AVX.stan"
+        }
+        if (model_parameterisation == "Jones") {
+            use_custom_file  <- TRUE
+            custom_file_name <- "DTA_MA_Jones_Se_Sp_prior_NicoStan_fused_AVX.stan"
+        }
+        if (any(candidate_route)) {
+            custom_file_name <- scenario_row$custom_file_name[[1]]
+            use_custom_file <- TRUE
+        }
+        stopifnot(is.logical(Stan_math_only_model), length(Stan_math_only_model) == 1)
+        custom_file_name_to_compile <- custom_file_name
+        if (Stan_math_only_model && use_custom_file) {
+            custom_file_name_to_compile <- sub("_NicoStan_fused_AVX[.]stan$", ".stan", custom_file_name)
+        }
+
+        if (identical(sampling_algorithm, "NicoStan") && requireNamespace("NicoStan", quietly = TRUE)) {
+            ns_NicoStan_cache <- asNamespace("NicoStan")
+            for (nm_fn in c("R_fn_Stan_model_calls_reduce_sum_or_map_rect",
+                            "R_fn_model_library_is_in_NicoStan_nuisance_block_form",
+                            "R_fn_model_library_holds_no_nuisance_block")) {
+                if (exists(nm_fn, envir = ns_NicoStan_cache, inherits = FALSE)) {
+                    fn_cur <- get(nm_fn, envir = ns_NicoStan_cache, inherits = FALSE)
+                    if (!isTRUE(attr(fn_cur, "metaord_static_cached"))) {
+                        unlockBinding(nm_fn, ns_NicoStan_cache)
+                        assign(nm_fn, .metaord_make_cached_file_fn(fn_cur), envir = ns_NicoStan_cache)
+                        lockBinding(nm_fn, ns_NicoStan_cache)
+                    }
+                }
+            }
+        }
+
   for (iii in 1:length(sim_ids_chunk)) {
 
           sim_index <- sim_ids_chunk[iii]
@@ -149,16 +281,9 @@ run_multiple_sims <- function(MCMC_seed,
           set.seed(seed)
           time_of_the_start_of_this_fit <- Sys.time()
 
-          # Source files - these create true_DGM_Se and true_DGM_Sp
+          # Source data files (helpers & true values hoisted once per worker above)
           source(file.path(local_pkg_dir, "R", "R_fn_sim_data_ord_MA_v2.R"), local = TRUE)
           source(file.path(local_pkg_dir, "inst", "examples", "MA_missing_thr_prep_data.R"), local = TRUE)
-          source(file.path(local_pkg_dir, "sim_study", "thr_sim_study_helper_fns.R"), local = TRUE)
-
-          true_vals <- get_true_values(test = test,
-                                       DGM = DGM)
-          true_DGM_Se <- true_vals$Se
-          true_DGM_Sp <- true_vals$Sp
-          true_DGM_Fp <- true_vals$Fp
 
           # Select data
           if (test == "GAD_2") {
@@ -180,66 +305,7 @@ run_multiple_sims <- function(MCMC_seed,
           n_thr <- ncol(x[[1]]) - 1
           n_studies_actual <- nrow(x[[1]])
 
-          use_custom_file <- FALSE
-          custom_file_name <- NULL
-          ##
-          ## (one file per model: its fused AVX file; ordinal and Jones models: use_Se_Sp_prior = 0 is the model's own prior;
-          ##  the stratified bivariate has one prior only, the Normal on probit Se and Sp, so no such switch)
-          if (model_parameterisation == "Bivariate") {
-              use_custom_file  <- TRUE
-              custom_file_name <- "DTA_MA_strat_bivariate_NicoStan_fused_AVX.stan"
-          }
-          ## (the stratified bivariate is sampled from its fused file)
-          Stan_file_of_the_fused_version <- NULL
-          if (model_parameterisation == "Bivariate") {
-              Stan_file_of_the_fused_version <- system.file("stan_models", "stan_models_MA",
-                                                            "DTA_MA_strat_bivariate_NicoStan_fused_AVX.stan",
-                                                            package = "MetaOrdDTA")
-              stopifnot(nzchar(Stan_file_of_the_fused_version))
-          }
-          if (model_parameterisation == "ord_bivariate") {
-              use_custom_file  <- TRUE
-              custom_file_name <- paste0("DTA_MA_ord_biv_",
-                                         if (random_thresholds) "RANDthr_kappa_popmed" else "FIXEDthr",
-                                         "_Se_Sp_prior_NicoStan_fused_AVX.stan")
-          }
-          ## (the ordinal-HSROC model has random cutpoints only)
-          if (model_parameterisation == "ord_HSROC") {
-              stopifnot(random_thresholds)
-              use_custom_file  <- TRUE
-              custom_file_name <- "DTA_MA_ord_HSROC_RANDthr_kappa_popmed_Se_Sp_prior_NicoStan_fused_AVX.stan"
-          }
-          if (model_parameterisation == "Jones") {
-              use_custom_file  <- TRUE
-              custom_file_name <- "DTA_MA_Jones_Se_Sp_prior_NicoStan_fused_AVX.stan"
-          }
-          if (any(candidate_route)) {
-              custom_file_name <- scenario_row$custom_file_name[[1]]
-              use_custom_file <- TRUE
-          }
-          ## (Stan_math_only_model: the model's own Stan file, Stan::math only, no user header)
-          stopifnot(is.logical(Stan_math_only_model), length(Stan_math_only_model) == 1)
-          custom_file_name_to_compile <- custom_file_name
-          if (Stan_math_only_model && use_custom_file) {
-              custom_file_name_to_compile <- sub("_NicoStan_fused_AVX[.]stan$", ".stan", custom_file_name)
-          }
-          CPU_has_AVX512 <- any(grepl("\\bavx512f\\b", readLines("/proc/cpuinfo", warn = FALSE)))
-          ## (the compiler flags: AVX-512 on the local-HPC, AVX2 on the laptop)
-          AVX_FLAGS_of_this_machine <- if (CPU_has_AVX512) {
-              "-march=native -mtune=native -mavx2 -mavx512f -mavx512vl -mavx512dq"
-          } else {
-              "-march=native -mtune=native -mavx2"
-          }
-          # NicoSIMD_user_header <- file.path(dirname(dirname(local_pkg_dir)), "R_packages", "NicoStan", "inst",
-          #                                   "NicoSIMD", "inst", "include", "NicoSIMD",
-          #                                   "stan_external_functions_of_NicoSIMD.hpp")
-          ## (the frozen NicoSIMD of the sim, first in .libPaths())
-          NicoSIMD_user_header <- file.path(find.package("NicoSIMD"), "include", "NicoSIMD",
-                                            "stan_external_functions_of_NicoSIMD.hpp")
 
-          if (any(candidate_route)) {
-              NicoSIMD_user_header <- scenario_row$custom_cpp_user_header_file_path[[1]]
-          }
 
           time_after_the_simulated_data <- Sys.time()
           # Initialize model
@@ -1186,6 +1252,15 @@ run_multiple_sims <- function(MCMC_seed,
                   tibble_all  <- rbind(tibble_main, tibble_gq)
             }
             time_after_the_summary <- Sys.time()
+            if (is.null(real_data_dir) && is.null(keep_the_data_file_in)) {
+                  try({
+                    jp2 <- model_samples_obj$internal_obj$outs_stan_sampling$NicoStan_model_obj$init_object$json_file_path
+                    if (is.character(jp2) && length(jp2) == 1L && nzchar(jp2) &&
+                        grepl("/stan_data/data_[0-9a-f]+_[0-9]+[.]json$", jp2) && file.exists(jp2)) {
+                      unlink(jp2)
+                    }
+                  }, silent = TRUE)
+            }
             ##
             # tibbles_list_testing[[MCMC_seed]] <- tibble_gq
 
@@ -1203,8 +1278,8 @@ run_multiple_sims <- function(MCMC_seed,
 
 
               # Extract Se/Sp
-              tibble_Se <- dplyr::filter(tibble_gq, stringr::str_detect(parameter, "Se_baseline\\["))
-              tibble_Sp <- dplyr::filter(tibble_gq, stringr::str_detect(parameter, "Sp_baseline\\["))
+              tibble_Se <- tibble_gq[grep("Se_baseline[", tibble_gq$parameter, fixed = TRUE), , drop = FALSE]
+              tibble_Sp <- tibble_gq[grep("Sp_baseline[", tibble_gq$parameter, fixed = TRUE), , drop = FALSE]
 
               # tibble_Sp %>% print(n = 10000)
 
