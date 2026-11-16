@@ -116,49 +116,29 @@ inline void cutpoint_hypergeometric_series(const double s,
 
 }
 
-// ---- log median u of Beta(a, b), a <= b (so u <= log(1 / 2)): Newton on
-//      g(u) = log I_{exp(u)}(a, b) + log(2) = a u + b log(1 - exp(u)) - log(a) - lbeta(a, b) + log(F) + log(2),
-//      g'(u) = a / ((1 - exp(u)) F), kept inside the bracket of the root
+namespace cutpoint_median_fast_v2 {
+
+inline double cutpoint_beta_median_log_halley_scalar(const double a,
+                                                     const double b,
+                                                     const double log_a,
+                                                     const double lbeta);
+
+template <bool with_derivatives>
+inline void beta_2F1_hybrid_partials(const double s0,
+                                     const double r0,
+                                     const double x0,
+                                     double* series);
+
+}  // namespace cutpoint_median_fast_v2
+
+// ---- log median u of Beta(a, b), a <= b (so u <= log(1 / 2)): delegate to Modified-Lentz CF + Halley
 
 inline double cutpoint_beta_median_log(const double a,
                                        const double b,
                                        const double log_a,
                                        const double lbeta) {
 
-
-        double upper_u = CUTPOINT_LOG_HALF;
-        double lower_u = -std::numeric_limits<double>::infinity();
-        double u = a >= 1.0 ? nico_log((a - 1.0 / 3.0) / (a + b - 2.0 / 3.0), nullptr)
-                            : (CUTPOINT_LOG_HALF + log_a + lbeta) / a;
-        if (!(u < upper_u)) {
-                u = upper_u;
-        }
-        double series[7];
-        for (int iteration = 0; iteration < 200; ++iteration) {
-                const double x = nico_exp(u, nullptr);
-                const double log_1m_x = nico_log1m_exp(u, nullptr);
-                cutpoint_hypergeometric_series<false>(a + b, a + 1.0, x, series);
-                const double g = a * u + b * log_1m_x - log_a - lbeta + nico_log(series[0], nullptr)
-                                 - CUTPOINT_LOG_HALF;
-                if (g == 0.0) {
-                        return u;
-                }
-                if (g > 0.0) {
-                        upper_u = u;
-                } else {
-                        lower_u = u;
-                }
-                double next_u = u - g * nico_exp(log_1m_x, nullptr) * series[0] / a;
-                if (!(next_u < upper_u) || !(next_u > lower_u)) {
-                        next_u = std::isinf(lower_u) ? upper_u - 2.0 * (upper_u - u) - 1.0 : 0.5 * (lower_u + upper_u);
-                }
-                if (std::abs(next_u - u) <= 4e-16 * (1.0 + std::abs(u))) {
-                        return next_u;
-                }
-                u = next_u;
-        }
-
-        return u;
+        return cutpoint_median_fast_v2::cutpoint_beta_median_log_halley_scalar(a, b, log_a, lbeta);
 
 }
 
@@ -198,7 +178,11 @@ inline void nico_dirichlet_cutpoint_median_and_log_J_values_and_partials(const d
         const double log_1m_x = nico::math::nico_log1m_exp(u, nullptr);
 
         double series[7];
-        nico::math::cutpoint_hypergeometric_series<with_partials>(a + b, a + 1.0, x, series);
+        if ((a + b) * x < a + 1.0) {
+                nico::math::cutpoint_median_fast_v2::beta_2F1_hybrid_partials<with_partials>(a + b, a + 1.0, x, series);
+        } else {
+                nico::math::cutpoint_hypergeometric_series<with_partials>(a + b, a + 1.0, x, series);
+        }
         const double F = series[0];
         const double score_difference = log_1m_x - u + digamma_a_plus_1 - digamma_b - series[2] / F;
 
