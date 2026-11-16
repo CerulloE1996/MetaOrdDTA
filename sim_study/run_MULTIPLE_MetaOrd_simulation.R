@@ -798,14 +798,19 @@ run_multiple_sims <- function(MCMC_seed,
           ##  thresholds missing, 10 studies, DGM Jones and DGM ord_biv_random_C, at prior sets 1 and 2. At set 2, with 0.80 and
           ##  0.05, they lost 22.2% (173 of 780) and 19.2% (136 of 710) of their fits to divergences; on 51 of those seeds fitted
           ##  again with this setting 0 were lost; their fits at 0.80 were taken out of the sim on 16 Nov and the two cells are
-          ##  fitted again. The two cells of set 1 lost 2 of 10 and 4 of 10 fits in the pilot and get the setting before they run.)
+          ##  fitted again. The two cells of set 1 lost 2 of 10 and 4 of 10 fits in the pilot and get the setting before they run.
+          ##  1 more cell, 16 Nov: the same cell with DGM ord_biv_fixed_C at prior set 1. With 0.80 and 0.05 it lost 10.9%
+          ##  (36 of 331) of its fits to divergences in the sim; of 12 of those seeds fitted again with this setting 2 were lost.
+          ##  Its fits at 0.80 were taken out of the sim and the cell is fitted again. At prior set 2 that cell lost 9.7% and
+          ##  keeps 0.80.)
           is_O_biv_RC_sets_1_and_2_BAI_85_pct_adapt_delta_095_cell <- (prior_set %in% c("set_1", "set_2") &&
                                                                 model_parameterisation == "ord_bivariate" &&
                                                                 isTRUE(random_thresholds) &&
                                                                 n_studies == 10 &&
                                                                 test == "BAI" &&
                                                                 isTRUE(all.equal(target_proportion_missing_of_this_run, 0.85)) &&
-                                                                DGM %in% c("Jones", "ord_biv_random_C"))
+                                                                (DGM %in% c("Jones", "ord_biv_random_C") ||
+                                                                 (prior_set == "set_1" && DGM == "ord_biv_fixed_C")))
           ## (1 more O-biv-RC cell that uses adapt_delta = 0.95 and learning_rate = 0.025: prior set 0, BAI with 85% of its
           ##  thresholds missing, 50 studies, DGM Hoyer_2018. With 0.80 and 0.05 it lost 10.9% (25 of 230) of its fits to
           ##  divergences in the sim (16 Nov, 03:53 to 04:03) and 2 of 15 in a test; with this setting 0 of 12 on the same seeds,
