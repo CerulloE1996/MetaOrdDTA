@@ -811,6 +811,17 @@ run_multiple_sims <- function(MCMC_seed,
                                                                 isTRUE(all.equal(target_proportion_missing_of_this_run, 0.85)) &&
                                                                 (DGM %in% c("Jones", "ord_biv_random_C") ||
                                                                  (prior_set == "set_1" && DGM == "ord_biv_fixed_C")))
+          ## (1 more O-biv-RC cell that uses adapt_delta = 0.95 and learning_rate = 0.025, 16 Nov: prior set 1, HADS with 85% of
+          ##  its thresholds missing, 10 studies, DGM Jones. With 0.80 and 0.05 it lost 12.1% (56 of 461) of its fits to
+          ##  divergences in the sim; of 16 of those seeds fitted again with this setting none was lost. Its fits at 0.80
+          ##  were taken out of the sim and the cell is fitted again.)
+          is_O_biv_RC_set_1_HADS_10_studies_85_pct_Jones_adapt_delta_095_cell <- (prior_set == "set_1" &&
+                                                                model_parameterisation == "ord_bivariate" &&
+                                                                isTRUE(random_thresholds) &&
+                                                                n_studies == 10 &&
+                                                                test == "HADS" &&
+                                                                isTRUE(all.equal(target_proportion_missing_of_this_run, 0.85)) &&
+                                                                DGM == "Jones")
           ## (1 more O-biv-RC cell that uses adapt_delta = 0.95 and learning_rate = 0.025: prior set 0, BAI with 85% of its
           ##  thresholds missing, 50 studies, DGM Hoyer_2018. With 0.80 and 0.05 it lost 10.9% (25 of 230) of its fits to
           ##  divergences in the sim (16 Nov, 03:53 to 04:03) and 2 of 15 in a test; with this setting 0 of 12 on the same seeds,
@@ -1123,9 +1134,11 @@ run_multiple_sims <- function(MCMC_seed,
             }
             adapt_delta_of_this_cell <- if (is_O_biv_RC_set_0_adapt_delta_095_cell || is_O_biv_RC_sets_1_and_2_adapt_delta_095_cell ||
                                             is_Jones_set_0_adapt_delta_095_cell || is_O_biv_RC_sets_1_and_2_BAI_85_pct_adapt_delta_095_cell ||
-                                            is_O_biv_RC_sets_0_and_1_BAI_50_85_pct_Hoyer_adapt_delta_095_cell) 0.95 else 0.80
+                                            is_O_biv_RC_sets_0_and_1_BAI_50_85_pct_Hoyer_adapt_delta_095_cell ||
+                                            is_O_biv_RC_set_1_HADS_10_studies_85_pct_Jones_adapt_delta_095_cell) 0.95 else 0.80
             learning_rate_of_this_cell <- if (is_O_biv_RC_sets_1_and_2_adapt_delta_095_cell || is_O_biv_RC_sets_1_and_2_BAI_85_pct_adapt_delta_095_cell ||
-                                              is_O_biv_RC_sets_0_and_1_BAI_50_85_pct_Hoyer_adapt_delta_095_cell) 0.025 else 0.05
+                                              is_O_biv_RC_sets_0_and_1_BAI_50_85_pct_Hoyer_adapt_delta_095_cell ||
+                                              is_O_biv_RC_set_1_HADS_10_studies_85_pct_Jones_adapt_delta_095_cell) 0.025 else 0.05
             model_samples_obj <- model_prep_obj$sample( seed = MCMC_seed, ## MCMC seed
                                             n_burnin = n_burnin,
                                             n_iter = n_iter,
