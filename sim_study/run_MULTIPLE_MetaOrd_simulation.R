@@ -860,6 +860,17 @@ run_multiple_sims <- function(MCMC_seed,
                                                   isTRUE(all.equal(target_proportion_missing_of_this_run, 0.85)) &&
                                                   ((prior_set == "set_0" && DGM %in% c("Hoyer_2018", "ord_biv_fixed_C")) ||
                                                    (prior_set == "set_1" && DGM == "ord_biv_fixed_C")))
+          ## (3 more Jones cells that use adapt_delta = 0.95 and learning_rate = 0.025: prior set 1, GAD-2 with 85% of its
+          ##  thresholds missing, 50 studies, DGMs logit_GLMM, Jones and Hoyer_2018. With 0.80 and 0.05 they lost 10.1% (102 of
+          ##  1,008), 10.8% (125 of 1,158) and 12.1% (136 of 1,122) of their fits to divergences in the sim (16 Nov); with this
+          ##  setting 24 of 24, 24 of 24 and 24 of 24 of those seeds were kept (0 lost). Their fits at 0.80 were taken out of
+          ##  the sim and the cells are fitted again. The same cell with DGM diagmeta lost 8.7% (83 of 959) and keeps 0.80.)
+          is_Jones_set_1_GAD_2_50_studies_85_pct_adapt_delta_095_cell <- (prior_set == "set_1" &&
+                                                                          model_parameterisation == "Jones" &&
+                                                                          n_studies == 50 &&
+                                                                          test == "GAD_2" &&
+                                                                          isTRUE(all.equal(target_proportion_missing_of_this_run, 0.85)) &&
+                                                                          DGM %in% c("logit_GLMM", "Jones", "Hoyer_2018"))
           ## (the cells sampled with NicoStan's auto-chunking, 2 chunks at the burn-in and at the sampling, 1 thread a chain: the
           ##  model's library built with the auto-chunking engine lies beside its Stan file in the cache as
           ##  <name>_nuisance_first_auto_chunking_on_model.so and gives the same log density and gradient as the library without it.
@@ -1148,11 +1159,13 @@ run_multiple_sims <- function(MCMC_seed,
                                             is_Jones_set_0_adapt_delta_095_cell || is_O_biv_RC_sets_1_and_2_BAI_85_pct_adapt_delta_095_cell ||
                                             is_O_biv_RC_sets_0_and_1_BAI_50_85_pct_Hoyer_adapt_delta_095_cell ||
                                             is_O_biv_RC_set_1_HADS_10_studies_85_pct_Jones_adapt_delta_095_cell ||
-                                            is_O_biv_RC_set_0_HADS_10_studies_85_pct_ord_biv_random_C_adapt_delta_095_cell) 0.95 else 0.80
+                                            is_O_biv_RC_set_0_HADS_10_studies_85_pct_ord_biv_random_C_adapt_delta_095_cell ||
+                                            is_Jones_set_1_GAD_2_50_studies_85_pct_adapt_delta_095_cell) 0.95 else 0.80
             learning_rate_of_this_cell <- if (is_O_biv_RC_sets_1_and_2_adapt_delta_095_cell || is_O_biv_RC_sets_1_and_2_BAI_85_pct_adapt_delta_095_cell ||
                                               is_O_biv_RC_sets_0_and_1_BAI_50_85_pct_Hoyer_adapt_delta_095_cell ||
                                               is_O_biv_RC_set_1_HADS_10_studies_85_pct_Jones_adapt_delta_095_cell ||
-                                              is_O_biv_RC_set_0_HADS_10_studies_85_pct_ord_biv_random_C_adapt_delta_095_cell) 0.025 else 0.05
+                                              is_O_biv_RC_set_0_HADS_10_studies_85_pct_ord_biv_random_C_adapt_delta_095_cell ||
+                                              is_Jones_set_1_GAD_2_50_studies_85_pct_adapt_delta_095_cell) 0.025 else 0.05
             model_samples_obj <- model_prep_obj$sample( seed = MCMC_seed, ## MCMC seed
                                             n_burnin = n_burnin,
                                             n_iter = n_iter,
