@@ -1097,228 +1097,6 @@ inline void medians_and_log_J_scalar_one(const double a,
 
 }  // namespace cutpoint_median_fast
 
-template <typename T_alpha, typename T_kappa,
-          stan::require_eigen_col_vector_t<T_alpha>* = nullptr>
-inline Eigen::Matrix<stan::return_type_t<T_alpha, T_kappa>, -1, 1>
-nico_dirichlet_cutpoint_medians_and_log_J_at_cuts(
-        const T_alpha& alpha_c,
-        const T_kappa& kappa_c,
-        const std::vector<int>& cuts_c,
-        const int use_probit_link,
-        std::ostream* /*pstream__*/) {
-    namespace cmf = nico::math::cutpoint_median_fast;
-    using T = stan::return_type_t<T_alpha, T_kappa>;
-    static constexpr const char* fn_name = "nico_dirichlet_cutpoint_medians_and_log_J_at_cuts";
-
-    const int n_cat = static_cast<int>(alpha_c.size());
-    const int n_thr = n_cat - 1;
-    const int m = static_cast<int>(cuts_c.size());
-    if (n_cat < 2) throw std::domain_error(std::string(fn_name) + ": alpha_c must have length >= 2");
-    if (m == 0) return Eigen::Matrix<T, -1, 1>(0);
-
-    const auto& alpha_ref = stan::math::to_ref(alpha_c);
-    const double kappa_val = stan::math::value_of(kappa_c);
-    if (!(kappa_val > 0.0) || !std::isfinite(kappa_val)) {
-        stan::math::check_positive(fn_name, "kappa", kappa_val);
-    }
-
-    constexpr bool is_alpha_var = !stan::is_constant_all<T_alpha>::value;
-    constexpr bool is_kappa_var = !stan::is_constant_all<T_kappa>::value;
-    constexpr bool is_any_var = is_alpha_var || is_kappa_var;
-
-    const std::size_t n_dbl = static_cast<std::size_t>(12) * m + static_cast<std::size_t>(n_cat) + 8;
-    std::vector<double> d_prim;
-    std::vector<unsigned char> r_prim;
-    double* d_buf = nullptr;
-    unsigned char* reflect = nullptr;
-    int* cuts_buf = nullptr;
-    if constexpr (!is_any_var) {
-        d_prim.resize(n_dbl);
-        r_prim.resize(m);
-        d_buf = d_prim.data();
-        reflect = r_prim.data();
-    } else {
-        auto& arena = stan::math::ChainableStack::instance_->memalloc_;
-        d_buf = arena.alloc_array<double>(n_dbl);
-        reflect = arena.alloc_array<unsigned char>(m);
-        cuts_buf = arena.alloc_array<int>(m);
-    }
-
-    double* cum_alpha = d_buf;
-    double* a_arr = cum_alpha + (n_cat + 1);
-    double* b_arr = a_arr + m;
-    double* log_a_arr = b_arr + m;
-    double* lbeta_arr = log_a_arr + m;
-    double* gamma_in = lbeta_arr + m;
-    double* gamma_lg = gamma_in + 2 * m + 1;
-    double* gamma_dg = gamma_lg + 2 * m + 1;
-    double* gamma_tg = gamma_dg + 2 * m + 1;
-    cum_alpha[0] = 0.0;
-    for (int i = 0; i < n_cat; ++i) {
-        const double ai = stan::math::value_of(alpha_ref.coeff(i));
-        if (!(ai > 0.0) || !std::isfinite(ai)) {
-            stan::math::check_positive(fn_name, "alpha", ai);
-        }
-        cum_alpha[i + 1] = cum_alpha[i] + ai;
-    }
-    const double alpha_0 = cum_alpha[n_cat];
-    const double log_kappa = std::log(kappa_val);
-
-    for (int j = 0; j < m; ++j) {
-        const int cj = cuts_c[j];
-        if (cj < 1 || cj > n_thr || (j > 0 && cj <= cuts_c[j - 1])) {
-            throw std::domain_error(std::string(fn_name) + ": cuts_c must strictly increase in 1..n_thr");
-        }
-        if constexpr (is_any_var) cuts_buf[j] = cj;
-        const double a_raw = cum_alpha[cj];
-        const double b_raw = alpha_0 - a_raw;
-        const bool refl = (a_raw > b_raw);
-        reflect[j] = refl ? 1u : 0u;
-        const double aj = refl ? b_raw : a_raw;
-        const double bj = refl ? a_raw : b_raw;
-        a_arr[j] = aj;
-        b_arr[j] = bj;
-        log_a_arr[j] = std::log(aj);
-        gamma_in[j] = aj + 1.0;
-        gamma_in[m + j] = bj;
-    }
-    gamma_in[2 * m] = alpha_0;
-
-#if !defined(NICO_SIMD_SCALAR_KERNELS) && defined(BMVP_LANES) && ((BMVP_LANES == 8) || (BMVP_LANES == 4))
-    cmf::cutpoint_lgamma_digamma_trigamma_simd(gamma_in, 2 * m + 1, gamma_lg, gamma_dg, gamma_tg);
-#else
-    for (int j = 0; j < 2 * m + 1; ++j) {
-        cutpoint_lgamma_digamma_trigamma(gamma_in[j], gamma_lg + j, gamma_dg + j, gamma_tg + j);
-    }
-#endif
-    const double lg_total = gamma_lg[2 * m];
-    const double dig_total = gamma_dg[2 * m];
-    for (int j = 0; j < m; ++j) {
-        lbeta_arr[j] = gamma_lg[j] - log_a_arr[j] + gamma_lg[m + j] - lg_total;
-    }
-
-    std::vector<double> out_prim;
-    double* out_vals = nullptr;
-    double* d_cut_da = nullptr;
-    double* d_cut_db = nullptr;
-    double* d_logJ_da = nullptr;
-    double* d_logJ_db = nullptr;
-    if constexpr (!is_any_var) {
-        out_prim.resize(2 * m);
-        out_vals = out_prim.data();
-    } else {
-        auto& arena = stan::math::ChainableStack::instance_->memalloc_;
-        out_vals = arena.alloc_array<double>(6 * m);
-        d_cut_da = out_vals + 2 * m;
-        d_cut_db = d_cut_da + m;
-        d_logJ_da = d_cut_db + m;
-        d_logJ_db = d_logJ_da + m;
-    }
-    double* popmed_vals = out_vals;
-    double* logJ_vals = out_vals + m;
-
-    int j0 = 0;
-#if !defined(NICO_SIMD_SCALAR_KERNELS) && defined(BMVP_LANES) && ((BMVP_LANES == 8) || (BMVP_LANES == 4))
-    for (; j0 + cmf::kLanes <= m; j0 += cmf::kLanes) {
-        cmf::medians_and_log_J_block<is_any_var>(
-            a_arr + j0, b_arr + j0, log_a_arr + j0, lbeta_arr + j0,
-            gamma_dg + j0, gamma_tg + j0, gamma_dg + m + j0, gamma_tg + m + j0,
-            log_kappa, dig_total, reflect + j0, cmf::kLanes, use_probit_link,
-            popmed_vals + j0, logJ_vals + j0,
-            is_any_var ? (d_cut_da + j0) : nullptr,
-            is_any_var ? (d_cut_db + j0) : nullptr,
-            is_any_var ? (d_logJ_da + j0) : nullptr,
-            is_any_var ? (d_logJ_db + j0) : nullptr);
-    }
-    if (m - j0 >= (cmf::kLanes / 2)) {
-        const int rem = m - j0;
-        cmf::medians_and_log_J_block<is_any_var>(
-            a_arr + j0, b_arr + j0, log_a_arr + j0, lbeta_arr + j0,
-            gamma_dg + j0, gamma_tg + j0, gamma_dg + m + j0, gamma_tg + m + j0,
-            log_kappa, dig_total, reflect + j0, rem, use_probit_link,
-            popmed_vals + j0, logJ_vals + j0,
-            is_any_var ? (d_cut_da + j0) : nullptr,
-            is_any_var ? (d_cut_db + j0) : nullptr,
-            is_any_var ? (d_logJ_da + j0) : nullptr,
-            is_any_var ? (d_logJ_db + j0) : nullptr);
-        j0 = m;
-    }
-#endif
-    for (int j = j0; j < m; ++j) {
-        double dummy0 = 0.0, dummy1 = 0.0, dummy2 = 0.0, dummy3 = 0.0;
-        cmf::medians_and_log_J_scalar_one<is_any_var>(
-            a_arr[j], b_arr[j], log_a_arr[j], lbeta_arr[j],
-            gamma_dg[j], gamma_tg[j], gamma_dg[m + j], gamma_tg[m + j],
-            log_kappa, dig_total, reflect[j] != 0, use_probit_link,
-            popmed_vals[j], logJ_vals[j],
-            is_any_var ? d_cut_da[j] : dummy0,
-            is_any_var ? d_cut_db[j] : dummy1,
-            is_any_var ? d_logJ_da[j] : dummy2,
-            is_any_var ? d_logJ_db[j] : dummy3);
-    }
-
-    if constexpr (!is_any_var) {
-        Eigen::Matrix<double, -1, 1> result(2 * m);
-        for (int j = 0; j < 2 * m; ++j) result[j] = out_vals[j];
-        return result;
-    } else {
-        stan::arena_t<Eigen::Matrix<stan::value_type_t<T_alpha>, -1, 1>> arena_alpha;
-        if constexpr (is_alpha_var) arena_alpha = alpha_ref;
-        stan::arena_t<Eigen::Matrix<stan::math::var, -1, 1>> arena_result(2 * m);
-        for (int j = 0; j < 2 * m; ++j) {
-            arena_result.coeffRef(j) = stan::math::var(new stan::math::vari(out_vals[j], false));
-        }
-        stan::math::reverse_pass_callback(
-            [arena_alpha, kappa_c, arena_result, cuts_buf, reflect,
-             d_cut_da, d_cut_db, d_logJ_da, d_logJ_db,
-             kappa_val, m, n_cat]() mutable {
-                double adj_k_sum = 0.0;
-                double stack_diff[256];
-                std::vector<double> heap_diff;
-                double* diff = nullptr;
-                if constexpr (is_alpha_var) {
-                    diff = (n_cat + 1 <= 256) ? stack_diff : (heap_diff.resize(n_cat + 1), heap_diff.data());
-                    std::fill_n(diff, n_cat + 1, 0.0);
-                }
-                for (int j = 0; j < m; ++j) {
-                    const double adj_c = arena_result.coeff(j).adj();
-                    const double adj_j = arena_result.coeff(m + j).adj();
-                    adj_k_sum += adj_j;
-                    if constexpr (is_alpha_var) {
-                        double da_raw, db_raw;
-                        if (reflect[j] == 0) {
-                            da_raw = adj_c * d_cut_da[j] + adj_j * d_logJ_da[j];
-                            db_raw = adj_c * d_cut_db[j] + adj_j * d_logJ_db[j];
-                        } else {
-                            da_raw = -adj_c * d_cut_db[j] + adj_j * d_logJ_db[j];
-                            db_raw = -adj_c * d_cut_da[j] + adj_j * d_logJ_da[j];
-                        }
-                        diff[0] += da_raw;
-                        diff[cuts_buf[j]] += db_raw - da_raw;
-                    }
-                }
-                if constexpr (is_kappa_var) {
-                    kappa_c.adj() += adj_k_sum / kappa_val;
-                }
-                if constexpr (is_alpha_var) {
-                    double running = 0.0;
-                    for (int i = 0; i < n_cat; ++i) {
-                        running += diff[i];
-                        arena_alpha.coeffRef(i).adj() += running;
-                    }
-                }
-            });
-        return Eigen::Matrix<T, -1, 1>(arena_result);
-    }
-}
-
-}  // namespace nico::math
-
-using nico::math::nico_dirichlet_cutpoint_medians_and_log_J_at_cuts;
-
-
-// ---- Hybrid CF/Series multi-class packed Dirichlet cutpoint medians & log-Jacobians ----
-namespace nico::math {
 namespace cutpoint_median_fast_v2 {
 
 // Gauss / Modified-Lentz Continued Fraction for F = 2F1(a + b, 1; a + 1; x) = betacf(a, b, x).
@@ -2382,4 +2160,274 @@ inline void medians_and_log_J_packed_raw(const double* const* cum_alpha_cls,
 }
 
 }  // namespace cutpoint_median_fast_v2
+
+template <typename T_alpha, typename T_kappa,
+          stan::require_eigen_col_vector_t<T_alpha>* = nullptr>
+inline Eigen::Matrix<stan::return_type_t<T_alpha, T_kappa>, -1, 1>
+nico_dirichlet_cutpoint_medians_and_log_J_at_cuts(
+        const T_alpha& alpha_c,
+        const T_kappa& kappa_c,
+        const std::vector<int>& cuts_c,
+        const int use_probit_link,
+        std::ostream* /*pstream__*/) {
+    namespace cmf = nico::math::cutpoint_median_fast_v2;
+    using T = stan::return_type_t<T_alpha, T_kappa>;
+    static constexpr const char* fn_name = "nico_dirichlet_cutpoint_medians_and_log_J_at_cuts";
+
+    const int n_cat = static_cast<int>(alpha_c.size());
+    const int n_thr = n_cat - 1;
+    const int m = static_cast<int>(cuts_c.size());
+    if (n_cat < 2) throw std::domain_error(std::string(fn_name) + ": alpha_c must have length >= 2");
+    if (m == 0) return Eigen::Matrix<T, -1, 1>(0);
+
+    const auto& alpha_ref = stan::math::to_ref(alpha_c);
+    const double kappa_val = stan::math::value_of(kappa_c);
+    if (!(kappa_val > 0.0) || !std::isfinite(kappa_val)) {
+        stan::math::check_positive(fn_name, "kappa", kappa_val);
+    }
+
+    constexpr bool is_alpha_var = !stan::is_constant_all<T_alpha>::value;
+    constexpr bool is_kappa_var = !stan::is_constant_all<T_kappa>::value;
+    constexpr bool is_any_var = is_alpha_var || is_kappa_var;
+
+    const std::size_t n_dbl = static_cast<std::size_t>(12) * m + static_cast<std::size_t>(n_cat) + 8;
+    std::vector<double> d_prim;
+    std::vector<unsigned char> r_prim;
+    double* d_buf = nullptr;
+    unsigned char* reflect = nullptr;
+    int* cuts_buf = nullptr;
+    if constexpr (!is_any_var) {
+        d_prim.resize(n_dbl);
+        r_prim.resize(m);
+        d_buf = d_prim.data();
+        reflect = r_prim.data();
+    } else {
+        auto& arena = stan::math::ChainableStack::instance_->memalloc_;
+        d_buf = arena.alloc_array<double>(n_dbl);
+        reflect = arena.alloc_array<unsigned char>(m);
+        cuts_buf = arena.alloc_array<int>(m);
+    }
+
+    double* cum_alpha = d_buf;
+    double* a_arr = cum_alpha + (n_cat + 1);
+    double* b_arr = a_arr + m;
+    double* log_a_arr = b_arr + m;
+    double* lbeta_arr = log_a_arr + m;
+    double* gamma_in = lbeta_arr + m;
+    double* gamma_lg = gamma_in + 2 * m + 1;
+    double* gamma_dg = gamma_lg + 2 * m + 1;
+    double* gamma_tg = gamma_dg + 2 * m + 1;
+    cum_alpha[0] = 0.0;
+    for (int i = 0; i < n_cat; ++i) {
+        const double ai = stan::math::value_of(alpha_ref.coeff(i));
+        if (!(ai > 0.0) || !std::isfinite(ai)) {
+            stan::math::check_positive(fn_name, "alpha", ai);
+        }
+        cum_alpha[i + 1] = cum_alpha[i] + ai;
+    }
+    const double alpha_0 = cum_alpha[n_cat];
+    const double log_kappa = std::log(kappa_val);
+
+    for (int j = 0; j < m; ++j) {
+        const int cj = cuts_c[j];
+        if (cj < 1 || cj > n_thr || (j > 0 && cj <= cuts_c[j - 1])) {
+            throw std::domain_error(std::string(fn_name) + ": cuts_c must strictly increase in 1..n_thr");
+        }
+        if constexpr (is_any_var) cuts_buf[j] = cj;
+        const double a_raw = cum_alpha[cj];
+        const double b_raw = alpha_0 - a_raw;
+        const bool refl = (a_raw > b_raw);
+        reflect[j] = refl ? 1u : 0u;
+        const double aj = refl ? b_raw : a_raw;
+        const double bj = refl ? a_raw : b_raw;
+        a_arr[j] = aj;
+        b_arr[j] = bj;
+        log_a_arr[j] = std::log(aj);
+        gamma_in[j] = aj + 1.0;
+        gamma_in[m + j] = bj;
+    }
+    gamma_in[2 * m] = alpha_0;
+
+#if !defined(NICO_SIMD_SCALAR_KERNELS) && defined(BMVP_LANES) && ((BMVP_LANES == 8) || (BMVP_LANES == 4))
+    cmf::cutpoint_lgamma_digamma_trigamma_simd(gamma_in, 2 * m + 1, gamma_lg, gamma_dg, gamma_tg);
+#else
+    for (int j = 0; j < 2 * m + 1; ++j) {
+        cutpoint_lgamma_digamma_trigamma(gamma_in[j], gamma_lg + j, gamma_dg + j, gamma_tg + j);
+    }
+#endif
+    const double lg_total = gamma_lg[2 * m];
+    const double dig_total = gamma_dg[2 * m];
+    for (int j = 0; j < m; ++j) {
+        lbeta_arr[j] = gamma_lg[j] - log_a_arr[j] + gamma_lg[m + j] - lg_total;
+    }
+
+    std::vector<double> out_prim;
+    double* out_vals = nullptr;
+    double* d_cut_da = nullptr;
+    double* d_cut_db = nullptr;
+    double* d_logJ_da = nullptr;
+    double* d_logJ_db = nullptr;
+    if constexpr (!is_any_var) {
+        out_prim.resize(2 * m);
+        out_vals = out_prim.data();
+    } else {
+        auto& arena = stan::math::ChainableStack::instance_->memalloc_;
+        out_vals = arena.alloc_array<double>(6 * m);
+        d_cut_da = out_vals + 2 * m;
+        d_cut_db = d_cut_da + m;
+        d_logJ_da = d_cut_db + m;
+        d_logJ_db = d_logJ_da + m;
+    }
+    double* popmed_vals = out_vals;
+    double* logJ_vals = out_vals + m;
+
+    double min_a = a_arr[0];
+    for (int j = 1; j < m; ++j) {
+        if (a_arr[j] < min_a) min_a = a_arr[j];
+    }
+    int j0 = 0;
+    if (kappa_val < 900.0 && min_a >= 1.0) {
+        namespace cmf_old = nico::math::cutpoint_median_fast;
+#if !defined(NICO_SIMD_SCALAR_KERNELS) && defined(BMVP_LANES) && ((BMVP_LANES == 8) || (BMVP_LANES == 4))
+        for (; j0 + cmf_old::kLanes <= m; j0 += cmf_old::kLanes) {
+            cmf_old::medians_and_log_J_block<is_any_var>(
+                a_arr + j0, b_arr + j0, log_a_arr + j0, lbeta_arr + j0,
+                gamma_dg + j0, gamma_tg + j0, gamma_dg + m + j0, gamma_tg + m + j0,
+                log_kappa, dig_total, reflect + j0, cmf_old::kLanes, use_probit_link,
+                popmed_vals + j0, logJ_vals + j0,
+                is_any_var ? (d_cut_da + j0) : nullptr,
+                is_any_var ? (d_cut_db + j0) : nullptr,
+                is_any_var ? (d_logJ_da + j0) : nullptr,
+                is_any_var ? (d_logJ_db + j0) : nullptr);
+        }
+        if (m - j0 >= (cmf_old::kLanes / 2)) {
+            const int rem = m - j0;
+            cmf_old::medians_and_log_J_block<is_any_var>(
+                a_arr + j0, b_arr + j0, log_a_arr + j0, lbeta_arr + j0,
+                gamma_dg + j0, gamma_tg + j0, gamma_dg + m + j0, gamma_tg + m + j0,
+                log_kappa, dig_total, reflect + j0, rem, use_probit_link,
+                popmed_vals + j0, logJ_vals + j0,
+                is_any_var ? (d_cut_da + j0) : nullptr,
+                is_any_var ? (d_cut_db + j0) : nullptr,
+                is_any_var ? (d_logJ_da + j0) : nullptr,
+                is_any_var ? (d_logJ_db + j0) : nullptr);
+            j0 = m;
+        }
+#endif
+        for (int j = j0; j < m; ++j) {
+            double dummy0 = 0.0, dummy1 = 0.0, dummy2 = 0.0, dummy3 = 0.0;
+            cmf_old::medians_and_log_J_scalar_one<is_any_var>(
+                a_arr[j], b_arr[j], log_a_arr[j], lbeta_arr[j],
+                gamma_dg[j], gamma_tg[j], gamma_dg[m + j], gamma_tg[m + j],
+                log_kappa, dig_total, reflect[j] != 0, use_probit_link,
+                popmed_vals[j], logJ_vals[j],
+                is_any_var ? d_cut_da[j] : dummy0,
+                is_any_var ? d_cut_db[j] : dummy1,
+                is_any_var ? d_logJ_da[j] : dummy2,
+                is_any_var ? d_logJ_db[j] : dummy3);
+        }
+    } else {
+#if !defined(NICO_SIMD_SCALAR_KERNELS) && defined(BMVP_LANES) && ((BMVP_LANES == 8) || (BMVP_LANES == 4))
+        alignas(64) double log_kappa_blk[cmf::kLanes];
+        alignas(64) double dig_total_blk[cmf::kLanes];
+        for (int l = 0; l < cmf::kLanes; ++l) {
+            log_kappa_blk[l] = log_kappa;
+            dig_total_blk[l] = dig_total;
+        }
+        for (; j0 + cmf::kLanes <= m; j0 += cmf::kLanes) {
+            cmf::medians_and_log_J_block<is_any_var>(
+                a_arr + j0, b_arr + j0, log_a_arr + j0, lbeta_arr + j0,
+                gamma_dg + j0, gamma_tg + j0, gamma_dg + m + j0, gamma_tg + m + j0,
+                log_kappa_blk, dig_total_blk, reflect + j0, cmf::kLanes, use_probit_link,
+                popmed_vals + j0, logJ_vals + j0,
+                is_any_var ? (d_cut_da + j0) : nullptr,
+                is_any_var ? (d_cut_db + j0) : nullptr,
+                is_any_var ? (d_logJ_da + j0) : nullptr,
+                is_any_var ? (d_logJ_db + j0) : nullptr);
+        }
+        if (m - j0 >= (cmf::kLanes / 2)) {
+            const int rem = m - j0;
+            cmf::medians_and_log_J_block<is_any_var>(
+                a_arr + j0, b_arr + j0, log_a_arr + j0, lbeta_arr + j0,
+                gamma_dg + j0, gamma_tg + j0, gamma_dg + m + j0, gamma_tg + m + j0,
+                log_kappa_blk, dig_total_blk, reflect + j0, rem, use_probit_link,
+                popmed_vals + j0, logJ_vals + j0,
+                is_any_var ? (d_cut_da + j0) : nullptr,
+                is_any_var ? (d_cut_db + j0) : nullptr,
+                is_any_var ? (d_logJ_da + j0) : nullptr,
+                is_any_var ? (d_logJ_db + j0) : nullptr);
+            j0 = m;
+        }
+#endif
+        for (int j = j0; j < m; ++j) {
+            double dummy0 = 0.0, dummy1 = 0.0, dummy2 = 0.0, dummy3 = 0.0;
+            cmf::medians_and_log_J_scalar_one<is_any_var>(
+                a_arr[j], b_arr[j], log_a_arr[j], lbeta_arr[j],
+                gamma_dg[j], gamma_tg[j], gamma_dg[m + j], gamma_tg[m + j],
+                log_kappa, dig_total, reflect[j] != 0, use_probit_link,
+                popmed_vals[j], logJ_vals[j],
+                is_any_var ? d_cut_da[j] : dummy0,
+                is_any_var ? d_cut_db[j] : dummy1,
+                is_any_var ? d_logJ_da[j] : dummy2,
+                is_any_var ? d_logJ_db[j] : dummy3);
+        }
+    }
+
+    if constexpr (!is_any_var) {
+        Eigen::Matrix<double, -1, 1> result(2 * m);
+        for (int j = 0; j < 2 * m; ++j) result[j] = out_vals[j];
+        return result;
+    } else {
+        stan::arena_t<Eigen::Matrix<stan::value_type_t<T_alpha>, -1, 1>> arena_alpha;
+        if constexpr (is_alpha_var) arena_alpha = alpha_ref;
+        stan::arena_t<Eigen::Matrix<stan::math::var, -1, 1>> arena_result(2 * m);
+        for (int j = 0; j < 2 * m; ++j) {
+            arena_result.coeffRef(j) = stan::math::var(new stan::math::vari(out_vals[j], false));
+        }
+        stan::math::reverse_pass_callback(
+            [arena_alpha, kappa_c, arena_result, cuts_buf, reflect,
+             d_cut_da, d_cut_db, d_logJ_da, d_logJ_db,
+             kappa_val, m, n_cat]() mutable {
+                double adj_k_sum = 0.0;
+                double stack_diff[256];
+                std::vector<double> heap_diff;
+                double* diff = nullptr;
+                if constexpr (is_alpha_var) {
+                    diff = (n_cat + 1 <= 256) ? stack_diff : (heap_diff.resize(n_cat + 1), heap_diff.data());
+                    std::fill_n(diff, n_cat + 1, 0.0);
+                }
+                for (int j = 0; j < m; ++j) {
+                    const double adj_c = arena_result.coeff(j).adj();
+                    const double adj_j = arena_result.coeff(m + j).adj();
+                    adj_k_sum += adj_j;
+                    if constexpr (is_alpha_var) {
+                        double da_raw, db_raw;
+                        if (reflect[j] == 0) {
+                            da_raw = adj_c * d_cut_da[j] + adj_j * d_logJ_da[j];
+                            db_raw = adj_c * d_cut_db[j] + adj_j * d_logJ_db[j];
+                        } else {
+                            da_raw = -adj_c * d_cut_db[j] + adj_j * d_logJ_db[j];
+                            db_raw = -adj_c * d_cut_da[j] + adj_j * d_logJ_da[j];
+                        }
+                        diff[0] += da_raw;
+                        diff[cuts_buf[j]] += db_raw - da_raw;
+                    }
+                }
+                if constexpr (is_kappa_var) {
+                    kappa_c.adj() += adj_k_sum / kappa_val;
+                }
+                if constexpr (is_alpha_var) {
+                    double running = 0.0;
+                    for (int i = 0; i < n_cat; ++i) {
+                        running += diff[i];
+                        arena_alpha.coeffRef(i).adj() += running;
+                    }
+                }
+            });
+        return Eigen::Matrix<T, -1, 1>(arena_result);
+    }
+}
+
 }  // namespace nico::math
+
+using nico::math::nico_dirichlet_cutpoint_medians_and_log_J_at_cuts;
