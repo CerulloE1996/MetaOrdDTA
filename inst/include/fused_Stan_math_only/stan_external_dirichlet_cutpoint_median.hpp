@@ -133,7 +133,7 @@ inline void beta_2F1_hybrid_partials(const double s0,
                                      double* series);
 
 // (the median and log J of one cutpoint by the continued fraction + Halley: used by
-//  nico_dirichlet_cutpoint_medians_and_log_J_at_cuts below, defined further down)
+//  fused_dirichlet_cutpoint_medians_and_log_J_at_cuts below, defined further down)
 template <bool with_partials>
 inline void medians_and_log_J_scalar_one(const double a,
                                          const double b,
@@ -174,7 +174,7 @@ inline double cutpoint_beta_median_log(const double a,
 //      values = (cutpoint, log J); partials(output, input), inputs (P_lower, P_upper, kappa)
 
 template <bool with_partials>
-inline void nico_dirichlet_cutpoint_median_and_log_J_values_and_partials(const double P_lower,
+inline void fused_dirichlet_cutpoint_median_and_log_J_values_and_partials(const double P_lower,
                                                                          const double P_upper,
                                                                          const double kappa,
                                                                          const int use_probit_link,
@@ -284,7 +284,7 @@ template <typename T_lower,
           typename T_upper,
           typename T_kappa>
 inline Eigen::Matrix<stan::return_type_t<T_lower, T_upper, T_kappa>, -1, 1>
-nico_dirichlet_cutpoint_median_and_log_J(const T_lower& P_lower,
+fused_dirichlet_cutpoint_median_and_log_J(const T_lower& P_lower,
                                       const T_upper& P_upper,
                                       const T_kappa& kappa,
                                       const int use_probit_link,
@@ -296,14 +296,14 @@ nico_dirichlet_cutpoint_median_and_log_J(const T_lower& P_lower,
         (void) pstream__;
         if constexpr (!stan::is_var<T>::value) {
                 static_assert(std::is_same<T, double>::value, "double or var arguments only");
-                nico_dirichlet_cutpoint_median_and_log_J_values_and_partials<false>(
+                fused_dirichlet_cutpoint_median_and_log_J_values_and_partials<false>(
                     P_lower, P_upper, kappa, use_probit_link, values, partials);
                 Eigen::Matrix<double, -1, 1> result(2);
                 result[0] = values[0];
                 result[1] = values[1];
                 return result;
         } else {
-                nico_dirichlet_cutpoint_median_and_log_J_values_and_partials<true>(
+                fused_dirichlet_cutpoint_median_and_log_J_values_and_partials<true>(
                     stan::math::value_of(P_lower), stan::math::value_of(P_upper), stan::math::value_of(kappa),
                     use_probit_link, values, partials);
                 Eigen::Matrix<T, -1, 1> result(2);
@@ -334,7 +334,7 @@ template <typename T_lower,
           typename T_upper,
           typename T_kappa>
 inline Eigen::Matrix<stan::return_type_t<T_lower, T_upper, T_kappa>, -1, 1>
-nico_dirichlet_cutpoint_medians_and_sum_of_log_J(const T_lower& P_lower,
+fused_dirichlet_cutpoint_medians_and_sum_of_log_J(const T_lower& P_lower,
                                                  const T_upper& P_upper,
                                                  const T_kappa& kappa,
                                                  const int use_probit_link,
@@ -354,7 +354,7 @@ nico_dirichlet_cutpoint_medians_and_sum_of_log_J(const T_lower& P_lower,
                 Eigen::Matrix<double, -1, 1> result(n + 1);
                 double sum_of_log_J = 0.0;
                 for (Eigen::Index k = 0; k < n; ++k) {
-                        nico_dirichlet_cutpoint_median_and_log_J_values_and_partials<false>(
+                        fused_dirichlet_cutpoint_median_and_log_J_values_and_partials<false>(
                             P_lower_values[k], P_upper_values[k], kappa, use_probit_link, values, partials);
                         result[k] = values[0];
                         sum_of_log_J += values[1];
@@ -369,7 +369,7 @@ nico_dirichlet_cutpoint_medians_and_sum_of_log_J(const T_lower& P_lower,
                 const double kappa_value = stan::math::value_of(kappa);
                 double sum_of_log_J = 0.0;
                 for (Eigen::Index k = 0; k < n; ++k) {
-                        nico_dirichlet_cutpoint_median_and_log_J_values_and_partials<true>(
+                        fused_dirichlet_cutpoint_median_and_log_J_values_and_partials<true>(
                             stan::math::value_of(arena_P_lower.coeff(k)), stan::math::value_of(arena_P_upper.coeff(k)),
                             kappa_value, use_probit_link, values, partials);
                         arena_result.coeffRef(k) = stan::math::var(new stan::math::vari(values[0], false));
@@ -411,7 +411,7 @@ template <typename T_lower,
           typename T_upper,
           typename T_kappa>
 inline Eigen::Matrix<stan::return_type_t<T_lower, T_upper, T_kappa>, -1, 1>
-nico_dirichlet_cutpoint_medians_and_log_J_of_each(const T_lower& P_lower,
+fused_dirichlet_cutpoint_medians_and_log_J_of_each(const T_lower& P_lower,
                                                   const T_upper& P_upper,
                                                   const T_kappa& kappa,
                                                   const int use_probit_link,
@@ -430,7 +430,7 @@ nico_dirichlet_cutpoint_medians_and_log_J_of_each(const T_lower& P_lower,
                 const Eigen::Matrix<double, -1, 1> P_upper_values = P_upper;
                 Eigen::Matrix<double, -1, 1> result(2 * n);
                 for (Eigen::Index k = 0; k < n; ++k) {
-                        nico_dirichlet_cutpoint_median_and_log_J_values_and_partials<false>(
+                        fused_dirichlet_cutpoint_median_and_log_J_values_and_partials<false>(
                             P_lower_values[k], P_upper_values[k], kappa, use_probit_link, values, partials);
                         result[k] = values[0];
                         result[n + k] = values[1];
@@ -443,7 +443,7 @@ nico_dirichlet_cutpoint_medians_and_log_J_of_each(const T_lower& P_lower,
                 stan::arena_t<Eigen::Matrix<stan::math::var, -1, 1>> arena_result(2 * n);
                 const double kappa_value = stan::math::value_of(kappa);
                 for (Eigen::Index k = 0; k < n; ++k) {
-                        nico_dirichlet_cutpoint_median_and_log_J_values_and_partials<true>(
+                        fused_dirichlet_cutpoint_median_and_log_J_values_and_partials<true>(
                             stan::math::value_of(arena_P_lower.coeff(k)), stan::math::value_of(arena_P_upper.coeff(k)),
                             kappa_value, use_probit_link, values, partials);
                         arena_result.coeffRef(k) = stan::math::var(new stan::math::vari(values[0], false));
@@ -620,7 +620,7 @@ inline void medians_and_log_J_scalar_one(const double a,
 template <typename T_alpha, typename T_kappa,
           stan::require_eigen_col_vector_t<T_alpha>* = nullptr>
 inline Eigen::Matrix<stan::return_type_t<T_alpha, T_kappa>, -1, 1>
-nico_dirichlet_cutpoint_medians_and_log_J_at_cuts(
+fused_dirichlet_cutpoint_medians_and_log_J_at_cuts(
         const T_alpha& alpha_c,
         const T_kappa& kappa_c,
         const std::vector<int>& cuts_c,
@@ -632,7 +632,7 @@ nico_dirichlet_cutpoint_medians_and_log_J_at_cuts(
     // namespace cmf = fused_stan_math::cutpoint_median_fast;
     namespace cmf = fused_stan_math::cutpoint_median_fast_v2;
     using T = stan::return_type_t<T_alpha, T_kappa>;
-    static constexpr const char* fn_name = "nico_dirichlet_cutpoint_medians_and_log_J_at_cuts";
+    static constexpr const char* fn_name = "fused_dirichlet_cutpoint_medians_and_log_J_at_cuts";
 
     const int n_cat = static_cast<int>(alpha_c.size());
     const int n_thr = n_cat - 1;
@@ -808,7 +808,7 @@ nico_dirichlet_cutpoint_medians_and_log_J_at_cuts(
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_dirichlet_cutpoint_medians_and_log_J_at_cuts;
+using fused_stan_math::fused_dirichlet_cutpoint_medians_and_log_J_at_cuts;
 
 
 // ---- Hybrid CF/Series multi-class packed Dirichlet cutpoint medians & log-Jacobians ----

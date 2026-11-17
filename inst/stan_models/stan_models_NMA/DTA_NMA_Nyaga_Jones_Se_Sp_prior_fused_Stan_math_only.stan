@@ -2,7 +2,7 @@
 //// The fused model of MetaOrdDTA on Stan math only: the same model as
 //// DTA_NMA_Nyaga_Jones_Se_Sp_prior_NicoStan_fused_AVX.stan,
 //// with Stan's built-in functions in place of its elementary functions (log, exp, Phi, normal_lpdf, ...)
-//// and the plain Stan math include files. Only the fused functions stay external (declared below with no
+//// and the Stan math include files. Only the fused functions stay external (declared below with no
 //// body): their C++ is in inst/include/fused_Stan_math_only (Stan math only: no SIMD, any CPU), given to
 //// cmdstanr as its user header with stanc's allow-undefined option.
 
@@ -25,41 +25,41 @@ functions {
         //// ---- The fused functions (declared without a body; stanc --allow-undefined, with the
         ////      fused_Stan_math_only_user_header.hpp of MetaOrdDTA as the user header):
         ////
-        real nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
+        real fused_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
               array[] int n, array[] int n_previous, vector latent, data vector is_first, data int link,
               data real bound);
-        real nico_Se_Sp_prior_at_chosen_cutoffs_lpdf(vector x, data int Se_Sp_prior_type,
-                                                     vector prior_Se_Sp_dirichlet_A, matrix prior_Se_Sp_beta,
-                                                     matrix prior_Se_Sp_link_mean_SD, data int link);
-        array[] matrix nico_map_latent_surv_to_fixed_hetero_C(data array[] vector C,
-                                                              data matrix locations, data matrix scales,
-                                                              data int n_studies, data array[] int n_obs_cutpoints,
-                                                              data array[,,] int cutpoint_index);
-        array[,] matrix nico_compute_NMA_log_lik_binomial_fact_data(data array[] matrix latent_surv,
-                                                                    data int use_probit_link, data int n_thr,
-                                                                    data int n_studies, data array[,,] int x_2,
-                                                                    data array[,,] int n, data array[,] int N_total,
-                                                                    data array[] int n_obs_cutpoints,
-                                                                    data array[] int indicator_index_test_t_in_study,
-                                                                    data array[] int K_fold_CV_indicator);
+        real fused_Se_Sp_prior_at_chosen_cutoffs_lpdf(vector x, data int Se_Sp_prior_type,
+                                                      vector prior_Se_Sp_dirichlet_A, matrix prior_Se_Sp_beta,
+                                                      matrix prior_Se_Sp_link_mean_SD, data int link);
+        array[] matrix fused_map_latent_surv_to_fixed_hetero_C(data array[] vector C,
+                                                               data matrix locations, data matrix scales,
+                                                               data int n_studies, data array[] int n_obs_cutpoints,
+                                                               data array[,,] int cutpoint_index);
+        array[,] matrix fused_compute_NMA_log_lik_binomial_fact_data(data array[] matrix latent_surv,
+                                                                     data int use_probit_link, data int n_thr,
+                                                                     data int n_studies, data array[,,] int x_2,
+                                                                     data array[,,] int n, data array[,] int N_total,
+                                                                     data array[] int n_obs_cutpoints,
+                                                                     data array[] int indicator_index_test_t_in_study,
+                                                                     data array[] int K_fold_CV_indicator);
         //// (the elementary functions of the included files are Stan's built-ins here)
-        real nico_Box_Cox_lambda_log_density_of_the_flat_Dirichlet(real lambda,
-                                                                  real location,
-                                                                  real scale,
-                                                                  data vector x,
-                                                                  data array[] int chosen_cutoffs,
-                                                                  data int use_probit_link,
-                                                                  data int rescale_to_minus_2_to_2);
+        real fused_Box_Cox_lambda_log_density_of_the_flat_Dirichlet(real lambda,
+                                                                   real location,
+                                                                   real scale,
+                                                                   data vector x,
+                                                                   data array[] int chosen_cutoffs,
+                                                                   data int use_probit_link,
+                                                                   data int rescale_to_minus_2_to_2);
 }
 
- 
+
 data {
           int<lower=1> n_studies;
           int<lower=1> n_index_tests;
           ////
           array[n_index_tests] int<lower=1> n_thr;
-          int<lower=1> n_thr_max; // corresponding to the test with the most thresholds/cutpoints. 
-          int<lower=1> n_cat_max; // corresponding to the test with the most thresholds/cutpoints. 
+          int<lower=1> n_thr_max; // corresponding to the test with the most thresholds/cutpoints.
+          int<lower=1> n_cat_max; // corresponding to the test with the most thresholds/cutpoints.
           ////
           array[n_index_tests, n_studies] int n_obs_cutpoints; //// OBSERVED cutpoints for test t in study s
           ////
@@ -92,7 +92,7 @@ data {
           array[n_index_tests] matrix[2, max(max(n_covariates_nd), max(n_covariates_d))] prior_raw_scale_mu_mean;
           array[n_index_tests] matrix<lower=0.0>[2, max(max(n_covariates_nd), max(n_covariates_d))] prior_raw_scale_mu_SD;
           ////
-          matrix<lower=0.0>[n_index_tests, 2] prior_raw_scale_tau_SD; 
+          matrix<lower=0.0>[n_index_tests, 2] prior_raw_scale_tau_SD;
           vector<lower=0.0>[2] prior_raw_scale_sigma_SD; //// "sigma's (Nyaga et al. notation) are shared between tests.
           ////
           //// ---- Priors for box-cox:
@@ -310,22 +310,22 @@ transformed data {
 
 
 parameters {
-          array[n_index_tests] matrix[2, n_covariates_max] beta_mu;   
-          array[n_index_tests] matrix[2, n_covariates_max] raw_scale_mu; 
+          array[n_index_tests] matrix[2, n_covariates_max] beta_mu;
+          array[n_index_tests] matrix[2, n_covariates_max] raw_scale_mu;
           ////
           array[2] vector<lower=-5.0, upper=5.0>[n_index_tests] lambda;
           ////
           //// ---- "NMA" params:
           ////
-          // vector<lower=0.0>[2] beta_sigma; 
+          // vector<lower=0.0>[2] beta_sigma;
           vector[2] log_beta_sigma_MU;
           vector<lower=0.0>[2] log_beta_sigma_SD;
           matrix[n_index_tests, 2] log_beta_sigma_z;
           ////
           matrix<lower=0.0>[n_index_tests, 2] beta_tau_raw;
           ////
-          array[n_index_tests] matrix[n_studies, 2] beta_eta_z;  
-          array[n_index_tests] matrix[n_studies, 2] beta_delta_z; 
+          array[n_index_tests] matrix[n_studies, 2] beta_eta_z;
+          array[n_index_tests] matrix[n_studies, 2] beta_delta_z;
           ////
           // vector<lower=0.0>[2] raw_scale_sigma;
           vector[2] log_raw_scale_sigma_MU;
@@ -428,7 +428,7 @@ transformed parameters {
           ////
           //// ---- Compute Study-level random effects (eta in Nyaga notation):
           ////
-          for (t in 1:n_index_tests) { 
+          for (t in 1:n_index_tests) {
             for (s in 1:n_studies) {
               if (indicator_index_test_in_study[s, t] == 1) {
                  if (hetero_sigma) {
@@ -444,7 +444,7 @@ transformed parameters {
           ////
           for (t in 1:n_index_tests) {
               for (c in 1:2) {
-                  beta_delta[t][1:n_studies, c]      = beta_tau[t, c]      * beta_delta_z[t][1:n_studies, c];       
+                  beta_delta[t][1:n_studies, c]      = beta_tau[t, c]      * beta_delta_z[t][1:n_studies, c];
                   raw_scale_delta[t][1:n_studies, c] = raw_scale_tau[t, c] * raw_scale_delta_z[t][1:n_studies, c];
               }
           }
@@ -469,14 +469,14 @@ transformed parameters {
           for (t in 1:n_index_tests) {
                 for (s in 1:n_studies) {
                     if (indicator_index_test_in_study[s, t] == 1) {
-                        Xbeta[t][s, 1] = X_nd[t][s, 1:n_covariates_nd[t]] * to_vector(beta_mu[t][1, 1:n_covariates_nd[t]]) + 
+                        Xbeta[t][s, 1] = X_nd[t][s, 1:n_covariates_nd[t]] * to_vector(beta_mu[t][1, 1:n_covariates_nd[t]]) +
                                          beta_random[t][s, 1];
-                        Xbeta[t][s, 2] = X_d[t][s, 1:n_covariates_d[t]]   * to_vector(beta_mu[t][2, 1:n_covariates_d[t]])  + 
+                        Xbeta[t][s, 2] = X_d[t][s, 1:n_covariates_d[t]]   * to_vector(beta_mu[t][2, 1:n_covariates_d[t]])  +
                                          beta_random[t][s, 2];
                         ////
-                        Xraw_scale[t][s, 1] = X_nd[t][s, 1:n_covariates_nd[t]] * to_vector(raw_scale_mu[t][1, 1:n_covariates_nd[t]]) + 
+                        Xraw_scale[t][s, 1] = X_nd[t][s, 1:n_covariates_nd[t]] * to_vector(raw_scale_mu[t][1, 1:n_covariates_nd[t]]) +
                                               raw_scale_random[t][s, 1];
-                        Xraw_scale[t][s, 2] = X_d[t][s, 1:n_covariates_d[t]]   * to_vector(raw_scale_mu[t][2, 1:n_covariates_d[t]])  + 
+                        Xraw_scale[t][s, 2] = X_d[t][s, 1:n_covariates_d[t]]   * to_vector(raw_scale_mu[t][2, 1:n_covariates_d[t]])  +
                                               raw_scale_random[t][s, 2];
                         ////
                         // Xscale[t][s, ] = ((softplus == 1) ? softplus_scaled(Xraw_scale[t][s, ]) : exp(Xraw_scale[t][s, ]));  // local
@@ -576,7 +576,7 @@ model {
                             }
                             target += -normal_lupdf(beta_mu[t][c, 1] | prior_beta_mu_mean[t][c, 1],
                                                    prior_beta_mu_SD[t][c, 1]);
-                            target += nico_Se_Sp_prior_at_chosen_cutoffs_lupdf(
+                            target += fused_Se_Sp_prior_at_chosen_cutoffs_lupdf(
                                       C_baseline | Se_Sp_prior_type,
                                       prior_Se_Sp_dirichlet_A[t, c][1:(n_chosen_cutoffs[t, c] + 1)],
                                       prior_beta_of_this_class, prior_link_mean_SD_of_this_class, use_probit_link);
@@ -595,7 +595,7 @@ model {
                                  //// ---- cutoffs, as close as the Box-Cox curve allows:
                                  ////
                                  if (box_cox == 1) {
-                                      target += nico_Box_Cox_lambda_log_density_of_the_flat_Dirichlet(
+                                      target += fused_Box_Cox_lambda_log_density_of_the_flat_Dirichlet(
                                                 lambda[c][t], location, scale, cts_thr_values[t][1:n_thr[t]],
                                                 chosen_cutoffs[t, c, 1:n_chosen_cutoffs[t, c]], use_probit_link, 0);
                                  }
@@ -658,7 +658,7 @@ model {
         {
               ////
               //// ---- every term of every test in ONE autodiff node: the general
-              ////      nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf (the survival
+              ////      fused_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf (the survival
               ////      probability Phi or inv_logit of each term's latent location, its ratio to the previous
               ////      reported cutpoint's, within [1e-10, 1 - 1e-10] as safe_binomial_lpmf, and the binomial log
               ////      probability, every constant included as the original's), the latent location as
@@ -677,7 +677,7 @@ model {
                     (locations_of_all_tests[index_of_the_location_of_each_term] -
                      cutpoints_of_both_classes[index_of_the_cutpoint_of_each_term]) ./
                     scales_of_all_tests[index_of_the_location_of_each_term];
-              target += nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lupmf(
+              target += fused_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lupmf(
                               count_above_the_cutpoint_of_each_term |
                               count_above_the_previous_cutpoint_of_each_term, latent_of_each_term,
                               is_the_first_reported_cutpoint_of_each_term, use_probit_link, 1e-10);
@@ -709,14 +709,14 @@ generated quantities {
           array[n_index_tests] real scale_d_baseline;
           ////
           for (t in 1:n_index_tests) {
-              Xbeta_baseline_nd[t] = dot_product( baseline_case_nd[t][1:n_covariates_nd[t]], 
+              Xbeta_baseline_nd[t] = dot_product( baseline_case_nd[t][1:n_covariates_nd[t]],
                                                   to_vector(beta_mu[t][1, 1:n_covariates_nd[t]]));
-              Xbeta_baseline_d[t] = dot_product( baseline_case_d[t][1:n_covariates_d[t]], 
+              Xbeta_baseline_d[t] = dot_product( baseline_case_d[t][1:n_covariates_d[t]],
                                                  to_vector(beta_mu[t][2, 1:n_covariates_d[t]]));
               ////
-              Xraw_scale_baseline_nd[t] = dot_product( baseline_case_nd[t][1:n_covariates_nd[t]], 
+              Xraw_scale_baseline_nd[t] = dot_product( baseline_case_nd[t][1:n_covariates_nd[t]],
                                                        to_vector(raw_scale_mu[t][1, 1:n_covariates_nd[t]]));
-              Xraw_scale_baseline_d[t] = dot_product( baseline_case_d[t][1:n_covariates_d[t]], 
+              Xraw_scale_baseline_d[t] = dot_product( baseline_case_d[t][1:n_covariates_d[t]],
                                                       to_vector(raw_scale_mu[t][2, 1:n_covariates_d[t]]));
               ////
               // scale_nd_baseline[t] = ((softplus == 1) ?
@@ -742,18 +742,18 @@ generated quantities {
               Fp_baseline[t] = rep_vector(-1.0, n_thr_max);
               Sp_baseline[t] = rep_vector(-1.0, n_thr_max);
               Se_baseline[t] = rep_vector(-1.0, n_thr_max);
-              
+
               //// Calculate for actual thresholds
               vector[n_thr[t]] C_vec_t_nd = get_test_values(C_vec[1], start_index, end_index, t);
               vector[n_thr[t]] C_vec_t_d  = get_test_values(C_vec[2], start_index, end_index, t);
-              
+
               for (k in 1:n_thr[t]) {
-                  Fp_baseline[t][k] = (use_probit_link == 1) ? 
-                                      Phi(-(C_vec_t_nd[k] - Xbeta_baseline_nd[t])/scale_nd_baseline[t]) : 
+                  Fp_baseline[t][k] = (use_probit_link == 1) ?
+                                      Phi(-(C_vec_t_nd[k] - Xbeta_baseline_nd[t])/scale_nd_baseline[t]) :
                                       inv_logit(-(C_vec_t_nd[k] - Xbeta_baseline_nd[t])/scale_nd_baseline[t]);
                   Sp_baseline[t][k] = 1.0 - Fp_baseline[t][k];
-                  Se_baseline[t][k] = (use_probit_link == 1) ? 
-                                      Phi(-(C_vec_t_d[k] - Xbeta_baseline_d[t])/scale_d_baseline[t]) : 
+                  Se_baseline[t][k] = (use_probit_link == 1) ?
+                                      Phi(-(C_vec_t_d[k] - Xbeta_baseline_d[t])/scale_d_baseline[t]) :
                                       inv_logit(-(C_vec_t_d[k] - Xbeta_baseline_d[t])/scale_d_baseline[t]);
               }
           }
@@ -799,12 +799,12 @@ generated quantities {
               vector[n_thr[t]] C_vec_t_d  = get_test_values(C_vec[2], start_index, end_index, t);
               ////
               for (k in 1:n_thr[t]) {
-                  Fp_baseline_pred[t][k] = (use_probit_link == 1) ? 
-                                           Phi(-(C_vec_t_nd[k] - Xbeta_baseline_pred_nd)/scale_nd_baseline_pred) : 
+                  Fp_baseline_pred[t][k] = (use_probit_link == 1) ?
+                                           Phi(-(C_vec_t_nd[k] - Xbeta_baseline_pred_nd)/scale_nd_baseline_pred) :
                                            inv_logit(-(C_vec_t_nd[k] - Xbeta_baseline_pred_nd)/scale_nd_baseline_pred);
                   Sp_baseline_pred[t][k] = 1.0 - Fp_baseline_pred[t][k];
-                  Se_baseline_pred[t][k] = (use_probit_link == 1) ? 
-                                           Phi(-(C_vec_t_d[k]  - Xbeta_baseline_pred_d)/scale_d_baseline_pred)   : 
+                  Se_baseline_pred[t][k] = (use_probit_link == 1) ?
+                                           Phi(-(C_vec_t_d[k]  - Xbeta_baseline_pred_d)/scale_d_baseline_pred)   :
                                            inv_logit(-(C_vec_t_d[k]  - Xbeta_baseline_pred_d)/scale_d_baseline_pred);
               }
           }
@@ -838,7 +838,7 @@ generated quantities {
                       C_vec_t_dummy[c] = C_vec_t;
                   }
                   ////
-                  array[2] matrix[n_studies, n_thr[t]] latent_surv_t = nico_map_latent_surv_to_fixed_hetero_C(
+                  array[2] matrix[n_studies, n_thr[t]] latent_surv_t = fused_map_latent_surv_to_fixed_hetero_C(
                                                                        C_vec_t_dummy, Xbeta[t], Xscale[t], n_studies,
                                                                        n_obs_cutpoints[t, ], cutpoint_index[t, ]);
                   ////
@@ -846,9 +846,9 @@ generated quantities {
                   for (s in 1:n_studies) {
                       dummy_CV_indicator[s] = 1;
                   }
-                  array[3, 2] matrix[n_studies, n_thr[t]] outs = nico_compute_NMA_log_lik_binomial_fact_data(
+                  array[3, 2] matrix[n_studies, n_thr[t]] outs = fused_compute_NMA_log_lik_binomial_fact_data(
                                                                  latent_surv_t, use_probit_link, n_thr[t], n_studies,
-                                                                 x_2[t, ], n[t, ], N_total[t, ], n_obs_cutpoints[t, ], 
+                                                                 x_2[t, ], n[t, ], N_total[t, ], n_obs_cutpoints[t, ],
                                                                  indicator_index_test_in_study[, t],
                                                                  dummy_CV_indicator);
                   ////

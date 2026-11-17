@@ -53,7 +53,7 @@ inline Box_Cox_lambda_workspace_struct& Box_Cox_lambda_workspace() {
 }
 
 template <bool with_partials, typename T_x>
-inline double nico_Box_Cox_lambda_log_density_of_the_flat_Dirichlet_values_and_partials(
+inline double fused_Box_Cox_lambda_log_density_of_the_flat_Dirichlet_values_and_partials(
                                                 const double lambda,
                                                 const double location,
                                                 const double scale,
@@ -203,7 +203,7 @@ template <typename T_lambda,
           typename T_scale,
           typename T_x>
 inline stan::return_type_t<T_lambda, T_location, T_scale>
-nico_Box_Cox_lambda_log_density_of_the_flat_Dirichlet(const T_lambda& lambda,
+fused_Box_Cox_lambda_log_density_of_the_flat_Dirichlet(const T_lambda& lambda,
                                                      const T_location& location,
                                                      const T_scale& scale,
                                                      const T_x& x,
@@ -216,12 +216,12 @@ nico_Box_Cox_lambda_log_density_of_the_flat_Dirichlet(const T_lambda& lambda,
         (void) pstream__;
         const auto& x_ref = stan::math::to_ref(stan::math::value_of(x));
         if constexpr (!stan::is_var<T>::value) {
-                return fused_stan_math::nico_Box_Cox_lambda_log_density_of_the_flat_Dirichlet_values_and_partials<false>(
+                return fused_stan_math::fused_Box_Cox_lambda_log_density_of_the_flat_Dirichlet_values_and_partials<false>(
                            lambda, location, scale, x_ref, chosen_cutoffs, use_probit_link, rescale_to_minus_2_to_2,
                            nullptr);
         } else {
                 double partials[3];
-                const double value = fused_stan_math::nico_Box_Cox_lambda_log_density_of_the_flat_Dirichlet_values_and_partials<true>(
+                const double value = fused_stan_math::fused_Box_Cox_lambda_log_density_of_the_flat_Dirichlet_values_and_partials<true>(
                            stan::math::value_of(lambda), stan::math::value_of(location), stan::math::value_of(scale),
                            x_ref, chosen_cutoffs, use_probit_link, rescale_to_minus_2_to_2, partials);
                 const double d_lambda = partials[0];
@@ -387,7 +387,7 @@ template <typename T_lambda, typename T_log_x,
           stan::require_stan_scalar_t<T_lambda>* = nullptr,
           stan::require_eigen_col_vector_t<T_log_x>* = nullptr>
 inline Eigen::Matrix<stan::return_type_t<T_lambda>, -1, 1>
-nico_box_cox_rescaled_cutpoints(const T_lambda& lambda_arg,
+fused_box_cox_rescaled_cutpoints(const T_lambda& lambda_arg,
                                 const T_log_x& log_x,
                                 std::ostream* pstream__) {
         (void) pstream__;
@@ -399,7 +399,7 @@ template <typename T_lambda, typename T_log_x,
           stan::require_stan_scalar_t<T_lambda>* = nullptr,
           stan::require_eigen_col_vector_t<T_log_x>* = nullptr>
 inline Eigen::Matrix<stan::return_type_t<T_lambda>, -1, 1>
-nico_box_cox_C_raw_and_C(const T_lambda& lambda_arg,
+fused_box_cox_C_raw_and_C(const T_lambda& lambda_arg,
                          const T_log_x& log_x,
                          std::ostream* pstream__) {
         (void) pstream__;

@@ -13,7 +13,7 @@ namespace fused_stan_math {
 //  than Stan's; the overload below takes a data alpha with one node for theta)
 // template <bool propto__, typename T_theta>
 // inline stan::return_type_t<T_theta>
-// nico_dirichlet_lpdf(const Eigen::Matrix<T_theta, Eigen::Dynamic, 1>& theta,
+// fused_dirichlet_lpdf(const Eigen::Matrix<T_theta, Eigen::Dynamic, 1>& theta,
 //                     const Eigen::Matrix<double, -1, 1>& alpha,
 //                     std::ostream* pstream__) {
 //
@@ -51,7 +51,7 @@ namespace fused_stan_math {
 
 }  // namespace fused_stan_math
 
-// using fused_stan_math::nico_dirichlet_lpdf;   (declared after the overload below)
+// using fused_stan_math::fused_dirichlet_lpdf;   (declared after the overload below)
 
 
 
@@ -62,26 +62,26 @@ namespace fused_stan_math {
 //      log(theta) with k_log_into; lgamma (and digamma for a parameter alpha) of alpha_1, ..., alpha_K and of
 //      sum(alpha) in one pass (k_lgamma_and_digamma); each term kept as Stan's dirichlet_lpdf keeps it (the
 //      lgamma terms not in the lupdf of a data alpha). The values of a call sit in the thread's scratch buffer.
-//      Declared as   real nico_dirichlet_lpdf(vector theta, vector alpha);
+//      Declared as   real fused_dirichlet_lpdf(vector theta, vector alpha);
 
 namespace fused_stan_math {
 
 // ---- K <= 7 (e.g. q of the m + 1 segments): no buffer and no Eigen temporaries; log(theta) in one SIMD vector
 //      (k_log_and_log1m_short), lgamma (and digamma) of alpha and sum(alpha) in one more (k_lgamma_and_digamma);
 //      the same terms and partials as the general path below
-static constexpr int NICO_DIRICHLET_SHORT_PATH_UP_TO_K = 7;
+static constexpr int FUSED_DIRICHLET_SHORT_PATH_UP_TO_K = 7;
 
 template <bool propto__, typename T_theta, typename T_alpha, typename T_theta_ref, typename T_alpha_ref>
 inline stan::return_type_t<T_theta, T_alpha>
-nico_dirichlet_lpdf_short(const T_theta_ref& theta_ref,
+fused_dirichlet_lpdf_short(const T_theta_ref& theta_ref,
                           const T_alpha_ref& alpha_ref) {
 
     using stan::math::include_summand;
     using stan::math::value_of;
     static constexpr const char* function = "dirichlet_lpdf";
     const int K = static_cast<int>(alpha_ref.size());
-    double theta_values[NICO_DIRICHLET_SHORT_PATH_UP_TO_K];
-    double alpha_and_sum[NICO_DIRICHLET_SHORT_PATH_UP_TO_K + 1];
+    double theta_values[FUSED_DIRICHLET_SHORT_PATH_UP_TO_K];
+    double alpha_and_sum[FUSED_DIRICHLET_SHORT_PATH_UP_TO_K + 1];
     for (int i = 0; i < K; ++i) {
         theta_values[i] = value_of(theta_ref.coeff(i));
         alpha_and_sum[i] = value_of(alpha_ref.coeff(i));
@@ -109,14 +109,14 @@ nico_dirichlet_lpdf_short(const T_theta_ref& theta_ref,
         return 0.0;
     }
 
-    double log_theta[NICO_DIRICHLET_SHORT_PATH_UP_TO_K];
+    double log_theta[FUSED_DIRICHLET_SHORT_PATH_UP_TO_K];
     k_log_and_log1m_short(theta_values, K, nullptr, 0, log_theta, nullptr);
     double log_prob = 0.0;
     for (int i = 0; i < K; ++i) log_prob += (alpha_and_sum[i] - 1.0) * log_theta[i];
     constexpr bool lgamma_needed = include_summand<propto__, T_alpha>::value;
     constexpr bool digamma_needed = !stan::is_constant_all<T_alpha>::value;
-    double lgamma_of_alpha_and_sum[NICO_DIRICHLET_SHORT_PATH_UP_TO_K + 1];
-    double digamma_of_alpha_and_sum[NICO_DIRICHLET_SHORT_PATH_UP_TO_K + 1];
+    double lgamma_of_alpha_and_sum[FUSED_DIRICHLET_SHORT_PATH_UP_TO_K + 1];
+    double digamma_of_alpha_and_sum[FUSED_DIRICHLET_SHORT_PATH_UP_TO_K + 1];
     if constexpr (lgamma_needed || digamma_needed) {
         // double sum_of_alpha = 0.0;
         // for (int i = 0; i < K; ++i) sum_of_alpha += alpha_and_sum[i];
@@ -147,7 +147,7 @@ nico_dirichlet_lpdf_short(const T_theta_ref& theta_ref,
 template <bool propto__, typename T_theta, typename T_alpha,
           stan::require_all_eigen_col_vector_t<T_theta, T_alpha>* = nullptr>
 inline stan::return_type_t<T_theta, T_alpha>
-nico_dirichlet_lpdf(const T_theta& theta,
+fused_dirichlet_lpdf(const T_theta& theta,
                     const T_alpha& alpha,
                     std::ostream* pstream__) {
 
@@ -157,11 +157,11 @@ nico_dirichlet_lpdf(const T_theta& theta,
     const auto& alpha_ref = stan::math::to_ref(alpha);
     stan::math::check_consistent_sizes(function, "probabilities", theta_ref, "prior sample sizes", alpha_ref);
     const int K = static_cast<int>(alpha_ref.size());
-    if (K <= NICO_DIRICHLET_SHORT_PATH_UP_TO_K) {
-        return nico_dirichlet_lpdf_short<propto__, T_theta, T_alpha>(theta_ref, alpha_ref);
+    if (K <= FUSED_DIRICHLET_SHORT_PATH_UP_TO_K) {
+        return fused_dirichlet_lpdf_short<propto__, T_theta, T_alpha>(theta_ref, alpha_ref);
     }
     // (scratch: theta K, alpha and sum(alpha) K + 1, log(theta) K, lgamma K + 1, digamma K + 1)
-    double* scratch = nico_scratch_of_doubles(5 * static_cast<std::size_t>(K) + 3);
+    double* scratch = fused_scratch_of_doubles(5 * static_cast<std::size_t>(K) + 3);
     Eigen::Map<Eigen::VectorXd> theta_values(scratch, K);
     Eigen::Map<Eigen::VectorXd> alpha_and_sum(scratch + K, K + 1);
     Eigen::Map<Eigen::VectorXd> log_theta(scratch + 2 * K + 1, K);
@@ -203,4 +203,4 @@ nico_dirichlet_lpdf(const T_theta& theta,
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_dirichlet_lpdf;
+using fused_stan_math::fused_dirichlet_lpdf;

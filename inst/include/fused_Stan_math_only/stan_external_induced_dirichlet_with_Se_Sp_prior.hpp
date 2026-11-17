@@ -8,20 +8,20 @@
 // -| --------- NicoSIMD induced Dirichlet of ordered cutpoints with a Se / Sp prior at chosen cutoffs, and the
 // -| --------- Dirichlet of a simplex with the same Se / Sp prior, Stan external functions -------------------
 //
-//     nico_induced_dirichlet_with_Se_Sp_prior_lpdf(C | alpha, link, location)
-//       = nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf(C | alpha, link, location) (no Se / Sp prior,
+//     fused_induced_dirichlet_with_Se_Sp_prior_lpdf(C | alpha, link, location)
+//       = fused_induced_dirichlet_prior_of_ordered_cutpoints_lpdf(C | alpha, link, location) (no Se / Sp prior,
 //         e.g. the between-study model of random cutpoints),
-//     nico_induced_dirichlet_with_Se_Sp_prior_lpdf(C | alpha, link, location, alpha_of_the_segments,
+//     fused_induced_dirichlet_with_Se_Sp_prior_lpdf(C | alpha, link, location, alpha_of_the_segments,
 //                                                  chosen_cutoffs, Se_Sp_prior_type, prior_Se_Sp_dirichlet_A,
 //                                                  prior_Se_Sp_beta, prior_Se_Sp_link_mean_SD)
 //       = for each set c of K cutpoints (a vector C, or each row of a matrix C), at x = c - location: the induced
 //         Dirichlet of c, - dirichlet_lpdf(q | alpha_of_the_segments) + H(x[chosen_cutoffs]),
-//     nico_dirichlet_with_Se_Sp_prior_lpdf(phi | log_J, C_baseline, alpha, alpha_of_the_segments, chosen_cutoffs,
-//                                          Se_Sp_prior_type, prior_Se_Sp_dirichlet_A, prior_Se_Sp_beta,
-//                                          prior_Se_Sp_link_mean_SD, link)
+//    fused_dirichlet_with_Se_Sp_prior_lpdf(phi | log_J, C_baseline, alpha, alpha_of_the_segments, chosen_cutoffs,
+//                                         Se_Sp_prior_type, prior_Se_Sp_dirichlet_A, prior_Se_Sp_beta,
+//                                         prior_Se_Sp_link_mean_SD, link)
 //       = dirichlet_lpdf(phi | alpha) - dirichlet_lpdf(q_phi | alpha_of_the_segments) + sum(log_J)
 //         + sum(log f(C_baseline)) + H(C_baseline),
-//     nico_Se_Sp_prior_at_chosen_cutoffs_lpdf(x | Se_Sp_prior_type, prior_Se_Sp_dirichlet_A, prior_Se_Sp_beta,
+//     fused_Se_Sp_prior_at_chosen_cutoffs_lpdf(x | Se_Sp_prior_type, prior_Se_Sp_dirichlet_A, prior_Se_Sp_beta,
 //                                                prior_Se_Sp_link_mean_SD, link)
 //       = sum(log f(x)) + H(x) of type 1 or 2 when Se_Sp_prior_type is 1 or 2, of type 4 otherwise (a Dirichlet on
 //         the segment probabilities, a Beta on F at each value, or a normal on the link; the m values need not be
@@ -41,28 +41,28 @@
 // F_0 = 0. The Se / Sp prior of ordinal models of test accuracy with a prior on Sp or 1 - Se at chosen cutoffs:
 // on fixed cutpoints (the first form) or on the population cutpoints of random cutpoints (the second). Each is ONE
 // autodiff node, the expensive functions with BayesMVP's SIMD kernels (log Phi, log_inv_logit, log1m_exp, exp)
-// on the log scale, as nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf, whose forward and reverse passes
+// on the log scale, as fused_induced_dirichlet_prior_of_ordered_cutpoints_lpdf, whose forward and reverse passes
 // it uses. Every argument may be data or parameters except link, location, chosen_cutoffs and Se_Sp_prior_type;
 // the constants are kept as Stan's _lpdf, and left out with propto only when their arguments are data.
 //
 // Declared in the Stan functions block (no body; stanc --allow-undefined) as any of
 //
-//     real nico_induced_dirichlet_with_Se_Sp_prior_lpdf(vector C, vector alpha, data int link,
+//     real fused_induced_dirichlet_with_Se_Sp_prior_lpdf(vector C, vector alpha, data int link,
 //                                                       data real location);
-//     real nico_induced_dirichlet_with_Se_Sp_prior_lpdf(matrix C, vector alpha, data int link,
+//     real fused_induced_dirichlet_with_Se_Sp_prior_lpdf(matrix C, vector alpha, data int link,
 //                                                       data real location);
-//     real nico_induced_dirichlet_with_Se_Sp_prior_lpdf(vector C, vector alpha, data int link,
+//     real fused_induced_dirichlet_with_Se_Sp_prior_lpdf(vector C, vector alpha, data int link,
 //                                                       data real location, vector alpha_of_the_segments,
 //                                                       data array[] int chosen_cutoffs,
 //                                                       data int Se_Sp_prior_type,
 //                                                       vector prior_Se_Sp_dirichlet_A, matrix prior_Se_Sp_beta,
 //                                                       matrix prior_Se_Sp_link_mean_SD);
-//     real nico_dirichlet_with_Se_Sp_prior_lpdf(vector phi, vector log_J, vector C_baseline, vector alpha,
+//     real fused_dirichlet_with_Se_Sp_prior_lpdf(vector phi, vector log_J, vector C_baseline, vector alpha,
 //                                               vector alpha_of_the_segments, data array[] int chosen_cutoffs,
 //                                               data int Se_Sp_prior_type, vector prior_Se_Sp_dirichlet_A,
 //                                               matrix prior_Se_Sp_beta, matrix prior_Se_Sp_link_mean_SD,
 //                                               data int link);
-//     real nico_Se_Sp_prior_at_chosen_cutoffs_lpdf(vector x, data int Se_Sp_prior_type,
+//     real fused_Se_Sp_prior_at_chosen_cutoffs_lpdf(vector x, data int Se_Sp_prior_type,
 //                                                  vector prior_Se_Sp_dirichlet_A, matrix prior_Se_Sp_beta,
 //                                                  matrix prior_Se_Sp_link_mean_SD, data int link);
 //
@@ -410,10 +410,10 @@ namespace fused_stan_math {
 //// (no Se / Sp prior: the induced Dirichlet itself)
 template <bool propto, typename T_C, typename T_alpha, stan::require_eigen_t<T_C>* = nullptr,
           stan::require_eigen_col_vector_t<T_alpha>* = nullptr>
-inline stan::return_type_t<T_C, T_alpha> nico_induced_dirichlet_with_Se_Sp_prior_lpdf(
+inline stan::return_type_t<T_C, T_alpha> fused_induced_dirichlet_with_Se_Sp_prior_lpdf(
         const T_C& C, const T_alpha& alpha, const int link, const double location, std::ostream* pstream__) {
 
-    return nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf<propto>(C, alpha, link, location, pstream__);
+    return fused_induced_dirichlet_prior_of_ordered_cutpoints_lpdf<propto>(C, alpha, link, location, pstream__);
 
 }
 
@@ -425,7 +425,7 @@ template <bool propto, typename T_C, typename T_alpha, typename T_segments, type
           typename T_link_mean_SD, stan::require_eigen_t<T_C>* = nullptr,
           stan::require_eigen_col_vector_t<T_alpha>* = nullptr>
 inline stan::return_type_t<T_C, T_alpha, T_segments, T_A, T_beta, T_link_mean_SD>
-nico_induced_dirichlet_with_Se_Sp_prior_lpdf(const T_C& C, const T_alpha& alpha, const int link,
+fused_induced_dirichlet_with_Se_Sp_prior_lpdf(const T_C& C, const T_alpha& alpha, const int link,
                                              const double location, const T_segments& alpha_of_the_segments,
                                              const std::vector<int>& chosen_cutoffs, const int Se_Sp_prior_type,
                                              const T_A& prior_Se_Sp_dirichlet_A, const T_beta& prior_Se_Sp_beta,
@@ -435,10 +435,10 @@ nico_induced_dirichlet_with_Se_Sp_prior_lpdf(const T_C& C, const T_alpha& alpha,
     namespace prior = fused_stan_math::induced_dirichlet_prior;
     namespace Se_Sp = fused_stan_math::Se_Sp_prior_at_chosen_cutoffs;
     using stan::math::var;
-    static constexpr const char* function_name = "nico_induced_dirichlet_with_Se_Sp_prior_lpdf";
+    static constexpr const char* function_name = "fused_induced_dirichlet_with_Se_Sp_prior_lpdf";
     const int m = static_cast<int>(chosen_cutoffs.size());
     if (m == 0) {
-        return nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf<propto>(C, alpha, link, location, pstream__);
+        return fused_induced_dirichlet_prior_of_ordered_cutpoints_lpdf<propto>(C, alpha, link, location, pstream__);
     }
     constexpr bool C_is_one_set = stan::is_eigen_vector<T_C>::value;
     constexpr bool C_is_constant = stan::is_constant_all<T_C>::value;
@@ -458,7 +458,7 @@ nico_induced_dirichlet_with_Se_Sp_prior_lpdf(const T_C& C, const T_alpha& alpha,
     if constexpr (propto && everything_is_constant) return 0.0;
     const auto& C_ref = stan::math::to_ref(C);
     const auto& alpha_ref = stan::math::to_ref(alpha);
-    //// (the buffers, as nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf's, then those of the Se / Sp prior:
+    //// (the buffers, as fused_induced_dirichlet_prior_of_ordered_cutpoints_lpdf's, then those of the Se / Sp prior:
     ////  the chosen link values of every set, the partials of H with respect to them (R m), and one set's work
     ////  space; on the arena when anything is differentiated, in a std::vector otherwise)
     const std::size_t RK = static_cast<std::size_t>(R) * K;
@@ -610,7 +610,7 @@ nico_induced_dirichlet_with_Se_Sp_prior_lpdf(const T_C& C, const T_alpha& alpha,
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_induced_dirichlet_with_Se_Sp_prior_lpdf;
+using fused_stan_math::fused_induced_dirichlet_with_Se_Sp_prior_lpdf;
 
 
 
@@ -622,7 +622,7 @@ template <bool propto, typename T_phi, typename T_log_J, typename T_x, typename 
           typename T_A, typename T_beta, typename T_link_mean_SD,
           stan::require_eigen_col_vector_t<T_phi>* = nullptr>
 inline stan::return_type_t<T_phi, T_log_J, T_x, T_alpha, T_segments, T_A, T_beta, T_link_mean_SD>
-nico_dirichlet_with_Se_Sp_prior_lpdf(const T_phi& phi, const T_log_J& log_J, const T_x& C_baseline,
+fused_dirichlet_with_Se_Sp_prior_lpdf(const T_phi& phi, const T_log_J& log_J, const T_x& C_baseline,
                                      const T_alpha& alpha, const T_segments& alpha_of_the_segments,
                                      const std::vector<int>& chosen_cutoffs, const int Se_Sp_prior_type,
                                      const T_A& prior_Se_Sp_dirichlet_A, const T_beta& prior_Se_Sp_beta,
@@ -631,7 +631,7 @@ nico_dirichlet_with_Se_Sp_prior_lpdf(const T_phi& phi, const T_log_J& log_J, con
 
     namespace Se_Sp = fused_stan_math::Se_Sp_prior_at_chosen_cutoffs;
     using stan::math::var;
-    static constexpr const char* function_name = "nico_dirichlet_with_Se_Sp_prior_lpdf";
+    static constexpr const char* function_name = "fused_dirichlet_with_Se_Sp_prior_lpdf";
     const int n_cat = static_cast<int>(phi.size());
     const int m = static_cast<int>(chosen_cutoffs.size());
     constexpr bool phi_is_constant = stan::is_constant_all<T_phi>::value;
@@ -784,7 +784,7 @@ nico_dirichlet_with_Se_Sp_prior_lpdf(const T_phi& phi, const T_log_J& log_J, con
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_dirichlet_with_Se_Sp_prior_lpdf;
+using fused_stan_math::fused_dirichlet_with_Se_Sp_prior_lpdf;
 
 
 
@@ -795,14 +795,14 @@ namespace fused_stan_math {
 template <bool propto, typename T_x, typename T_A, typename T_beta, typename T_link_mean_SD,
           stan::require_eigen_col_vector_t<T_x>* = nullptr>
 inline stan::return_type_t<T_x, T_A, T_beta, T_link_mean_SD>
-nico_Se_Sp_prior_at_chosen_cutoffs_lpdf(const T_x& x, const int Se_Sp_prior_type, const T_A& prior_Se_Sp_dirichlet_A,
+fused_Se_Sp_prior_at_chosen_cutoffs_lpdf(const T_x& x, const int Se_Sp_prior_type, const T_A& prior_Se_Sp_dirichlet_A,
                                         const T_beta& prior_Se_Sp_beta,
                                         const T_link_mean_SD& prior_Se_Sp_link_mean_SD, const int link,
                                         std::ostream* /*pstream__*/) {
 
     namespace Se_Sp = fused_stan_math::Se_Sp_prior_at_chosen_cutoffs;
     using stan::math::var;
-    static constexpr const char* function_name = "nico_Se_Sp_prior_at_chosen_cutoffs_lpdf";
+    static constexpr const char* function_name = "fused_Se_Sp_prior_at_chosen_cutoffs_lpdf";
     const int m = static_cast<int>(x.size());
     const int type_of_H = (Se_Sp_prior_type == 1 || Se_Sp_prior_type == 2) ? Se_Sp_prior_type : 4;
     constexpr bool x_is_constant = stan::is_constant_all<T_x>::value;
@@ -874,7 +874,7 @@ nico_Se_Sp_prior_at_chosen_cutoffs_lpdf(const T_x& x, const int Se_Sp_prior_type
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_Se_Sp_prior_at_chosen_cutoffs_lpdf;
+using fused_stan_math::fused_Se_Sp_prior_at_chosen_cutoffs_lpdf;
 
 
 // ---- Fused HSROC between-cutoffs segment + category conditional Dirichlet prior (multi-width k_* kernels) ----
@@ -892,7 +892,7 @@ template <bool propto,
           stan::require_eigen_col_vector_t<T_sc>* = nullptr,
           stan::require_eigen_col_vector_t<T_pa>* = nullptr>
 inline stan::return_type_t<T_pop, T_phi, T_xb, T_sc>
-nico_hsroc_between_cutoffs_prior_lpdf(
+fused_hsroc_between_cutoffs_prior_lpdf(
         const T_pop& popmed_and_log_J,
         const T_phi& dirichlet_phi,
         const T_xb& Xbeta_of_line,
@@ -904,7 +904,7 @@ nico_hsroc_between_cutoffs_prior_lpdf(
         const int use_probit_link,
         std::ostream* /*pstream__*/) {
     using stan::math::var;
-    static constexpr const char* fn_name = "nico_hsroc_between_cutoffs_prior_lpdf";
+    static constexpr const char* fn_name = "fused_hsroc_between_cutoffs_prior_lpdf";
     static constexpr double HALF_LOG_2PI = 0.918938533204672741780329736406;
     static constexpr double LOG_2        = 0.693147180559945309417232121458;
 
@@ -1252,4 +1252,4 @@ nico_hsroc_between_cutoffs_prior_lpdf(
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_hsroc_between_cutoffs_prior_lpdf;
+using fused_stan_math::fused_hsroc_between_cutoffs_prior_lpdf;

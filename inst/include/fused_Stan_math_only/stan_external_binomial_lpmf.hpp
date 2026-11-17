@@ -7,7 +7,7 @@
 //
 // -| --------- NicoSIMD binomial log probability, a Stan external function -------------------------------------
 //
-//     nico_binomial_lpmf(n | N, theta) = sum_i [ n_i log(theta_i) + (N_i - n_i) log1m(theta_i)
+//     fused_binomial_lpmf(n | N, theta) = sum_i [ n_i log(theta_i) + (N_i - n_i) log1m(theta_i)
 //                                               + log choose(N_i, n_i) ],
 //
 // the log probability of Stan's binomial_lpmf(n | N, theta), with n and N arrays of int (data) and theta a vector
@@ -27,9 +27,9 @@
 //
 // Declared in the Stan functions block (no body; stanc --allow-undefined) as
 //
-//     real nico_binomial_lpmf(array[] int n, array[] int N, vector theta);
+//     real fused_binomial_lpmf(array[] int n, array[] int N, vector theta);
 //
-// which also gives  nico_binomial_lupmf(n | N, theta)  and  n ~ nico_binomial(N, theta).
+// which also gives  fused_binomial_lupmf(n | N, theta)  and  n ~ fused_binomial(N, theta).
 //
 // It uses the namespace fused_stan_math, BMVP_LANES, the kernel k_log() and the double-precision log1p of
 // stan_external_functions.hpp, which it includes (#pragma once), so that a user header may include this file
@@ -53,7 +53,7 @@
 namespace fused_stan_math {
 namespace binomial {
 
-static constexpr const char* function_name = "nico_binomial_lpmf";
+static constexpr const char* function_name = "fused_binomial_lpmf";
 static constexpr int size_of_the_table_of_log_factorials = 4096;
 
 
@@ -155,14 +155,14 @@ inline void run_the_checks_of_Stan(const T_n& n, const T_N& N, const T_theta_val
 
 
 
-// ---- the Stan-facing function (global scope; stanc calls it as  nico_binomial_lpmf<propto__>(n, N, theta,
+// ---- the Stan-facing function (global scope; stanc calls it as  fused_binomial_lpmf<propto__>(n, N, theta,
 //      pstream__), with n and N arrays of int and theta a vector or vector expression, of double or of var)
 namespace fused_stan_math {
 
 template <bool propto, typename T_n, typename T_N, typename T_theta,
           stan::require_all_std_vector_vt<std::is_integral, T_n, T_N>* = nullptr,
           stan::require_eigen_col_vector_t<T_theta>* = nullptr>
-inline stan::return_type_t<T_theta> nico_binomial_lpmf(const T_n& n, const T_N& N, const T_theta& theta,
+inline stan::return_type_t<T_theta> fused_binomial_lpmf(const T_n& n, const T_N& N, const T_theta& theta,
                                                        std::ostream* /*pstream__*/) {
 
     namespace binomial = fused_stan_math::binomial;
@@ -209,7 +209,7 @@ inline stan::return_type_t<T_theta> nico_binomial_lpmf(const T_n& n, const T_N& 
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_binomial_lpmf;
+using fused_stan_math::fused_binomial_lpmf;
 
 
 
@@ -239,7 +239,7 @@ using fused_stan_math::nico_binomial_lpmf;
 namespace fused_stan_math {
 namespace strat_bivariate_binomial {
 
-static constexpr const char* function_name = "nico_strat_bivariate_binomial_lpmf";
+static constexpr const char* function_name = "fused_strat_bivariate_binomial_lpmf";
 
 template <bool include_log_choose>
 inline bool forward_pass(
@@ -306,7 +306,7 @@ template <bool propto,
           stan::require_all_std_vector_vt<std::is_integral, T_n, T_N, T_k, T_p, T_c>* = nullptr,
           stan::require_eigen_col_vector_t<T_z>* = nullptr>
 inline stan::return_type_t<T_mu, T_sigma, T_L, T_z>
-nico_strat_bivariate_binomial_lpmf(
+fused_strat_bivariate_binomial_lpmf(
         const T_n& n,
         const T_N& N,
         const T_k& term_k,
@@ -563,4 +563,4 @@ nico_strat_bivariate_binomial_lpmf(
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_strat_bivariate_binomial_lpmf;
+using fused_stan_math::fused_strat_bivariate_binomial_lpmf;

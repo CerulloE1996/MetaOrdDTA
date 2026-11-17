@@ -7,7 +7,7 @@
 //
 // -| --------- NicoSIMD binomial counts above successive cutpoints of a cumulative link, a Stan external fn ----
 //
-//     nico_binomial_counts_above_cuts_cumul_link_lpmf(
+//     fused_binomial_counts_above_cuts_cumul_link_lpmf(
 //           n | n_previous, latent, is_first, link, bound)
 //       = sum_k binomial_lpmf(n_k | n_previous_k, p_k),
 //
@@ -29,16 +29,16 @@
 //
 // with every constant (log choose(n_previous_k, n_k)) unless propto, as binomial_lpmf, in ONE autodiff node in
 // place of about eight: the forward pass and the reverse pass over all K elements, with BayesMVP's SIMD kernels
-// for Phi, inv_logit, exp and log, the double-precision log1m (the same kernels as nico_Phi, nico_inv_logit and
-// nico_binomial_lpmf, so the same values), and the element-wise arithmetic in branch-free loops over the elements
+// for Phi, inv_logit, exp and log, the double-precision log1m (the same kernels as fused_Phi, fused_inv_logit and
+// fused_binomial_lpmf, so the same values), and the element-wise arithmetic in branch-free loops over them
 // (each element reads only its own values and its predecessor's S, so there is no recurrence and the compiler
 // vectorises them).
-// The counts are checked as in nico_binomial_lpmf: Stan's checks run only when the pass over the values finds a
+// The counts are checked as in fused_binomial_lpmf: Stan's checks run only when the pass over the values finds a
 // bad one.
 //
 // Declared in the Stan functions block (no body; stanc --allow-undefined) as
 //
-//     real nico_binomial_counts_above_cuts_cumul_link_lpmf(
+//     real fused_binomial_counts_above_cuts_cumul_link_lpmf(
 //           array[] int n, array[] int n_previous, vector latent, data vector is_first, data int link,
 //           data real bound);
 //
@@ -68,7 +68,7 @@ namespace fused_stan_math {
 namespace binomial_counts_above_successive_cutpoints {
 
 static constexpr const char* function_name =
-    "nico_binomial_counts_above_cuts_cumul_link_lpmf";
+    "fused_binomial_counts_above_cuts_cumul_link_lpmf";
 
 
 
@@ -228,7 +228,7 @@ inline void run_the_checks_of_Stan(const T_n& n, const T_n_previous& n_previous)
 
 
 // ---- the Stan-facing function (global scope; stanc calls it as
-//      nico_binomial_counts_above_cuts_cumul_link_lpmf<propto__>(n, n_previous,
+//      fused_binomial_counts_above_cuts_cumul_link_lpmf<propto__>(n, n_previous,
 //      latent, is_first, link, bound, pstream__))
 namespace fused_stan_math {
 
@@ -236,7 +236,7 @@ template <bool propto, typename T_n, typename T_n_previous, typename T_latent, t
           stan::require_all_std_vector_vt<std::is_integral, T_n, T_n_previous>* = nullptr,
           stan::require_eigen_col_vector_t<T_latent>* = nullptr,
           stan::require_eigen_col_vector_vt<std::is_arithmetic, T_is_first>* = nullptr>
-inline stan::return_type_t<T_latent> nico_binomial_counts_above_cuts_cumul_link_lpmf(
+inline stan::return_type_t<T_latent> fused_binomial_counts_above_cuts_cumul_link_lpmf(
         const T_n& n, const T_n_previous& n_previous, const T_latent& latent, const T_is_first& is_first,
         const int link, const double bound, std::ostream* /*pstream__*/) {
 
@@ -304,7 +304,7 @@ inline stan::return_type_t<T_latent> nico_binomial_counts_above_cuts_cumul_link_
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_binomial_counts_above_cuts_cumul_link_lpmf;
+using fused_stan_math::fused_binomial_counts_above_cuts_cumul_link_lpmf;
 
 // ---- Indexed overloads: fuse gathering of (x_2, n, Xbeta - C, ...) directly without Stan tape slicing/n_terms ----
 namespace fused_stan_math {
@@ -313,7 +313,7 @@ namespace fused_stan_math {
 template <bool propto, typename T_loc, typename T_C,
           stan::require_eigen_t<T_loc>* = nullptr>
 inline stan::return_type_t<T_loc, T_C>
-nico_binomial_counts_above_cuts_cumul_link_lpmf(
+fused_binomial_counts_above_cuts_cumul_link_lpmf(
         const std::vector<std::vector<std::vector<int>>>& x_2,
         const std::vector<std::vector<std::vector<int>>>& n_prev,
         const T_loc& Xbeta,
@@ -455,7 +455,7 @@ nico_binomial_counts_above_cuts_cumul_link_lpmf(
 template <bool propto, typename T_loc, typename T_C,
           stan::require_eigen_t<T_loc>* = nullptr>
 inline stan::return_type_t<T_loc, T_C>
-nico_binomial_counts_above_cuts_cumul_link_lpmf(
+fused_binomial_counts_above_cuts_cumul_link_lpmf(
         const std::vector<std::vector<std::vector<int>>>& x_2,
         const std::vector<std::vector<std::vector<int>>>& n_prev,
         const T_loc& Xbeta,
@@ -599,7 +599,7 @@ template <bool propto, typename T_loc, typename T_scale, typename T_C,
           stan::require_eigen_t<T_scale>* = nullptr,
           stan::require_eigen_col_vector_t<T_C>* = nullptr>
 inline stan::return_type_t<T_loc, T_scale, T_C>
-nico_binomial_counts_above_cuts_cumul_link_lpmf(
+fused_binomial_counts_above_cuts_cumul_link_lpmf(
         const std::vector<std::vector<std::vector<int>>>& x_2,
         const std::vector<std::vector<std::vector<int>>>& n_prev,
         const T_loc& Xlocations,
@@ -745,7 +745,7 @@ nico_binomial_counts_above_cuts_cumul_link_lpmf(
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_binomial_counts_above_cuts_cumul_link_lpmf;
+using fused_stan_math::fused_binomial_counts_above_cuts_cumul_link_lpmf;
 
 
 
@@ -779,7 +779,7 @@ template <bool propto, typename T_loc, typename T_scale, typename T_C,
           stan::require_eigen_t<T_loc>* = nullptr,
           stan::require_eigen_t<T_scale>* = nullptr>
 inline stan::return_type_t<T_loc, T_scale, T_C>
-nico_binomial_counts_above_cuts_cumul_link_lpmf(
+fused_binomial_counts_above_cuts_cumul_link_lpmf(
         const std::vector<std::vector<std::vector<int>>>& x_2,
         const std::vector<std::vector<std::vector<int>>>& n_prev,
         const T_loc& Xbeta,
@@ -976,14 +976,14 @@ nico_binomial_counts_above_cuts_cumul_link_lpmf(
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_binomial_counts_above_cuts_cumul_link_lpmf;
+using fused_stan_math::fused_binomial_counts_above_cuts_cumul_link_lpmf;
 
 
 
 
 // ---- the name the MetaOrdDTA Stan files declare for the first function of this file, with the same arguments
 //      (n, n_previous, latent, is_first, link, bound):
-//          real nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
+//          real fused_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
 //                array[] int n, array[] int n_previous, vector latent, data vector is_first, data int link,
 //                data real bound);
 //      the same function, under its full name
@@ -993,15 +993,53 @@ template <bool propto, typename T_n, typename T_n_previous, typename T_latent, t
           stan::require_all_std_vector_vt<std::is_integral, T_n, T_n_previous>* = nullptr,
           stan::require_eigen_col_vector_t<T_latent>* = nullptr,
           stan::require_eigen_col_vector_vt<std::is_arithmetic, T_is_first>* = nullptr>
-inline stan::return_type_t<T_latent> nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
+inline stan::return_type_t<T_latent> fused_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
         const T_n& n, const T_n_previous& n_previous, const T_latent& latent, const T_is_first& is_first,
         const int link, const double bound, std::ostream* pstream__) {
 
-    return nico_binomial_counts_above_cuts_cumul_link_lpmf<propto>(n, n_previous, latent, is_first, link, bound,
+    return fused_binomial_counts_above_cuts_cumul_link_lpmf<propto>(n, n_previous, latent, is_first, link, bound,
                                                                    pstream__);
 
 }
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf;
+using fused_stan_math::fused_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf;
+
+
+
+
+// ---- the same full name for overload 4 (MA Jones: Box-Cox cutpoints of each class, study-class locations and
+//      scales), as the MA Jones files declare it:
+//          real fused_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
+//                array[,,] int n, array[,,] int n_previous, matrix Xbeta, matrix Xscale, array[] vector C,
+//                data array[,,] int cutpoint_index, data array[] int n_obs_cutpoints,
+//                data array[] int K_fold_CV_indicator, data int link, data real bound);
+//      the same function (with the log-scale forward and reverse passes of this file)
+namespace fused_stan_math {
+
+template <bool propto, typename T_loc, typename T_scale, typename T_C,
+          stan::require_eigen_t<T_loc>* = nullptr,
+          stan::require_eigen_t<T_scale>* = nullptr>
+inline stan::return_type_t<T_loc, T_scale, T_C> fused_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
+        const std::vector<std::vector<std::vector<int>>>& x_2,
+        const std::vector<std::vector<std::vector<int>>>& n_prev,
+        const T_loc& Xbeta,
+        const T_scale& Xscale,
+        const std::vector<Eigen::Matrix<T_C, -1, 1>>& C,
+        const std::vector<std::vector<std::vector<int>>>& cutpoint_index,
+        const std::vector<int>& n_obs_cutpoints,
+        const std::vector<int>& K_fold_CV_indicator,
+        const int link,
+        const double bound,
+        std::ostream* pstream__) {
+
+    return fused_binomial_counts_above_cuts_cumul_link_lpmf<propto>(x_2, n_prev, Xbeta, Xscale, C, cutpoint_index,
+                                                                   n_obs_cutpoints, K_fold_CV_indicator, link,
+                                                                   bound, pstream__);
+
+}
+
+}  // namespace fused_stan_math
+
+using fused_stan_math::fused_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf;

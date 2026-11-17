@@ -27,7 +27,7 @@ template <typename T_mu,
           typename T_l,
           typename T_wd>
 inline Eigen::Matrix<stan::return_type_t<T_mu, T_tau, T_z>, -1, 1>
-nico_pinkney_C_and_log_J_from_pairs(const T_mu& logit_centre_of_pair,
+fused_pinkney_C_and_log_J_from_pairs(const T_mu& logit_centre_of_pair,
                                     const T_tau& spread_free_of_pair,
                                     const T_z& C_raw_c,
                                     const T_w& Pinkney_w_c,
@@ -261,7 +261,7 @@ template <typename T_alpha,
           typename T_l,
           typename T_u>
 inline Eigen::Matrix<stan::return_type_t<T_alpha, T_z>, -1, 1>
-nico_pinkney_C_and_log_J_from_alpha(const T_alpha& alpha,
+fused_pinkney_C_and_log_J_from_alpha(const T_alpha& alpha,
                                     const T_z& C_raw_c,
                                     const T_loc& baseline_location_prior_arg,
                                     const T_w& Pinkney_w_c,
@@ -278,7 +278,7 @@ nico_pinkney_C_and_log_J_from_alpha(const T_alpha& alpha,
     using T = stan::return_type_t<T_alpha, T_z>;
     using T_alpha_scalar = stan::value_type_t<T_alpha>;
     using T_z_scalar     = stan::value_type_t<T_z>;
-    static constexpr const char* function_name = "nico_pinkney_C_and_log_J_from_alpha";
+    static constexpr const char* function_name = "fused_pinkney_C_and_log_J_from_alpha";
 
     const Eigen::Index n_cat = alpha.size();
     const Eigen::Index K     = n_cat - 1;
@@ -825,7 +825,7 @@ template <typename T_alpha,
           typename T_ulb,
           typename T_uwd>
 inline Eigen::Matrix<stan::return_type_t<T_alpha, T_z, T_loc_prior>, -1, 1>
-nico_pinkney_C_and_log_J_from_alpha_precomputed(
+fused_pinkney_C_and_log_J_from_alpha_precomputed(
         const T_alpha& alpha,
         const T_z& C_raw_c,
         const T_loc_prior& baseline_location_prior_arg,
@@ -843,7 +843,7 @@ nico_pinkney_C_and_log_J_from_alpha_precomputed(
         const int use_probit_link,
         const int softplus,
         std::ostream* pstream__) {
-    static constexpr const char* function_name = "nico_pinkney_C_and_log_J_from_alpha_precomputed";
+    static constexpr const char* function_name = "fused_pinkney_C_and_log_J_from_alpha_precomputed";
     using T = stan::return_type_t<T_alpha, T_z, T_loc_prior>;
     using T_alpha_scalar = stan::value_type_t<T_alpha>;
     using T_z_scalar = stan::value_type_t<T_z>;
@@ -1336,7 +1336,7 @@ nico_pinkney_C_and_log_J_from_alpha_precomputed(
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_pinkney_C_and_log_J_from_alpha_precomputed;
+using fused_stan_math::fused_pinkney_C_and_log_J_from_alpha_precomputed;
 
 
 // ---- Dual-class vectorized precomputed-pair Pinkney C & log-J + Fused O_biv_RC priors node ----
@@ -1371,7 +1371,7 @@ pinkney_from_alpha_precomputed_impl(
         const T_uwd& u_wd_in,
         const int use_probit_link,
         const int softplus) {
-    static constexpr const char* fn_name = "nico_pinkney_C_and_log_J_from_alpha_precomputed";
+    static constexpr const char* fn_name = "fused_pinkney_C_and_log_J_from_alpha_precomputed";
     using T = stan::return_type_t<T_alpha, T_z>;
     using T_alpha_scalar = stan::value_type_t<T_alpha>;
     using T_z_scalar = stan::value_type_t<T_z>;
@@ -1978,7 +1978,7 @@ pinkney_from_alpha_precomputed_impl(
 template <typename T_alpha, typename T_z, typename T_loc_prior, typename T_w, typename T_s,
           typename T_l, typename T_wd, typename T_swd, typename T_ulb, typename T_uwd>
 inline Eigen::Matrix<stan::return_type_t<T_alpha, T_z, T_loc_prior>, -1, 1>
-nico_pinkney_C_and_log_J_both_from_alpha_precomputed(
+fused_pinkney_C_and_log_J_both_from_alpha_precomputed(
         const std::vector<Eigen::Matrix<T_alpha, -1, 1>>& alpha,
         const std::vector<Eigen::Matrix<T_z, -1, 1>>& C_raw,
         const T_loc_prior& baseline_location_prior,
@@ -2040,7 +2040,7 @@ template <bool propto,
           typename T_bcnd,
           typename T_bcd>
 inline stan::return_type_t<T_phi, T_bmu, T_bsd, T_bl, T_bz, T_alpha, T_lk, T_kap, T_tlj>
-nico_ord_biv_rc_priors_lpdf(
+fused_ord_biv_rc_priors_lpdf(
         const std::vector<Eigen::Matrix<T_phi, -1, 1>>& dirichlet_phi,
         const T_bmu& beta_mu,
         const T_bsd& beta_SD,
@@ -2079,7 +2079,7 @@ nico_ord_biv_rc_priors_lpdf(
     namespace prior = fused_stan_math::induced_dirichlet_prior;
     namespace Se_Sp = fused_stan_math::Se_Sp_prior_at_chosen_cutoffs;
     using stan::math::var;
-    static constexpr const char* fn_name = "nico_ord_biv_rc_priors_lpdf";
+    static constexpr const char* fn_name = "fused_ord_biv_rc_priors_lpdf";
     static constexpr double PI_VAL = 3.1415926535897932384626433832795;
 
     const int n_cat = static_cast<int>(dirichlet_phi[0].size());
@@ -2214,7 +2214,7 @@ nico_ord_biv_rc_priors_lpdf(
             bad_L << L00, L01, stan::math::value_of(bl_ref.coeff(1, 0)), L11;
             stan::math::check_cholesky_factor(fn_name, "Random variable", bad_L);
         }
-        if constexpr (!propto) total += nico_lkj_constant_from_data(eta, 2U, nullptr);
+        if constexpr (!propto) total += fused_lkj_constant_from_data(eta, 2U, nullptr);
         if (eta != 1.0) {
             const double coef = 2.0 * eta - 2.0;
             total += coef * std::log(L11);
@@ -2717,5 +2717,5 @@ nico_ord_biv_rc_priors_lpdf(
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_pinkney_C_and_log_J_both_from_alpha_precomputed;
-using fused_stan_math::nico_ord_biv_rc_priors_lpdf;
+using fused_stan_math::fused_pinkney_C_and_log_J_both_from_alpha_precomputed;
+using fused_stan_math::fused_ord_biv_rc_priors_lpdf;

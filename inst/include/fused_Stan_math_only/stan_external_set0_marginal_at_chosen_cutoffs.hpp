@@ -196,7 +196,7 @@ inline void eval_log_integrand(const double b,
 
 template <typename T_x, typename T_seg, typename T_v0>
 inline stan::return_type_t<T_x>
-nico_log_Set0_marginal_at_chosen_cutoffs(const T_x& x_chosen,
+fused_log_Set0_marginal_at_chosen_cutoffs(const T_x& x_chosen,
                                          const T_seg& alpha_of_the_segments,
                                          const T_v0& v0_arg,
                                          const int use_probit_link,
@@ -208,10 +208,10 @@ nico_log_Set0_marginal_at_chosen_cutoffs(const T_x& x_chosen,
     const int m = static_cast<int>(x_chosen.size());
     if (m == 0) return 0.0;
     if (alpha_of_the_segments.size() != m + 1) {
-        throw std::invalid_argument("nico_log_Set0_marginal_at_chosen_cutoffs: alpha_of_the_segments size != m + 1");
+        throw std::invalid_argument("fused_log_Set0_marginal_at_chosen_cutoffs: alpha_of_the_segments size != m + 1");
     }
     if (!(v0 > 0.0)) {
-        throw std::domain_error("nico_log_Set0_marginal_at_chosen_cutoffs: v0 must be positive");
+        throw std::domain_error("fused_log_Set0_marginal_at_chosen_cutoffs: v0 must be positive");
     }
 
     const auto& x_ref   = stan::math::to_ref(x_chosen);
@@ -234,10 +234,10 @@ nico_log_Set0_marginal_at_chosen_cutoffs(const T_x& x_chosen,
     for (int j = 0; j < m; ++j) {
         x_val[j] = stan::math::value_of(x_ref.coeff(j));
         if (!std::isfinite(x_val[j])) {
-            throw std::domain_error("nico_log_Set0_marginal_at_chosen_cutoffs: x_chosen is not finite");
+            throw std::domain_error("fused_log_Set0_marginal_at_chosen_cutoffs: x_chosen is not finite");
         }
         if (j > 0 && !(x_val[j] > x_val[j - 1])) {
-            throw std::domain_error("nico_log_Set0_marginal_at_chosen_cutoffs: x_chosen is not strictly increasing");
+            throw std::domain_error("fused_log_Set0_marginal_at_chosen_cutoffs: x_chosen is not strictly increasing");
         }
     }
 
@@ -457,10 +457,10 @@ inline double eval_set0_marginal_fast_raw(const double* x_val,
     if (m == 0) return 0.0;
     for (int j = 0; j < m; ++j) {
         if (!std::isfinite(x_val[j])) {
-            stan::math::check_finite("nico_log_Set0_marginal_at_chosen_cutoffs", "x_chosen", x_val[j]);
+            stan::math::check_finite("fused_log_Set0_marginal_at_chosen_cutoffs", "x_chosen", x_val[j]);
         }
         if (j > 0 && !(x_val[j] > x_val[j - 1])) {
-            throw std::domain_error("nico_log_Set0_marginal_at_chosen_cutoffs: x_chosen is not strictly increasing");
+            throw std::domain_error("fused_log_Set0_marginal_at_chosen_cutoffs: x_chosen is not strictly increasing");
         }
     }
     if (use_probit_link == 1 && all_unit) {
@@ -731,7 +731,7 @@ template <typename T_x, typename T_w, typename T_v0,
           stan::require_eigen_col_vector_t<T_x>* = nullptr,
           stan::require_eigen_col_vector_t<T_w>* = nullptr>
 inline stan::return_type_t<T_x, T_w, T_v0>
-nico_log_Set0_marginal_at_chosen_cutoffs_fast(const T_x& x_chosen,
+fused_log_Set0_marginal_at_chosen_cutoffs_fast(const T_x& x_chosen,
                                               const T_w& alpha_of_the_segments,
                                               const T_v0& v0_arg,
                                               const int use_probit_link,
@@ -743,15 +743,15 @@ nico_log_Set0_marginal_at_chosen_cutoffs_fast(const T_x& x_chosen,
     if (m == 0) return 0.0;
     if (static_cast<int>(alpha_of_the_segments.size()) != m + 1) {
         throw std::invalid_argument(
-            "nico_log_Set0_marginal_at_chosen_cutoffs_fast: alpha_of_the_segments must have length m + 1");
+            "fused_log_Set0_marginal_at_chosen_cutoffs_fast: alpha_of_the_segments must have length m + 1");
     }
     if constexpr (!stan::is_constant_all<T_w, T_v0>::value) {
-        return nico_log_Set0_marginal_at_chosen_cutoffs(
+        return fused_log_Set0_marginal_at_chosen_cutoffs(
             x_chosen, alpha_of_the_segments, v0_arg, use_probit_link, pstream__);
     } else {
         const double v0 = stan::math::value_of(v0_arg);
         if (!(v0 > 0.0) || !std::isfinite(v0)) {
-            throw std::domain_error("nico_log_Set0_marginal_at_chosen_cutoffs_fast: v0 must be positive");
+            throw std::domain_error("fused_log_Set0_marginal_at_chosen_cutoffs_fast: v0 must be positive");
         }
         const auto& x_ref = stan::math::to_ref(x_chosen);
         const auto& w_ref = stan::math::to_ref(alpha_of_the_segments);
@@ -789,4 +789,4 @@ nico_log_Set0_marginal_at_chosen_cutoffs_fast(const T_x& x_chosen,
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_log_Set0_marginal_at_chosen_cutoffs_fast;
+using fused_stan_math::fused_log_Set0_marginal_at_chosen_cutoffs_fast;

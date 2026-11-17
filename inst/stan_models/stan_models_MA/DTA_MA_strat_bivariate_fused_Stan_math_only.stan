@@ -2,22 +2,22 @@
 //// The fused model of MetaOrdDTA on Stan math only: the same model as
 //// DTA_MA_strat_bivariate_NicoStan_fused_AVX.stan,
 //// with Stan's built-in functions in place of its elementary functions (log, exp, Phi, normal_lpdf, ...)
-//// and the plain Stan math include files. Only the fused functions stay external (declared below with no
+//// and the Stan math include files. Only the fused functions stay external (declared below with no
 //// body): their C++ is in inst/include/fused_Stan_math_only (Stan math only: no SIMD, any CPU), given to
 //// cmdstanr as its user header with stanc's allow-undefined option.
 
 
 
 functions {
-    real nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
+    real fused_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
           array[] int n, array[] int n_previous, vector latent, data vector is_first, data int link,
           data real bound);
-    real nico_strat_bivariate_priors_lpdf(
+    real fused_strat_bivariate_priors_lpdf(
           array[] vector mu, array[] vector sigma, array[] matrix L_Omega,
           data vector prior_mu_mean_0, data vector prior_mu_mean_1,
           data vector prior_mu_SD_0, data vector prior_mu_SD_1,
           data vector prior_sigma_SD, data vector prior_lkj_eta);
-    real nico_strat_bivariate_binomial_lpmf(
+    real fused_strat_bivariate_binomial_lpmf(
           array[] int n, array[] int N, data array[] int term_k, data array[] int term_pair,
           data array[] int term_c, array[] vector mu, array[] vector sigma, array[] matrix L_Omega,
           vector z, data int link, data real bound);
@@ -26,7 +26,7 @@ functions {
         ////
         #include "Stan_fns_basic.stan"
         #include "Stan_fns_Box_Cox.stan"
-        #include "Stan_fns_corr.stan" 
+        #include "Stan_fns_corr.stan"
         #include "Stan_fns_ordinal.stan"
         #include "Stan_fns_log_lik.stan"
         #include "Stan_fns_Jacobian.stan"
@@ -91,7 +91,7 @@ transformed data {
             FP[k, s] = 0;
         }
     }
-    
+
     for (k in 1:n_thr) {
         n_studies_per_thr[k] = 0;
         for (s in 1:n_studies) {
@@ -100,7 +100,7 @@ transformed data {
             }
         }
     }
-    
+
     // Process each study
     for (s in 1:n_studies) {
         // For each threshold k (1 to n_thr)
@@ -108,7 +108,7 @@ transformed data {
             // Find the position in the data corresponding to threshold k
             int pos_nd = -1;
             int pos_d = -1;
-            
+
             // cutpoint_index values are 1, 2, ..., n_thr (not 0-based!)
             for (j in 1:n_obs_cutpoints[s]) {
                 if (cutpoint_index[1, s, j + 1] == k) {
@@ -118,19 +118,19 @@ transformed data {
                     pos_d = j + 1;
                 }
             }
-            
+
             // Only proceed if both diseased and non-diseased have this threshold
             if (pos_nd > 0 && pos_d > 0 && x[1, s, pos_nd] >= 0 && x[2, s, pos_d] >= 0) {
                 study_has_thr[k, s] = 1;
                 n_studies_per_thr[k] += 1;
-                
+
                 // The data is cumulative: x[c,s,j] is number testing positive at threshold k or higher
                 TP[k, s] = x[2, s, pos_d];
                 FN[k, s] = x[2, s, 1] - TP[k, s];
-                
+
                 FP[k, s] = x[1, s, pos_nd];
                 TN[k, s] = x[1, s, 1] - FP[k, s];
-                
+
                 // Debug info for first few
                 if (s <= 3 && k <= 2) {
                     print("Study ", s, ", Threshold ", k, ":");
@@ -143,7 +143,7 @@ transformed data {
                     print("  Non-diseased positive at thr ", k, " or higher: ", x[1, s, pos_nd]);
                     print("  FP: ", FP[k, s], ", TN: ", TN[k, s]);
                 }
-                
+
                 // Sanity checks
                 if (TP[k, s] < 0 || FN[k, s] < 0 || FP[k, s] < 0 || TN[k, s] < 0) {
                     reject("Negative count detected for study ", s, " threshold ", k);
@@ -157,7 +157,7 @@ transformed data {
             }
         }
     }
-    
+
     print("Studies per threshold: ", n_studies_per_thr);
     // The terms of the fused likelihood, in the order the likelihood adds them:
     for (k in 1:n_thr) {
@@ -221,7 +221,7 @@ parameters {
 
 model {
     //// ---- Priors for all thresholds in ONE fused node:
-    target += nico_strat_bivariate_priors_lupdf(
+    target += fused_strat_bivariate_priors_lupdf(
                     mu | sigma, L_Omega,
                     prior_mu_mean[1], prior_mu_mean[2],
                     prior_mu_SD[1], prior_mu_SD[2],
@@ -233,7 +233,7 @@ model {
     ////      probit_pi[k, s] = mu[k] + diag_pre_multiply(sigma[k], L_Omega[k]) * z[k, s], element by element
     ////      (L_Omega[k, 1] = [1, 0]):
     {
-          target += nico_strat_bivariate_binomial_lupmf(
+          target += fused_strat_bivariate_binomial_lupmf(
                           term_counts[1:n_terms] |
                           term_totals[1:n_terms],
                           term_k[1:n_terms],
@@ -261,7 +261,7 @@ generated quantities {
         ////
         // Log-likelihood for model comparison
         // array[n_thr, n_studies, 2] real log_lik;
-        
+
         for (k in 1:n_thr) {
             // Summary accuracy
             if (use_probit_link == 1) {
@@ -273,13 +273,13 @@ generated quantities {
             }
             Fp_baseline[k] = 1 - Sp_baseline[k];
         }
-            
+
         // for (k in 1:n_thr) {
         //     if (n_studies_per_thr[k] > 1) {
         //         // Between-study correlation and covariance
         //         Omega[k] = multiply_lower_tri_self_transpose(L_Omega[k]);
         //         Sigma[k] = quad_form_diag(Omega[k], sigma[k]);
-        //         
+        //
         //         // Predictive accuracy
         //         vector[2] pred = multi_normal_rng(mu[k], Sigma[k]);
         //         if (use_probit_link == 1) {
@@ -291,18 +291,18 @@ generated quantities {
         //         }
         //         Fp_baseline_pred[k] = 1 - Sp_baseline_pred[k];
         //     }
-        //     
+        //
         //     // // Diagnostic measures
         //     // DOR[k] = (Se_baseline[k] * Sp_baseline[k]) / ((1 - Se_baseline[k]) * (1 - Sp_baseline[k]));
         //     // LRp[k] = Se_baseline[k] / (1 - Sp_baseline[k]);
         //     // LRn[k] = (1 - Se_baseline[k]) / Sp_baseline[k];
-        //     
+        //
         //     // // Log-likelihood for each study at this threshold
         //     // for (i in 1:n_studies_per_thr[k]) {
         //     //     int s = study_index[k, i];
         //     //     int pos = TP[k, i] + FN[k, i];
         //     //     int neg = TN[k, i] + FP[k, i];
-        //     //     
+        //     //
         //     //     log_lik[k, s, 1] = binomial_logit_lpmf(TP[k, i] | pos, logit_pi[k, s, 1]);
         //     //     log_lik[k, s, 2] = binomial_logit_lpmf(TN[k, i] | neg, logit_pi[k, s, 2]);
         //     // }

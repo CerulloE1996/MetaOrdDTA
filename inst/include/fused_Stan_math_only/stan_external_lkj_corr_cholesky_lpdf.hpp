@@ -10,7 +10,7 @@
 namespace fused_stan_math {
 
 inline double
-nico_lkj_constant_from_data(const double eta,
+fused_lkj_constant_from_data(const double eta,
                             const unsigned int K,
                             std::ostream* pstream__) {
 
@@ -45,7 +45,7 @@ nico_lkj_constant_from_data(const double eta,
 
 template <bool propto__, typename T_L>
 inline stan::return_type_t<T_L>
-nico_lkj_corr_cholesky_lpdf(const Eigen::Matrix<T_L, Eigen::Dynamic, Eigen::Dynamic>& L,
+fused_lkj_corr_cholesky_lpdf(const Eigen::Matrix<T_L, Eigen::Dynamic, Eigen::Dynamic>& L,
                            const double eta,
                            std::ostream* pstream__) {
 
@@ -70,7 +70,7 @@ nico_lkj_corr_cholesky_lpdf(const Eigen::Matrix<T_L, Eigen::Dynamic, Eigen::Dyna
 
     stan::return_type_t<T_L> log_prob = 0.0;
     if constexpr (!propto__) {
-        log_prob += nico_lkj_constant_from_data(eta, K, pstream__);
+        log_prob += fused_lkj_constant_from_data(eta, K, pstream__);
     }
     if constexpr (stan::math::include_summand<propto__, T_L>::value) {
         const int Km1 = K - 1;
@@ -93,7 +93,7 @@ nico_lkj_corr_cholesky_lpdf(const Eigen::Matrix<T_L, Eigen::Dynamic, Eigen::Dyna
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_lkj_corr_cholesky_lpdf;
+using fused_stan_math::fused_lkj_corr_cholesky_lpdf;
 
 
 
@@ -131,7 +131,7 @@ template <bool propto,
           stan::require_eigen_col_vector_t<T_ssd>* = nullptr,
           stan::require_eigen_col_vector_t<T_eta>* = nullptr>
 inline stan::return_type_t<T_mu, T_sigma, T_L>
-nico_strat_bivariate_priors_lpdf(
+fused_strat_bivariate_priors_lpdf(
         const std::vector<Eigen::Matrix<T_mu, -1, 1>>& mu,
         const std::vector<Eigen::Matrix<T_sigma, -1, 1>>& sigma,
         const std::vector<Eigen::Matrix<T_L, -1, -1>>& L_Omega,
@@ -143,7 +143,7 @@ nico_strat_bivariate_priors_lpdf(
         const T_eta& prior_lkj_eta,
         std::ostream* pstream__) {
 
-    static constexpr const char* fn_name = "nico_strat_bivariate_priors_lpdf";
+    static constexpr const char* fn_name = "fused_strat_bivariate_priors_lpdf";
     static constexpr double HALF_LOG_2PI = 0.918938533204672741780329736406;
     using stan::math::var;
 
@@ -233,7 +233,7 @@ nico_strat_bivariate_priors_lpdf(
         if constexpr (!propto) {
             sum += -4.0 * HALF_LOG_2PI - std::log(sd0) - std::log(sd1) - 2.0 * std::log(ssd);
             if (eta > 0.0) {
-                sum += nico_lkj_constant_from_data(eta, 2, pstream__);
+                sum += fused_lkj_constant_from_data(eta, 2, pstream__);
             }
         }
         if constexpr (is_any_var) {
@@ -303,4 +303,4 @@ nico_strat_bivariate_priors_lpdf(
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_strat_bivariate_priors_lpdf;
+using fused_stan_math::fused_strat_bivariate_priors_lpdf;

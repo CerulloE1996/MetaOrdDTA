@@ -2,14 +2,14 @@
 //// The fused model of MetaOrdDTA on Stan math only: the same model as
 //// DTA_MA_ord_biv_RANDthr_kappa_popmed_Se_Sp_prior_NicoStan_fused_AVX.stan,
 //// with Stan's built-in functions in place of its elementary functions (log, exp, Phi, normal_lpdf, ...)
-//// and the plain Stan math include files. Only the fused functions stay external (declared below with no
+//// and the Stan math include files. Only the fused functions stay external (declared below with no
 //// body): their C++ is in inst/include/fused_Stan_math_only (Stan math only: no SIMD, any CPU), given to
 //// cmdstanr as its user header with stanc's allow-undefined option.
 
 
 
 functions {
-    real nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
+    real fused_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
           array[] int n, array[] int n_previous, vector latent, data vector is_first, data int link,
           data real bound);
         ////
@@ -25,25 +25,25 @@ functions {
         ////
         //// ---- The fused functions (their C++ in inst/include/fused_Stan_math_only, Stan math only):
         ////
-        vector nico_pinkney_C_and_log_J_from_alpha(vector alpha,
-                                                   vector C_raw_c,
-                                                   real baseline_location_prior,
-                                                   data vector Pinkney_w_c,
-                                                   data vector logit_start,
-                                                   data vector C_raw_lower_c,
-                                                   data vector C_raw_upper_c,
-                                                   data array[] int k_of_each_C,
-                                                   data array[] int k_previous_of_each_C,
-                                                   data int use_probit_link,
-                                                   data int softplus);
-        real nico_induced_dirichlet_prior_of_ordered_cutpoints_ragged_lpdf(
+        vector fused_pinkney_C_and_log_J_from_alpha(vector alpha,
+                                                    vector C_raw_c,
+                                                    real baseline_location_prior,
+                                                    data vector Pinkney_w_c,
+                                                    data vector logit_start,
+                                                    data vector C_raw_lower_c,
+                                                    data vector C_raw_upper_c,
+                                                    data array[] int k_of_each_C,
+                                                    data array[] int k_previous_of_each_C,
+                                                    data int use_probit_link,
+                                                    data int softplus);
+        real fused_induced_dirichlet_prior_of_ordered_cutpoints_ragged_lpdf(
                 vector C,
                 vector alpha,
                 data array[] int n_cutpoints_per_group,
                 data array[] int cutpoint_k_of_each_C,
                 data int link,
                 real location);
-        real nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
+        real fused_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
                 array[,,] int n,
                 array[,,] int n_previous,
                 matrix locations,
@@ -53,39 +53,39 @@ functions {
                 data array[] int K_fold_CV_indicator,
                 data int link,
                 data real bound);
-        real nico_induced_dirichlet_with_Se_Sp_prior_lpdf(vector C, vector alpha, data int link,
-                                                          data real location, vector alpha_of_the_segments,
-                                                          data array[] int chosen_cutoffs,
-                                                          data int Se_Sp_prior_type,
-                                                          vector prior_Se_Sp_dirichlet_A, matrix prior_Se_Sp_beta,
-                                                          matrix prior_Se_Sp_link_mean_SD);
-        vector nico_dirichlet_cutpoint_medians_and_sum_of_log_J(vector P_lower, vector P_upper, real kappa,
-                                                                data int use_probit_link);
-        vector nico_dirichlet_cutpoint_medians_and_log_J_of_each(vector P_lower, vector P_upper, real kappa,
+        real fused_induced_dirichlet_with_Se_Sp_prior_lpdf(vector C, vector alpha, data int link,
+                                                           data real location, vector alpha_of_the_segments,
+                                                           data array[] int chosen_cutoffs,
+                                                           data int Se_Sp_prior_type,
+                                                           vector prior_Se_Sp_dirichlet_A, matrix prior_Se_Sp_beta,
+                                                           matrix prior_Se_Sp_link_mean_SD);
+        vector fused_dirichlet_cutpoint_medians_and_sum_of_log_J(vector P_lower, vector P_upper, real kappa,
                                                                  data int use_probit_link);
-        real nico_log_Set0_marginal_at_chosen_cutoffs(vector x_chosen, vector alpha_of_the_segments,
-                                                      real v0, int use_probit_link);
-        real nico_Se_Sp_prior_at_chosen_cutoffs_lpdf(vector x, data int Se_Sp_prior_type,
-                                                     vector prior_Se_Sp_dirichlet_A, matrix prior_Se_Sp_beta,
-                                                     matrix prior_Se_Sp_link_mean_SD, data int link);
-        real nico_dirichlet_with_Se_Sp_prior_lpdf(vector phi,
-                                                  vector log_J,
-                                                  vector C_baseline,
-                                                  vector alpha,
-                                                  vector alpha_of_the_segments,
-                                                  data array[] int chosen_cutoffs,
-                                                  data int Se_Sp_prior_type,
-                                                  vector prior_Se_Sp_dirichlet_A,
-                                                  matrix prior_Se_Sp_beta,
-                                                  matrix prior_Se_Sp_link_mean_SD,
-                                                  data int link);
-        array[,] matrix nico_compute_log_lik_binomial_fact_data(data array[] matrix latent_surv,
-                                                                data int use_probit_link, data int n_thr,
-                                                                data int n_studies, data array[,,] int x_2,
-                                                                data array[,,] int n, data array[,] int N_total,
-                                                                data array[] int n_obs_cutpoints,
-                                                                data array[] int K_fold_CV_indicator);
-        vector nico_pinkney_C_and_log_J_from_alpha_precomputed(
+        vector fused_dirichlet_cutpoint_medians_and_log_J_of_each(vector P_lower, vector P_upper, real kappa,
+                                                                  data int use_probit_link);
+        real fused_log_Set0_marginal_at_chosen_cutoffs(vector x_chosen, vector alpha_of_the_segments,
+                                                       real v0, int use_probit_link);
+        real fused_Se_Sp_prior_at_chosen_cutoffs_lpdf(vector x, data int Se_Sp_prior_type,
+                                                      vector prior_Se_Sp_dirichlet_A, matrix prior_Se_Sp_beta,
+                                                      matrix prior_Se_Sp_link_mean_SD, data int link);
+        real fused_dirichlet_with_Se_Sp_prior_lpdf(vector phi,
+                                                   vector log_J,
+                                                   vector C_baseline,
+                                                   vector alpha,
+                                                   vector alpha_of_the_segments,
+                                                   data array[] int chosen_cutoffs,
+                                                   data int Se_Sp_prior_type,
+                                                   vector prior_Se_Sp_dirichlet_A,
+                                                   matrix prior_Se_Sp_beta,
+                                                   matrix prior_Se_Sp_link_mean_SD,
+                                                   data int link);
+        array[,] matrix fused_compute_log_lik_binomial_fact_data(data array[] matrix latent_surv,
+                                                                 data int use_probit_link, data int n_thr,
+                                                                 data int n_studies, data array[,,] int x_2,
+                                                                 data array[,,] int n, data array[,] int N_total,
+                                                                 data array[] int n_obs_cutpoints,
+                                                                 data array[] int K_fold_CV_indicator);
+        vector fused_pinkney_C_and_log_J_from_alpha_precomputed(
                 vector alpha,
                 vector C_raw_c,
                 real baseline_location_prior,
@@ -102,17 +102,17 @@ functions {
                 data vector u_wd,
                 data int use_probit_link,
                 data int softplus);
-        vector nico_dirichlet_cutpoint_medians_and_log_J_at_cuts(
+        vector fused_dirichlet_cutpoint_medians_and_log_J_at_cuts(
                 vector alpha_c,
                 real kappa_c,
                 data array[] int cuts_c,
                 data int use_probit_link);
-        real nico_log_Set0_marginal_at_chosen_cutoffs_fast(
+        real fused_log_Set0_marginal_at_chosen_cutoffs_fast(
                 vector x_chosen,
                 data vector alpha_of_the_segments,
                 data real v0,
                 data int use_probit_link);
-        real nico_ord_biv_randthr_ind_dir_and_binomial_lpmf(
+        real fused_ord_biv_randthr_ind_dir_and_binomial_lpmf(
                 array[,,] int n,
                 array[,,] int n_previous,
                 matrix locations,
@@ -130,7 +130,7 @@ functions {
                 data int link,
                 data vector baseline_location_prior,
                 data real bound);
-        vector nico_pinkney_C_and_log_J_both_from_alpha_precomputed(
+        vector fused_pinkney_C_and_log_J_both_from_alpha_precomputed(
                 array[] vector alpha,
                 array[] vector C_raw,
                 data vector baseline_location_prior,
@@ -147,7 +147,7 @@ functions {
                 data vector u_wd,
                 data int use_probit_link,
                 data int softplus);
-        real nico_ord_biv_rc_priors_lpdf(
+        real fused_ord_biv_rc_priors_lpdf(
                 array[] vector dirichlet_phi,
                 matrix beta_mu,
                 row_vector beta_SD,
@@ -180,7 +180,7 @@ functions {
                 data vector baseline_case_nd,
                 data vector baseline_case_d,
                 data int use_probit_link);
-        real nico_ord_biv_randthr_ind_dir_and_binomial_precomputed_lpmf(
+        real fused_ord_biv_randthr_ind_dir_and_binomial_precomputed_lpmf(
                 data array[] int bin_n,
                 data array[] int bin_n_prev,
                 data array[] int bin_sc,
@@ -727,7 +727,7 @@ transformed parameters {
         array[2] vector[n_C] C;
         vector[2] total_log_J_of_C;
         {
-              vector[2 * n_C + 2] C_and_J_both = nico_pinkney_C_and_log_J_both_from_alpha_precomputed(
+              vector[2 * n_C + 2] C_and_J_both = fused_pinkney_C_and_log_J_both_from_alpha_precomputed(
                     alpha,
                     C_raw,
                     baseline_location_prior_td,
@@ -761,7 +761,7 @@ transformed parameters {
 
 model {
         //// ---- Fused model priors + Dirichlet / Se-Sp / Set-0 marginal / cutpoint-median priors + Pinkney log-det-J:
-        target += nico_ord_biv_rc_priors_lupdf(
+        target += fused_ord_biv_rc_priors_lupdf(
                         dirichlet_phi | beta_mu, beta_SD, beta_L_Omega, beta_z,
                         alpha, log_kappa, kappa, total_log_J_of_C,
                         n_cov_td, prior_beta_mu_mean, prior_beta_mu_SD,
@@ -776,7 +776,7 @@ model {
         ////
         //// ---- Fused Induced-Dirichlet between-study model + Binomial cumulative-link likelihood (all studies/classes in ONE node):
         ////
-        target += nico_ord_biv_randthr_ind_dir_and_binomial_precomputed_lupmf(
+        target += fused_ord_biv_randthr_ind_dir_and_binomial_precomputed_lupmf(
                         bin_n_td | bin_n_prev_td, bin_sc_td, bin_Cpos_td, bin_is_first_td,
                         K_bin_td, bin_is_seq_td, Xbeta, C, alpha,
                         id_u_seg_lo, id_u_seg_hi, id_u_seg_cnt, id_seg_uid,
@@ -807,7 +807,7 @@ generated quantities {
                     (c == 1) ? dot_product(baseline_case_nd, to_vector(prior_beta_mu_mean[1, 1:n_covariates_nd])) :
                                dot_product(baseline_case_d,  to_vector(prior_beta_mu_mean[2, 1:n_covariates_d]));
          C_mu[c] = baseline_location_prior_of_class_c +
-                   nico_dirichlet_cutpoint_medians_and_sum_of_log_J(P, P_upper, alpha_0, use_probit_link)[1:n_thr];
+                   fused_dirichlet_cutpoint_medians_and_sum_of_log_J(P, P_upper, alpha_0, use_probit_link)[1:n_thr];
       }
       ////
       real Xbeta_baseline_nd = dot_product(baseline_case_nd, to_vector(beta_mu[1, 1:n_covariates_nd]));
@@ -860,7 +860,7 @@ generated quantities {
           for (s in 1:n_studies) {
               dummy_CV_indicator[s] = 1;
           }
-          array[3, 2] matrix[n_studies, n_thr] outs = nico_compute_log_lik_binomial_fact_data(
+          array[3, 2] matrix[n_studies, n_thr] outs = fused_compute_log_lik_binomial_fact_data(
                                                       latent_surv, use_probit_link, n_thr, n_studies,
                                                       x_2, n, N_total, n_obs_cutpoints,
                                                       dummy_CV_indicator);

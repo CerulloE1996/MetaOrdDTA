@@ -184,7 +184,7 @@ inline void k_log_and_log1m_short(const double* x,
 
 // ---- one scratch buffer of doubles per thread for the values of a call (no allocation once it is large enough);
 //      a function takes it once and calls no other function that takes it
-inline double* nico_scratch_of_doubles(const std::size_t n) {
+inline double* fused_scratch_of_doubles(const std::size_t n) {
 
     static thread_local std::vector<double> scratch;
     if (scratch.size() < n) scratch.resize(((n + 7) / 8) * 8);

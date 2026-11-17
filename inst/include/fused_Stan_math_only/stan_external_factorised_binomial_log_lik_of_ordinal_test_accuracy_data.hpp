@@ -7,33 +7,33 @@
 //
 // -| --------- NicoSIMD factorised binomial log-likelihood of ordinal test accuracy data (generated quantities)
 //
-// The nico_ versions of MetaOrdDTA's functions of the generated quantities of its ordinal models
+// The fused_ versions of MetaOrdDTA's functions of the generated quantities of its ordinal models
 // (Stan_fns_log_lik.stan, Stan_fns_ordinal.stan), with the same arguments and results, in double precision
 // (the model blocks use the one autodiff node of
-// nico_binomial_counts_above_cuts_cumul_link_lpmf for the same likelihood). For each
+// fused_binomial_counts_above_cuts_cumul_link_lpmf for the same likelihood). For each
 // class c (1, 2), study s and reported cutpoint cut_i (1, ..., n_obs_cutpoints[s]), with
 // k = cutpoint_index[c, s, cut_i + 1], latent_surv[c][s, cut_i] is (+infinity everywhere else):
 //
-//   * nico_map_latent_surv_to_random_hetero_C(C, n_thr, locations, [scales,] n_studies, n_obs_cutpoints,
+//   * fused_map_latent_surv_to_random_hetero_C(C, n_thr, locations, [scales,] n_studies, n_obs_cutpoints,
 //                                             cutpoint_index)          (Xu, random cutpoints: C[c] a matrix)
 //       (locations[s, c] - C[c][s, k]) / scales[s, c], or locations[s, c] - C[c][s, k], when k != -1;
-//   * nico_map_latent_surv_to_fixed_hetero_C(C, locations, [scales,] n_studies, n_obs_cutpoints, cutpoint_index)
+//   * fused_map_latent_surv_to_fixed_hetero_C(C, locations, [scales,] n_studies, n_obs_cutpoints, cutpoint_index)
 //                                                                       (Xu, fixed cutpoints: C[c] a vector)
 //       -(C[c][k] - locations[s, c]) / scales[s, c], or locations[s, c] - C[c][k], when k != -1;
-//   * nico_map_latent_surv_prob_to_fixed_C_HSROC(C, locations, scales, n_studies, n_obs_cutpoints,
+//   * fused_map_latent_surv_prob_to_fixed_C_HSROC(C, locations, scales, n_studies, n_obs_cutpoints,
 //                                                cutpoint_index)
 //                                                                       (R&G, fixed cutpoints: C a vector)
 //       -(C[k] + locations[s, c]) * scales[s, c], when k != 0 and k != -1;
-//   * nico_map_latent_surv_prob_to_random_C_HSROC(C, n_thr, locations, scales, n_studies, n_obs_cutpoints,
+//   * fused_map_latent_surv_prob_to_random_C_HSROC(C, n_thr, locations, scales, n_studies, n_obs_cutpoints,
 //                                                 cutpoint_index)       (R&G, random cutpoints: C a matrix)
 //       -(C[s, k] + locations[s, c]) * scales[s, c], when k != 0 and k != -1;
 //
 // and the factorised binomial log-likelihood, { log_lik, cond_prob, surv_prob } (each an array of 2 matrices
 // [n_studies, n_thr]):
 //
-//   * nico_compute_log_lik_binomial_fact_data(latent_surv, use_probit_link, n_thr, n_studies, x_2, n, N_total,
+//   * fused_compute_log_lik_binomial_fact_data(latent_surv, use_probit_link, n_thr, n_studies, x_2, n, N_total,
 //                                             n_obs_cutpoints, K_fold_CV_indicator)
-//   * nico_compute_NMA_log_lik_binomial_fact_data(latent_surv, use_probit_link, n_thr, n_studies, x_2, n,
+//   * fused_compute_NMA_log_lik_binomial_fact_data(latent_surv, use_probit_link, n_thr, n_studies, x_2, n,
 //                                                 N_total, n_obs_cutpoints, indicator_index_test_t_in_study,
 //                                                 K_fold_CV_indicator)
 //       surv_prob[c] = Phi(latent_surv[c]) (use_probit_link = 1; 0 below -37.5, 1 from 8.25, as safe_Phi) or
@@ -47,51 +47,51 @@
 //                      probability at the probability kept within [1e-10, 1 - 1e-10], every constant included
 //                      (log choose(n, x)), as safe_binomial_lpmf.
 //
-// Phi and inv_logit with BayesMVP's SIMD kernels over every element at once (the same kernels as nico_Phi and
-// nico_inv_logit), the logs of the probabilities of all the terms with the log kernel and the double-precision
-// log1m (as nico_binomial_lpmf), and log choose(n, x) from nico_binomial_lpmf's table of log factorials. The
+// Phi and inv_logit with BayesMVP's SIMD kernels over every element at once (the same kernels as fused_Phi and
+// fused_inv_logit), the logs of the probabilities of all the terms with the log kernel and the double-precision
+// log1m (as fused_binomial_lpmf), and log choose(n, x) from fused_binomial_lpmf's table of log factorials. The
 // latent values are computed with the same arithmetic, in the same order, as the Stan functions (so they are the
 // same doubles).
 //
 // Declared in the Stan functions block (no body; stanc --allow-undefined) as any of
 //
-//     array[] matrix nico_map_latent_surv_to_random_hetero_C(data array[] matrix C, data int n_thr,
+//     array[] matrix fused_map_latent_surv_to_random_hetero_C(data array[] matrix C, data int n_thr,
 //                                                            data matrix locations, data matrix scales,
 //                                                            data int n_studies,
 //                                                            data array[] int n_obs_cutpoints,
 //                                                            data array[,,] int cutpoint_index);
-//     array[] matrix nico_map_latent_surv_to_random_hetero_C(data array[] matrix C, data int n_thr,
+//     array[] matrix fused_map_latent_surv_to_random_hetero_C(data array[] matrix C, data int n_thr,
 //                                                            data matrix locations,
 //                                                            data int n_studies,
 //                                                            data array[] int n_obs_cutpoints,
 //                                                            data array[,,] int cutpoint_index);
-//     array[] matrix nico_map_latent_surv_to_fixed_hetero_C(data array[] vector C,
+//     array[] matrix fused_map_latent_surv_to_fixed_hetero_C(data array[] vector C,
 //                                                           data matrix locations, data matrix scales,
 //                                                           data int n_studies,
 //                                                           data array[] int n_obs_cutpoints,
 //                                                           data array[,,] int cutpoint_index);
-//     array[] matrix nico_map_latent_surv_to_fixed_hetero_C(data array[] vector C,
+//     array[] matrix fused_map_latent_surv_to_fixed_hetero_C(data array[] vector C,
 //                                                           data matrix locations,
 //                                                           data int n_studies,
 //                                                           data array[] int n_obs_cutpoints,
 //                                                           data array[,,] int cutpoint_index);
-//     array[] matrix nico_map_latent_surv_prob_to_fixed_C_HSROC(data vector C,
+//     array[] matrix fused_map_latent_surv_prob_to_fixed_C_HSROC(data vector C,
 //                                                               data matrix locations, data matrix scales,
 //                                                               data int n_studies,
 //                                                               data array[] int n_obs_cutpoints,
 //                                                               data array[,,] int cutpoint_index);
-//     array[] matrix nico_map_latent_surv_prob_to_random_C_HSROC(data matrix C, data int n_thr,
+//     array[] matrix fused_map_latent_surv_prob_to_random_C_HSROC(data matrix C, data int n_thr,
 //                                                                data matrix locations, data matrix scales,
 //                                                                data int n_studies,
 //                                                                data array[] int n_obs_cutpoints,
 //                                                                data array[,,] int cutpoint_index);
-//     array[,] matrix nico_compute_log_lik_binomial_fact_data(data array[] matrix latent_surv,
+//     array[,] matrix fused_compute_log_lik_binomial_fact_data(data array[] matrix latent_surv,
 //                                                             data int use_probit_link, data int n_thr,
 //                                                             data int n_studies, data array[,,] int x_2,
 //                                                             data array[,,] int n, data array[,] int N_total,
 //                                                             data array[] int n_obs_cutpoints,
 //                                                             data array[] int K_fold_CV_indicator);
-//     array[,] matrix nico_compute_NMA_log_lik_binomial_fact_data(data array[] matrix latent_surv,
+//     array[,] matrix fused_compute_NMA_log_lik_binomial_fact_data(data array[] matrix latent_surv,
 //                                                                 data int use_probit_link, data int n_thr,
 //                                                                 data int n_studies, data array[,,] int x_2,
 //                                                                 data array[,,] int n,
@@ -235,7 +235,7 @@ inline std::vector<std::vector<Eigen::Matrix<double, -1, -1>>> factorised_binomi
 namespace fused_stan_math {
 
 template <typename T_C, typename T_locations, typename T_scales>
-inline std::vector<Eigen::Matrix<double, -1, -1>> nico_map_latent_surv_to_random_hetero_C(
+inline std::vector<Eigen::Matrix<double, -1, -1>> fused_map_latent_surv_to_random_hetero_C(
         const std::vector<T_C>& C, const int n_thr, const T_locations& locations, const T_scales& scales,
         const int n_studies, const std::vector<int>& n_obs_cutpoints,
         const std::vector<std::vector<std::vector<int>>>& cutpoint_index, std::ostream* /*pstream__*/) {
@@ -254,13 +254,13 @@ inline std::vector<Eigen::Matrix<double, -1, -1>> nico_map_latent_surv_to_random
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_map_latent_surv_to_random_hetero_C;
+using fused_stan_math::fused_map_latent_surv_to_random_hetero_C;
 //
 // (Xu, random cutpoints, without scales: scale 1)
 namespace fused_stan_math {
 
 template <typename T_C, typename T_locations>
-inline std::vector<Eigen::Matrix<double, -1, -1>> nico_map_latent_surv_to_random_hetero_C(
+inline std::vector<Eigen::Matrix<double, -1, -1>> fused_map_latent_surv_to_random_hetero_C(
         const std::vector<T_C>& C, const int n_thr, const T_locations& locations, const int n_studies,
         const std::vector<int>& n_obs_cutpoints, const std::vector<std::vector<std::vector<int>>>& cutpoint_index,
         std::ostream* /*pstream__*/) {
@@ -278,13 +278,13 @@ inline std::vector<Eigen::Matrix<double, -1, -1>> nico_map_latent_surv_to_random
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_map_latent_surv_to_random_hetero_C;
+using fused_stan_math::fused_map_latent_surv_to_random_hetero_C;
 //
 // (Xu, fixed cutpoints, with scales)
 namespace fused_stan_math {
 
 template <typename T_C, typename T_locations, typename T_scales>
-inline std::vector<Eigen::Matrix<double, -1, -1>> nico_map_latent_surv_to_fixed_hetero_C(
+inline std::vector<Eigen::Matrix<double, -1, -1>> fused_map_latent_surv_to_fixed_hetero_C(
         const std::vector<T_C>& C, const T_locations& locations, const T_scales& scales, const int n_studies,
         const std::vector<int>& n_obs_cutpoints, const std::vector<std::vector<std::vector<int>>>& cutpoint_index,
         std::ostream* /*pstream__*/) {
@@ -304,13 +304,13 @@ inline std::vector<Eigen::Matrix<double, -1, -1>> nico_map_latent_surv_to_fixed_
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_map_latent_surv_to_fixed_hetero_C;
+using fused_stan_math::fused_map_latent_surv_to_fixed_hetero_C;
 //
 // (Xu, fixed cutpoints, without scales)
 namespace fused_stan_math {
 
 template <typename T_C, typename T_locations>
-inline std::vector<Eigen::Matrix<double, -1, -1>> nico_map_latent_surv_to_fixed_hetero_C(
+inline std::vector<Eigen::Matrix<double, -1, -1>> fused_map_latent_surv_to_fixed_hetero_C(
         const std::vector<T_C>& C, const T_locations& locations, const int n_studies,
         const std::vector<int>& n_obs_cutpoints, const std::vector<std::vector<std::vector<int>>>& cutpoint_index,
         std::ostream* /*pstream__*/) {
@@ -330,13 +330,13 @@ inline std::vector<Eigen::Matrix<double, -1, -1>> nico_map_latent_surv_to_fixed_
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_map_latent_surv_to_fixed_hetero_C;
+using fused_stan_math::fused_map_latent_surv_to_fixed_hetero_C;
 //
 // (R&G, fixed cutpoints: one vector C for both classes)
 namespace fused_stan_math {
 
 template <typename T_C, typename T_locations, typename T_scales, stan::require_eigen_vector_t<T_C>* = nullptr>
-inline std::vector<Eigen::Matrix<double, -1, -1>> nico_map_latent_surv_prob_to_fixed_C_HSROC(
+inline std::vector<Eigen::Matrix<double, -1, -1>> fused_map_latent_surv_prob_to_fixed_C_HSROC(
         const T_C& C, const T_locations& locations, const T_scales& scales, const int n_studies,
         const std::vector<int>& n_obs_cutpoints, const std::vector<std::vector<std::vector<int>>>& cutpoint_index,
         std::ostream* /*pstream__*/) {
@@ -356,14 +356,14 @@ inline std::vector<Eigen::Matrix<double, -1, -1>> nico_map_latent_surv_prob_to_f
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_map_latent_surv_prob_to_fixed_C_HSROC;
+using fused_stan_math::fused_map_latent_surv_prob_to_fixed_C_HSROC;
 //
 // (R&G, random cutpoints: one matrix C [n_studies, n_thr] for both classes)
 namespace fused_stan_math {
 
 template <typename T_C, typename T_locations, typename T_scales,
           stan::require_eigen_matrix_dynamic_t<T_C>* = nullptr>
-inline std::vector<Eigen::Matrix<double, -1, -1>> nico_map_latent_surv_prob_to_random_C_HSROC(
+inline std::vector<Eigen::Matrix<double, -1, -1>> fused_map_latent_surv_prob_to_random_C_HSROC(
         const T_C& C, const int n_thr, const T_locations& locations, const T_scales& scales, const int n_studies,
         const std::vector<int>& n_obs_cutpoints, const std::vector<std::vector<std::vector<int>>>& cutpoint_index,
         std::ostream* /*pstream__*/) {
@@ -381,13 +381,13 @@ inline std::vector<Eigen::Matrix<double, -1, -1>> nico_map_latent_surv_prob_to_r
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_map_latent_surv_prob_to_random_C_HSROC;
+using fused_stan_math::fused_map_latent_surv_prob_to_random_C_HSROC;
 //
 // (the factorised binomial log-likelihood of a meta-analysis)
 namespace fused_stan_math {
 
 template <typename T_latent_surv>
-inline std::vector<std::vector<Eigen::Matrix<double, -1, -1>>> nico_compute_log_lik_binomial_fact_data(
+inline std::vector<std::vector<Eigen::Matrix<double, -1, -1>>> fused_compute_log_lik_binomial_fact_data(
         const std::vector<T_latent_surv>& latent_surv, const int use_probit_link, const int n_thr,
         const int n_studies, const std::vector<std::vector<std::vector<int>>>& x_2,
         const std::vector<std::vector<std::vector<int>>>& n, const std::vector<std::vector<int>>& /*N_total*/,
@@ -402,13 +402,13 @@ inline std::vector<std::vector<Eigen::Matrix<double, -1, -1>>> nico_compute_log_
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_compute_log_lik_binomial_fact_data;
+using fused_stan_math::fused_compute_log_lik_binomial_fact_data;
 //
 // (the factorised binomial log-likelihood of one test of a network meta-analysis: the studies with the test)
 namespace fused_stan_math {
 
 template <typename T_latent_surv>
-inline std::vector<std::vector<Eigen::Matrix<double, -1, -1>>> nico_compute_NMA_log_lik_binomial_fact_data(
+inline std::vector<std::vector<Eigen::Matrix<double, -1, -1>>> fused_compute_NMA_log_lik_binomial_fact_data(
         const std::vector<T_latent_surv>& latent_surv, const int use_probit_link, const int n_thr,
         const int n_studies, const std::vector<std::vector<std::vector<int>>>& x_2,
         const std::vector<std::vector<std::vector<int>>>& n, const std::vector<std::vector<int>>& /*N_total*/,
@@ -428,7 +428,7 @@ inline std::vector<std::vector<Eigen::Matrix<double, -1, -1>>> nico_compute_NMA_
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_compute_NMA_log_lik_binomial_fact_data;
+using fused_stan_math::fused_compute_NMA_log_lik_binomial_fact_data;
 
 
 

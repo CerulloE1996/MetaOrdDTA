@@ -7,7 +7,7 @@
 //
 // -| --------- NicoSIMD log determinant of the Jacobian of ordered cutpoints built from raw differences ---------
 //
-//     nico_log_det_jac_of_cuts_from_raw_diffs(C_raw, softplus)
+//     fused_log_det_jac_of_cuts_from_raw_diffs(C_raw, softplus)
 //
 // For a set of K ordered cutpoints c built from K unconstrained values r (a vector or row_vector C_raw, or each
 // row of a matrix C_raw: one set per group, e.g. the random cutpoints of each study) as
@@ -32,21 +32,21 @@
 //
 // in ONE autodiff node for all the sets, in place of one node per element plus a sum per set: the sum with
 // Eigen's SIMD reduction (AVX2 / AVX-512 packets), and in the softplus case BayesMVP's SIMD kernels for
-// log_inv_logit (the value, the same kernel as nico_log_inv_logit) and inv_logit (the derivative,
-// d / d r log_inv_logit(r) = inv_logit(-r), the same kernel as nico_inv_logit), computed in the forward pass and
+// log_inv_logit (the value, the same kernel as fused_log_inv_logit) and inv_logit (the derivative,
+// d / d r log_inv_logit(r) = inv_logit(-r), the same kernel as fused_inv_logit), computed in the forward pass and
 // kept on the arena, so that the reverse pass is the adjoint update alone. d / d r_1 = 0 (the first cutpoint is
 // r_1 itself); d / d r_k = 1 (softplus = 0) or inv_logit(-r_k) (softplus = 1), k = 2, ..., K.
 //
 // Declared in the Stan functions block (no body; stanc --allow-undefined) as any of
 //
-//     real nico_log_det_jac_of_cuts_from_raw_diffs(vector C_raw, data int softplus);
-//     real nico_log_det_jac_of_cuts_from_raw_diffs(row_vector C_raw, data int softplus);
-//     real nico_log_det_jac_of_cuts_from_raw_diffs(matrix C_raw, data int softplus);
+//     real fused_log_det_jac_of_cuts_from_raw_diffs(vector C_raw, data int softplus);
+//     real fused_log_det_jac_of_cuts_from_raw_diffs(row_vector C_raw, data int softplus);
+//     real fused_log_det_jac_of_cuts_from_raw_diffs(matrix C_raw, data int softplus);
 //
-// and used as   target += nico_log_det_jac_of_cuts_from_raw_diffs(C_raw, softplus);
-// The same function is also given under the name of MetaOrdDTA's Stan function with nico_ in front,
+// and used as   target += fused_log_det_jac_of_cuts_from_raw_diffs(C_raw, softplus);
+// The same function is also given under the name of MetaOrdDTA's Stan function with fused_ in front,
 //
-//     real nico_raw_C_to_C_log_det_J_lp(vector C_raw, data int softplus);   (also row_vector and matrix)
+//     real fused_raw_C_to_C_log_det_J_lp(vector C_raw, data int softplus);   (also row_vector and matrix)
 //
 // (an _lp function, so stanc passes it lp__ and lp_accum__, which it does not use).
 // It uses the namespace fused_stan_math and the kernels of stan_external_functions.hpp, which it includes
@@ -66,12 +66,12 @@
 #include <vector>
 
 // ---- the Stan-facing function (global scope; stanc calls it as
-//      nico_log_det_jac_of_cuts_from_raw_diffs(C_raw, softplus, pstream__)): C_raw a vector or
+//      fused_log_det_jac_of_cuts_from_raw_diffs(C_raw, softplus, pstream__)): C_raw a vector or
 //      row_vector (one set of cutpoints) or a matrix (one set per row)
 namespace fused_stan_math {
 
 template <typename T_C_raw, stan::require_eigen_t<T_C_raw>* = nullptr>
-inline stan::return_type_t<T_C_raw> nico_log_det_jac_of_cuts_from_raw_diffs(
+inline stan::return_type_t<T_C_raw> fused_log_det_jac_of_cuts_from_raw_diffs(
         const T_C_raw& C_raw, const int softplus, std::ostream* /*pstream__*/) {
 
     using stan::math::var;
@@ -147,42 +147,42 @@ inline stan::return_type_t<T_C_raw> nico_log_det_jac_of_cuts_from_raw_diffs(
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_log_det_jac_of_cuts_from_raw_diffs;
+using fused_stan_math::fused_log_det_jac_of_cuts_from_raw_diffs;
 //
 // ---- the same function under the name the MetaOrdDTA NMA Stan files declare:
-//          real nico_log_det_jacobian_of_cutpoints_from_raw_differences(vector C_raw, data int softplus);
-//          real nico_log_det_jacobian_of_cutpoints_from_raw_differences(matrix C_raw, data int softplus);
+//          real fused_log_det_jacobian_of_cutpoints_from_raw_differences(vector C_raw, data int softplus);
+//          real fused_log_det_jacobian_of_cutpoints_from_raw_differences(matrix C_raw, data int softplus);
 namespace fused_stan_math {
 
 template <typename T_C_raw, stan::require_eigen_t<T_C_raw>* = nullptr>
-inline stan::return_type_t<T_C_raw> nico_log_det_jacobian_of_cutpoints_from_raw_differences(
+inline stan::return_type_t<T_C_raw> fused_log_det_jacobian_of_cutpoints_from_raw_differences(
         const T_C_raw& C_raw, const int softplus, std::ostream* pstream__) {
 
-    return nico_log_det_jac_of_cuts_from_raw_diffs(C_raw, softplus, pstream__);
+    return fused_log_det_jac_of_cuts_from_raw_diffs(C_raw, softplus, pstream__);
 
 }
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_log_det_jacobian_of_cutpoints_from_raw_differences;
+using fused_stan_math::fused_log_det_jacobian_of_cutpoints_from_raw_differences;
 //
-// ---- the same function under the name of MetaOrdDTA's Stan function with nico_ in front (an _lp function: stanc
-//      calls it as nico_raw_C_to_C_log_det_J_lp<propto__>(C_raw, softplus, lp__, lp_accum__, pstream__))
+// ---- the same function under MetaOrdDTA's Stan name with fused_ in front (an _lp function: stanc
+//      calls it as fused_raw_C_to_C_log_det_J_lp<propto__>(C_raw, softplus, lp__, lp_accum__, pstream__))
 namespace fused_stan_math {
 
 template <bool propto__, typename T_C_raw, typename T_lp, typename T_lp_accum,
           stan::require_eigen_t<T_C_raw>* = nullptr>
-inline stan::return_type_t<T_C_raw> nico_raw_C_to_C_log_det_J_lp(const T_C_raw& C_raw, const int softplus,
+inline stan::return_type_t<T_C_raw> fused_raw_C_to_C_log_det_J_lp(const T_C_raw& C_raw, const int softplus,
                                                                  T_lp& /*lp__*/, T_lp_accum& /*lp_accum__*/,
                                                                  std::ostream* pstream__) {
 
-    return nico_log_det_jac_of_cuts_from_raw_diffs(C_raw, softplus, pstream__);
+    return fused_log_det_jac_of_cuts_from_raw_diffs(C_raw, softplus, pstream__);
 
 }
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_raw_C_to_C_log_det_J_lp;
+using fused_stan_math::fused_raw_C_to_C_log_det_J_lp;
 
 
 
@@ -225,7 +225,7 @@ static constexpr double HALF_LOG_TWO_PI = 0.91893853320467274178;
 template <bool include_const>
 inline double normal_term_val_and_adj(const double y, const double mu, const double sd, double& d_y) {
     if (sd <= 0.0 || !std::isfinite(sd)) {
-        stan::math::check_positive_finite("nico_ord_biv_fixedthr_model_lp", "Scale parameter", sd);
+        stan::math::check_positive_finite("fused_ord_biv_fixedthr_model_lp", "Scale parameter", sd);
     }
     const double inv_sd = 1.0 / sd;
     const double z = (y - mu) * inv_sd;
@@ -238,14 +238,14 @@ inline double normal_term_val_and_adj(const double y, const double mu, const dou
 template <bool include_const>
 inline double lkj_2x2_val_and_adj(const double L00, const double L01, const double L11,
                                   const double eta, double& d_L11) {
-    stan::math::check_positive("nico_ord_biv_fixedthr_model_lp", "Shape parameter", eta);
+    stan::math::check_positive("fused_ord_biv_fixedthr_model_lp", "Shape parameter", eta);
     if (!(L00 > 0.0) || !(L11 > 0.0) || (L01 != 0.0)) {
         Eigen::Matrix<double, 2, 2> bad_L;
         bad_L << L00, L01, 0.0, L11;
-        stan::math::check_cholesky_factor("nico_ord_biv_fixedthr_model_lp", "Random variable", bad_L);
+        stan::math::check_cholesky_factor("fused_ord_biv_fixedthr_model_lp", "Random variable", bad_L);
     }
     double lp = 0.0;
-    if constexpr (include_const) lp += nico_lkj_constant_from_data(eta, 2U, nullptr);
+    if constexpr (include_const) lp += fused_lkj_constant_from_data(eta, 2U, nullptr);
     d_L11 = 0.0;
     if (eta != 1.0) {
         const double coef = 2.0 * eta - 2.0;
@@ -345,7 +345,7 @@ inline void eval_class_cutpoint_prior(
         for (int j = 0; j < m_c; ++j) {
             const int p0 = chosen_c[j] - 1;
             if (p0 < 0 || p0 >= K) {
-                throw std::domain_error("nico_ord_biv_fixedthr_model_lp: chosen_cutoffs out of bounds");
+                throw std::domain_error("fused_ord_biv_fixedthr_model_lp: chosen_cutoffs out of bounds");
             }
             cb.chosen_idx[j] = p0;
             cb.d_x_chosen[j] = 0.0;
@@ -357,12 +357,12 @@ inline void eval_class_cutpoint_prior(
         if (use_Se_Sp_prior == 2) {
             for (int j = 0; j < m_c; ++j) x_ch[j] = cb.x_shift[cb.chosen_idx[j]];
             Se_Sp::values_of_the_hyperparameters(
-                "nico_ord_biv_fixedthr_model_lp",
+                "fused_ord_biv_fixedthr_model_lp",
                 alpha_seg_c.head(m_c + 1), Se_Sp_prior_type,
                 dir_A_c.head(m_c + 1), beta_td_c.topRows(m_c), link_ms_td_c.topRows(m_c),
                 sp_buf);
             if (!Se_Sp::values_of_one_set(x_ch, link, sp_buf)) {
-                throw std::domain_error("nico_ord_biv_fixedthr_model_lp: cutpoints at chosen cutoffs not increasing");
+                throw std::domain_error("fused_ord_biv_fixedthr_model_lp: cutpoints at chosen cutoffs not increasing");
             }
             total += Se_Sp::dirichlet_of_the_segments(sp_buf.segments, sp_buf.log_q, sp_buf.log_f, m_c,
                                                       include_consts, -1.0, cb.d_x_chosen, nullptr);
@@ -377,13 +377,13 @@ inline void eval_class_cutpoint_prior(
             const int type_of_H = (Se_Sp_prior_type == 1 || Se_Sp_prior_type == 2) ? Se_Sp_prior_type : 4;
             Eigen::VectorXd ones_unused = Eigen::VectorXd::Ones(m_c + 1);
             Se_Sp::values_of_the_hyperparameters(
-                "nico_ord_biv_fixedthr_model_lp",
+                "fused_ord_biv_fixedthr_model_lp",
                 ones_unused, type_of_H,
                 dir_A_c.head(m_c + 1), beta_td_c.topRows(m_c), link_ms_td_c.topRows(m_c),
                 sp_buf);
             if (type_of_H == 1) {
                 if (!Se_Sp::values_of_one_set(x_ch, link, sp_buf)) {
-                    throw std::domain_error("nico_ord_biv_fixedthr_model_lp: x_chosen is not increasing");
+                    throw std::domain_error("fused_ord_biv_fixedthr_model_lp: x_chosen is not increasing");
                 }
             } else {
                 Se_Sp::values_of_one_set_in_any_order(x_ch, link, sp_buf);
@@ -412,7 +412,7 @@ inline void eval_class_cutpoint_prior(
 //         C[0] = C_raw[0]; C[k] = C[k - 1] + (softplus == 1 ? log1p_exp(C_raw[k]) : exp(C_raw[k]))
 template <typename T_C_raw, stan::require_eigen_col_vector_t<T_C_raw>* = nullptr>
 inline Eigen::Matrix<stan::return_type_t<T_C_raw>, -1, 1>
-nico_construct_C(const T_C_raw& C_raw, const int softplus, std::ostream* /*pstream__*/) {
+fused_construct_C(const T_C_raw& C_raw, const int softplus, std::ostream* /*pstream__*/) {
     using stan::math::var;
     const int K = static_cast<int>(C_raw.size());
     const auto& C_raw_ref = stan::math::to_ref(C_raw);
@@ -480,7 +480,7 @@ template <bool propto__,
           typename T_Craw1, typename T_Craw2, typename T_C1, typename T_C2, typename T_Xbeta,
           typename T_lp, typename T_lp_accum>
 inline stan::return_type_t<T_bmu, T_bsd, T_L, T_bz, T_Craw1, T_Craw2, T_C1, T_C2, T_Xbeta>
-nico_ord_biv_fixedthr_model_lp(
+fused_ord_biv_fixedthr_model_lp(
         const T_bmu& beta_mu,
         const T_bsd& beta_SD,
         const T_L& beta_L_Omega,
@@ -877,5 +877,5 @@ nico_ord_biv_fixedthr_model_lp(
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_construct_C;
-using fused_stan_math::nico_ord_biv_fixedthr_model_lp;
+using fused_stan_math::fused_construct_C;
+using fused_stan_math::fused_ord_biv_fixedthr_model_lp;

@@ -11,7 +11,7 @@ namespace fused_stan_math {
 
 template <bool propto__, typename T_y>
 inline stan::return_type_t<T_y>
-nico_beta_lpdf(const T_y& y,
+fused_beta_lpdf(const T_y& y,
                const double alpha,
                const double beta,
                std::ostream* pstream__) {
@@ -51,14 +51,14 @@ nico_beta_lpdf(const T_y& y,
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_beta_lpdf;
+using fused_stan_math::fused_beta_lpdf;
 
 namespace fused_stan_math {
 
 template <bool propto__, typename T_y, typename T_alpha, typename T_beta,
           stan::require_all_eigen_col_vector_t<T_y, T_alpha, T_beta>* = nullptr>
 inline stan::return_type_t<T_y, T_alpha, T_beta>
-nico_beta_lpdf(const T_y& y,
+fused_beta_lpdf(const T_y& y,
                const T_alpha& alpha,
                const T_beta& beta,
                std::ostream* pstream__) {
@@ -77,7 +77,7 @@ nico_beta_lpdf(const T_y& y,
                                               || include_summand<propto__, T_beta>::value
                                               || include_summand<propto__, T_alpha, T_beta>::value
                                               || !stan::is_constant_all<T_alpha, T_beta>::value;
-    double* scratch = nico_scratch_of_doubles(3 * static_cast<std::size_t>(N_8)
+    double* scratch = fused_scratch_of_doubles(3 * static_cast<std::size_t>(N_8)
                                               + (lgamma_or_digamma_needed ? 3 : 1)
                                                 * static_cast<std::size_t>(N3_8));
     Eigen::Map<Eigen::VectorXd> y_values(scratch, N);
@@ -148,4 +148,4 @@ nico_beta_lpdf(const T_y& y,
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_beta_lpdf;
+using fused_stan_math::fused_beta_lpdf;

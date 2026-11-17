@@ -7,9 +7,9 @@
 //
 // -| --------- NicoSIMD induced-Dirichlet prior of ordered cutpoints, a Stan external function ----------------
 //
-//     nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf(C | alpha, link)
+//     fused_induced_dirichlet_prior_of_ordered_cutpoints_lpdf(C | alpha, link)
 //       = J(C) + dirichlet_lpdf(p | alpha),
-//     nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf(C | alpha, link, location)
+//     fused_induced_dirichlet_prior_of_ordered_cutpoints_lpdf(C | alpha, link, location)
 //       = the same at the latent location: sum over the rows r of C of J(C_r - location) +
 //         dirichlet_lpdf(p_r | alpha), with p_r the category probabilities of C_r - location,
 //
@@ -39,8 +39,8 @@
 // (with propto; every constant, lgamma(sum(alpha)) - sum(lgamma(alpha)) of a data alpha and -0.5 log(2 pi) per
 // value, without it, as Stan's _lpdf; the lgamma terms of a parameter alpha are always kept, as Stan's), in ONE
 // autodiff node for all the sets in place of about K + 6 per set: BayesMVP's SIMD kernels for Phi, inv_logit,
-// exp, log, log_inv_logit and log1m_inv_logit (the same kernels as nico_Phi, nico_inv_logit,
-// nico_log_inv_logit and nico_log1m_inv_logit), and the element-wise arithmetic in branch-free loops (each
+// exp, log, log_inv_logit and log1m_inv_logit (the same kernels as fused_Phi, fused_inv_logit,
+// fused_log_inv_logit and fused_log1m_inv_logit), and the element-wise arithmetic in branch-free loops (each
 // category reads only its own cumulative probability and its predecessor's, so there is no recurrence).
 // d / d c_k = (d lp / d F_k) f(c_k) + d J / d c_k, with d lp / d F_k = (alpha_k - 1) / p_k - (alpha_(k+1) - 1)
 // / p_(k+1), f = phi or F (1 - F), and d J / d c_k = - c_k (probit) or 1 - 2 F_k (logit) (c at the location);
@@ -49,12 +49,12 @@
 //
 // Declared in the Stan functions block (no body; stanc --allow-undefined) as any of
 //
-//     real nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf(vector C, data vector alpha, data int link);
-//     real nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf(vector C, vector alpha, data int link,
+//     real fused_induced_dirichlet_prior_of_ordered_cutpoints_lpdf(vector C, data vector alpha, data int link);
+//     real fused_induced_dirichlet_prior_of_ordered_cutpoints_lpdf(vector C, vector alpha, data int link,
 //                                                                 data real location);
-//     real nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf(row_vector C, vector alpha, data int link,
+//     real fused_induced_dirichlet_prior_of_ordered_cutpoints_lpdf(row_vector C, vector alpha, data int link,
 //                                                                 data real location);
-//     real nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf(matrix C, vector alpha, data int link,
+//     real fused_induced_dirichlet_prior_of_ordered_cutpoints_lpdf(matrix C, vector alpha, data int link,
 //                                                                 data real location);
 //
 // It uses the namespace fused_stan_math and the kernels of stan_external_functions.hpp, which it includes
@@ -80,7 +80,7 @@
 namespace fused_stan_math {
 namespace induced_dirichlet_prior {
 
-static constexpr const char* function_name = "nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf";
+static constexpr const char* function_name = "fused_induced_dirichlet_prior_of_ordered_cutpoints_lpdf";
 static constexpr double half_log_of_two_pi = 0.91893853320467274178;
 
 
@@ -91,7 +91,7 @@ static constexpr double half_log_of_two_pi = 0.91893853320467274178;
 //      log_p (2 K + 1: the log of the K + 1 category probabilities, then K values of work space), J_terms (K: log
 //      f(x_k) without the constant); its log probability, without the lgamma terms of alpha (added once by the
 //      caller), into sum. Every category probability is computed on the LOG scale, with BayesMVP's SIMD kernels
-//      (nico_log_Phi with its log-scale tails, log_inv_logit, log1m_exp), no clamps:
+//      (fused_log_Phi with its log-scale tails, log_inv_logit, log1m_exp), no clamps:
 //          log p_1     = log F(x_1),      log p_(K+1) = log(1 - F(x_K)),
 //          log p_k     = log F(x_k) + log1m_exp(log F(x_(k-1)) - log F(x_k))          (x_(k-1) < 0),
 //                      = log S(x_(k-1)) + log1m_exp(log S(x_k) - log S(x_(k-1)))      (x_(k-1) >= 0, S = 1 - F),
@@ -188,13 +188,13 @@ inline void run_the_checks_of_Stan(const T_p& p_values, const T_alpha& alpha) {
 
 
 // ---- the Stan-facing function, at a latent location (global scope; stanc calls it as
-//      nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf<propto__>(C, alpha, link, location, pstream__)):
+//      fused_induced_dirichlet_prior_of_ordered_cutpoints_lpdf<propto__>(C, alpha, link, location, pstream__)):
 //      C a vector or row_vector (one set of cutpoints) or a matrix (one set per row); alpha data or parameters
 namespace fused_stan_math {
 
 template <bool propto, typename T_C, typename T_alpha, stan::require_eigen_t<T_C>* = nullptr,
           stan::require_eigen_col_vector_t<T_alpha>* = nullptr>
-inline stan::return_type_t<T_C, T_alpha> nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf(
+inline stan::return_type_t<T_C, T_alpha> fused_induced_dirichlet_prior_of_ordered_cutpoints_lpdf(
         const T_C& C, const T_alpha& alpha, const int link, const double location, std::ostream* /*pstream__*/) {
 
     namespace prior = fused_stan_math::induced_dirichlet_prior;
@@ -322,21 +322,21 @@ inline stan::return_type_t<T_C, T_alpha> nico_induced_dirichlet_prior_of_ordered
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf;
+using fused_stan_math::fused_induced_dirichlet_prior_of_ordered_cutpoints_lpdf;
 
 
 
 
 // ---- the Stan-facing function at the latent location 0 (stanc calls it as
-//      nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf<propto__>(C, alpha, link, pstream__))
+//      fused_induced_dirichlet_prior_of_ordered_cutpoints_lpdf<propto__>(C, alpha, link, pstream__))
 namespace fused_stan_math {
 
 template <bool propto, typename T_C, typename T_alpha, stan::require_eigen_t<T_C>* = nullptr,
           stan::require_eigen_col_vector_t<T_alpha>* = nullptr>
-inline stan::return_type_t<T_C, T_alpha> nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf(
+inline stan::return_type_t<T_C, T_alpha> fused_induced_dirichlet_prior_of_ordered_cutpoints_lpdf(
         const T_C& C, const T_alpha& alpha, const int link, std::ostream* pstream__) {
 
-    return nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf<propto>(C, alpha, link, 0.0, pstream__);
+    return fused_induced_dirichlet_prior_of_ordered_cutpoints_lpdf<propto>(C, alpha, link, 0.0, pstream__);
 
 }
 
@@ -345,7 +345,7 @@ template <bool propto, typename T_C, typename T_alpha, typename T_loc,
           stan::require_eigen_col_vector_t<T_C>* = nullptr,
           stan::require_eigen_col_vector_t<T_alpha>* = nullptr>
 inline stan::return_type_t<T_C, T_alpha>
-nico_induced_dirichlet_prior_of_ordered_cutpoints_ragged_lpdf(
+fused_induced_dirichlet_prior_of_ordered_cutpoints_ragged_lpdf(
         const T_C& C,
         const T_alpha& alpha,
         const std::vector<int>& n_cutpoints_per_group,
@@ -358,7 +358,7 @@ nico_induced_dirichlet_prior_of_ordered_cutpoints_ragged_lpdf(
 
     namespace prior = fused_stan_math::induced_dirichlet_prior;
     using stan::math::var;
-    static constexpr const char* fn_name = "nico_induced_dirichlet_prior_of_ordered_cutpoints_ragged_lpdf";
+    static constexpr const char* fn_name = "fused_induced_dirichlet_prior_of_ordered_cutpoints_ragged_lpdf";
     constexpr bool C_is_constant     = stan::is_constant_all<T_C>::value;
     constexpr bool alpha_is_constant = stan::is_constant_all<T_alpha>::value;
     constexpr bool include_the_lgamma_terms = !propto || !alpha_is_constant;
@@ -633,8 +633,8 @@ nico_induced_dirichlet_prior_of_ordered_cutpoints_ragged_lpdf(
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf;
-using fused_stan_math::nico_induced_dirichlet_prior_of_ordered_cutpoints_ragged_lpdf;
+using fused_stan_math::fused_induced_dirichlet_prior_of_ordered_cutpoints_lpdf;
+using fused_stan_math::fused_induced_dirichlet_prior_of_ordered_cutpoints_ragged_lpdf;
 
 
 
@@ -671,7 +671,7 @@ template <bool propto,
           stan::require_eigen_t<T_loc>* = nullptr,
           stan::require_eigen_col_vector_t<T_blp>* = nullptr>
 inline stan::return_type_t<T_loc, T_C, T_alpha>
-nico_ord_biv_randthr_ind_dir_and_binomial_lpmf(
+fused_ord_biv_randthr_ind_dir_and_binomial_lpmf(
         const std::vector<std::vector<std::vector<int>>>& x_2,
         const std::vector<std::vector<std::vector<int>>>& n_prev,
         const T_loc& Xbeta,
@@ -693,7 +693,7 @@ nico_ord_biv_randthr_ind_dir_and_binomial_lpmf(
     namespace prior  = fused_stan_math::induced_dirichlet_prior;
     namespace counts = fused_stan_math::binomial_counts_above_successive_cutpoints;
     using stan::math::var;
-    static constexpr const char* fn_name = "nico_ord_biv_randthr_ind_dir_and_binomial_lpmf";
+    static constexpr const char* fn_name = "fused_ord_biv_randthr_ind_dir_and_binomial_lpmf";
 
     if (static_cast<int>(C.size()) != 2 || static_cast<int>(alpha.size()) != 2 ||
         baseline_location_prior.size() != 2) {
@@ -1090,7 +1090,7 @@ nico_ord_biv_randthr_ind_dir_and_binomial_lpmf(
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_ord_biv_randthr_ind_dir_and_binomial_lpmf;
+using fused_stan_math::fused_ord_biv_randthr_ind_dir_and_binomial_lpmf;
 
 
 // ---- Fused 1-class (shared cutpoints C, alpha) ragged Induced-Dirichlet + HSROC Binomial cumulative-link likelihood ----
@@ -1104,7 +1104,7 @@ template <bool propto,
           stan::require_eigen_t<T_loc>* = nullptr,
           stan::require_eigen_t<T_scale>* = nullptr>
 inline stan::return_type_t<T_loc, T_scale, T_C, T_alpha>
-nico_ord_hsroc_randthr_ind_dir_and_binomial_lpmf(
+fused_ord_hsroc_randthr_ind_dir_and_binomial_lpmf(
         const std::vector<std::vector<std::vector<int>>>& x_2,
         const std::vector<std::vector<std::vector<int>>>& n_prev,
         const T_loc& Xlocations,
@@ -1127,7 +1127,7 @@ nico_ord_hsroc_randthr_ind_dir_and_binomial_lpmf(
     namespace prior  = fused_stan_math::induced_dirichlet_prior;
     namespace counts = fused_stan_math::binomial_counts_above_successive_cutpoints;
     using stan::math::var;
-    static constexpr const char* fn_name = "nico_ord_hsroc_randthr_ind_dir_and_binomial_lpmf";
+    static constexpr const char* fn_name = "fused_ord_hsroc_randthr_ind_dir_and_binomial_lpmf";
 
     const int n_studies = static_cast<int>(n_reported_cutpoints.size());
     const int n_cat = static_cast<int>(alpha.size());
@@ -1459,7 +1459,7 @@ nico_ord_hsroc_randthr_ind_dir_and_binomial_lpmf(
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_ord_hsroc_randthr_ind_dir_and_binomial_lpmf;
+using fused_stan_math::fused_ord_hsroc_randthr_ind_dir_and_binomial_lpmf;
 
 
 // ---- Precomputed-index 2-class ragged Induced-Dirichlet + SIMD-reverse Binomial cumulative-link likelihood ----
@@ -1518,7 +1518,7 @@ template <bool propto,
           stan::require_eigen_t<T_loc>* = nullptr,
           stan::require_eigen_col_vector_t<T_blp>* = nullptr>
 inline stan::return_type_t<T_loc, T_C, T_alpha>
-nico_ord_biv_randthr_ind_dir_and_binomial_precomputed_lpmf(
+fused_ord_biv_randthr_ind_dir_and_binomial_precomputed_lpmf(
         const std::vector<int>& bin_n_in,
         const std::vector<int>& bin_n_prev_in,
         const std::vector<int>& bin_sc_in,
@@ -1547,7 +1547,7 @@ nico_ord_biv_randthr_ind_dir_and_binomial_precomputed_lpmf(
     namespace prior = fused_stan_math::induced_dirichlet_prior;
     namespace counts = fused_stan_math::binomial_counts_above_successive_cutpoints;
     using stan::math::var;
-    static constexpr const char* fn_name = "nico_ord_biv_randthr_ind_dir_and_binomial_precomputed_lpmf";
+    static constexpr const char* fn_name = "fused_ord_biv_randthr_ind_dir_and_binomial_precomputed_lpmf";
 
     const int n_studies = static_cast<int>(Xbeta.rows());
     const int n_cat = static_cast<int>(alpha[0].size());
@@ -1897,4 +1897,4 @@ nico_ord_biv_randthr_ind_dir_and_binomial_precomputed_lpmf(
 
 }  // namespace fused_stan_math
 
-using fused_stan_math::nico_ord_biv_randthr_ind_dir_and_binomial_precomputed_lpmf;
+using fused_stan_math::fused_ord_biv_randthr_ind_dir_and_binomial_precomputed_lpmf;

@@ -2,7 +2,7 @@
 //// The fused model of MetaOrdDTA on Stan math only: the same model as
 //// DTA_MA_ord_HSROC_RANDthr_kappa_popmed_Se_Sp_prior_NicoStan_fused_AVX.stan,
 //// with Stan's built-in functions in place of its elementary functions (log, exp, Phi, normal_lpdf, ...)
-//// and the plain Stan math include files. Only the fused functions stay external (declared below with no
+//// and the Stan math include files. Only the fused functions stay external (declared below with no
 //// body): their C++ is in inst/include/fused_Stan_math_only (Stan math only: no SIMD, any CPU), given to
 //// cmdstanr as its user header with stanc's allow-undefined option.
 
@@ -22,47 +22,47 @@ functions {
         ////
         //// ---- The fused functions (their C++ in inst/include/fused_Stan_math_only, Stan math only):
         ////
-        real nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
+        real fused_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
               array[] int n, array[] int n_previous, vector latent, data vector is_first, data int link,
               data real bound);
-        real nico_induced_dirichlet_with_Se_Sp_prior_lpdf(vector C, vector alpha, data int link,
-                                                          data real location);
-        real nico_dirichlet_with_Se_Sp_prior_lpdf(vector phi, vector log_J, vector C_baseline, vector alpha,
-                                                  vector alpha_of_the_segments, data array[] int chosen_cutoffs,
-                                                  data int Se_Sp_prior_type, vector prior_Se_Sp_dirichlet_A,
-                                                  matrix prior_Se_Sp_beta, matrix prior_Se_Sp_link_mean_SD,
-                                                  data int link);
-        real nico_Se_Sp_prior_at_chosen_cutoffs_lpdf(vector x, data int Se_Sp_prior_type,
-                                                     vector prior_Se_Sp_dirichlet_A,
-                                                     matrix prior_Se_Sp_beta,
-                                                     matrix prior_Se_Sp_link_mean_SD,
-                                                     data int link);
-        array[,] matrix nico_compute_log_lik_binomial_fact_data(data array[] matrix latent_surv,
-                                                                data int use_probit_link, data int n_thr,
-                                                                data int n_studies, data array[,,] int x_2,
-                                                                data array[,,] int n, data array[,] int N_total,
-                                                                data array[] int n_obs_cutpoints,
-                                                                data array[] int K_fold_CV_indicator);
+        real fused_induced_dirichlet_with_Se_Sp_prior_lpdf(vector C, vector alpha, data int link,
+                                                           data real location);
+        real fused_dirichlet_with_Se_Sp_prior_lpdf(vector phi, vector log_J, vector C_baseline, vector alpha,
+                                                   vector alpha_of_the_segments, data array[] int chosen_cutoffs,
+                                                   data int Se_Sp_prior_type, vector prior_Se_Sp_dirichlet_A,
+                                                   matrix prior_Se_Sp_beta, matrix prior_Se_Sp_link_mean_SD,
+                                                   data int link);
+        real fused_Se_Sp_prior_at_chosen_cutoffs_lpdf(vector x, data int Se_Sp_prior_type,
+                                                      vector prior_Se_Sp_dirichlet_A,
+                                                      matrix prior_Se_Sp_beta,
+                                                      matrix prior_Se_Sp_link_mean_SD,
+                                                      data int link);
+        array[,] matrix fused_compute_log_lik_binomial_fact_data(data array[] matrix latent_surv,
+                                                                 data int use_probit_link, data int n_thr,
+                                                                 data int n_studies, data array[,,] int x_2,
+                                                                 data array[,,] int n, data array[,] int N_total,
+                                                                 data array[] int n_obs_cutpoints,
+                                                                 data array[] int K_fold_CV_indicator);
         ////
-        vector nico_dirichlet_cutpoint_medians_and_log_J_of_each(vector P_lower, vector P_upper, real kappa,
-                                                                 data int use_probit_link);
-        vector nico_dirichlet_cutpoint_median_and_log_J(real P_lower,
-                                                       real P_upper,
-                                                       real kappa,
-                                                       data int use_probit_link);
+        vector fused_dirichlet_cutpoint_medians_and_log_J_of_each(vector P_lower, vector P_upper, real kappa,
+                                                                  data int use_probit_link);
+        vector fused_dirichlet_cutpoint_median_and_log_J(real P_lower,
+                                                        real P_upper,
+                                                        real kappa,
+                                                        data int use_probit_link);
         //// (the elementary functions of the included files are Stan's built-ins here)
-        vector nico_pinkney_C_and_log_J_from_pairs(vector logit_centre_of_pair,
-                                                   vector spread_free_of_pair,
-                                                   vector C_raw_c,
-                                                   data vector Pinkney_w_c,
-                                                   data vector logit_start,
-                                                   data vector C_raw_lower_c,
-                                                   data vector C_raw_width,
-                                                   data real sum_log_width,
-                                                   data array[] int pair_of_each_C,
-                                                   data array[] int is_increment_of_each_C,
-                                                   data int softplus);
-        vector nico_pinkney_C_and_log_J_from_alpha_precomputed(
+        vector fused_pinkney_C_and_log_J_from_pairs(vector logit_centre_of_pair,
+                                                    vector spread_free_of_pair,
+                                                    vector C_raw_c,
+                                                    data vector Pinkney_w_c,
+                                                    data vector logit_start,
+                                                    data vector C_raw_lower_c,
+                                                    data vector C_raw_width,
+                                                    data real sum_log_width,
+                                                    data array[] int pair_of_each_C,
+                                                    data array[] int is_increment_of_each_C,
+                                                    data int softplus);
+        vector fused_pinkney_C_and_log_J_from_alpha_precomputed(
                 vector alpha,
                 vector C_raw_c,
                 real baseline_location_prior,
@@ -79,12 +79,12 @@ functions {
                 data vector u_wd,
                 data int use_probit_link,
                 data int softplus);
-        vector nico_dirichlet_cutpoint_medians_and_log_J_at_cuts(
+        vector fused_dirichlet_cutpoint_medians_and_log_J_at_cuts(
                 vector alpha_c,
                 real kappa_c,
                 data array[] int cuts_c,
                 data int use_probit_link);
-        real nico_hsroc_between_cutoffs_prior_lpdf(
+        real fused_hsroc_between_cutoffs_prior_lpdf(
                 vector popmed_and_log_J,
                 vector dirichlet_phi,
                 vector Xbeta_of_line,
@@ -94,7 +94,7 @@ functions {
                 data int joint_link_prior,
                 data real c_shift_segment_ref,
                 data int use_probit_link);
-        real nico_ord_hsroc_randthr_ind_dir_and_binomial_lpmf(
+        real fused_ord_hsroc_randthr_ind_dir_and_binomial_lpmf(
                 array[,,] int n,
                 array[,,] int n_previous,
                 matrix Xlocations,
@@ -179,7 +179,7 @@ data {
 }
 
 
-transformed data {  
+transformed data {
         int n_cat = n_thr + 1; //// Number of ordinal categories for index test
         ////
         real mult_nd = -1.0;
@@ -192,13 +192,13 @@ transformed data {
         for (s in 1:n_studies) {
               for (c in 1:2) {
                   N_total[c, s] = x[c, s, 1];
-                  for (k in 1:n_thr) { 
+                  for (k in 1:n_thr) {
                      x_2[c, s, k] = x[c, s, k + 1];
                   }
               }
               for (c in 1:2) {
                    n[c, s, 1] = N_total[c, s];
-                   for (k in 2:n_obs_cutpoints[s]) { 
+                   for (k in 2:n_obs_cutpoints[s]) {
                               n[c, s, k] = x_2[c, s, k - 1];
                    }
               }
@@ -625,12 +625,12 @@ transformed data {
 
 parameters {
         vector[n_studies] beta_z;  //// the nuisance block, declared first
-        vector[n_covariates] beta_mu;  
-        real<lower=0.0> beta_SD;   
+        vector[n_covariates] beta_mu;
+        real<lower=0.0> beta_SD;
         // vector[n_studies] beta_z;
         ////
-        vector[n_covariates] raw_scale_mu;    
-        real<lower=0.0> raw_scale_SD;   
+        vector[n_covariates] raw_scale_mu;
+        real<lower=0.0> raw_scale_SD;
         vector[n_studies] raw_scale_z;
         ////
         vector[n_C] C_raw; //// one free value per reported study cutpoint (Sean Pinkney partially-centered parameterization)
@@ -639,7 +639,7 @@ parameters {
 }
 
 
-transformed parameters { 
+transformed parameters {
         real log_kappa = log(kappa);
         vector<lower=0.0>[n_cat] alpha = 0.01 + dirichlet_phi * kappa;
         ////
@@ -653,7 +653,7 @@ transformed parameters {
         vector[n_C] C;
         real total_log_J_of_C = 0.0;
         {
-              vector[n_C + 1] C_and_log_J = nico_pinkney_C_and_log_J_from_alpha_precomputed(
+              vector[n_C + 1] C_and_log_J = fused_pinkney_C_and_log_J_from_alpha_precomputed(
                     alpha,
                     C_raw,
                     mid_loc_prior_td,
@@ -684,13 +684,13 @@ transformed parameters {
         ////
         {
             vector[n_studies] Xbeta_baseline = X[, 1:n_covariates] * to_vector(beta_mu[1:n_covariates]) + beta_random;
-            Xlocations[, 1] = mult_nd*Xbeta_baseline; 
-            Xlocations[, 2] = mult_d*Xbeta_baseline; 
+            Xlocations[, 1] = mult_nd*Xbeta_baseline;
+            Xlocations[, 2] = mult_d*Xbeta_baseline;
             ////
             vector[n_studies] Xraw_scale_baseline = X[, 1:n_covariates] * to_vector(raw_scale_mu[1:n_covariates]) + raw_scale_random;
             // Xscale[, 1] =  ((softplus == 1) ? softplus_scaled( -mult_nd*Xraw_scale_baseline) : exp( -mult_nd*Xraw_scale_baseline));
             Xscale[, 1] =  ((softplus == 1) ? 1.4426950408889634 * log1p_exp( -mult_nd*Xraw_scale_baseline) :
-                                                exp( -mult_nd*Xraw_scale_baseline)); 
+                                                exp( -mult_nd*Xraw_scale_baseline));
             // Xscale[, 2] =  ((softplus == 1) ? softplus_scaled( -mult_d*Xraw_scale_baseline)  : exp( -mult_d*Xraw_scale_baseline));
             Xscale[, 2] =  ((softplus == 1) ? 1.4426950408889634 * log1p_exp( -mult_d*Xraw_scale_baseline)  :
                                                 exp( -mult_d*Xraw_scale_baseline));
@@ -710,7 +710,7 @@ model {
            target += -log_kappa;
            ////
            if (use_Se_Sp_prior == 1 && n_chosen_cutoffs[p_class] > 0) {
-             
+
                   ////
                   //// ---- Population medians and their derivatives, from the Beta of each cutpoint under
                   //// ---- the alpha of the study cutpoints (0.01 + phi * kappa), at the chosen cutoffs of p_class
@@ -718,7 +718,7 @@ model {
                   ////
                   int m_p = n_chosen_cutoffs[p_class];
                   vector[2 * n_thr] popmed_and_log_J_of_every_cutpoint =
-                        nico_dirichlet_cutpoint_medians_and_log_J_at_cuts(
+                        fused_dirichlet_cutpoint_medians_and_log_J_at_cuts(
                               alpha, kappa, all_cutoffs_1_to_n_thr, use_probit_link);
                   vector[m_p] C_mu  = popmed_and_log_J_of_every_cutpoint[chosen_cutoffs[p_class, 1:m_p]];
                   vector[n_thr] log_J_all = popmed_and_log_J_of_every_cutpoint[(n_thr + 1):(2 * n_thr)];
@@ -740,7 +740,7 @@ model {
                        C_baseline[c] = (C_mu + Xbeta_of_line[c]) * scale_of_line[c];
                   }
                   if (m_p < n_thr) {
-                       target += nico_hsroc_between_cutoffs_prior_lupdf(
+                       target += fused_hsroc_between_cutoffs_prior_lupdf(
                                  popmed_and_log_J_of_every_cutpoint | dirichlet_phi,
                                  Xbeta_of_line, scale_of_line,
                                  prior_dirichlet_alpha,
@@ -752,7 +752,7 @@ model {
                   //// ---- Class p_class: the Dirichlet of dirichlet_phi with its prior at the chosen cutoffs:
                   ////
                   {
-                     target += nico_dirichlet_with_Se_Sp_prior_lupdf(
+                     target += fused_dirichlet_with_Se_Sp_prior_lupdf(
                                dirichlet_phi | log_J, C_baseline[p_class],
                                prior_dirichlet_alpha,
                                alpha_of_the_segments[p_class][1:(m_p + 1)],
@@ -771,7 +771,7 @@ model {
                   {
                      int q_class = 3 - p_class;
                      int m_q = n_chosen_cutoffs[q_class];
-                     target += nico_Se_Sp_prior_at_chosen_cutoffs_lupdf(
+                     target += fused_Se_Sp_prior_at_chosen_cutoffs_lupdf(
                                C_baseline[q_class] | Se_Sp_prior_type,
                                prior_Se_Sp_dirichlet_A[q_class][1:(m_q + 1)],
                                prior_beta_td[q_class][1:m_q, ],
@@ -815,16 +815,16 @@ model {
                              prior_raw_scale_mu_mean[1:n_covariates],
                              prior_raw_scale_mu_SD[1:n_covariates]);
                   }
-                  
+
            } else {
-             
+
                   beta_mu[1:n_covariates] ~ normal( prior_beta_mu_mean[1:n_covariates],
                                                          prior_beta_mu_SD[1:n_covariates]);
                   raw_scale_mu[1:n_covariates] ~ normal( prior_raw_scale_mu_mean[1:n_covariates],
                                                               prior_raw_scale_mu_SD[1:n_covariates]);
                   ////
                   dirichlet_phi ~ dirichlet( prior_dirichlet_alpha);
-                  
+
            }
         }
         ////
@@ -836,7 +836,7 @@ model {
         ////
         //// ---- Fused Induced-Dirichlet between-study model + HSROC Binomial cumulative-link likelihood (ONE node):
         ////
-        target += nico_ord_hsroc_randthr_ind_dir_and_binomial_lupmf(
+        target += fused_ord_hsroc_randthr_ind_dir_and_binomial_lupmf(
                         x_2 | n, Xlocations, Xscale, C, alpha, position_of_each_C,
                         n_obs_cutpoints, n_reported_cutpoints,
                         id_u_seg_lo, id_u_seg_hi, id_seg_uid,
@@ -852,7 +852,7 @@ generated quantities {
       vector<lower=0.0>[n_cat] dirichlet_cat_SDs_sigma;
       {
           real alpha_0 = sum(alpha);
-          dirichlet_cat_SDs_sigma = sqrt((alpha .* (alpha_0 - alpha) ) / 
+          dirichlet_cat_SDs_sigma = sqrt((alpha .* (alpha_0 - alpha) ) /
                                     (square(alpha_0) * (alpha_0 + 1.0)));
       }
       ////
@@ -864,7 +864,7 @@ generated quantities {
       //     for (k in 1:n_thr) {
       //         vector[n_studies] observed_cutpoints;
       //         int n_obs = 0;
-      //         
+      //
       //         for (s in 1:n_studies) {
       //             // Search through the cutpoint_index for this study to see if cutpoint k was observed
       //             for (j in 2:(n_obs_cutpoints[s] + 1)) {  // Start at 2 because index 1 is 0
@@ -875,7 +875,7 @@ generated quantities {
       //                 }
       //             }
       //         }
-      //         
+      //
       //         if (n_obs > 0) {
       //             C_mu[k] = median(observed_cutpoints[1:n_obs]);
       //         }
@@ -891,14 +891,14 @@ generated quantities {
          vector[n_thr] P = cumulative_sum(alpha[1:n_thr]) / alpha_0;
          vector[n_thr] P_upper = reverse(cumulative_sum(reverse(alpha[2:n_cat]))) / alpha_0;
          for (k in 1:n_thr) {
-            C_mu[k] = nico_dirichlet_cutpoint_median_and_log_J(P[k], P_upper[k], alpha_0, use_probit_link)[1];
+            C_mu[k] = fused_dirichlet_cutpoint_median_and_log_J(P[k], P_upper[k], alpha_0, use_probit_link)[1];
          }
       }
       ////
       //// ---- Calculate summary accuracy (using mean parameters):
       ////
       // vector[n_covariates] location_nd_mu = mult_nd*beta_mu;
-      // vector[n_covariates] location_d_mu  = mult_d*beta_mu; 
+      // vector[n_covariates] location_d_mu  = mult_d*beta_mu;
       ////
       // vector[n_covariates] scale_nd_mu =  ((softplus == 1) ? softplus_scaled(-mult_nd*raw_scale_mu) : exp(-mult_nd*raw_scale_mu));
       // vector[n_covariates] scale_d_mu  =  ((softplus == 1) ? softplus_scaled(-mult_d*raw_scale_mu)  : exp(-mult_d*raw_scale_mu));
@@ -908,21 +908,21 @@ generated quantities {
       real Xbeta_baseline_d  = mult_d  * Xbeta_baseline;
       ////
       real Xraw_scale_baseline = dot_product(baseline_case, raw_scale_mu);
-      real scale_nd_baseline = ((softplus == 1) ? 
+      real scale_nd_baseline = ((softplus == 1) ?
                                1.4426950408889634 * log1p_exp(-mult_nd * Xraw_scale_baseline) :
                                                   exp(-mult_nd * Xraw_scale_baseline));
-      real scale_d_baseline  = ((softplus == 1) ? 
+      real scale_d_baseline  = ((softplus == 1) ?
                                1.4426950408889634 * log1p_exp(-mult_d  * Xraw_scale_baseline) :
                                                   exp(-mult_d  * Xraw_scale_baseline));
       ////
       //// ---- Calculate baseline Se/Sp:
       ////
-      vector[n_thr] Fp_baseline = (use_probit_link == 1) ? 
-                                  Phi(-(C_mu + Xbeta_baseline_nd)*scale_nd_baseline)  : 
+      vector[n_thr] Fp_baseline = (use_probit_link == 1) ?
+                                  Phi(-(C_mu + Xbeta_baseline_nd)*scale_nd_baseline)  :
                                   inv_logit(-(C_mu + Xbeta_baseline_nd)*scale_nd_baseline);
       vector[n_thr] Sp_baseline = 1.0 - Fp_baseline;
-      vector[n_thr] Se_baseline = (use_probit_link == 1) ? 
-                                  Phi(-(C_mu + Xbeta_baseline_d)*scale_d_baseline)    : 
+      vector[n_thr] Se_baseline = (use_probit_link == 1) ?
+                                  Phi(-(C_mu + Xbeta_baseline_d)*scale_d_baseline)    :
                                   inv_logit(-(C_mu + Xbeta_baseline_d)*scale_d_baseline);
       ////
       //// ---- Calculate predictive accuracy:
@@ -935,7 +935,7 @@ generated quantities {
             if (use_probit_link == 1) {
                 real mean_C_cutpoint_scale = C_mu[k];
                 sigma_C_k = SD_approx_ID_ord_prob_to_C_probit(mean_C_cutpoint_scale, SD_prob_scale);
-            } else { 
+            } else {
                 real mean_prob_scale = dirichlet_phi[k];
                 sigma_C_k = SD_approx_ID_ord_prob_to_C_logit(mean_prob_scale, SD_prob_scale);
             }
@@ -953,19 +953,19 @@ generated quantities {
       real Xbeta_baseline_pred_d  = mult_d  * Xbeta_baseline_pred;
       ////
       real Xraw_scale_baseline_pred = dot_product(baseline_case, raw_scale_mu) + raw_scale_random_pred;
-      real scale_baseline_pred_nd = ((softplus == 1) ? 
+      real scale_baseline_pred_nd = ((softplus == 1) ?
                                     1.4426950408889634 * log1p_exp(-mult_nd * Xraw_scale_baseline_pred) :
                                                        exp(-mult_nd * Xraw_scale_baseline_pred));
-      real scale_baseline_pred_d  = ((softplus == 1) ? 
+      real scale_baseline_pred_d  = ((softplus == 1) ?
                                     1.4426950408889634 * log1p_exp(-mult_d  * Xraw_scale_baseline_pred) :
                                                        exp(-mult_d  * Xraw_scale_baseline_pred));
       ////
-      vector[n_thr] Fp_baseline_pred = (use_probit_link == 1) ? 
-                                       Phi(-(C_pred + Xbeta_baseline_pred_nd)*scale_baseline_pred_nd) : 
+      vector[n_thr] Fp_baseline_pred = (use_probit_link == 1) ?
+                                       Phi(-(C_pred + Xbeta_baseline_pred_nd)*scale_baseline_pred_nd) :
                                        inv_logit(-(C_pred + Xbeta_baseline_pred_nd)*scale_baseline_pred_nd);
       vector[n_thr] Sp_baseline_pred = 1.0 - Fp_baseline_pred;
-      vector[n_thr] Se_baseline_pred = (use_probit_link == 1) ? 
-                                       Phi(-(C_pred + Xbeta_baseline_pred_d)*scale_baseline_pred_d)   : 
+      vector[n_thr] Se_baseline_pred = (use_probit_link == 1) ?
+                                       Phi(-(C_pred + Xbeta_baseline_pred_d)*scale_baseline_pred_d)   :
                                        inv_logit(-(C_pred + Xbeta_baseline_pred_d)*scale_baseline_pred_d);
       ////
       //// ---- Log-lik + study-specific accuracy computation (using "data" / double-precision fn for efficiency):
@@ -988,7 +988,7 @@ generated quantities {
           for (s in 1:n_studies) {
               dummy_CV_indicator[s] = 1;
           }
-          array[3, 2] matrix[n_studies, n_thr] outs = nico_compute_log_lik_binomial_fact_data(
+          array[3, 2] matrix[n_studies, n_thr] outs = fused_compute_log_lik_binomial_fact_data(
                                                       latent_surv, use_probit_link, n_thr, n_studies,
                                                       x_2, n, N_total, n_obs_cutpoints,
                                                       dummy_CV_indicator);
@@ -1012,7 +1012,7 @@ generated quantities {
           // //// ---- Model fit (deviance):
           // ////
           // array[4] matrix[n_studies, n_thr] outs_model_fit = compute_deviance(
-          //                                                    cond_prob, n_thr, n_studies, 
+          //                                                    cond_prob, n_thr, n_studies,
           //                                                    x_2, n, n_obs_cutpoints);
           // ////
           // matrix[n_studies, n_thr] x_hat_nd = outs_model_fit[1];
