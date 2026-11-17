@@ -83,6 +83,19 @@ R_fn_compile_stan_model_basic_given_file_name <- function( stan_model_file_name,
                     
           }
           ##
+          ## ---- The fused models on Stan math only (custom_file_name = "<model>_fused_Stan_math_only.stan"): their
+          ##      fused functions are C++ in the package's include/fused_Stan_math_only folder, given to cmdstanr as
+          ##      the user header (cmdstanr then runs stanc with allow-undefined). Stan math only: no NicoStan, no
+          ##      NicoSIMD, no -m flags, any CPU. (NULL for every other Stan file: cmdstanr's own default.)
+          ##
+          user_header_of_the_fused_Stan_math_only_files <- NULL
+          if (grepl("_fused_Stan_math_only[.]stan$", stan_model_file_name)) {
+            include_directory <- if (debugging) file.path(pkg_root_directory, "inst", "include") else
+                                                file.path(pkg_root_directory, "include")
+            user_header_of_the_fused_Stan_math_only_files <- file.path(include_directory, "fused_Stan_math_only",
+                                                                       "fused_Stan_math_only_user_header.hpp")
+          }
+          ##
           ## Compile model:
           ##
           if (isTRUE(compile)) {
@@ -90,7 +103,8 @@ R_fn_compile_stan_model_basic_given_file_name <- function( stan_model_file_name,
               stan_model_file_path,
               force_recompile = force_recompile,
               quiet = quiet,
-              include_paths = stan_functions_directory
+              include_paths = stan_functions_directory,
+              user_header = user_header_of_the_fused_Stan_math_only_files
             )
           }
           

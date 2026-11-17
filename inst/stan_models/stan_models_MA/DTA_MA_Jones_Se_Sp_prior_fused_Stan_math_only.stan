@@ -1,0 +1,619 @@
+//// DTA_MA_Jones_Se_Sp_prior_fused_Stan_math_only.stan
+//// The fused model of MetaOrdDTA on Stan math only: the same model as
+//// DTA_MA_Jones_Se_Sp_prior_NicoStan_fused_AVX.stan,
+//// with Stan's built-in functions in place of its elementary functions (log, exp, Phi, normal_lpdf, ...)
+//// and the plain Stan math include files. Only the fused functions stay external (declared below with no
+//// body): their C++ is in inst/include/fused_Stan_math_only (Stan math only: no SIMD, any CPU), given to
+//// cmdstanr as its user header with stanc's allow-undefined option.
+
+
+
+functions {
+        ////
+        //// ---- Include files to compile the necessary custom (user-defined) Stan functions:
+        ////
+        ////
+        //// ---- The fused functions (their C++ in inst/include/fused_Stan_math_only, Stan math only):
+        ////
+        vector nico_box_cox_C_raw_and_C(real lambda, data vector log_x);
+        //// (not called here: no C++ body for these arguments; see the likelihood in the model block)
+        // real nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
+        //         array[,,] int n,
+        //         array[,,] int n_previous,
+        //         matrix Xbeta,
+        //         matrix Xscale,
+        //         array[] vector C,
+        //         data array[,,] int cutpoint_index,
+        //         data array[] int n_obs_cutpoints,
+        //         data array[] int K_fold_CV_indicator,
+        //         data int link,
+        //         data real bound);
+        real nico_Se_Sp_prior_at_chosen_cutoffs_lpdf(vector x, data int Se_Sp_prior_type,
+                                                     vector prior_Se_Sp_dirichlet_A, matrix prior_Se_Sp_beta,
+                                                     matrix prior_Se_Sp_link_mean_SD, data int link);
+        real nico_Box_Cox_lambda_log_density_of_the_flat_Dirichlet(real lambda,
+                                                                  real location,
+                                                                  real scale,
+                                                                  data vector x,
+                                                                  data array[] int chosen_cutoffs,
+                                                                  data int use_probit_link,
+                                                                  data int rescale_to_minus_2_to_2);
+        array[] matrix nico_map_latent_surv_to_fixed_hetero_C(data array[] vector C,
+                                                              data matrix locations, data matrix scales,
+                                                              data int n_studies, data array[] int n_obs_cutpoints,
+                                                              data array[,,] int cutpoint_index);
+        array[,] matrix nico_compute_log_lik_binomial_fact_data(data array[] matrix latent_surv,
+                                                                data int use_probit_link, data int n_thr,
+                                                                data int n_studies, data array[,,] int x_2,
+                                                                data array[,,] int n, data array[,] int N_total,
+                                                                data array[] int n_obs_cutpoints,
+                                                                data array[] int K_fold_CV_indicator);
+
+        #include "Stan_fns_basic.stan"
+        #include "Stan_fns_Box_Cox.stan"
+        #include "Stan_fns_corr.stan"
+        #include "Stan_fns_ordinal.stan"
+        #include "Stan_fns_log_lik.stan"
+        #include "Stan_fns_Jacobian.stan"
+        #include "Stan_fns_model_fit.stan"
+}
+
+
+data {
+    
+        ////
+        //// ---- Data:
+        ////
+        int<lower=1> n_studies;
+        int<lower=1> n_thr;
+        array[n_studies] int n_obs_cutpoints;
+        ////
+        array[2, n_studies, n_thr + 1] int x;
+        array[2, n_studies, n_thr + 1] int cutpoint_index;
+        ////
+        vector[n_thr] cts_thr_values; 
+        ////
+        //// ---- Covariates:
+        ////
+        int n_covariates_nd;
+        int n_covariates_d;
+        int n_covariates_max;
+        matrix[n_studies, n_covariates_nd] X_nd;
+        matrix[n_studies, n_covariates_d]  X_d;
+        vector[n_covariates_nd] baseline_case_nd;  // must be user-inputted - e.g. could be {0, 1, 45.3} for 2 binary covariates and 1 cts one (e.g. age)
+        vector[n_covariates_d]  baseline_case_d;   // must be user-inputted - e.g. could be {0, 1, 45.3} for 2 binary covariates and 1 cts one (e.g. age)
+        ////
+        //// ---- Priors for locations ("beta"):
+        ////
+        matrix[2, n_covariates_max] prior_beta_mu_mean;
+        matrix[2, n_covariates_max] prior_beta_mu_SD;  
+        vector[2] prior_beta_SD_mean;   
+        vector[2] prior_beta_SD_SD;   
+        ////
+        //// ---- Priors for raw scales: 
+        ////
+        matrix[2, n_covariates_max] prior_raw_scale_mu_mean;
+        matrix[2, n_covariates_max] prior_raw_scale_mu_SD;  
+        vector[2] prior_raw_scale_SD_mean; 
+        vector[2] prior_raw_scale_SD_SD; 
+        //// 
+        //// ---- Priors for box-cox ("lambda"):
+        ////
+        vector[2] prior_boxcox_lambda_mean;
+        vector[2] prior_boxcox_lambda_SD;
+        ////
+        //// ---- Priors (and possible restrictions) for between-study correlations:
+        ////  
+        real<lower=-1.0, upper=+1.0> beta_corr_lb;
+        real<lower=beta_corr_lb, upper=+1.0>  beta_corr_ub;
+        real<lower=0.0>  prior_beta_corr_LKJ;
+        ////
+        real<lower=-1.0, upper=+1.0> raw_scale_corr_lb;
+        real<lower=raw_scale_corr_lb, upper=+1.0>  raw_scale_corr_ub;
+        real<lower=0.0>  prior_raw_scale_corr_LKJ;
+        ////
+        ////
+        //// ---- Direct baseline Sp (class 1) and Se (class 2) priors:
+        ////
+        int<lower=0, upper=1> use_Se_Sp_prior;
+        int<lower=1, upper=4> Se_Sp_prior_type;
+        int<lower=0, upper=n_thr> n_chosen_cutoffs_max;
+        array[2] int<lower=0, upper=n_chosen_cutoffs_max> n_chosen_cutoffs;
+        array[2, n_chosen_cutoffs_max] int<lower=1, upper=n_thr> chosen_cutoffs;
+        array[2] vector<lower=0.0>[n_chosen_cutoffs_max + 1] prior_Se_Sp_dirichlet_A;
+        array[2] matrix<lower=0.0>[n_chosen_cutoffs_max, 2] prior_Se_Sp_beta;
+        array[2] matrix[n_chosen_cutoffs_max, 2] prior_Se_Sp_link_mean_SD;
+        ////
+        //// ---- The Se / Sp prior converted to the Jones parameters by the prior conversion model: a trivariate
+        //// ---- Normal of the baseline location, log(scale) and 5 * atanh(lambda / 5) of each class (the chosen
+        //// ---- cutoffs then unused):
+        ////
+        int<lower=0, upper=1> use_converted_Se_Sp_prior;
+        array[2] vector[3] prior_converted_mean;
+        array[2] vector<lower=0.0>[3] prior_converted_SD;
+        array[2] matrix[3, 3] prior_converted_L_Omega;
+        ////
+        //// ---- The Se / Sp prior made from the chosen cutoffs and their Normals: the one-hill law of the baseline
+        //// ---- location, log(scale) and 5 * atanh(lambda / 5) of each class, taken as a transform of 3 standard
+        //// ---- Normals held in the places of the two intercepts and lambda:
+        ////
+        int<lower=0, upper=1> use_one_hill_Se_Sp_prior;
+        array[2] vector[3] prior_one_hill_mean;
+        array[2] vector<lower=0.0>[3] prior_one_hill_SD;
+        array[2] matrix[3, 3] prior_one_hill_L_Omega;
+        array[2] vector[3] prior_one_hill_skew;
+        array[2] vector[3] prior_one_hill_log_tail;
+        array[2] vector[2] prior_one_hill_bend;
+        ////
+        //// ---- Other:
+        ////
+        int<lower=0, upper=1> box_cox;
+        int<lower=0, upper=1> softplus;
+        int<lower=0, upper=1> log_lik_indicator; //// 1 = compute log_lik_study; 0 = skip it
+        ////
+        int use_probit_link;
+        ////
+        array[n_studies] int<lower=0, upper=1> K_fold_CV_indicator;
+  
+}
+
+transformed data {
+        if (use_one_hill_Se_Sp_prior == 1 && (use_Se_Sp_prior == 0 || use_converted_Se_Sp_prior == 1 || softplus == 1)) {
+             reject("The one-hill Se / Sp prior needs use_Se_Sp_prior = 1, use_converted_Se_Sp_prior = 0 and softplus = 0");
+        }
+        ////
+        //// ---- One cutoff replaces location; multiple cutoffs also replace scale:
+        ////
+        if (use_Se_Sp_prior == 1) {
+             if (Se_Sp_prior_type == 3) {
+                  reject("Jones direct priors support type 1 (Dirichlet), 2 (Beta) or 4 (link-scale Normal)");
+             }
+             if (use_probit_link != 0 && use_probit_link != 1) reject("use_probit_link must be 0 or 1");
+             for (c in 1:2) {
+                  if (n_chosen_cutoffs[c] > 0) {
+                       if (c == 1 && baseline_case_nd[1] == 0.0) reject("baseline_case_nd[1] must not be 0");
+                       if (c == 2 && baseline_case_d[1] == 0.0) reject("baseline_case_d[1] must not be 0");
+                       for (j in 1:n_chosen_cutoffs[c]) {
+                            if (j > 1) {
+                                 if (chosen_cutoffs[c, j] <= chosen_cutoffs[c, j - 1]) {
+                                      reject("Chosen cutoffs must rise");
+                                 }
+                                 if (cts_thr_values[chosen_cutoffs[c, j]] <=
+                                     cts_thr_values[chosen_cutoffs[c, j - 1]]) {
+                                      reject("Chosen threshold values must rise");
+                                 }
+                            }
+                            if (Se_Sp_prior_type == 1 &&
+                                min(prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)]) <= 0.0) {
+                                 reject("Dirichlet weights must be positive");
+                            }
+                            if (Se_Sp_prior_type == 2 &&
+                                min(prior_Se_Sp_beta[c][j, ]) <= 0.0) {
+                                 reject("Beta shapes must be positive");
+                            }
+                            if (Se_Sp_prior_type == 4 &&
+                                prior_Se_Sp_link_mean_SD[c][j, 2] <= 0.0) {
+                                 reject("The link-scale prior SD must be positive");
+                            }
+                       }
+                  }
+             }
+        }
+        ////
+        array[2, n_studies, n_thr] int x_2;
+        array[2, n_studies] int N_total;
+        array[2, n_studies, n_thr] int n;
+        ////
+        for (s in 1:n_studies) {
+              for (c in 1:2) {
+                  N_total[c, s] = x[c, s, 1];
+                  for (k in 1:n_thr) { 
+                     x_2[c, s, k] = x[c, s, k + 1];
+                  }
+              }
+              for (c in 1:2) {
+                   n[c, s, 1] = N_total[c, s];
+                   for (k in 2:n_obs_cutpoints[s]) {
+                              n[c, s, k] = x_2[c, s, k - 1];
+                   }
+              }
+       }
+       ////
+       //// ---- the thresholds shifted to be positive, and their logs (for the Box-Cox transform of the cutpoints):
+       ////
+       vector[n_thr] cts_thr_shifted_data = cts_thr_values +
+                                            ((min(cts_thr_values) <= 0) ? abs(min(cts_thr_values)) + 1.0 : 0.0);
+       vector[n_thr] log_of_cts_thr_shifted_data = log(cts_thr_shifted_data);
+       ////
+       //// ---- Pure-data constants for the one-hill prior and direct location conditional (precomputed once):
+       ////
+       vector[2] prior_one_hill_rho_23_data = rep_vector(0.0, 2);
+       vector[2] prior_one_hill_s_23_data = rep_vector(1.0, 2);
+       array[2] vector[3] prior_one_hill_tail_mult_data;
+       array[2] vector[n_chosen_cutoffs_max] prior_one_hill_w_norm_data;
+       vector[2] prior_one_hill_m_bar_data = rep_vector(0.0, 2);
+       vector[2] prior_one_hill_loc_SD_mult_data = rep_vector(0.0, 2);
+       for (c in 1:2) {
+            prior_one_hill_tail_mult_data[c] = rep_vector(1.0, 3);
+            prior_one_hill_w_norm_data[c] = rep_vector(0.0, n_chosen_cutoffs_max);
+            if (use_one_hill_Se_Sp_prior == 1) {
+                 prior_one_hill_tail_mult_data[c] = exp(prior_one_hill_log_tail[c]);
+                 prior_one_hill_rho_23_data[c] = dot_product(to_vector(prior_one_hill_L_Omega[c][2, 1:3]),
+                                                             to_vector(prior_one_hill_L_Omega[c][3, 1:3]));
+                 prior_one_hill_s_23_data[c] = sqrt(fmax(1e-12, 1.0 - square(prior_one_hill_rho_23_data[c])));
+                 if (Se_Sp_prior_type == 4 && n_chosen_cutoffs[c] > 0) {
+                      real W = 0.0;
+                      real num_m = 0.0;
+                      for (j in 1:n_chosen_cutoffs[c]) {
+                           real m_j = (c == 1) ? prior_Se_Sp_link_mean_SD[c][j, 1] : -prior_Se_Sp_link_mean_SD[c][j, 1];
+                           real w_j = 1.0 / square(prior_Se_Sp_link_mean_SD[c][j, 2]);
+                           prior_one_hill_w_norm_data[c][j] = w_j;
+                           W += w_j;
+                           num_m += w_j * m_j;
+                      }
+                      prior_one_hill_w_norm_data[c][1:n_chosen_cutoffs[c]] /= W;
+                      prior_one_hill_m_bar_data[c] = num_m / W;
+                      prior_one_hill_loc_SD_mult_data[c] = 1.0 / sqrt(W);
+                 }
+            }
+       }
+}
+
+
+parameters {
+        matrix[2, n_covariates_max] beta_mu;  
+        row_vector<lower=0.0>[2] beta_SD;   
+        matrix[n_studies, 2] beta_z; //// Study-specific random effects (off-centered parameterisation)
+        ////
+        matrix[2, n_covariates_max] raw_scale_mu;
+        row_vector<lower=0.0>[2] raw_scale_SD;
+        matrix[n_studies, 2] raw_scale_z; //// Study-specific random effects (off-centered parameterisation)
+        ////
+        real<lower=beta_corr_lb, upper=beta_corr_ub> beta_corr;  //// between-study corr (possibly restricted)
+        real<lower=raw_scale_corr_lb, upper=raw_scale_corr_ub> raw_scale_corr;  //// between-study corr (possibly restricted)
+        ////
+        vector<lower=-5.0, upper=5.0>[2] lambda; //// box-cox params
+}
+
+
+transformed parameters {
+        ////
+        //// ---- Locations, raw scales and lambda: the parameters themselves, or (one-hill Se / Sp prior) the baseline
+        //// ---- location, log(scale) and lambda of each class as the transform of its 3 standard Normals:
+        ////
+        matrix[2, n_covariates_max] beta_mu_transformed = beta_mu;
+        matrix[2, n_covariates_max] raw_scale_mu_transformed = raw_scale_mu;
+        vector[2] lambda_transformed = lambda;
+        if (use_one_hill_Se_Sp_prior == 1) {
+             for (c in 1:2) {
+                  int n_covariates_c = (c == 1) ? n_covariates_nd : n_covariates_d;
+                  vector[n_covariates_c] baseline = (c == 1) ? baseline_case_nd : baseline_case_d;
+                  real location_of_the_other_covariates = 0.0;
+                  real raw_scale_of_the_other_covariates = 0.0;
+                  if (n_covariates_c > 1) {
+                       location_of_the_other_covariates = dot_product(baseline[2:n_covariates_c],
+                                                                      to_vector(beta_mu[c, 2:n_covariates_c]));
+                       raw_scale_of_the_other_covariates = dot_product(baseline[2:n_covariates_c],
+                                                                       to_vector(raw_scale_mu[c, 2:n_covariates_c]));
+                  }
+                  if (Se_Sp_prior_type == 4 && n_chosen_cutoffs[c] > 0) {
+                       real x2_corr = raw_scale_mu[c, 1];
+                       real x3_raw  = 5.0 * atanh(lambda[c] / 5.0);
+                       real x3_corr = prior_one_hill_rho_23_data[c] * x2_corr + prior_one_hill_s_23_data[c] * x3_raw;
+                       real v_2 = prior_one_hill_mean[c][2] +
+                                  prior_one_hill_SD[c][2] * sinh(prior_one_hill_tail_mult_data[c][2] * asinh(x2_corr) + prior_one_hill_skew[c][2]);
+                       real v_3 = prior_one_hill_mean[c][3] +
+                                  prior_one_hill_SD[c][3] * sinh(prior_one_hill_tail_mult_data[c][3] * asinh(x3_corr) + prior_one_hill_skew[c][3]);
+                       raw_scale_mu_transformed[c, 1] = (v_2 - raw_scale_of_the_other_covariates) / baseline[1];
+                       lambda_transformed[c] = 5.0 * tanh(v_3 / 5.0);
+                  } else {
+                       vector[3] x_raw = [beta_mu[c, 1], raw_scale_mu[c, 1], 5.0 * atanh(lambda[c] / 5.0)]';
+                       vector[3] x_correlated = prior_one_hill_L_Omega[c] * x_raw;
+                       vector[3] v = prior_one_hill_mean[c] +
+                                     prior_one_hill_SD[c] .* sinh(prior_one_hill_tail_mult_data[c] .* asinh(x_correlated) + prior_one_hill_skew[c]);
+                       v[2] += prior_one_hill_bend[c][1] * (square(x_correlated[1]) - 1.0);
+                       v[3] += prior_one_hill_bend[c][2] * (square(x_correlated[1]) - 1.0);
+                       beta_mu_transformed[c, 1] = (v[1] - location_of_the_other_covariates) / baseline[1];
+                       raw_scale_mu_transformed[c, 1] = (v[2] - raw_scale_of_the_other_covariates) / baseline[1];
+                       lambda_transformed[c] = 5.0 * tanh(v[3] / 5.0);
+                  }
+             }
+        }
+        ////
+        //// ---- Construct simple 2x2 (bivariate) between-study corr matrices:
+        ////
+        cholesky_factor_corr[2] beta_L_Omega       = make_bivariate_L_Omega(beta_corr);
+        cholesky_factor_corr[2] raw_scale_L_Omega  = make_bivariate_L_Omega(raw_scale_corr);
+        cholesky_factor_cov[2]  beta_L_Sigma       = diag_pre_multiply(beta_SD, beta_L_Omega);
+        cholesky_factor_cov[2]  raw_scale_L_Sigma  = diag_pre_multiply(raw_scale_SD, raw_scale_L_Omega);
+        ////
+        //// ---- Compute (global) cutpoints using Box-Cox transform and rescale to [-2, +2]:
+        ////
+        array[2] vector[n_thr] C_raw;  // Unconstrained Box-Cox output
+        array[2] vector[n_thr] C;      // Scaled to [-2, +2]
+        for (c in 1:2) {
+            vector[2 * n_thr] box_cox_raw_and_C = nico_box_cox_C_raw_and_C(lambda_transformed[c], log_of_cts_thr_shifted_data);
+            C_raw[c] = box_cox_raw_and_C[1:n_thr];
+            C[c] = box_cox_raw_and_C[(n_thr + 1):(2 * n_thr)];
+        }
+        ////
+        //// ---- Factorized direct location conditional p_direct(location | shape) for Sets 1 & 2 (Se_Sp_prior_type == 4):
+        ////
+        if (use_one_hill_Se_Sp_prior == 1 && Se_Sp_prior_type == 4) {
+             for (c in 1:2) {
+                  if (n_chosen_cutoffs[c] > 0) {
+                       int m_c = n_chosen_cutoffs[c];
+                       int n_covariates_c = (c == 1) ? n_covariates_nd : n_covariates_d;
+                       vector[n_covariates_c] baseline = (c == 1) ? baseline_case_nd : baseline_case_d;
+                       real v_2 = dot_product(baseline, to_vector(raw_scale_mu_transformed[c, 1:n_covariates_c]));
+                       real scale = exp(v_2);
+                       real weighted_C = dot_product(prior_one_hill_w_norm_data[c][1:m_c],
+                                                     C[c][chosen_cutoffs[c, 1:m_c]]);
+                       real baseline_location = weighted_C +
+                                                scale * (prior_one_hill_loc_SD_mult_data[c] * beta_mu[c, 1] -
+                                                         prior_one_hill_m_bar_data[c]);
+                       real location_of_the_other_covariates = (n_covariates_c > 1) ?
+                            dot_product(baseline[2:n_covariates_c], to_vector(beta_mu[c, 2:n_covariates_c])) : 0.0;
+                       beta_mu_transformed[c, 1] = (baseline_location - location_of_the_other_covariates) / baseline[1];
+                  }
+             }
+        }
+        ////
+        //// ---- Study-level random effects (after Cholesky decomposition, vectorized matrix multiply):
+        ////
+        matrix[n_studies, 2] beta_random      = beta_z * beta_L_Sigma;
+        matrix[n_studies, 2] raw_scale_random = raw_scale_z * raw_scale_L_Sigma;
+        ////
+        //// ---- Linear predictors for each disease status + apply covariates:
+        ////
+        matrix[n_studies, 2] Xbeta;
+        matrix[n_studies, 2] Xraw_scale;
+        matrix[n_studies, 2] Xscale;
+        ////
+        Xbeta[, 1]      = X_nd * to_vector(beta_mu_transformed[1, 1:n_covariates_nd]) + beta_random[, 1];
+        Xbeta[, 2]      = X_d  * to_vector(beta_mu_transformed[2, 1:n_covariates_d])  + beta_random[, 2];
+        ////
+        Xraw_scale[, 1] = X_nd * to_vector(raw_scale_mu_transformed[1, 1:n_covariates_nd]) + raw_scale_random[, 1];
+        Xraw_scale[, 2] = X_d  * to_vector(raw_scale_mu_transformed[2, 1:n_covariates_d])  + raw_scale_random[, 2];
+        ////
+        Xscale = ((softplus == 1) ? 1.4426950408889634 * log1p_exp(Xraw_scale) : exp(Xraw_scale));
+}
+
+
+model {
+        ////
+        //// ---- Between-study SD and correlation priors:
+        ////
+        to_vector(beta_SD) ~ normal(prior_beta_SD_mean, prior_beta_SD_SD);
+        beta_L_Omega ~ lkj_corr_cholesky(prior_beta_corr_LKJ);
+        ////
+        to_vector(raw_scale_SD) ~ normal(prior_raw_scale_SD_mean, prior_raw_scale_SD_SD);
+        raw_scale_L_Omega ~ lkj_corr_cholesky(prior_raw_scale_corr_LKJ);
+        ////
+        //// ---- Location, scale and Box-Cox lambda priors (computed cleanly per regime with no add-then-subtract):
+        ////
+        if (use_Se_Sp_prior == 1 && use_one_hill_Se_Sp_prior == 1) {
+             //// The one-hill Se / Sp prior replaces the priors on baseline location, baseline scale and lambda:
+             if (n_covariates_nd > 1) {
+                  to_vector(beta_mu_transformed[1, 2:n_covariates_nd]) ~ normal(
+                       to_vector(prior_beta_mu_mean[1, 2:n_covariates_nd]),
+                       to_vector(prior_beta_mu_SD[1, 2:n_covariates_nd]));
+                  to_vector(raw_scale_mu_transformed[1, 2:n_covariates_nd]) ~ normal(
+                       to_vector(prior_raw_scale_mu_mean[1, 2:n_covariates_nd]),
+                       to_vector(prior_raw_scale_mu_SD[1, 2:n_covariates_nd]));
+             }
+             if (n_covariates_d > 1) {
+                  to_vector(beta_mu_transformed[2, 2:n_covariates_d]) ~ normal(
+                       to_vector(prior_beta_mu_mean[2, 2:n_covariates_d]),
+                       to_vector(prior_beta_mu_SD[2, 2:n_covariates_d]));
+                  to_vector(raw_scale_mu_transformed[2, 2:n_covariates_d]) ~ normal(
+                       to_vector(prior_raw_scale_mu_mean[2, 2:n_covariates_d]),
+                       to_vector(prior_raw_scale_mu_SD[2, 2:n_covariates_d]));
+             }
+             target += normal_lupdf(beta_mu[, 1] | 0, 1)
+                     + normal_lupdf(raw_scale_mu[, 1] | 0, 1)
+                     + normal_lupdf(5.0 * atanh(lambda / 5.0) | 0, 1)
+                     - sum(log1m(square(lambda / 5.0)));
+        } else if (use_Se_Sp_prior == 1 && use_converted_Se_Sp_prior == 1) {
+             //// The converted Se / Sp prior replaces the priors on baseline location, baseline scale and lambda:
+             if (n_covariates_nd > 1) {
+                  to_vector(beta_mu_transformed[1, 2:n_covariates_nd]) ~ normal(
+                       to_vector(prior_beta_mu_mean[1, 2:n_covariates_nd]),
+                       to_vector(prior_beta_mu_SD[1, 2:n_covariates_nd]));
+                  to_vector(raw_scale_mu_transformed[1, 2:n_covariates_nd]) ~ normal(
+                       to_vector(prior_raw_scale_mu_mean[1, 2:n_covariates_nd]),
+                       to_vector(prior_raw_scale_mu_SD[1, 2:n_covariates_nd]));
+             }
+             if (n_covariates_d > 1) {
+                  to_vector(beta_mu_transformed[2, 2:n_covariates_d]) ~ normal(
+                       to_vector(prior_beta_mu_mean[2, 2:n_covariates_d]),
+                       to_vector(prior_beta_mu_SD[2, 2:n_covariates_d]));
+                  to_vector(raw_scale_mu_transformed[2, 2:n_covariates_d]) ~ normal(
+                       to_vector(prior_raw_scale_mu_mean[2, 2:n_covariates_d]),
+                       to_vector(prior_raw_scale_mu_SD[2, 2:n_covariates_d]));
+             }
+             for (c in 1:2) {
+                  int n_covariates_c = (c == 1) ? n_covariates_nd : n_covariates_d;
+                  vector[n_covariates_c] baseline = (c == 1) ? baseline_case_nd : baseline_case_d;
+                  real location  = dot_product(baseline, to_vector(beta_mu_transformed[c, 1:n_covariates_c]));
+                  real raw_scale = dot_product(baseline, to_vector(raw_scale_mu_transformed[c, 1:n_covariates_c]));
+                  ////
+                  real scale = (softplus == 1) ? 1.4426950408889634 * log1p_exp(raw_scale) : exp(raw_scale);
+                  real log_scale_derivative = (softplus == 1) ?
+                                              log_inv_logit(raw_scale) - log(log(2.0)) : raw_scale;
+                  vector[3] converted = [location, log(scale), 5.0 * atanh(lambda_transformed[c] / 5.0)]';
+                  ////
+                  target += multi_normal_cholesky_lupdf(converted | prior_converted_mean[c],
+                                                        diag_pre_multiply(prior_converted_SD[c],
+                                                                          prior_converted_L_Omega[c]));
+                  target += 2.0 * log(abs(baseline[1])) + log_scale_derivative - log(scale) -
+                            log1m(square(lambda_transformed[c] / 5.0));
+             }
+        } else {
+             //// Direct Se / Sp prior (not converted, not one-hill) or standard baseline priors (use_Se_Sp_prior == 0):
+             for (c in 1:2) {
+                  int n_covariates_c = (c == 1) ? n_covariates_nd : n_covariates_d;
+                  int loc_replaced = (use_Se_Sp_prior == 1 && n_chosen_cutoffs[c] > 0) ? 1 : 0;
+                  int scale_replaced = (use_Se_Sp_prior == 1 && n_chosen_cutoffs[c] >= 2) ? 1 : 0;
+                  if (loc_replaced == 0) {
+                       to_vector(beta_mu_transformed[c, 1:n_covariates_c]) ~ normal(
+                            to_vector(prior_beta_mu_mean[c, 1:n_covariates_c]),
+                            to_vector(prior_beta_mu_SD[c, 1:n_covariates_c]));
+                  } else if (n_covariates_c > 1) {
+                       to_vector(beta_mu_transformed[c, 2:n_covariates_c]) ~ normal(
+                            to_vector(prior_beta_mu_mean[c, 2:n_covariates_c]),
+                            to_vector(prior_beta_mu_SD[c, 2:n_covariates_c]));
+                  }
+                  if (scale_replaced == 0) {
+                       to_vector(raw_scale_mu_transformed[c, 1:n_covariates_c]) ~ normal(
+                            to_vector(prior_raw_scale_mu_mean[c, 1:n_covariates_c]),
+                            to_vector(prior_raw_scale_mu_SD[c, 1:n_covariates_c]));
+                  } else if (n_covariates_c > 1) {
+                       to_vector(raw_scale_mu_transformed[c, 2:n_covariates_c]) ~ normal(
+                            to_vector(prior_raw_scale_mu_mean[c, 2:n_covariates_c]),
+                            to_vector(prior_raw_scale_mu_SD[c, 2:n_covariates_c]));
+                  }
+                  if (loc_replaced == 1) {
+                       vector[n_covariates_c] baseline = (c == 1) ? baseline_case_nd : baseline_case_d;
+                       real location  = dot_product(baseline, to_vector(beta_mu_transformed[c, 1:n_covariates_c]));
+                       real raw_scale = dot_product(baseline, to_vector(raw_scale_mu_transformed[c, 1:n_covariates_c]));
+                       real scale = (softplus == 1) ? 1.4426950408889634 * log1p_exp(raw_scale) : exp(raw_scale);
+                       vector[n_chosen_cutoffs[c]] C_baseline = (C[c][chosen_cutoffs[c, 1:n_chosen_cutoffs[c]]] - location) / scale;
+                       matrix[n_chosen_cutoffs[c], 2] prior_beta_of_this_class = prior_Se_Sp_beta[c][1:n_chosen_cutoffs[c], ];
+                       matrix[n_chosen_cutoffs[c], 2] prior_link_mean_SD_of_this_class = prior_Se_Sp_link_mean_SD[c][1:n_chosen_cutoffs[c], ];
+                       if (c == 2) {
+                            prior_link_mean_SD_of_this_class[, 1] = -prior_link_mean_SD_of_this_class[, 1];
+                            if (Se_Sp_prior_type == 2) {
+                                 prior_beta_of_this_class = append_col(prior_beta_of_this_class[, 2],
+                                                                       prior_beta_of_this_class[, 1]);
+                            }
+                       }
+                       target += nico_Se_Sp_prior_at_chosen_cutoffs_lupdf(C_baseline | Se_Sp_prior_type,
+                                                                       prior_Se_Sp_dirichlet_A[c][1:(n_chosen_cutoffs[c] + 1)],
+                                                                       prior_beta_of_this_class,
+                                                                       prior_link_mean_SD_of_this_class,
+                                                                       use_probit_link);
+                       target += log(abs(baseline[1])) - log(scale);
+                       if (scale_replaced == 1) {
+                            real log_scale_derivative = (softplus == 1) ?
+                                                        log_inv_logit(raw_scale) - log(log(2.0)) : raw_scale;
+                            real C_gap = C[c][chosen_cutoffs[c, 2]] - C[c][chosen_cutoffs[c, 1]];
+                            target += log(abs(baseline[1])) + log(C_gap) +
+                                      log_scale_derivative - 2.0 * log(scale);
+                            target += nico_Box_Cox_lambda_log_density_of_the_flat_Dirichlet(
+                                      lambda_transformed[c], location, scale, cts_thr_shifted_data,
+                                      chosen_cutoffs[c, 1:n_chosen_cutoffs[c]], use_probit_link, 1);
+                       }
+                  }
+                  if (scale_replaced == 0) {
+                       lambda_transformed[c] ~ normal(prior_boxcox_lambda_mean[c], prior_boxcox_lambda_SD[c]);
+                  }
+             }
+        }
+        ////
+        //// ---- Between-study random-effect standard normals:
+        ////
+        target += normal_lupdf(to_vector(beta_z) | 0, 1);
+        target += normal_lupdf(to_vector(raw_scale_z) | 0, 1);
+        ////
+        //// ---- Log-likelihood:
+        ////
+        //// (the fused likelihood of the NicoSIMD file, nico_binomial_counts_above_successive_cutpoints_of_a_
+        ////  cumulative_link_lupmf(x_2 | n, Xbeta, Xscale, C, cutpoint_index, ...), has no C++ body for these
+        ////  arguments: the likelihood is the plain Stan math file's own, as in DTA_MA_Jones_Se_Sp_prior.stan)
+        {
+            array[2] matrix[n_studies, n_thr] latent_surv = map_latent_surv_to_fixed_hetero_C(
+                                                            C, Xbeta, Xscale, n_studies,
+                                                            n_obs_cutpoints, cutpoint_index);
+            target += compute_log_lik_binomial_fact_lp(
+                      latent_surv, use_probit_link, n_thr, n_studies,
+                      x_2, n, N_total, n_obs_cutpoints,
+                      K_fold_CV_indicator);
+        }
+}
+
+
+generated quantities {
+          ////
+          //// ---- Compute between-study variance-covariance matrix for location parameters:
+          ////
+          corr_matrix[2] beta_Omega      = multiply_lower_tri_self_transpose(beta_L_Omega);
+          corr_matrix[2] raw_scale_Omega = multiply_lower_tri_self_transpose(raw_scale_L_Omega);
+          ////
+          matrix[2, 2] beta_Sigma      = multiply_lower_tri_self_transpose(beta_L_Sigma);
+          matrix[2, 2] raw_scale_Sigma = multiply_lower_tri_self_transpose(raw_scale_L_Sigma); 
+          ////
+          //// ---- Calculate summary accuracy - "baseline" covariate values:
+          ////  
+          real Xbeta_baseline_nd = dot_product(baseline_case_nd, to_vector(beta_mu_transformed[1, 1:n_covariates_nd]));
+          real Xbeta_baseline_d  = dot_product(baseline_case_d,  to_vector(beta_mu_transformed[2, 1:n_covariates_d]));
+          ////
+          real Xraw_scale_baseline_nd = dot_product(baseline_case_nd, raw_scale_mu_transformed[1, 1:n_covariates_nd]);
+          real Xraw_scale_baseline_d  = dot_product(baseline_case_d,  raw_scale_mu_transformed[2, 1:n_covariates_d]);
+          real scale_nd_baseline = ((softplus == 1) ? 1.4426950408889634 * log1p_exp(Xraw_scale_baseline_nd) : exp(Xraw_scale_baseline_nd));
+          real scale_d_baseline  = ((softplus == 1) ? 1.4426950408889634 * log1p_exp(Xraw_scale_baseline_d)  : exp(Xraw_scale_baseline_d));
+          ////
+          //// ---- Calculate baseline Se/Sp:
+          ////
+          vector[n_thr] Fp_baseline = (use_probit_link == 1) ? 
+                                      Phi(-(C[1] - Xbeta_baseline_nd)/scale_nd_baseline) : 
+                                      inv_logit(-(C[1] - Xbeta_baseline_nd)/scale_nd_baseline);
+          vector[n_thr] Sp_baseline = 1.0 - Fp_baseline;
+          vector[n_thr] Se_baseline = (use_probit_link == 1) ?
+                                      Phi(-(C[2] - Xbeta_baseline_d)/scale_d_baseline) : 
+                                      inv_logit(-(C[2] - Xbeta_baseline_d)/scale_d_baseline);
+          ////
+          //// ---- Calculate predictive accuracy:
+          ////
+          vector[2] beta_random_pred      = multi_normal_cholesky_rng(rep_vector(0.0, 2), beta_L_Sigma);
+          vector[2] raw_scale_random_pred = multi_normal_cholesky_rng(rep_vector(0.0, 2), raw_scale_L_Sigma);
+          ////
+          real Xbeta_baseline_pred_nd = dot_product(baseline_case_nd, beta_mu_transformed[1, 1:n_covariates_nd]) + beta_random_pred[1];
+          real Xbeta_baseline_pred_d  = dot_product(baseline_case_d,  beta_mu_transformed[2, 1:n_covariates_d])  + beta_random_pred[2];
+          ////
+          real Xraw_scale_baseline_pred_nd = dot_product(baseline_case_nd, raw_scale_mu_transformed[1, 1:n_covariates_nd]) + raw_scale_random_pred[1];
+          real Xraw_scale_baseline_pred_d  = dot_product(baseline_case_d,  raw_scale_mu_transformed[2, 1:n_covariates_d]) + raw_scale_random_pred[2];
+          real scale_nd_baseline_pred = ((softplus == 1) ? 
+                                        1.4426950408889634 * log1p_exp(Xraw_scale_baseline_pred_nd) : exp(Xraw_scale_baseline_pred_nd));
+          real scale_d_baseline_pred  = ((softplus == 1) ? 
+                                        1.4426950408889634 * log1p_exp(Xraw_scale_baseline_pred_d)  : exp(Xraw_scale_baseline_pred_d));
+          ////
+          vector[n_thr] Fp_baseline_pred = (use_probit_link == 1) ? 
+                                           Phi(-(C[1] - Xbeta_baseline_pred_nd)/scale_nd_baseline_pred)  : 
+                                           inv_logit(-(C[1] - Xbeta_baseline_pred_nd)/scale_nd_baseline_pred);
+          vector[n_thr] Sp_baseline_pred = 1.0 - Fp_baseline_pred;
+          vector[n_thr] Se_baseline_pred = (use_probit_link == 1) ? 
+                                           Phi(-(C[2] - Xbeta_baseline_pred_d)/scale_d_baseline_pred) : 
+                                           inv_logit(-(C[2] - Xbeta_baseline_pred_d)/scale_d_baseline_pred);
+          ////
+          //// ---- Log-lik + study-specific accuracy computation (using "data" / double-precision fn for efficiency):
+          ////
+          vector[n_studies] log_lik_study = rep_vector(0.0, n_studies);
+          ////
+          if (log_lik_indicator == 1) {
+              array[2] matrix[n_studies, n_thr] latent_surv = nico_map_latent_surv_to_fixed_hetero_C(
+                                                              C, Xbeta, Xscale, n_studies, 
+                                                              n_obs_cutpoints, cutpoint_index);
+              ////
+              array[n_studies] int dummy_CV_indicator;
+              for (s in 1:n_studies) {
+                  dummy_CV_indicator[s] = 1;
+              }
+              array[3, 2] matrix[n_studies, n_thr] outs = nico_compute_log_lik_binomial_fact_data(
+                                                          latent_surv, use_probit_link, n_thr, n_studies,
+                                                          x_2, n, N_total, n_obs_cutpoints,
+                                                          dummy_CV_indicator);
+              ////
+              //// ---- Sum log-lik across thresholds and disease status within each study
+              ////
+              for (s in 1:n_studies) {
+                  for (k in 1:n_obs_cutpoints[s]) {
+                    log_lik_study[s] += outs[1][1][s, k];  // Non-diseased
+                    log_lik_study[s] += outs[1][2][s, k];  // Diseased
+                  }
+              }
+              ////
+              array[2] matrix[n_studies, n_thr] cond_prob = outs[2];
+              array[2] matrix[n_studies, n_thr] surv_prob = outs[3];
+          }
+}
