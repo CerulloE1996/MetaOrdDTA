@@ -65,7 +65,7 @@ static constexpr int    MILLS_CF_DEPTH     = 40;
 
 }  // namespace reference
 
-// ---- one value: the buffer helpers of the fused functions read and write plain doubles
+// ---- one value: the buffer helpers of the fused functions read and write doubles
 using simd_t = double;
 inline simd_t simd_loadu(const double* p) { return *p; }
 inline void   simd_storeu(double* p, simd_t v) { *p = v; }

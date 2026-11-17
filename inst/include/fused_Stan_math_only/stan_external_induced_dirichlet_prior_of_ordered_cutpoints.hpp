@@ -1479,27 +1479,33 @@ inline void counts_reverse_pass_simd(const int* n,
                                      double* d_S,
                                      double* d_latent,
                                      double* t2_tmp) {
-    int k = 0;
-    for (; k < K; ++k) {
-        const double succ = static_cast<double>(n[k]);
-        const double fail = static_cast<double>(n_previous[k] - n[k]);
-        const double d_p = adjoint * p_passes[k]
-            * (((succ > 0.0) ? (succ / p[k]) : 0.0) - ((fail > 0.0) ? (fail / (1.0 - p[k])) : 0.0));
-        const double S_prev = (k == 0) ? 1.0 : S[k - 1];
-        const double S0 = S_prev * (1.0 - is_first[k]) + is_first[k];
-        d_S[k] = d_p / S0;
-        t2_tmp[k] = (k > 0) ? (d_p * (S[k] / S0) / S0 * (1.0 - is_first[k])) : 0.0;
-    }
-    for (int i = 0; i < K - 1; ++i) {
-        d_S[i] -= t2_tmp[i + 1];
-    }
-    if (link == 1) {
-        for (int i = 0; i < K; ++i) d_latent[i] = -0.5 * latent[i] * latent[i];
-        fused_stan_math::k_exp(d_latent, K);
-        for (int i = 0; i < K; ++i) d_latent[i] *= INV_SQRT_2PI * d_S[i];
-    } else {
-        for (int i = 0; i < K; ++i) d_latent[i] = d_S[i] * S[i] * (1.0 - S[i]);
-    }
+    //// (the log-scale reverse pass of the binomial counts above successive cutpoints, the same for every
+    ////  caller: finite where Phi underflows; t2_tmp is no longer needed)
+    (void) t2_tmp;
+    fused_stan_math::binomial_counts_above_successive_cutpoints::reverse_pass(
+        n, n_previous, latent, is_first, link, K, S, p, p_passes, adjoint, d_S, d_latent);
+    //// (the linear-scale pass it replaces, kept for reference:)
+    // int k = 0;
+    // for (; k < K; ++k) {
+    //     const double succ = static_cast<double>(n[k]);
+    //     const double fail = static_cast<double>(n_previous[k] - n[k]);
+    //     const double d_p = adjoint * p_passes[k]
+    //         * (((succ > 0.0) ? (succ / p[k]) : 0.0) - ((fail > 0.0) ? (fail / (1.0 - p[k])) : 0.0));
+    //     const double S_prev = (k == 0) ? 1.0 : S[k - 1];
+    //     const double S0 = S_prev * (1.0 - is_first[k]) + is_first[k];
+    //     d_S[k] = d_p / S0;
+    //     t2_tmp[k] = (k > 0) ? (d_p * (S[k] / S0) / S0 * (1.0 - is_first[k])) : 0.0;
+    // }
+    // for (int i = 0; i < K - 1; ++i) {
+    //     d_S[i] -= t2_tmp[i + 1];
+    // }
+    // if (link == 1) {
+    //     for (int i = 0; i < K; ++i) d_latent[i] = -0.5 * latent[i] * latent[i];
+    //     fused_stan_math::k_exp(d_latent, K);
+    //     for (int i = 0; i < K; ++i) d_latent[i] *= INV_SQRT_2PI * d_S[i];
+    // } else {
+    //     for (int i = 0; i < K; ++i) d_latent[i] = d_S[i] * S[i] * (1.0 - S[i]);
+    // }
 }
 
 }  // namespace obiv_rc_detail

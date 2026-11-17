@@ -51,6 +51,7 @@
 #include "stan_external_functions_on_Stan_math_only.hpp"
 #include "stan_external_binomial_lpmf.hpp"
 
+#include <stan/math/mix.hpp>
 #include <stan/math/rev.hpp>
 #include <stan/math/prim.hpp>
 
@@ -68,6 +69,37 @@ namespace binomial_counts_above_successive_cutpoints {
 
 static constexpr const char* function_name =
     "nico_binomial_counts_above_cuts_cumul_link_lpmf";
+
+
+
+
+// ---- log S_k, the log of the survival probability above cutpoint k, as the Stan::math files make it:
+//      log(Phi(latent)) above -30, std_normal_lcdf(latent) at and below -30 (probit); log_inv_logit(latent) (logit).
+//      S is Phi(latent) or inv_logit(latent), already made
+inline double log_of_the_survival_probability(const double latent,
+                                              const double S,
+                                              const int link) {
+
+    if (link == 1) return (latent > -30.0) ? std::log(S) : stan::math::std_normal_lcdf(latent);
+    return stan::math::log_inv_logit(latent);
+
+}
+
+// ---- d log S_k / d latent_k, as Stan's autodiff of the same statements: phi(latent) / Phi(latent) above -30
+//      (the derivative of Phi, then of log), the derivative of Stan's own std_normal_lcdf at and below -30 (in
+//      forward mode, from the same partials as its reverse mode); inv_logit(-latent) for log_inv_logit
+inline double derivative_of_the_log_survival_probability(const double latent,
+                                                         const double S,
+                                                         const int link) {
+
+    if (link == 1) {
+        if (latent > -30.0) return (1.0 / S) * (INV_SQRT_2PI * std::exp(-0.5 * latent * latent));
+        const stan::math::fvar<double> log_S = stan::math::std_normal_lcdf(stan::math::fvar<double>(latent, 1.0));
+        return log_S.d_;
+    }
+    return stan::math::inv_logit(-latent);
+
+}
 
 
 
@@ -93,12 +125,20 @@ inline bool forward_pass(const int* n, const int* n_previous, const double* late
         k_inv_logit(S, K);
     }
     const double upper = 1.0 - bound;
+    //// (the ratio S_k / S0_k from the logs of the survival probabilities, as the Stan::math files'
+    ////  compute_log_lik_binomial_fact_lp and compute_NMA_log_lik_binomial_fact_lp: exp(log S_k - log S0_k), with
+    ////  log S0_k = 0 at the first reported cutpoint of its group and log S_(k-1) otherwise, so that the ratio stays
+    ////  finite where Phi underflows)
+    // for (int k = 0; k < K; ++k) {
+    //     const double S_previous = (k == 0) ? 1.0 : S[k - 1];
+    //     const double S0 = S_previous * (1.0 - is_first[k]) + is_first[k];
+    //     const double ratio = S[k] / S0;
+    double log_S_previous = 0.0;
     for (int k = 0; k < K; ++k) {
-        //// (S0: 1 at the first reported cutpoint of its group, the previous S otherwise, as
-        ////  append_row(1.0, S[1:(K - 1)]) .* (1 - is_first) + is_first)
-        const double S_previous = (k == 0) ? 1.0 : S[k - 1];
-        const double S0 = S_previous * (1.0 - is_first[k]) + is_first[k];
-        const double ratio = S[k] / S0;
+        const double log_S = log_of_the_survival_probability(latent[k], S[k], link);
+        const double log_S0 = ((k == 0) || (is_first[k] > 0.5)) ? 0.0 : log_S_previous;
+        const double ratio = std::exp(log_S - log_S0);
+        log_S_previous = log_S;
         //// (Stan's fmin(1 - bound, ratio): ratio when ratio < 1 - bound, else the bound, NaN giving the bound;
         ////  then fmax(bound, .): the bound when bound > value, else the value)
         const double after_fmin = (ratio < upper) ? ratio : upper;
@@ -141,25 +181,29 @@ inline void reverse_pass(const int* n, const int* n_previous, const double* late
                          const int link, const int K, const double* S, const double* p, const double* p_passes,
                          const double adjoint, double* d_S, double* d_latent) {
 
+    //// (on the log scale: d_S holds d / d log S_k. p_k = exp(log S_k - log S0_k) where it passes the bounds, so
+    ////  d log p_k / d log S_k = 1 and d log p_k / d log S_(k-1) = -1; a p_k at a bound (or NaN) adds nothing, as
+    ////  Stan's fmin and fmax, and is skipped, so no zero is multiplied by 0 / 0 where Phi underflows)
+    // for (int k = 0; k < K; ++k) {
+    //     ...
+    //     d_S[k] += d_p / S0;
+    //     if (k > 0) d_S[k - 1] -= d_p * (S[k] / S0) / S0 * (1.0 - is_first[k]);
+    // }
     for (int k = 0; k < K; ++k) d_S[k] = 0.0;
     for (int k = 0; k < K; ++k) {
+        if (p_passes[k] == 0.0) continue;
         const double successes = n[k];
         const double failures = n_previous[k] - n[k];
-        const double d_p = adjoint * p_passes[k]
+        const double d_p = adjoint
                            * (((successes > 0.0) ? successes / p[k] : 0.0)
                               - ((failures > 0.0) ? failures / (1.0 - p[k]) : 0.0));
-        const double S_previous = (k == 0) ? 1.0 : S[k - 1];
-        const double S0 = S_previous * (1.0 - is_first[k]) + is_first[k];
-        d_S[k] += d_p / S0;
-        if (k > 0) d_S[k - 1] -= d_p * (S[k] / S0) / S0 * (1.0 - is_first[k]);
+        const double d_log_p = d_p * p[k];
+        d_S[k] += d_log_p;
+        if ((k > 0) && !(is_first[k] > 0.5)) d_S[k - 1] -= d_log_p;
     }
-    if (link == 1) {
-        //// (phi(latent) = exp(-latent^2 / 2) / sqrt(2 pi), with the exp kernel, as nico_Phi's derivative)
-        for (int k = 0; k < K; ++k) d_latent[k] = -0.5 * latent[k] * latent[k];
-        k_exp(d_latent, K);
-        for (int k = 0; k < K; ++k) d_latent[k] *= INV_SQRT_2PI * d_S[k];
-    } else {
-        for (int k = 0; k < K; ++k) d_latent[k] = d_S[k] * S[k] * (1.0 - S[k]);
+    for (int k = 0; k < K; ++k) {
+        d_latent[k] = (d_S[k] == 0.0) ? 0.0
+                                      : d_S[k] * derivative_of_the_log_survival_probability(latent[k], S[k], link);
     }
 
 }
