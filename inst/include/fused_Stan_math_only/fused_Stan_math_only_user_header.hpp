@@ -2,7 +2,8 @@
 //
 // -| --------- The fused functions of the MetaOrdDTA models, on Stan math only: the user header ---------------------
 //
-// The one header to give cmdstanr (or BridgeStan, CmdStan) for the MetaOrdDTA files *_fused_Stan_math_only.stan:
+// The one header to give cmdstanr (or BridgeStan, CmdStan) for the MetaOrdDTA files *_fused_Stan_math_only.stan
+// (the MA and NMA models):
 //
 //     cmdstanr::cmdstan_model(stan_file,
 //                             user_header   = <this file>,      (cmdstanr then runs stanc with allow-undefined)
@@ -17,6 +18,7 @@
 //   stan_external_binomial_lpmf.hpp:              nico_binomial_lpmf, nico_strat_bivariate_binomial_lpmf
 //   stan_external_binomial_counts_above_successive_cutpoints_of_a_cumulative_link.hpp:
 //                                                 nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf
+//                                                 (the full name of nico_binomial_counts_above_cuts_cumul_link_lpmf)
 //   stan_external_induced_dirichlet_prior_of_ordered_cutpoints.hpp:
 //                                                 nico_induced_dirichlet_prior_of_ordered_cutpoints_lpdf (and _ragged_),
 //                                                 nico_ord_biv_randthr_ind_dir_and_binomial_lpmf (and _precomputed_),
@@ -38,8 +40,10 @@
 //   stan_external_log_det_jacobian_of_cutpoints_from_raw_differences.hpp:
 //                                                 nico_log_det_jacobian_of_cutpoints_from_raw_differences,
 //                                                 nico_raw_C_to_C_log_det_J_lp, nico_construct_C, nico_ord_biv_fixedthr_model_lp
+//                                                 (nico_log_det_jac_of_cuts_from_raw_diffs under the full name: NMA)
 //   stan_external_factorised_binomial_log_lik_of_ordinal_test_accuracy_data.hpp:
 //                                                 nico_compute_log_lik_binomial_fact_data,
+//                                                 nico_compute_NMA_log_lik_binomial_fact_data,
 //                                                 nico_map_latent_surv_to_fixed_hetero_C (generated quantities, doubles)
 //   stan_external_pinkney_partially_centered_cutpoints.hpp:
 //                                                 nico_pinkney_C_and_log_J_from_alpha (and _precomputed, _both_ ...),

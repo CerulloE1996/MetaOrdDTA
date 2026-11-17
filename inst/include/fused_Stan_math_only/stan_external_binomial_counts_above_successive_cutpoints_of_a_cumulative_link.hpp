@@ -933,3 +933,31 @@ nico_binomial_counts_above_cuts_cumul_link_lpmf(
 }  // namespace fused_stan_math
 
 using fused_stan_math::nico_binomial_counts_above_cuts_cumul_link_lpmf;
+
+
+
+
+// ---- the name the MetaOrdDTA Stan files declare for the first function of this file, with the same arguments
+//      (n, n_previous, latent, is_first, link, bound):
+//          real nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
+//                array[] int n, array[] int n_previous, vector latent, data vector is_first, data int link,
+//                data real bound);
+//      the same function, under its full name
+namespace fused_stan_math {
+
+template <bool propto, typename T_n, typename T_n_previous, typename T_latent, typename T_is_first,
+          stan::require_all_std_vector_vt<std::is_integral, T_n, T_n_previous>* = nullptr,
+          stan::require_eigen_col_vector_t<T_latent>* = nullptr,
+          stan::require_eigen_col_vector_vt<std::is_arithmetic, T_is_first>* = nullptr>
+inline stan::return_type_t<T_latent> nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf(
+        const T_n& n, const T_n_previous& n_previous, const T_latent& latent, const T_is_first& is_first,
+        const int link, const double bound, std::ostream* pstream__) {
+
+    return nico_binomial_counts_above_cuts_cumul_link_lpmf<propto>(n, n_previous, latent, is_first, link, bound,
+                                                                   pstream__);
+
+}
+
+}  // namespace fused_stan_math
+
+using fused_stan_math::nico_binomial_counts_above_successive_cutpoints_of_a_cumulative_link_lpmf;

@@ -149,6 +149,23 @@ inline stan::return_type_t<T_C_raw> nico_log_det_jac_of_cuts_from_raw_diffs(
 
 using fused_stan_math::nico_log_det_jac_of_cuts_from_raw_diffs;
 //
+// ---- the same function under the name the MetaOrdDTA NMA Stan files declare:
+//          real nico_log_det_jacobian_of_cutpoints_from_raw_differences(vector C_raw, data int softplus);
+//          real nico_log_det_jacobian_of_cutpoints_from_raw_differences(matrix C_raw, data int softplus);
+namespace fused_stan_math {
+
+template <typename T_C_raw, stan::require_eigen_t<T_C_raw>* = nullptr>
+inline stan::return_type_t<T_C_raw> nico_log_det_jacobian_of_cutpoints_from_raw_differences(
+        const T_C_raw& C_raw, const int softplus, std::ostream* pstream__) {
+
+    return nico_log_det_jac_of_cuts_from_raw_diffs(C_raw, softplus, pstream__);
+
+}
+
+}  // namespace fused_stan_math
+
+using fused_stan_math::nico_log_det_jacobian_of_cutpoints_from_raw_differences;
+//
 // ---- the same function under the name of MetaOrdDTA's Stan function with nico_ in front (an _lp function: stanc
 //      calls it as nico_raw_C_to_C_log_det_J_lp<propto__>(C_raw, softplus, lp__, lp_accum__, pstream__))
 namespace fused_stan_math {
