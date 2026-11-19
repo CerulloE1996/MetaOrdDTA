@@ -20,20 +20,25 @@
 ##   continuous, the grouping of the paper since 19 Nov 2026 23:21; "old" = the Jones / ordinal / competing DGMs of the earlier versions)
 ##   or, in R: source() this file, then e.g. QC_table_overall_ranking("<outputs folder>").
 ##
-## Needs base R only (utils, stats). Written 19 Nov 2026.
+## Needs base R only (utils, stats). Written 19 Nov 2026; changed 19 Nov 2026 for push 5 (every appendix ranking now takes the rule of
+## the main text by default; the mark section-sign for "Group 3 - Practical only"; the old appendix rule kept as a labelled extra).
 ##
 ## Definitions (from the notes of the paper):
 ##   RMSE of a cell = RMSE(Se) + RMSE(Sp), bias of a cell = |bias(Se)| + |bias(Sp)| (percentage points);
 ##   MCSE of a cell = the larger of the MCSEs of Se and Sp (for RMSE and for bias, each);
 ##   4-group classification of a cell within its scenario, relative to the best (lowest) model of the scenario:
-##     statistically different = difference >= 4 x MCSE (taken here as 4 x the larger of the MCSEs of the cell and of the best cell:
-##     the paper does not say which MCSE; see the report), practically different = at least 10% higher;
+##     statistically different = difference >= 4 x the larger of the MCSEs of the cell and of the best cell (what the outputs do,
+##     and what the notes of the paper say since push 5), practically different = at least 10% higher;
 ##     Group 1 = neither, 2 = statistically only, 3 = practically only, 4 = both;
-##   main-text means: MCSE of a mean = sqrt(sum of MCSE_i^2) / n over its n scenarios; star = Group 4, dagger = Group 2, vs the
-##     best-ranked model of the column, over the scenarios in which every model of the column has a result (like for like);
-##   appendix rankings (notes of those tables): star = a difference of at least 4 x MCSE, the MCSE of a mean = the mean MCSE
-##     across the scenarios, no practical criterion; double dagger = a model with no result in some scenarios, ranked and compared
-##     with the best model against the means of the other models across the same scenarios.
+##   every ranking of means (main text and, since push 5, every appendix ranking of prior sets 0, 1 and 2, overall, by share
+##     missing and by test, by RMSE and by bias): over the scenarios in which every model of the column has a result (like for like);
+##     MCSE of a mean = sqrt(sum of MCSE_i^2) / n over its n scenarios; statistically worse than the best-ranked model of the column
+##     = a difference of at least 4 x the larger of the two MCSEs (of the model and of the best), practically worse = at least 10%
+##     higher; star = both ("Group 4 - Worse"), dagger = statistically only ("Group 2 - Stat only"), section sign (LaTeX \S) =
+##     practically only ("Group 3 - Practical only"); double dagger = a model shown over fewer scenarios than its column;
+##   the appendix rule of 19 Nov (before push 5), kept only as a labelled extra comparison (rule = "appendix_rule_of_19_Nov"):
+##     each model over all its scenarios (double dagger for fewer, ranked and compared against the means of the other models across
+##     the same scenarios), MCSE of a mean = the mean MCSE across the scenarios, star = statistically worse only, no practical test.
 ##   Prior sets 1 and 2 are for the five Bayesian models only: the frequentist models have no priors (their rows are left out by
 ##     default; frequentist_models = "included_with_their_set_0_cells" reproduces what the appendix tables of 19 Nov did).
 ##
@@ -200,7 +205,7 @@ QC_rank_the_means_of_one_column <- function(cells,
       ranking$practically_worse <-  difference > 0 & 100 * difference / ranking$mean_of_the_best >= QC_relative_difference_of_practical_significance
       if (practical_criterion) {
             ranking$mark <-  ifelse(ranking$statistically_worse & ranking$practically_worse, "*",
-                                    ifelse(ranking$statistically_worse, "dagger", ifelse(ranking$practically_worse, "practically_only_no_symbol", "")))
+                                    ifelse(ranking$statistically_worse, "dagger", ifelse(ranking$practically_worse, "section", "")))
       } else {
             ranking$mark <-  ifelse(ranking$statistically_worse, "*", "")
       }
@@ -434,21 +439,23 @@ QC_table_models_by_DGM <- function(outputs_folder,
 ##
 ## ==== The tables of the appendix ====================================================================================================
 ##
-## ---- Appendix rankings (prior set 0, 1 or 2), overall, by share missing or by test, by RMSE or by bias, with the rule of the notes
-## ---- of those tables (mean MCSE, statistical criterion only) unless rule = "as_in_the_main_text".
+## ---- Appendix rankings (prior set 0, 1 or 2), overall, by share missing or by test, by RMSE or by bias. Since push 5 the rule is
+## ---- the rule of the main text (rule = "as_in_the_main_text", the default); rule = "appendix_rule_of_19_Nov" gives the rule the
+## ---- appendix had before push 5 (each model over all its scenarios, mean MCSE, statistical test only), for a labelled extra check.
 ##
 QC_table_appendix_ranking <- function(outputs_folder,
                                       prior_set,
                                       measure,
                                       by,
                                       frequentist_models = "left_out",
-                                      rule = "as_in_the_notes_of_the_appendix") {
+                                      rule = "as_in_the_main_text") {
 
       name_of_the_measure <-  if (measure == "RMSE") "RMSE" else "Bias"
       name_of_the_other <-  if (measure == "RMSE") "Bias" else "RMSE"
       by_in_the_label <-  c(overall = "overall", share = "by_share_missing", test = "by_test")[by]
       table <-  sprintf("Table:ranking_of_the_models_%s_%s%s", by_in_the_label, measure, if (by == "overall" && prior_set != "set_0") paste0("_", prior_set) else "")
       cells <-  QC_add_the_groups(QC_cells_of_one_prior_set(QC_read_the_cells_of_the_paper(outputs_folder), prior_set, frequentist_models))
+      stopifnot(rule %in% c("as_in_the_main_text", "appendix_rule_of_19_Nov"))
       like_for_like <-  rule == "as_in_the_main_text"
       rule_of_the_MCSE <-  if (rule == "as_in_the_main_text") "root_of_the_sum_of_squares_over_n" else "mean_of_the_MCSEs"
       practical <-  rule == "as_in_the_main_text"
@@ -582,6 +589,7 @@ QC_parse_a_cell <- function(x) {
 
       marks <-  c(if (grepl("^{*}", x, fixed = TRUE)) "*", if (grepl("\\ddagger", x, fixed = TRUE)) "ddagger",
                   if (grepl("\\dagger", gsub("\\ddagger", "", x, fixed = TRUE), fixed = TRUE)) "dagger",
+                  if (grepl("^{\\S}", x, fixed = TRUE) || grepl("\\S$", x, fixed = TRUE) || grepl("\\S}", x, fixed = TRUE)) "section",
                   if (grepl("\\\\mathbf|\\\\textbf", x)) "bold")
       MCSE <-  NA_real_; MCSE_decimals <-  NA_integer_
       in_brackets <-  regmatches(x, regexec("\\\\scriptsize\\(([0-9.]+)\\)", x))[[1]]
@@ -708,6 +716,8 @@ QC_read_one_table_of_a_tex_file <- function(lines,
             out <-  QC_paper_cells_of_a_ranking_table(rows, table, c("Rank", "Model", "Reference", "R package", "RMSE", "Best RMSE", "Bias", "Best bias", families),
                                                      c(NA, rep("overall", 7 + length(families))))
             patterns <-  list("scenarios in which every model has a result" = "across the \\$(\\d+)\\$ scenarios in which every model has a result")
+            if (family_grouping == "new") patterns <-  c(patterns, list("scenarios of the family Ordinal" = "the \\$(\\d+)\\$ scenarios of the three ordinal DGMs",
+                                                                        "scenarios of the family Continuous" = "the \\$(\\d+)\\$ scenarios of the four continuous DGMs"))
             if (family_grouping == "old") patterns <-  c(patterns, list("scenarios of the family Jones" = "across the \\$(\\d+)\\$ scenarios of the Jones DGM",
                                                                         "scenarios of the family Ordinal" = "the \\$(\\d+)\\$ scenarios of the three ordinal DGMs",
                                                                         "scenarios of the family Competing" = "the \\$(\\d+)\\$ scenarios of the three competing DGMs"))
@@ -857,11 +867,15 @@ QC_compare_every_table_with_the_paper <- function(outputs_folder,
                                                   family_grouping_of_the_tex = "old") {
 
       made_here <-  QC_make_every_table(outputs_folder, family_grouping_of_the_tex, "left_out")
-      made_here_with_the_frequentist_cells <-  QC_make_every_table(outputs_folder, family_grouping_of_the_tex, "included_with_their_set_0_cells")
-      made_here_with_the_main_text_rule <-  list()
+      ## (two labelled extras for the appendix rankings: the appendix rule of 19 Nov with the five Bayesian models of sets 1 and 2;
+      ## and the 19 Nov script as it was, i.e. that rule with the frequentist cells of set 0 put into sets 1 and 2)
+      made_here_with_the_appendix_rule_of_19_Nov <-  list()
+      made_here_with_the_frequentist_cells <-  list()
       for (k in c("set_0", "set_1", "set_2")) for (measure in c("RMSE", "bias")) for (by in c("overall", "share", "test")) {
-            one <-  QC_table_appendix_ranking(outputs_folder, k, measure, by, if (k == "set_0") "left_out" else "included_with_their_set_0_cells", "as_in_the_main_text")
-            made_here_with_the_main_text_rule[[paste(k, one$table[1])]] <-  one
+            one <-  QC_table_appendix_ranking(outputs_folder, k, measure, by, "left_out", "appendix_rule_of_19_Nov")
+            made_here_with_the_appendix_rule_of_19_Nov[[paste(k, one$table[1])]] <-  one
+            one <-  QC_table_appendix_ranking(outputs_folder, k, measure, by, "included_with_their_set_0_cells", "appendix_rule_of_19_Nov")
+            made_here_with_the_frequentist_cells[[paste(k, one$table[1])]] <-  one
       }
       paper_lines <-  QC_active_lines_of_a_tex_file(paper_tex_file)
       tables <-  QC_tables_of_the_paper()
@@ -879,11 +893,11 @@ QC_compare_every_table_with_the_paper <- function(outputs_folder,
             }
             if (label %in% c("Table:ranking_of_the_models_overall_set_1", "Table:ranking_of_the_models_overall_set_2")) {
                   with_frequentist <-  made_here_with_the_frequentist_cells[[tables$key_made_here[i]]]; with_frequentist$table <-  label
-                  every_comparison[[paste("paper, against the frequentist cells of set 0 put in as the 19 Nov script did:", label)]] <-  QC_compare_one_table(with_frequentist, paper)
+                  every_comparison[[paste("paper, against the 19 Nov script as it was (appendix rule of 19 Nov, frequentist cells of set 0 put in):", label)]] <-  QC_compare_one_table(with_frequentist, paper)
             }
             if (tables$kind[i] %in% c("share_appendix_bias", "test_appendix_bias", "overall_appendix_RMSE")) {
-                  main_rule <-  made_here_with_the_main_text_rule[[tables$key_made_here[i]]]; main_rule$table <-  label
-                  every_comparison[[paste("paper, against the rule of the main text (like for like, sqrt(sum MCSE^2)/n, star and dagger):", label)]] <-  QC_compare_one_table(main_rule, paper)
+                  old_rule <-  made_here_with_the_appendix_rule_of_19_Nov[[tables$key_made_here[i]]]; old_rule$table <-  label
+                  every_comparison[[paste("paper, against the appendix rule of 19 Nov (each model over all its scenarios, mean MCSE, statistical test only):", label)]] <-  QC_compare_one_table(old_rule, paper)
             }
       }
       others <-  QC_generated_tables_not_in_the_paper()
@@ -895,7 +909,7 @@ QC_compare_every_table_with_the_paper <- function(outputs_folder,
             every_comparison[[paste("generated .tex only (not in the paper):", others$generated_file[i])]] <-  QC_compare_one_table(mine, generated)
             if (grepl("^set_[12]", others$key_made_here[i])) {
                   with_frequentist <-  made_here_with_the_frequentist_cells[[others$key_made_here[i]]]
-                  every_comparison[[paste("generated .tex only (not in the paper), against the frequentist cells of set 0 put in as the 19 Nov script did:", others$generated_file[i])]] <-  QC_compare_one_table(with_frequentist, generated)
+                  every_comparison[[paste("generated .tex only (not in the paper), against the 19 Nov script as it was (appendix rule of 19 Nov, frequentist cells of set 0 put in):", others$generated_file[i])]] <-  QC_compare_one_table(with_frequentist, generated)
             }
       }
       left_out <-  QC_cells_left_out_of_the_paper(outputs_folder)
