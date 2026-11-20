@@ -334,10 +334,12 @@ outs_AUC <- model_summary_and_trace_obj$extract_AUC(test_names = test_names)
 outs_AUC$outs_AUC$auc      ## the AUC of each test
 outs_AUC$outs_AUC$auc_pred ## the AUC prediction intervals
 outs_AUC$outs_AUC$auc_diff ## the pairwise differences in AUC between the tests
+cat(MetaOrdDTA::create_AUC_latex_table(auc_outs = outs_AUC$outs_AUC)) ## LaTeX code of a table of the results
 ```
 
 
-The AUC of each test - and the pairwise differences in AUC between the tests - are obtained using the `$extract_AUC()` R6 class method;
+The AUC of each test - and the pairwise differences in AUC between the tests - are obtained using the `$extract_AUC()` R6 class method,
+and the `create_AUC_latex_table()` function gives the LaTeX code of a table of these results;
 note that the prediction intervals incorporate the between-study heterogeneity.
 
 
@@ -412,12 +414,12 @@ if "Se" (or "Sp") is specified, then only the sensitivity (or specificity) curve
 ## ---- Thresholds to compare (e.g., the typical screening thresholds of each test):
 thr_screening <- list("GAD-2" = c(3),
                       "GAD-7" = c(8, 9, 10),
-                      "HADS"  = c(9, 10, 11))
+                      "HADS"  = c(9, 10, 11)) ## only these tests (and thresholds) are shown
 baseline_plot_settings <- list()
 baseline_plot_settings$show_values <- TRUE ## also shows the posterior medians and 95% CrI's of the pairwise differences
 ## ---- Plot the Se and Sp pairwise differences as forest plots, using the "$plot_pairwise()" R6 class method:
 outs_plot_pairwise <- model_summary_and_trace_obj$plot_pairwise(comparison_type = "both",
-                                                                test_names = c("GAD-2", "GAD-7", "HADS"),
+                                                                test_names = test_names, ## all four tests, in the order of the model
                                                                 relevant_thresholds = thr_screening,
                                                                 baseline_plot_settings = baseline_plot_settings)
 outs_plot_pairwise$Se       ## Se pairwise differences only

@@ -129,16 +129,16 @@ thr_screening = list(
 #                           metareg_plot_settings = NULL)
 # ##
 # ##
-outs_NMA_comp_subset <- outs_NMA_comp %>% filter(test1_name != "BAI", test2_name != "BAI") ## filter out BAI
+## (no need to filter out BAI: relevant_thresholds below picks the tests shown)
 # outs_NMA_comp_subset %>% print(n = 1000)
 ##
 baseline_plot_settings <- list()
 baseline_plot_settings$show_values <- TRUE ## shows posterior medians and 95% CrI's for pairwise diffs
 ##
-outs_plot_pairwise <- Baseline_Model_best$model_summary_and_trace_obj$plot_pairwise( tibble_comp = outs_NMA_comp_subset,
+outs_plot_pairwise <- Baseline_Model_best$model_summary_and_trace_obj$plot_pairwise(
                                                                                      comparison_type = "both",
                                                                                      ##
-                                                                                     test_names = c("GAD-2", "GAD-7", "HADS"),
+                                                                                     test_names = test_names, ## all four tests, in the order of the model (relevant_thresholds picks the tests shown)
                                                                                      relevant_thresholds = thr_screening,
                                                                                      ##
                                                                                      baseline_plot_settings = baseline_plot_settings,
@@ -316,7 +316,7 @@ metareg_plot_settings$ratio_text <- 2.25
 outs_plot_pairwise <- MR_Model_dummy$model_summary_and_trace_obj$plot_pairwise(   
                                                                                  comparison_type = "both",
                                                                                  ##
-                                                                                 test_names = c("GAD-2", "GAD-7", "HADS"),
+                                                                                 test_names = test_names, ## all four tests, in the order of the model (relevant_thresholds picks the tests shown)
                                                                                  relevant_thresholds = thr_screening,
                                                                                  ##
                                                                                  baseline_plot_settings = NULL,

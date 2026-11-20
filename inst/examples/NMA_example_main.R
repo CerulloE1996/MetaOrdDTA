@@ -1068,8 +1068,7 @@ for (method in updated_methods) {
 ##
 ## ---- AUC: ----------------------------------------------------------------------------------------------------------------------------------
 ##
-outs_AUC <- Baseline_Model_best$model_summary_and_trace_obj$extract_AUC( test_names = test_names,
-                                                                         make_latex_table = TRUE)
+outs_AUC <- Baseline_Model_best$model_summary_and_trace_obj$extract_AUC( test_names = test_names)
 outs_AUC$outs_AUC
 
 ##
@@ -1079,7 +1078,7 @@ outs_AUC$outs_AUC
 #                                                  digits = 3)
 # cat(AUC_latex_table_DUMMY)
 ###
-cat(outs_AUC$outs_AUC_latex_table)
+cat(MetaOrdDTA::create_AUC_latex_table(auc_outs = outs_AUC$outs_AUC))
 
 
 ##
